@@ -2106,6 +2106,21 @@ done
 # into an overlap goes where the rules say and comes home when nudged back, undo / redo carry the memory, Reset Columns
 # and New clear it, Load restores it and remembers nothing on the way in, and a date typed through invalid years still
 # reads as a move. Red on the build before it at K1, K3, K6 and K8.
+# keepcols (audit AUD2-057, the Nov 2026 audit's item 3.8, 14 Nov 2026) holds what "a phase you move" means and the give-way:
+# on keepcols-heavy (the audit's ten-phase calendar, typed into the app, so the file remembers a column for eight phases)
+# the columns after a typed length, a whole-calendar Shift and one phase's arrow are the ones Reset Columns gives for the
+# same dates (every remembered column, a predecessor's too, gives way when it costs one); a length, a Shift of every
+# phase and a calendar typed in from New remember nothing; one phase's arrow or re-typed start remembers that phase; a
+# break that Ripple Hiatus pushes one phase across remembers nothing (the leg runs with Ripple Hiatus on). Red on
+# 2089aa5 at KC0-KC7; KC7 alone red without the ripple guard.
+# headingsfollow (audit AUD2-077, same item) holds typed column headings following their phase when the APP rearranges a
+# year's columns: Update layout on keepcols-heavy unstamped (2026 five columns to four, 2027 seven to five) and Reset
+# Columns on swap-holds. Every heading still drawn is over its own phase, one that had to go (its phase now shares a
+# column under another heading) is named in the one-line #heading-notice, one Undo restores all, and the saved file
+# holds no heading on a position that no longer exists. Red on 2089aa5 at H1, H2, H4 (A) and H1 (B). Review repair (same
+# day): only two TYPED headings landing on one column remove one (H5a: a heading over custom3 alone moves with no strip;
+# H5b: over custom3 and custom4, one is named), and a shareable copy exported with the strip up carries it hidden and
+# empty (H6). H5a, H5b, H6 red on 0afa1ca.
 # showfolder (owner, 4 Nov 2026, "I want to see where the file is saved") guards the file menu's right-click "Show in
 # folder…": the app's own menu opens on a loaded file, the Mac's file window is asked for with startIn = THAT file's
 # handle and Load…'s types, Cancel changes nothing, unsaved work is asked about only AFTER a pick, a pick loads, and a
@@ -2269,6 +2284,7 @@ for AFSPEC in pwagate:-:120 pwagatelogic:-:120 settingswin:-:240 newtab:-:120 \
               fillspace:layout-r13:300 lanefill:layout-r9:240 \
               swapholds:swap-holds:400 \
               stickycols:sticky-cols:400 \
+              keepcols:keepcols-heavy:600 headingsfollow:keepcols-heavy:600 headingsfollow:swap-holds:600 \
               centrepullback:layout-r13:240 \
               hoverexpand:hover-expand:300 \
               swapbtnwhere:swapbtn-simpost-shared:120 \

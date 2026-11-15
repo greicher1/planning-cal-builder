@@ -4,6 +4,65 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### 🩹 14 Nov 2026: A WATERFALL ADJUSTED IN THE APP NO LONGER GROWS WIDER; TYPED HEADINGS FOLLOW THEIR PHASE (audit AUD2-057, AUD2-077). ⏳ **NOT merged, NOT pushed**: waits for the release train's one full gate. Branch `audit-3-8` (worktree `.claude/worktrees/audit-3-8`, cut from `origin/main` at `2089aa5`; `node_modules` is a clone copy, not a symlink). The November 2026 audit's item 3.8, owner-approved on the feature tracker. Both findings were not skeptic-verified; both REPRODUCED first on the build.
+- **AUD2-057, the writer (`noteMovedPhases`):** a column is remembered (`colKeep`) only for a DELIBERATE MOVE OF ONE
+  PHASE: its given start (`enteredDate`, via `placedEntered`; a holiday or a break never moves it) changed and no other
+  placed phase's start did. So its ▲ / ▼, a bar drag, a re-typed start and a one-phase Shift count; a length, a break,
+  Build Around or a Shift of several phases do not. `colKeepBase` entries carry `entered`. The hiatus ripple runs inside
+  `colKeepQuiet` (a counter beside `colKeep`): a break that pushes ONE phase is still not a move.
+- **AUD2-057, the placement (`placeSegmentsByRules`):** after rule 23's placement (now the inner `fewest(drop)`), every
+  remembered column is tried IGNORED (`drop`, which also lifts its reservation and its same-week priority), in placement
+  order; fewer columns without it and it is ignored for that layout, a tie keeps it, the entry stays (K2). Inert with no
+  memories (one placement, as before). Cost measured in real Chrome on the ten-phase calendar with eight memories: 27 ms
+  per update against 26 ms with none.
+- **AUD2-077 (`setColReuse`, `resetColumns`):** `yearColumnHolders(schedule)` (per year, per position, phase -> weeks,
+  read from frozen `computeBlockLayout`; the Sim Post lane counted only where no phase sits) is taken BEFORE the stores
+  change (the frozen layout reads the swaps and the stamp), and `headingsFollowPhases(before, after)` re-keys
+  `headerRowLabels`, `headerRowSplits` and `textStyle.heading` of every changed year to the position where the old
+  position's leading phase now has the most weeks. ⭐ **Only TYPED positions compete** (review repair, 14 Nov 2026): a
+  position counts as typed when any of the three stores holds its key (`isTyped`). Two typed landing on one position:
+  the one whose phase leads it stays (else more weeks there, else the left one), the other is removed and named in the
+  new amber strip `#heading-notice` (`reflectHeadingNotice`; ×; hidden by `applyStateSnapshot`, i.e. Undo / Redo /
+  Load / New; in the clone's re-hide list and the grid-fit observer's list). A typed position colliding only with
+  untyped ones just moves, no strip. Same undo step as the button. `colWidths` keep Q7's rule (cleared in changed years).
+- **Review repair (14 Nov 2026), two slips in the first build (`cceceb3`, `0afa1ca`):** (1) the collision's winner was
+  picked by which phase leads the new column, typed or not, so on `keepcols-heavy` a heading typed over custom3
+  (`y2027:s5`) alone lost `y2027:s2` to custom1's EMPTY position and vanished (with custom4's also typed, both
+  vanished). Fixed as above. (2) `buildSavedHtml`'s clone already re-hid `#heading-notice`, but its `.ln-text` still
+  carried the sender's removed heading names into the copy; the clone now empties it. Help's "Column headings" says
+  "only if two headings you typed end up over one column". New cases in `headingsfollow` (A, `keepcols-heavy`): H5a
+  (custom3 alone: moves, no strip), H5b (custom3 + custom4: custom4 stays, "custom3 col" named), H6 (a copy exported
+  with the strip up has it `hidden` and empty), all three red on `0afa1ca`, green after (repair build sha256 `b52131f458b6b797…`, `npm run check` 42/42; `headingsfollow` 8/8 and 5/5, `keepcols` 9/9, `colsreset` 8/8, `swapholds` 8/8, `showfolder` 7/7, `sharecopy2` pass, `colreuse` pass; the full gate not run).
+- **Defaults applied (the findings' "no decision needed"):** AUD2-057: remember only a deliberate move of one phase; let
+  any remembered column give way when it costs one. AUD2-077: typed headings follow their phase. D1–D8 do not touch
+  this item. **Chosen here** (also in the structured result): (1) "deliberate" is read from the dates (exactly one
+  phase's given start changed), not from which control fired, so a one-phase Shift or Build Around counts and an Ends
+  phase whose LENGTH is typed (its derived start moves) counts too; (2) memories already in files are kept, never
+  pruned, and simply give way; (3) the give-way is greedy, one memory at a time in placement order, a tie keeping it;
+  (4) on a collision the losing heading is REMOVED and named in a one-line strip (the alternative, dropping all of a
+  changed year's headings, loses more); (5) the strip is a new amber notice, not a dialog; (6) a heading over a column
+  holding several phases follows the phase with the most weeks there; (7) the Sim Post lane does not count as a phase
+  for a heading unless the column holds nothing else; (8) the hiatus ripple is excluded from "a move" (`colKeepQuiet`).
+- **Help:** "Where a phase goes" (what counts as moving a phase; the give-way) and "Column headings" (they follow their
+  phase on Reset Columns / Update layout). Plan notes: `STICKY-COLUMNS-PLAN.md` §3 and K5, `LAYOUT-RULES.md` rule 23,
+  `FILL-INTENT-PLAN.md` §7.
+- **Proof (build sha256 `b7ba3650d2629d00…`, `npm run check` 42/42):** new legs, both in `gate.sh`'s audit-fix list beside
+  `stickycols`: `keepcols` 9/9 on `keepcols-heavy` (the audit's `audit-a6-heavy`, title made generic; runs with Ripple
+  Hiatus ON), red on `2089aa5` at KC0–KC7 and at KC7 alone without `colKeepQuiet`; `headingsfollow` 8/8 on
+  `keepcols-heavy` (Update layout, unstamped; 5/5 before the review repair added H5a, H5b, H6) and on `swap-holds` (Reset Columns), red on `2089aa5` at H1, H2, H4 and at
+  H1. Green, none re-expected: `stickycols` 12, `colsreset` 8, `swapholds` 8, `phasefill` 13, all 20 `layoutrules`
+  fixtures, `colreuse` (its gate section, both runs) 29, `hdrrow` 40, `hdrcontrols` 12, `simpostbeside` 19,
+  `centrepullback` 12, `simpostdays` 14, `fillspace` 6, `lanefill` 4, `colswapcache` 9, `swapsplitreuse` 5,
+  `colswappartial` ×2, `noswapbtns` 7, `phasearrows` 26, `phasearrowsripple` 10, `anchorside` 39, `buildaround` 36,
+  `rebuildticks` 20, `shiftheld` 13, `mvdragcarry` 15, `stalebandkey` 9, `stylebarplace` 14, `monthmap` (colreuse) 20,
+  `hidewf` 19, `lastedited` 22, `settingswin` 21, `hiatusripple.mjs` 19, `hiatusdrag.mjs` 14. ⛔ Output guard: gates 1–3
+  run by hand (base on the legacy path): the waterfall PDF and every Excel part identical to `2026-08-29-stage-7`.
+  NOT run: the full gate (one per release), the 15 layout-study pictures, Windows.
+- ⚠️ **Known edges, left alone:** a whole-calendar Shift of a calendar with ONE placed phase, and an Ends phase whose
+  length is typed, still read as that phase's move (harmless now: the memory gives way when it costs a column). A date
+  edit or hiding a phase still leaves typed headings on their positions (FILL-INTENT-PLAN §7's wish form, unbuilt;
+  hiding is the owner's "accept and document").
+
 ### 🛑 14 Nov 2026: THE NOTES RESETS ASK FIRST, AND EACH CLEARS THE NOTES ITS OWN VIEW SHOWS (audit item 3.5, AUD2-054 + AUD2-070). **NOT merged, NOT pushed; waits for the release train's one full gate.** Branch `audit-3-5` (worktree `.claude/worktrees/audit-3-5`, from `origin/main` at `2089aa5`, `node_modules` a copy). Built overnight on the owner's tracker approval; nothing frozen, no save-format change.
 - **Bugs (both reproduced, red on `2089aa5`):** AUD2-054, the header's Reset Waterfall Notes / Reset Month Notes cleared
   every note on one press with no question (New, Load, Delete scenario and Reset holidays all ask). AUD2-070,
