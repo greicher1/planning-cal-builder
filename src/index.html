@@ -426,6 +426,18 @@
   <button type="button" class="ln-x" aria-label="Dismiss">&times;</button>
 </div>
 
+<!-- Shown when a calendar is loaded by DOUBLE-CLICK (the OS hands the file over through launchQueue; audit AUD2-017,
+     item 2.6). Save writes back to that very file, and one opened from an email attachment sits in the mail app's own
+     folder, which the mail app may empty. Chrome never tells a page where a file is, so the strip says what the app
+     does know and offers Save As. Once per such load: the x, a Save As, or any other calendar hides it. Amber like the
+     legacy strip: something about this FILE. Buttons only, no ids inside; re-hidden in a shareable copy's clone. -->
+<div id="launch-notice" role="status" aria-live="polite" hidden>
+  <span class="ln-icon" aria-hidden="true">&#9432;</span>
+  <span class="ln-text"></span>
+  <button type="button" class="ln-go">Save As&hellip;</button>
+  <button type="button" class="ln-x" aria-label="Dismiss">&times;</button>
+</div>
+
 <!-- Shown ONCE, when a calendar saved before 14 Sep 2026 is opened in a region whose holiday
      list was CORRECTED that day. Its dates are recomputed on open (a saved file stores inputs,
      never computed dates), so its wrap date can move without the user touching anything. Amber
