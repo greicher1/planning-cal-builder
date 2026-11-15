@@ -1994,8 +1994,10 @@ done
 # Red on audit-3-2's build (ef873c6d) at H1-H4, R1, L1-L3. On v1.13.0-saved.sptcal.
 # yearroll (audit AUD2-052, same item) is typed headings, a heading style, a dragged width and a hidden Notes column
 # against a whole-calendar move: By weeks 52 moves all of them a year with their columns (K1, K2) and back (K4); By
-# weeks 40, which changes the years without a whole-year move, leaves them and the line says so (K5). Red on ef873c6d
-# at K1, K2, K5.
+# weeks 40, which changes the years and the blocks' shape, leaves them and the line says so (K5). Red on ef873c6d
+# at K1, K2, K5. A1-A2 (review repair) are Single Column ON with only the year-blocked layout's widths (colWidthsAlt):
+# By weeks 52 moves them a year (A1, already green), By weeks 40 leaves them and the line counts them as "column widths"
+# (A2, red on d021506: it said nothing).
 # anchorside (owner, 4 Nov 2026: "one master shift tool"; ANCHOR-TO-DIRECTION-PLAN.md §6, §7, §7.6) is the ONE Shift
 # tool that replaced Shift From and Anchor To. Since 9 Nov 2026 it is THE LIST FIRST (the owner's eight-point spec and
 # three corrections): no What moves buttons; a header strip with a select-all box (a minus when every phase is ticked)

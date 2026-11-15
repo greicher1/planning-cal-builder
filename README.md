@@ -45,15 +45,24 @@ The November 2026 audit, item 3.3 (AUD2-050, AUD2-051, AUD2-052; each reproduced
   locked hiatuses held. Hiatus 8/10/26 and Hiatus 12/21/26 stayed on their dates, so no phase pauses for them now. …"
   "Working" appears only when a phase stepped over a held break; a break is named only when a moved phase ran through
   it before and no phase runs through it now. How a new hiatus starts (locked) is unchanged.
-- **Typed headings, their styles, column widths and hidden Notes columns move with a whole-year move.** They belong to
-  their year's columns, and a shift moved only dates, so after By weeks 52 the 2027 columns (now Writer's Room to Post)
-  read last year's "POST" and the 2026 heading's bold red style and width were left on a year that was gone. Now, when
-  moving every phase leaves each year's columns exactly as they were, just a whole number of years later or earlier,
-  all of them move by that many years. Any other move that changes the years leaves them, and the line says so: "The
-  column headings, column widths and hidden Notes columns you set stayed on 2026 and 2027."
+- **Typed headings, their styles, column widths and hidden Notes columns move with the year when the columns do.**
+  They belong to their year's columns, and a shift moved only dates, so after By weeks 52 the 2027 columns (now
+  Writer's Room to Post) read last year's "POST" and the 2026 heading's bold red style and width were left on a year
+  that was gone. Now, when moving every phase leaves each year's columns exactly as they were, just a whole number of
+  years later or earlier, all of them move by that many years. It is the columns that decide, not the number of weeks
+  moved: in Single Column Mode, whose one block is named by its first week's year, a few weeks across New Year
+  qualifies too. Any other move that changes the years leaves them, and the line says so: "The column headings,
+  column widths and hidden Notes columns you set stayed on 2026 and 2027."
+- **Review repair (same day):** the widths of the layout not on screen (Single Column's while it is off, the year
+  columns' while it is on) moved with the rest but were left out of that sentence, so with Single Column on a 40- or
+  60-week move left them on 2026 and 2027 and the line said nothing. They now count as "column widths" there. And the
+  words above, the code's comments and HANDOFF said "a whole-year move", which the rule never was; they now say what
+  it does. Behaviour otherwise unchanged.
 - Nothing frozen, no new saved key, no new id.
-- **Proof:** new legs `seasonroll` (17 cases, on `v1.13.0-saved`) and `yearroll` (9), red on item 3.2's build
-  (`ef873c6d`: seasonroll H1-H4, R1, L1-L3; yearroll K1, K2, K5) and green on this one. `shiftheld` re-expected at S4 for
+- **Proof:** new legs `seasonroll` (17 cases, on `v1.13.0-saved`) and `yearroll` (9, 11 with the repair), red on item
+  3.2's build (`ef873c6d`: seasonroll H1-H4, R1, L1-L3; yearroll K1, K2, K5) and green on this one. The repair's A2
+  (Single Column on, only the other layout's widths, By weeks 40) was red on `d021506` and is green; A1 (By weeks 52
+  moves them) was already green. `shiftheld` re-expected at S4 for
   the new wording ("Shifted 4 working weeks earlier."). The nearest legs green (listed in HANDOFF.md), and the gate's
   base section by hand; `npm run check` 42/42. Not yet through the full gate.
 

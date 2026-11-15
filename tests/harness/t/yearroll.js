@@ -22,10 +22,15 @@
 //   K2  ... the saved stores hold the new keys and no 2026 key
 //   K3  ... and the line says nothing about headings (they moved)
 //   K4  By weeks 52 Earlier: every store exactly as it was loaded
-//   K5  By weeks 40 Later: the years become 2026, 2027 and 2028, not a whole-year move, so nothing moves and the line
+//   K5  By weeks 40 Later: the years become 2026, 2027 and 2028, so the blocks changed shape: nothing moves and the line
 //       says "The column headings, column widths and hidden Notes columns you set stayed on 2026 and 2027."
 //   K6  Undo: as loaded
 //   K7  By weeks 2 Later (the same years): nothing moves and the line says nothing about headings
+// THEN, reloaded with Single Column ON and ONLY the other layout's widths (colWidthsAlt, the year-blocked layout's;
+// review slip on 3.3): 2026's phase column 30, 2027's second 20, and no other year key.
+//   A1  By weeks 52 Later: the alt widths move to 2027 / 2028 and the line says nothing
+//   A2  back, then By weeks 40 Later: they stay, and the line says "The column widths you set stayed on 2026 and
+//       2027." (red before the repair: the line counted only the active layout's widths and said nothing)
 //   E0  no console errors, no native alert
 window.__T.memoryIDB();
 window.__alerts = []; window.alert = function (m) { window.__alerts.push(String(m)); };
@@ -121,6 +126,33 @@ window.addEventListener('load', function () { (async function () {
 
     var m7 = await shiftWeeks(2, 1);
     add('K7', 'By weeks 2 (the same years): the line says nothing about headings', /^Shifted 2 /.test(m7) && !/stayed on 20/.test(m7), m7, 'no "stayed on"');
+
+    // The OTHER layout's widths: Single Column ON, so colWidthsAlt is the year-blocked layout's set, on a calendar
+    // holding no other year key, so nothing else can make the line name "column widths". (Single Column's own layout
+    // is one block named by the start year, so a 40-week move leaves ITS years alone: only the alt set's years change.)
+    await T.reloadWith(function (snap) {
+      snap.headerRowLabels = {}; snap.headerRowSplits = []; snap.hiddenNotesCols = [];
+      if(snap.textStyles) delete snap.textStyles.heading;
+      var cw = {}; Object.keys(snap.colWidths || {}).forEach(function (k) { if(!/^y\d{4}:/.test(k)) cw[k] = snap.colWidths[k]; });
+      snap.colWidths = cw;
+      snap.singleColumn = true;
+      snap.colWidthsAlt = {'y2026:s0': 30, 'y2027:s1': 20};
+    }, 'Harbor Yearroll Alt');
+    await settled();
+    T.set('show-version', 'x'); await T.sleep(200); await snap();
+    T.set('show-version', ''); await T.sleep(200); var sa = await snap(), a0 = sa.colWidthsAlt || {}, singleOn = sa.singleColumn === true;
+    var ma1 = await shiftWeeks(52, 1);
+    var a1 = (await snap()).colWidthsAlt || {};
+    add('A1', 'Single Column on: the blocked layout\'s widths (colWidthsAlt) move a year with a same-shape move, and the line says nothing',
+      singleOn && a1['y2027:s0'] === 30 && a1['y2028:s1'] === 20 && !/y2026/.test(J(a1)) && !/stayed on 20/.test(ma1),
+      {single: singleOn, before: a0, after: a1, msg: ma1}, '{"y2027:s0":30,"y2028:s1":20}');
+    await shiftWeeks(52, -1);
+    var a2 = (await snap()).colWidthsAlt || {};
+    var ma3 = await shiftWeeks(40, 1);
+    var a3 = (await snap()).colWidthsAlt || {};
+    add('A2', 'back, then By weeks 40 Later: the blocked layout\'s widths stay, and the line says "The column widths you set stayed on 2026 and 2027."',
+      J(a2) === J(a0) && J(a3) === J(a0) && /The column widths you set stayed on 2026 and 2027\./.test(ma3),
+      {back: a2, after: a3, msg: ma3}, '"The column widths you set stayed on 2026 and 2027."');
 
     add('E0', 'no console errors, no native alert', T.appHealth().errors.length === 0 && window.__alerts.length === 0,
       {errors: T.appHealth().errors.slice(0, 5), alerts: window.__alerts, modal: T.modalText()}, 'none');

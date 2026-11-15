@@ -31914,7 +31914,7 @@ export function initLegacyApp() {
   function shiftHeldWeeks(part){
     return hiatusFatesFor(shiftScope(null, part || null).inRange, null).held;
   }
-  // ---------- ⭐ THE YEAR-KEYED STORES FOLLOW A WHOLE-YEAR MOVE (audit AUD2-052, the Nov 2026 audit's item 3.3) ----------
+  // ---------- ⭐ THE YEAR-KEYED STORES FOLLOW A SAME-SHAPE MOVE (audit AUD2-052, the Nov 2026 audit's item 3.3) ----------
   // Six stores name a waterfall column by its YEAR BLOCK ("y2026:s0", "y2026:date", "y2027:notes"): the typed headings
   // and their splits (headerRowLabels, headerRowSplits), the headings' text styles (textStyle.heading), the dragged
   // widths of both layouts (colWidths, colWidthsAlt) and the hidden Notes columns (hiddenNotesCols). The shift re-keys
@@ -31926,6 +31926,10 @@ export function initLegacyApp() {
   // years later or earlier with the same phases in the same columns (yearShapeDelta), the six stores move by that many
   // years, as moveSlotKeys moves them for the Sim Post lane. Any other whole-calendar move that changes the years
   // leaves them on their years, and the Shift line says so (describeShift, `yearKeysStayed`).
+  //   * ⚠️ It is the BLOCKS' shape that decides, NOT the week count: this is not a "52-week" or "whole-year" rule. Any
+  //     whole-calendar move qualifies when the blocks come out the same, shifted by whole years. In Single Column Mode
+  //     the one block is named by the first week's year, so a few weeks that carry the first week across New Year
+  //     re-key the stores too (review slip on 3.3: the docs called this a "whole-year move" and the code never was one).
   //   * Measured by CALLING the frozen layout (computeSchedule, computeYearBlocks, computeBlockLayout) on the
   //     waterfall's own rows, read-only, never re-derived: simLaneMovedYears' arrangement. colWidthsAlt is the OTHER
   //     layout's set (Single Column on / off), so it is judged on that layout's own blocks.
@@ -31962,7 +31966,7 @@ export function initLegacyApp() {
     finally { singleColumn = keepOne; }
   }
   // How many years `after` is `before` moved by: the same number of blocks, each the same number of years on with the
-  // same columns. 0 when it is not a whole-year move (or no move at all).
+  // same columns, whatever the number of weeks moved. 0 when the blocks changed shape (or did not move at all).
   function yearShapeDelta(before, after){
     if(!before || !after || !before.length || before.length !== after.length) return 0;
     const d = after[0].year - before[0].year;
@@ -31997,10 +32001,18 @@ export function initLegacyApp() {
     const after = yearBlockShape(false);
     const d = yearShapeDelta(before.shape, after);
     const years = new Set(before.shape.map(b => b.year));
+    const keyYears = (o, ys) => !o ? [] : Object.keys(o).map(k => yearKeyParts(k)).filter(m => !!m && ys.has(+m[1])).map(m => +m[1]);
+    // colWidthsAlt, judged on its own layout's blocks. When they did not move by whole years but their years changed,
+    // the alt widths on those years STAYED and count as "column widths" in the line (review slip on 3.3: with Single
+    // Column on, a 40-week move changes only the year-blocked layout's years, and the line said nothing).
+    let altStayed = [];
     if(before.alt){
       const altAfter = yearBlockShape(true), da = yearShapeDelta(before.alt, altAfter);
-      if(da) colWidthsAlt = moveYearKeys(colWidthsAlt, new Set(before.alt.map(b => b.year)), da);
+      const altYears = new Set(before.alt.map(b => b.year));
+      if(da) colWidthsAlt = moveYearKeys(colWidthsAlt, altYears, da);
+      else if(before.alt.map(b => b.year).join() !== (altAfter || []).map(b => b.year).join()) altStayed = keyYears(colWidthsAlt, altYears);
     }
+    const stayed = (kinds, ys)=> kinds.length ? {kinds, years: Array.from(new Set(ys)).sort((a, b)=> a - b)} : null;
     if(d){
       colWidths       = moveYearKeys(colWidths, years, d);
       headerRowLabels = moveYearKeys(headerRowLabels, years, d);
@@ -32008,19 +32020,22 @@ export function initLegacyApp() {
       hiddenNotesCols = moveYearKeys(hiddenNotesCols, years, d);
       const h = moveYearKeys(textStyle.heading, years, d);
       if(h !== textStyle.heading) textStyle = Object.assign({}, textStyle, { heading: h });
-      return {moved: d};
+      const st = stayed(altStayed.length ? ['column widths'] : [], altStayed);
+      return st ? {moved: d, stayed: st} : {moved: d};
     }
     const yearsAfter = (after || []).map(b => b.year);
-    if(before.shape.map(b => b.year).join() === yearsAfter.join()) return null;   // the same years: nothing to say
-    const on = o => !!o && Object.keys(o).some(k => { const m = yearKeyParts(k); return !!m && years.has(+m[1]); });
-    const kinds = [];
-    if(on(headerRowLabels) || on(headerRowSplits) || on(textStyle.heading)) kinds.push('column headings');
-    if(on(colWidths)) kinds.push('column widths');
-    if(on(hiddenNotesCols)) kinds.push('hidden Notes columns');
-    if(!kinds.length) return null;
-    const used = Array.from(years).filter(y => [headerRowLabels, headerRowSplits, textStyle.heading, colWidths, hiddenNotesCols]
-      .some(o => !!o && Object.keys(o).some(k => { const m = yearKeyParts(k); return !!m && +m[1] === y; }))).sort((a, b)=> a - b);
-    return {stayed: {kinds, years: used}};
+    const mainChanged = before.shape.map(b => b.year).join() !== yearsAfter.join();
+    const kinds = [], ys = altStayed.slice();
+    if(mainChanged){
+      const head = [headerRowLabels, headerRowSplits, textStyle.heading].reduce((a, o)=> a.concat(keyYears(o, years)), []);
+      const wid = keyYears(colWidths, years), hid = keyYears(hiddenNotesCols, years);
+      if(head.length) kinds.push('column headings');
+      if(wid.length || altStayed.length) kinds.push('column widths');
+      if(hid.length) kinds.push('hidden Notes columns');
+      ys.push.apply(ys, head.concat(wid, hid));
+    } else if(altStayed.length) kinds.push('column widths');
+    const st = stayed(kinds, ys);
+    return st ? {stayed: st} : null;   // the same years and no alt widths left behind: nothing to say
   }
   //   stepHeld -- THE STEP-OVER (stepOverHeld, above): count only working weeks, so a phase that crosses a held hiatus
   //           moves that many extra calendar weeks and every gap and overlap is kept. The Shift form, the toolbar
@@ -32222,7 +32237,7 @@ export function initLegacyApp() {
     // Only now is there a post-shift schedule to read the new auto texts from. The note texts do not
     // feed the schedule, so a repaint is all it takes.
     if(rewriteMovedAutoNotes(staleAuto, move)) render(currentSchedule);
-    // The year-keyed stores follow a whole-year move (AUD2-052): measured on the layout the update() above placed, then
+    // The year-keyed stores follow a same-shape move (AUD2-052): measured on the layout the update() above placed, then
     // drawn by one more. Inside the caller's undo bracket, like everything above.
     const yearKeys = yearKeysBefore ? yearKeysAfterMove(yearKeysBefore) : null;
     if(yearKeys && yearKeys.moved) update();
@@ -34395,7 +34410,7 @@ export function initLegacyApp() {
       out += steppedText(res);
       if(res.productionWrap) out += ' Wrap ' + res.productionWrap + '.';
       if(tail) out += tail;
-      // A whole-calendar move into other years that is not a whole-year move: the year-keyed stores stayed (AUD2-052).
+      // A whole-calendar move into other years whose year blocks changed shape: the year-keyed stores stayed (AUD2-052).
       if(res.yearKeysStayed){
         out += ' The ' + andList(res.yearKeysStayed.kinds) + ' you set stayed on ' + andList(res.yearKeysStayed.years.map(String)) + '.';
       }

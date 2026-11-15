@@ -4,7 +4,7 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### 🩹 14 Nov 2026: ROLLING A SEASON FORWARD A YEAR: NEW HOLIDAYS FOLLOW THE CALENDAR'S CHOICE, SHIFT SAYS "WORKING WEEKS" AND NAMES THE BREAKS IT LEFT, YEAR-KEYED HEADINGS AND WIDTHS MOVE WITH A WHOLE-YEAR MOVE (audit AUD2-050, AUD2-051, AUD2-052). ⏳ **NOT merged, NOT pushed**: waits for the release train's one full gate. Branch `audit-3-3` (worktree `.claude/worktrees/audit-3-3`, cut from `audit-3-2` at `f362ebb`, so it carries items 2.2 and 3.2; `node_modules` is a clone copy). The November 2026 audit's item 3.3, owner-approved on the feature tracker.
+### 🩹 14 Nov 2026: ROLLING A SEASON FORWARD A YEAR: NEW HOLIDAYS FOLLOW THE CALENDAR'S CHOICE, SHIFT SAYS "WORKING WEEKS" AND NAMES THE BREAKS IT LEFT, YEAR-KEYED HEADINGS AND WIDTHS MOVE WITH THE YEAR WHEN THE COLUMNS DO (audit AUD2-050, AUD2-051, AUD2-052). ⏳ **NOT merged, NOT pushed**: waits for the release train's one full gate. Branch `audit-3-3` (worktree `.claude/worktrees/audit-3-3`, cut from `audit-3-2` at `f362ebb`, so it carries items 2.2 and 3.2; `node_modules` is a clone copy). The November 2026 audit's item 3.3, owner-approved on the feature tracker.
 - **AUD2-050, holidays:** `followHolidayViews(sch)`, called by `update()` between `computeSchedule` and `render()`. While
   every holiday the calendar held a moment ago (`holidayIdsSeen`, session only) is shown in a view, a holiday that
   enters the calendar gets `holidayView[hid][view] = true`, the entry its own tick writes. NO new stored value. Never
@@ -26,14 +26,24 @@
   years on with the same phases in the same columns (`yearShapeDelta`) moves the keys on the old years by that many
   (`moveYearKeys`; a moved key wins over a dormant key on its new year), then one more `update()`. Any other whole move
   that changes the years leaves them and returns `yearKeysStayed`: "The column headings, column widths and hidden Notes
-  columns you set stayed on 2026 and 2027." `gridStintSwaps` keeps its year (E5). ⚠️ In Single Column mode the one
-  block is keyed by the FIRST week's year, so a whole move that carries the first week across New Year now re-keys too
-  (the same rule; no leg covers it).
+  columns you set stayed on 2026 and 2027." `gridStintSwaps` keeps its year (E5). ⚠️ **It is NOT a "whole-year
+  move" rule** (the docs said so until the review repair; the code never was): the blocks' shape decides, whatever
+  the week count. In Single Column mode the one block is keyed by the FIRST week's year, so a whole move of a few
+  weeks that carries the first week across New Year re-keys too (no leg covers that case).
+- **🩹 Review repair (same day, on `audit-3-3` after `d021506`):** `colWidthsAlt` re-keyed correctly but was left out
+  of `yearKeysStayed`: with Single Column ON, a 40- or 60-week move changes only the year-blocked layout's years (the
+  single block keeps 2026), so `yearKeysAfterMove` returned null and the line said nothing while the alt widths stayed
+  on 2026 / 2027. Now, when the alt layout's blocks changed years without a same-shape move, the alt keys on its old
+  years count as "column widths" (no new words), merged into the sentence's kinds and years; it is reported even when
+  the active layout's keys moved (`{moved, stayed}`; the caller already reads both). Proved by `yearroll` A1 (Single
+  Column on, `colWidthsAlt` only, By weeks 52 re-keys it: green before and after) and A2 (back, then By weeks 40: "The
+  column widths you set stayed on 2026 and 2027.": RED on `d021506`, green now). Wording: "whole-year move" replaced
+  in the code's comments, this section, the README entry, `yearroll`'s header and `gate.sh`'s note.
 - **Defaults applied:** AUD2-050's own default ("yes": when every holiday is shown in a view, holidays that enter later
   are shown there too; the finding's question "Should Toggle all set a default for holidays that enter the calendar
   later?" was answered with its recommendation, chosen for the owner). AUD2-051's ("keep Shift as ruled; the result
   line names the breaks that stayed and says working weeks; no change to how a new hiatus starts"). AUD2-052's, as the
-  item gave it: re-key on a whole-year move, otherwise say so in the line (the finding's own text says "accept and
+  item gave it: re-key when every year block moves whole years with the same columns, otherwise say so in the line (the finding's own text says "accept and
   document" only). D1–D8 do not touch this item. **Chosen here** (also in the structured result): (1) no new key: the
   finding's "store a per-view default beside holidayView" would be a new saved value, so the rule acts at the moment a
   holiday arrives instead; (2) "shown" only: a view whose holidays are ALL HIDDEN does not hide newcomers (the month
@@ -43,7 +53,7 @@
   are not listed (the 2026 Christmas break IS named on a year roll: the new season's own Christmas break is a different
   row); (6) the year re-key needs the SAME phases in the same columns in every block, so a move that only changes some
   columns' contents re-keys nothing; (7) the line says nothing when the keys moved, or when the years did not change.
-- **Proof (build `a9ace495…` sha1):** new legs `seasonroll` 17/17 (on `v1.13.0-saved`) and `yearroll` 9/9, in `gate.sh`'s
+- **Proof (build `a9ace495…` sha1):** new legs `seasonroll` 17/17 (on `v1.13.0-saved`) and `yearroll` 9/9 (11/11 after the review repair), in `gate.sh`'s
   audit-fix list, red on item 3.2's build `ef873c6d` (seasonroll H1 H2 H3 H4 R1 L1 L2 L3; yearroll K1 K2 K5).
   ⚠️ **Re-expected:** `shiftheld` S4 now reads "Shifted 4 working weeks earlier." (the approved wording): 13/13. Green:
   `anchorside` 39, `shiftbandline` 10, `panelstale` 16, `paneldrag` 9, `stalebandkey` 9, `phasearrows` 26,
@@ -53,7 +63,7 @@
   `rebuildticks` 20, `textstyle` 52, `lastedited` 22, `seasons` 15, `autonotekinds` 16, `hiatusripple` 19; gate.sh's
   base section by hand (grid identical, waterfall PDF identical apart from the date stamp, Excel parts identical);
   `npm run check` 42/42. No full gate.
-- **Not verified:** Single Column mode's re-key (above); `colWidthsAlt` re-keyed on the other layout (no leg); a
+- **Not verified:** Single Column mode's few-weeks-across-New-Year re-key (above); a
   dormant key colliding with a moved one; Build Around (not a whole-calendar move: untouched); the region changing
   with every holiday shown (the new region's holidays come in shown, by the same rule: reasoned, not run); nothing
   tried in a real browser window.
