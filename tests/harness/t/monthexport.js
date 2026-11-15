@@ -99,6 +99,32 @@ window.addEventListener('load', function () { (async function () {
     return T.modalText();
   }
   async function clickExport(){ await T.sleep(700); btn().click(); }   // past the button's 600 ms re-click guard
+  // ⭐ THE SMALL-TYPE NOTICE (audit AUD2-043, item 3.1, the owner's D4 = a, 14 Nov 2026): Export now stops before the Save
+  // dialog on a calendar with a month whose notes and bars print below 6 pt (monthscale's, month-dense60's and
+  // month-lanecap's Augusts), naming those months. t/textfit.js holds the notice; here it is answered "Export anyway" the
+  // moment it opens, as a user exporting such a calendar answers it, and an answered one is invisible to modalText() and
+  // clickModalButton() while it closes, so every case below meets exactly the dialogs it met before. The file is the same
+  // either way (the notice changes no byte). info.smallNotices counts the answers.
+  info.smallNotices = 0;
+  new MutationObserver(function(){
+    Array.prototype.forEach.call(document.querySelectorAll('.mantine-Modal-content'), function(d){
+      if(d.__smallAnswered || !/prints? very small/.test(d.textContent || '')) return;
+      var b = Array.prototype.find.call(d.querySelectorAll('button'), function(x){ return (x.textContent || '').trim() === 'Export anyway'; });
+      if(b){ d.__smallAnswered = true; info.smallNotices++; b.click(); }
+    });
+  }).observe(document.documentElement, {childList: true, subtree: true});
+  T.modalText = (function(base){ return function(){
+    return Array.from(document.querySelectorAll('.mantine-Modal-content'))
+      .filter(function(d){ return !d.__smallAnswered && !d.closest('.export-pdf-dlg'); })
+      .map(function(d){ return (d.innerText || d.textContent || '').replace(/\s+/g, ' ').trim(); }).filter(Boolean).join(' || ');
+  }; })(T.modalText);
+  T.clickModalButton = function(label){
+    var b = Array.from(document.querySelectorAll('.mantine-Modal-content')).filter(function(d){ return !d.__smallAnswered; })
+      .reduce(function(a, d){ return a.concat(Array.from(d.querySelectorAll('button'))); }, [])
+      .find(function(x){ var t = (x.innerText || x.textContent || '').trim(); return label instanceof RegExp ? label.test(t) : t === label; });
+    if(b) b.click();
+    return !!b;
+  };
   try {
     await T.appReady();
     if(!fromState){

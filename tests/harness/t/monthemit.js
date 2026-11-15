@@ -124,14 +124,15 @@ window.addEventListener('load', function () { (async function () {
     while((dm = dre.exec(writerSrc))) NAMES.push(dm[1]);
     var has = function (n, s) { return new RegExp('\\b' + n + '\\b').test(s); };
     var usedOut = NAMES.filter(function (n) { return has(n, outside); });
-    var PUBLIC = ['MVL_FONT_WEIGHTS', 'buildMonthLayout', 'buildMonthPdf', 'fitMonthLayout', 'loadInterPdfFont', 'mvlUnprintable'];
+    // mvlSmallType since 14 Nov 2026 (audit AUD2-043, item 3.1, D4 = a): the export asks it which months print below 6 pt.
+    var PUBLIC = ['MVL_FONT_WEIGHTS', 'buildMonthLayout', 'buildMonthPdf', 'fitMonthLayout', 'loadInterPdfFont', 'mvlSmallType', 'mvlUnprintable'];
     var usedByExport = NAMES.filter(function (n) { return has(n, code(exportSrc)); }).sort();
     var usedByCompare = NAMES.filter(function (n) { return has(n, code(cmpSrc)); }).sort();
-    var counts = ['loadInterPdfFont(', 'buildMonthLayout(', 'buildMonthPdf(', 'fitMonthLayout(', 'mvlUnprintable('].map(function (s) { return code(src).split(s).length - 1; });
+    var counts = ['loadInterPdfFont(', 'buildMonthLayout(', 'buildMonthPdf(', 'fitMonthLayout(', 'mvlUnprintable(', 'mvlSmallType('].map(function (s) { return code(src).split(s).length - 1; });
     add('F0', 'only the month export (exportMonthPdfDirect) calls the writer, and only through its public entry points',
-        usedOut.length === 0 && NAMES.length > 30 && same(usedByExport, PUBLIC) && same(counts, [4, 2, 2, 2, 2]) && cmpSrc && same(usedByCompare, ['buildListPdf']),
+        usedOut.length === 0 && NAMES.length > 30 && same(usedByExport, PUBLIC) && same(counts, [4, 2, 2, 2, 2, 2]) && cmpSrc && same(usedByCompare, ['buildListPdf']),
         {usedOutside: usedOut, usedByExport: usedByExport, usedByCompare: usedByCompare, namesDeclared: NAMES.length, entryPointOccurrences: counts},
-        {usedOutside: [], usedByExport: PUBLIC, usedByCompare: ['buildListPdf'], entryPointOccurrences: [4, 2, 2, 2, 2]});
+        {usedOutside: [], usedByExport: PUBLIC, usedByCompare: ['buildListPdf'], entryPointOccurrences: [4, 2, 2, 2, 2, 2]});
 
     var G = F.G, P = F.P, fonts = {};
     for(var fw of ['400', '500', '600', '700']) fonts[fw] = await F.loadInterPdfFont(fw);
@@ -145,7 +146,12 @@ window.addEventListener('load', function () { (async function () {
     var NOTE_LINE = {11: 14, 12: 16, 13: 17, 14: 18};
     function noteSizedPx(it){ var z = it.fmt && it.fmt.size; return NOTE_LINE[z] ? z : 0; }
     function noteLine(it){ var z = noteSizedPx(it); return z ? NOTE_LINE[z] : G.noteLinePx; }
-    function noteShown(it){ return noteSizedPx(it) ? Math.min(2, it.lines.length) : it.lines.length; }
+    // ⭐ A waterfall line ending in a date keeps it above 10 px (audit AUD2-045, item 3.1, the owner's D4 = a, 14 Nov 2026): the
+    // writer models it as a 10 px note at its own size -- up to three lanes, every line drawn. The leg's own statement of
+    // the writer's mvlKeepsDate. The print document still clamps it to two lines (frozen CSS), so such a week's lanes are
+    // not the document's and B0/T0 skip it, as they skip any week whose notes print otherwise.
+    function keepsDate(it){ return !!(noteSizedPx(it) && it.note && it.note.kind === 'wf' && /\s\d{1,2}\/\d{1,2}\/\d{2}(?:\d{2})?$/.test(String(it.text || '').trim())); }
+    function noteShown(it){ return noteSizedPx(it) && !keepsDate(it) ? Math.min(2, it.lines.length) : it.lines.length; }
 
     // ---- the documents, stamp pinned ----------------------------------------------------------------------
     var docs = [];
@@ -877,9 +883,9 @@ window.addEventListener('load', function () { (async function () {
             var ell = mine.filter(function (o) { return o.role === 'bar-ell'; }).length;
             // The lanes the model gave the note: its lines, at most three at 10 px and at most TWO above it (R2). Checked
             // here because B0 skips a week whose lanes are not the document's, which is exactly where a wrong count lands.
-            var wantLanes = Math.min(noteSizedPx(it) ? 2 : 3, Math.max(1, it.lines.length));
+            var wantLanes = Math.min(noteSizedPx(it) && !keepsDate(it) ? 2 : 3, Math.max(1, it.lines.length));
             if(it.lanes !== wantLanes) bad.X4.push(where + ' week ' + (wi + 1) + ' note ' + (k + 1) + ': ' + it.lanes + ' lanes for ' + it.lines.length + ' lines' + (noteSizedPx(it) ? ' at ' + noteSizedPx(it) + ' px' : ''));
-            if(noteSizedPx(it) && it.lines.length > 2){
+            if(noteSizedPx(it) && !keepsDate(it) && it.lines.length > 2){
               // A sized note cut at two lines: its first line as wrapped, a start of its second, and one "…".
               var ok2 = drawnLines.length === 2 && drawnLines[0] === it.lines[0] && it.lines[1].indexOf(drawnLines[1]) === 0 && ell === 1;
               if(!ok2) bad.X4.push(where + ' week ' + (wi + 1) + ' note ' + (k + 1) + ' (cut): ' + JSON.stringify(drawnLines) + ' +' + ell + ' "…" for ' + JSON.stringify(it.lines.slice(0, 2)));

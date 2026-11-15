@@ -38295,8 +38295,21 @@ export function initLegacyApp() {
     const z = it.kind === 'note' && it.fmt && it.fmt.size;
     return (z === 11 || z === 12 || z === 13 || z === 14) ? MVL_NOTE_SIZES[z] : null;
   }
-  // The lanes a note takes: its lines, at most three at 10 px (as on screen) and at most two above it.
-  function mvlNoteLanes(it){ return Math.min(mvlNoteSize(it) ? 2 : MVL_GEOMETRY.noteMaxLanes, it.lines.length); }
+  // ⭐ A WATERFALL LINE THAT ENDS IN ITS DATE KEEPS IT (audit AUD2-045, item 3.1; the owner's D4 = a, 14 Nov 2026: "holiday
+  // and automatic lines keep their date at note sizes 11 to 14"). Above 10 px a note shows two lines, the second cut with
+  // "…" (R2, R3), and the date a holiday or automatic line ends in is what the cut took first: "Day After / Thanksgiving…"
+  // printed with no 11/27/26, while a 10 px note keeps three lines and prints whole. Such a line is now modelled as a
+  // 10 px note is, at its own size: its lines, up to three lanes, every line drawn. Read off the print document alone (a
+  // `wf` block whose text ends in a date), so the writer's slices stay self-contained and the built app's bytes stay the
+  // slice's; so a waterfall line the user stamped with a day ("Table read 3/5/27") keeps its date too. ⛔ At 10 px and
+  // below, and on every line not ending in a date, nothing here runs: every other note is modelled as before.
+  const MVL_DATED = /\s\d{1,2}\/\d{1,2}\/\d{2}(?:\d{2})?$/;
+  function mvlKeepsDate(it){
+    return !!(mvlNoteSize(it) && it.note && it.note.kind === 'wf' && MVL_DATED.test(String(it.text || '').trim()));
+  }
+  // The lanes a note takes: its lines, at most three at 10 px (as on screen) and at most two above it, unless it keeps
+  // its date (mvlKeepsDate): three.
+  function mvlNoteLanes(it){ return Math.min(mvlNoteSize(it) && !mvlKeepsDate(it) ? 2 : MVL_GEOMETRY.noteMaxLanes, it.lines.length); }
   // Such a pill's lines at the PDF's width: .mv-pill-2l's white-space:normal and word-break:break-word in the
   // bar's box, less its 8 px padding and 1 px border each side. One line means it fits and does not wrap.
   // `widthOf` measures at the bar's own type (10 px, 600: .mv-bar), not a note's.
@@ -38720,7 +38733,8 @@ export function initLegacyApp() {
     const B = it.kind === 'note' ? S.bar : S.big;
     // A note above 10 px (mvlNoteSize): at most two of its size's lines, -webkit-line-clamp:2 (E3).
     const Zn = mvlNoteSize(it);
-    if(Zn) return Math.min(2, it.lines.length) * Zn.line * S.k + 2 * (S.note.padY + B.border);
+    // One that keeps its date (mvlKeepsDate) is all its lines tall, as a 10 px note is.
+    if(Zn) return (mvlKeepsDate(it) ? it.lines.length : Math.min(2, it.lines.length)) * Zn.line * S.k + 2 * (S.note.padY + B.border);
     if(it.kind === 'note') return it.lines.length * S.note.lineH + 2 * (S.note.padY + B.border);
     // A wrapping one-day custom pill (mvlWrapsPill) is two of the bar's lines tall: -webkit-line-clamp:2.
     if(it.lines) return Math.min(2, it.lines.length) * mvlBarLine(B, S) + 2 * (B.padY + B.border);
@@ -38876,13 +38890,17 @@ export function initLegacyApp() {
                        c: ink, ls: 0, skew: skew, role: role, li: li }));
       };
       const at = function(s){ return px + N.padX + Math.max(0, shift(nal, ncw, nOf(s))); };
-      put(it.lines[0], 0, at(it.lines[0]), 'bar-text');
-      if(it.lines.length === 2) put(it.lines[1], 1, at(it.lines[1]), 'bar-text');
-      else if(it.lines.length > 2){
-        const s2 = it.lines[1], ellW = nOf('…');
-        const head = (nOf(s2) + ellW <= ncw) ? s2 : mvlLongestStart(s2, ncw - ellW, nOf);
-        put(head, 1, px + N.padX, 'bar-text');
-        put('…', 1, px + N.padX + nOf(head), 'bar-ell');
+      // A line that keeps its date (mvlKeepsDate, AUD2-045): every line, uncut, as a 10 px note draws them.
+      if(mvlKeepsDate(it)) it.lines.forEach(function(s, li){ put(s, li, at(s), 'bar-text'); });
+      else {
+        put(it.lines[0], 0, at(it.lines[0]), 'bar-text');
+        if(it.lines.length === 2) put(it.lines[1], 1, at(it.lines[1]), 'bar-text');
+        else if(it.lines.length > 2){
+          const s2 = it.lines[1], ellW = nOf('…');
+          const head = (nOf(s2) + ellW <= ncw) ? s2 : mvlLongestStart(s2, ncw - ellW, nOf);
+          put(head, 1, px + N.padX, 'bar-text');
+          put('…', 1, px + N.padX + nOf(head), 'bar-ell');
+        }
       }
     } else if(it.kind === 'note'){
       const N = P.note, wt = F.weight || N.weight, sz = F.size ? F.size * P.k : N.size;
@@ -39472,6 +39490,34 @@ export function initLegacyApp() {
     return places;
   }
 
+  // ---------- Month PDF writer: what the fit prints too small to read (audit AUD2-043, item 3.1; D4 = a) ----------
+  // mvlSmallType(layout, fonts) names every month whose fit shrank its text below MVL_SMALL_PT, as it will print: the
+  // owner's "No floor" (1 Oct 2026: every month fits one sheet, however dense) stands, and Export says so first instead
+  // of saving a page nobody can read without a word. Read off the DISPLAY LIST, as mvlUnprintable reads it, so the
+  // notice and the file cannot disagree. Counted: the text INSIDE the weeks the fit scales (notes, bars and bands, the
+  // day numbers, "Day N"), each at its printed size (px x ptPerPx), and only text that prints at MVL_SMALL_PT or more at
+  // full size, so a note the user styled small on purpose never names its month. Not counted: the grey block tag (9 px,
+  // 6.75 pt at full size: a month whose notes print at 6.6 pt is not named for it), the ½ mark, and everything above the
+  // weeks, which never shrinks. A month that fits (`fit.scale` 1) is never named. Returns, in page order,
+  //   [{ label: 'July 2026', pt: 3.3 }]   with `pt` the smallest such text, to one decimal, rounded down.
+  const MVL_SMALL_PT = 6;
+  const MVL_SMALL_ROLES = ['bar-text', 'bar-ell', 'daynum', 'shootday'];
+  function mvlSmallType(layout, fonts){
+    const pt = MVL_GEOMETRY.ptPerPx, out = [];
+    layout.months.forEach(function(m){
+      const k = m.fit && m.fit.scale !== undefined ? m.fit.scale : 1;
+      if(!(k < 1)) return;
+      let least = Infinity;
+      mvlPaintMonth(m, fonts).forEach(function(o){
+        if(o.k !== 'text' || !o.s || o.wk === undefined || MVL_SMALL_ROLES.indexOf(o.role) < 0) return;
+        const p = o.size * pt;
+        if(p < MVL_SMALL_PT && o.size / k * pt >= MVL_SMALL_PT) least = Math.min(least, p);
+      });
+      if(least < Infinity) out.push({ label: m.label, pt: Math.floor(least * 10) / 10 });
+    });
+    return out;
+  }
+
   // ---- The whole PDF: buildMonthPdf(layout) ----
   // `layout` is buildMonthLayout()'s, with `fit.rows` on every month. The four programs are decoded
   // here on first use (loadInterPdfFont caches them); only the weights some page sets text in are
@@ -39561,6 +39607,21 @@ export function initLegacyApp() {
       + lines.join('\n')
       + '\n\nThe month view on screen keeps them.',
       { title: 'Some characters won’t print', confirmLabel: 'Export anyway', cancelLabel: 'Cancel' }));
+  }
+  // The months mvlSmallType names (AUD2-043, D4 = a): said before the Save dialog, as the characters above are, so the
+  // coordinator can thin a month out first, or export it anyway. The PDF is unchanged either way (gate 13's bytes).
+  async function confirmMonthPdfSmall(months){
+    const MAX_MONTHS = 8;
+    const lines = months.slice(0, MAX_MONTHS).map(m=> '• ' + m.label + ': ' + m.pt.toFixed(1) + ' pt');
+    if(months.length > MAX_MONTHS) lines.push('… and ' + (months.length - MAX_MONTHS) + ' more');
+    const one = months.length === 1;
+    return !!(await uiConfirm(
+      'Each month prints on one sheet, so ' + (one ? 'this month is' : 'these months are') + ' shrunk to fit, and '
+      + (one ? 'its' : 'their') + ' notes and bars print smaller than 6 pt:\n\n'
+      + lines.join('\n')
+      + '\n\nFewer notes on ' + (one ? 'its' : 'their') + ' busiest days'
+      + (mvNoteSize ? ', or a smaller Note size,' : '') + ' prints ' + (one ? 'it' : 'them') + ' larger.',
+      { title: one ? 'A month prints very small' : 'Some months print very small', confirmLabel: 'Export anyway', cancelLabel: 'Cancel' }));
   }
   // ---------- The SPTCal mark (owner, 2 Nov 2026: "Add hidden text too") ----------
   // Every PDF the two writers save says, invisibly, that SPTCal made it. The document's properties name it (Creator
@@ -39748,7 +39809,7 @@ export function initLegacyApp() {
     if(!pick) return;
     chrome.exportBtn({ busy: true, disabled: true });
     try {
-      let bytes, places;
+      let bytes, places, small;
       try {
         const fonts = {};
         for(const w of MVL_FONT_WEIGHTS) fonts[w] = await loadInterPdfFont(w);
@@ -39768,6 +39829,7 @@ export function initLegacyApp() {
         if(mvHeaderOff) model.months.forEach(function(m){ m.headerOff = true; });
         const layout = fitMonthLayout(model, fonts);
         places = mvlUnprintable(layout, fonts);
+        small = mvlSmallType(layout, fonts);
         bytes = await buildMonthPdf(layout);
       } catch(err){
         console.error(err);
@@ -39779,6 +39841,7 @@ export function initLegacyApp() {
         return;
       }
       if(places.length && !(await confirmMonthPdfPrintable(places))) return;
+      if(small.length && !(await confirmMonthPdfSmall(small))) return;
       // The SPTCal mark (markPdf), appended after the writer's bytes, which gate 13 still holds to its baselines.
       await saveMonthPdf(markPdf(bytes), monthPdfFileName());
     } catch(err){
@@ -40502,9 +40565,17 @@ export function initLegacyApp() {
     // A month-view day note is capped at 3 lines (it prints as one 3-line block). Waterfall notes
     // aren't capped -- there each line is a separate milestone across the week.
     if(!isWf && !isHol && !isAuto && !isLinked){
+      // ⭐ NOTHING TYPED IS THROWN AWAY (audit AUD2-046, item 3.1): a fourth line and every one after it -- pasted, dropped,
+      // or typed through an input method -- joins the third with a space, the rule wfLineToDayNote and Paste notes already
+      // follow. Until 14 Nov 2026 they were sliced off ("BG 8:30a" of a pasted call-times list was gone) without a word.
+      // Blank lines among them add nothing; the caret keeps its place counted from the end.
       const cap3 = ()=>{
         const lines = textarea.value.split('\n');
-        if(lines.length > 3) textarea.value = lines.slice(0,3).join('\n');
+        if(lines.length <= 3) return;
+        const was = textarea.value, end = was.length - textarea.selectionEnd;
+        textarea.value = lines.slice(0, 2).concat([lines.slice(2).map(l=> l.trim()).filter(Boolean).join(' ')]).join('\n');
+        const at = Math.max(0, textarea.value.length - end);
+        try { textarea.setSelectionRange(at, at); } catch(e){}
       };
       textarea.addEventListener('input', cap3);
       // (A 4th line is refused by the keys listener below: Shift+Enter or Alt+Enter at 3 lines adds nothing.)
