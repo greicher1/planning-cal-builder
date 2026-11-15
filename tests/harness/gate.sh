@@ -2310,6 +2310,9 @@ done
 # M3, M4, M5, M9, W1, W2, W3, W5 (its save) and W6 were red; the controls (P0, P11, P14, M6, M7, M8, W4) green on both.
 # The review (14 Nov 2026) added P16-P18: a holiday or automatic note among the picks stays out of ⌘C / ⌘X (only typed
 # notes travel; a pick of only those copies nothing and says so); P16, P17, P18 red on the reviewed build.
+# The second review (14 Nov 2026) added P19 (a shareable copy exported while the grid's message chip shows carries no
+# .month-sel-chip) and P20 (leaving the month view and coming back inside the chip's 4.2 s does not redraw it); both red
+# on the reviewed build.
 # mvkeysreal.mjs, after this loop, is the same with TRUSTED keys.
 for RSSPEC in "recoverfail:mode=newer:900" "recoverfail:mode=damaged:900" "recoverfail:mode=throws:900" "recoverfail:mode=scen:120" \
               "loadsparse:v=nohiatus:240" "loadsparse:v=badhiatus:240" "loadsparse:v=sixkeys:240" \

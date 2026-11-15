@@ -71,7 +71,11 @@ right-click items."*
   P4, P5, P6, P8, P9, P10, P12, P13, P15, M1, M3, M4, M5, M9, W1, W2, W3, W5 and W6 were red; all green after; the
   controls (P0, P11, P14, M6, M7, M8, W4) green on both. The review's repair (14 Nov 2026) added P16 (the reported cut
   and paste with a holiday picked), P16b, P17 (a holiday alone) and P18 (an automatic note alone): P16, P17 and P18 red
-  on the reviewed build, 22/22 and 16/16 after. New `mvkeysreal.mjs` (TRUSTED keys and clipboard over CDP, `wfkeysreal.mjs`'s month twin, in
+  on the reviewed build, 22/22 and 16/16 after. A second repair (14 Nov 2026) fixed two slips in that message chip:
+  a shareable copy exported in its 4.2 s carried it as a permanently visible element (the copy's strip list named
+  `.month-sel-box`, not the chip: `.month-sel-chip` added), and leaving the month view and coming back inside the
+  4.2 s redrew it (it even stayed over the waterfall): a view switch now clears it. P19 and P20 hold both, red before
+  the repair, `g=pick` 24/24 after. New `mvkeysreal.mjs` (TRUSTED keys and clipboard over CDP, `wfkeysreal.mjs`'s month twin, in
   `gate.sh`): 0/8 before the fix, 8/8 after; it also showed a real Alt+Enter inserting nothing natively, which is why
   the editors insert the line themselves. New fixture `tests/fixtures/mvkeys.sptcal` (synthetic, minted by `mvkeys
   g=mint`). Re-expected: `wfnoteeditor` E4, which typed in the box and pressed Esc expecting nothing saved; it now puts

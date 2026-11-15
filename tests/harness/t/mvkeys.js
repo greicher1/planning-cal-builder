@@ -30,6 +30,9 @@
 //       AUD2-014), and the grid says why; P16b two Undos put it back
 //   P17 a holiday picked alone, P18 an automatic note picked alone: ⌘C / ⌘X copy nothing and say why
 //   (P16-P18 added by the 14 Nov 2026 review: before it, a pasted holiday was re-dated into a new day note)
+//   P19 a shareable copy exported while the grid's message chip shows carries no .month-sel-chip
+//   P20 leaving the month view and coming back inside the chip's 4.2 s does not redraw it (nor leave it on the waterfall)
+//   (P19, P20 added by the second review, 14 Nov 2026; both red before its repair)
 // g=enter:
 //   M1  month: Enter saves a new note and closes the editor; M2 one Undo takes it back
 //   M3  Shift+Enter and Alt+Enter add a line (up to the note's 3), Enter then saves all three
@@ -388,6 +391,43 @@ window.addEventListener('load', function () { (async function () {
         {month: autoMonth, note: autoText, day: autoDay, copy: c18, said: said18}, 'nothing copied, the message');
       key('Escape'); bodyFocus();
       await toMonth('July 2026');
+
+      // P19 / P20 (the second review of item 2.8, 14 Nov 2026): the grid's message chip (.month-sel-chip) is body-level
+      // chrome that lives 4.2 s. Before the repair a shareable copy exported in that window carried it for good (it was
+      // missing from buildSavedHtml's strip list), and leaving the month view and coming back inside it redrew the chip.
+      // ⚠️ The pattern is built at run time: srv.js injects this leg's source into the page (see mvtextstyle.js's C1).
+      var CHIP_TAG = new RegExp('class="text-sel-chip ' + 'month' + '-sel-chip', 'g');
+      async function chipUp(){
+        bodyFocus();   // closing Settings hands focus back to its trigger, and a focused control keeps ⌘C (P14)
+        var h = blocks('2026-07-03', 'wf')[0]; if(h) await click(h);
+        var picked = selBoxes(), c = clip('copy'), said = chipNow(); key('Escape'); bodyFocus();
+        return {t0: Date.now(), chips: qa('body > .month-sel-chip').length, found: !!h, picked: picked, handled: c.handled, said: said};
+      }
+      var f19 = await chipUp();
+      await T.openSettings('prefs');
+      await T.until(function () { return !!byId('share-copy-btn'); }, 'the Export-App button', 80, 100);
+      await T.sleep(650);   // the button's 600 ms re-click guard counts every click on the page (the pick's among them)
+      var live19 = qa('body > .month-sel-chip').length, ms19 = Date.now() - f19.t0;
+      var cap19 = T.captureDownload();
+      byId('share-copy-btn').click();
+      await T.until(cap19.peek, 'the shareable copy', 200, 100);
+      var copy19 = await cap19.stop().text();
+      await T.closeSettings();
+      var inCopy19 = (copy19.match(CHIP_TAG) || []).length;
+      add('P19', 'a shareable copy exported while the grid\'s message is showing carries no .month-sel-chip',
+        f19.chips === 1 && live19 === 1 && ms19 < 4200 && inCopy19 === 0,
+        {chipsAfterCopy: f19.chips, chipsAtExport: live19, msAfterFlash: ms19, inCopy: inCopy19}, 'one live, none in the copy');
+      await T.sleep(4400); await settle();
+
+      var f20 = await chipUp();
+      await view('sheet');
+      var onSheet20 = qa('body > .month-sel-chip').length;
+      await view('month');
+      var back20 = qa('body > .month-sel-chip').length, ms20 = Date.now() - f20.t0;
+      add('P20', 'the grid\'s message does not come back when the month view is left and opened again inside its 4.2 s',
+        f20.chips === 1 && onSheet20 === 0 && back20 === 0 && ms20 < 4200,
+        {flash: f20, chipsAfterCopy: f20.chips, onWaterfall: onSheet20, backInMonth: back20, msAfterFlash: ms20}, '1, then 0 and 0, inside 4.2 s');
+      await T.sleep(4400); await settle();
     }
 
     if(G === 'enter'){
