@@ -31,7 +31,7 @@ window.addEventListener('load', function () { (async function () {
   function byId(id) { return document.getElementById(id); }
   function norm(t) { return String(t || '').replace(/\s+/g, ' ').trim(); }
   var q = new URLSearchParams(location.search), FX = q.get('state') || '';
-  var MODE = FX === 'swap-holds' ? 'B' : 'A';
+  var MODE = FX === 'swap-holds' ? 'B' : 'A', base = null;
   out.mode = MODE;
   var sig = function () { return [].map.call(document.querySelectorAll('#table-wrap td.sheet-phase-cell'), function (td) { return td.dataset.pkey + td.dataset.own + td.dataset.week + td.colSpan; }).join(''); };
   async function settle() {
@@ -68,7 +68,7 @@ window.addEventListener('load', function () { (async function () {
     try { localStorage.clear(); } catch (e) {}
     await T.appReady(); await settle();
     if (MODE === 'A') {
-      await T.reloadWith(function (s) { delete s.colReuse; delete s.colKeep; delete s.colFollow; }, 'headingsfollow-0');
+      await T.reloadWith(function (s) { delete s.colReuse; delete s.colKeep; delete s.colFollow; base = JSON.parse(J(s)); }, 'headingsfollow-0');
       await settle();
     }
     var H0 = holders(), typed = {};
@@ -105,6 +105,25 @@ window.addEventListener('load', function () { (async function () {
         : (!gone.length && !say),
       J({ gone: gone, unnamed: unnamed, notice: say }));
 
+    if (MODE === 'A') {
+      // H6 (repair, 14 Nov 2026): a shareable copy exported while the strip is up carries it hidden and EMPTY: its text
+      // names headings the sender removed. Red before the repair (hidden, but the names travelled in .ln-text).
+      await T.openSettings('prefs');
+      await T.until(function () { return !!byId('share-copy-btn'); }, 'the Export-App button', 80, 100);
+      await T.sleep(900);
+      var cap = T.captureDownload();
+      byId('share-copy-btn').click();
+      await T.until(cap.peek, 'the shareable-copy blob', 200, 100);
+      var html = await cap.stop().text();
+      var hm = /<div id="heading-notice"([^>]*)>([\s\S]*?)<\/div>/.exec(html);
+      var inner = hm ? (/<span class="ln-text">([\s\S]*?)<\/span>/.exec(hm[2]) || [])[1] : null;
+      C('H6', 'a shareable copy exported while the strip is up carries it hidden, with no heading names in it',
+        !!say && !!hm && /\shidden(\s|>|=|$)/.test(hm[1]) && inner !== undefined && inner !== null && !norm(inner),
+        J({ stripUp: !!say, tag: hm ? hm[1] : null, text: inner }));
+      await T.closeSettings();
+      await T.sleep(400);
+    }
+
     byId('undo-btn').click(); await T.sleep(600); await settle();
     var d2 = drawn();
     C('H3', 'one Undo puts the old layout and every heading back, and the notice goes',
@@ -116,6 +135,49 @@ window.addEventListener('load', function () { (async function () {
     var labels = snap.headerRowLabels || {}, stale = Object.keys(labels).filter(function (k) { return /:s\d+$/.test(k) && drawn()[k] !== labels[k]; });
     C('H4', 'the saved file holds only the headings that are drawn, each on its own column', !stale.length && J(drawn()) === J(d1),
       J({ stale: stale, sameAsAfter: J(drawn()) === J(d1) }));
+
+    if (MODE === 'A') {
+      // H5a / H5b (review repair, 14 Nov 2026; the reviewer's case). Update layout puts custom1 (21 weeks), custom3 (12)
+      // and custom4 (15) into one 2027 column (y2027:s2). Before the repair a collision's winner was picked by which
+      // phase leads the new column, so custom1's EMPTY position won and a typed heading was removed with nothing typed
+      // competing for its column (red: H5a lost "custom3 col", H5b lost both). Now only typed positions compete:
+      //   H5a  one heading, over custom3 (y2027:s5) alone: it moves over its phase, nothing removed, no strip
+      //   H5b  two, over custom3 and custom4 (y2027:s6) alone: the two typed ones DO collide, so exactly one goes and is
+      //        named; custom4 stays (more weeks in the column), "custom3 col" is named in the strip
+      var runs = [
+        { id: 'H5a', keys: ['y2027:s5'], keep: ['y2027:s5'], gone: [] },
+        { id: 'H5b', keys: ['y2027:s5', 'y2027:s6'], keep: ['y2027:s6'], gone: ['y2027:s5'] }
+      ];
+      for (var ri = 0; ri < runs.length; ri++) {
+        var R = runs[ri], set = {};
+        R.keys.forEach(function (k) { set[k] = typed[k]; });
+        await T.reloadWith(function (s) {
+          Object.keys(s).forEach(function (k) { delete s[k]; });
+          Object.assign(s, JSON.parse(J(base)), { headerRowLabels: set });
+        }, 'headingsfollow-3' + ri);
+        await settle();
+        var d5a = drawn(), okBefore = R.keys.every(function (k) { return d5a[k] === set[k]; });
+        var go5 = document.querySelector('#layout-notice .ln-go');
+        if (!go5) throw new Error(R.id + ': no Update layout button');
+        await T.sleep(700);
+        go5.click(); await T.sleep(500); await settle();
+        var H5 = holders(), d5 = drawn(), say5 = notice(), wrong5 = [], lost5 = [], kept5 = [];
+        R.keys.forEach(function (k) {
+          var t = set[k], at = Object.keys(d5).filter(function (kk) { return d5[kk] === t; });
+          if (!at.length) { lost5.push(k); return; }
+          kept5.push(k);
+          var phase = t.replace(/ col$/, '');
+          if (!(H5[at[0]] && H5[at[0]][phase]) || homeOf(H5, '2027', phase) !== at[0]) wrong5.push(at[0] + ': "' + t + '"');
+        });
+        var named = R.gone.every(function (k) { return say5.indexOf('“' + set[k] + '”') !== -1; });
+        C(R.id, R.gone.length
+            ? 'headings typed over custom3 and custom4 alone, which Update layout puts in one column: one stays over its phase, the other is named in the strip'
+            : 'one heading typed over custom3 alone: after Update layout it is still drawn over its phase, and no strip',
+          okBefore && J(kept5) === J(R.keep) && J(lost5) === J(R.gone) && !wrong5.length && (R.gone.length ? named : !say5),
+          J({ typed: set, h2027: Object.keys(H5).filter(function (k) { return k.indexOf('y2027') === 0; }).map(function (k) { return k + J(H5[k]); }),
+            kept: kept5, lost: lost5, wrong: wrong5, notice: say5 }));
+      }
+    }
 
     out.errors = (T.appHealth().errors || []).slice(0, 6);
     C('E0', 'no engine errors', !out.errors.length, J(out.errors));

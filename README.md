@@ -46,12 +46,17 @@ Audit item 3.8 (Nov 2026 audit, findings AUD2-057 and AUD2-077), built with the 
   in the fewest columns again; nothing is removed from them.
 - **Typed column headings follow their phase** when Update layout or Reset Columns rearranges a year's columns, on
   screen, in Excel and in the PDF. Before, they stayed on their positions, so a heading typed over one phase printed over
-  another, and one whose column went away stayed in the file, never drawn. Where two phases now share one column, the
-  heading of the phase that leads it stays and the other is removed, named in a one-line strip above the calendar; Undo
-  brings it back.
+  another, and one whose column went away stayed in the file, never drawn. A heading is removed only when two TYPED
+  headings land on one column: the one over the phase that leads it (else the one with more weeks there) stays, and
+  the other is named in a one-line strip above the calendar; Undo brings it back. A heading whose column merges with
+  columns that hold nothing typed simply moves with its phase, with no strip. *(Repaired after review, 14 Nov 2026:
+  the first build picked a collision's winner by which phase leads the new column even when the other positions held
+  nothing typed, so a heading typed over one phase alone could vanish; and a shareable copy exported while the strip
+  was up carried the sender's removed headings in the strip's hidden text. The copy now empties it.)*
 - Nothing frozen changed; no new or renamed save-file key. The help's "Where a phase goes" and "Column headings" say so.
-- **Proof:** new legs `keepcols` 9/9 (red on `2089aa5` at KC0–KC7) and `headingsfollow` 5/5 on two calendars (red at
-  H1, H2, H4 and H1), both in `gate.sh`; `stickycols`, `colsreset`, `swapholds`, `phasefill`, every `layoutrules`
+- **Proof:** new legs `keepcols` 9/9 (red on `2089aa5` at KC0–KC7) and `headingsfollow` on two calendars (8/8 on
+  `keepcols-heavy`, 5/5 on `swap-holds`; red on `2089aa5` at H1, H2, H4 and H1, and the review repair's H5a, H5b, H6
+  red on the first build `0afa1ca`), both in `gate.sh`; `stickycols`, `colsreset`, `swapholds`, `phasefill`, every `layoutrules`
   fixture, `colreuse`, `hdrrow`, `hdrcontrols`, `simpostbeside`, the swap legs, the movers and `hiatusripple` /
   `hiatusdrag` green; gates 1–3 by hand (the waterfall PDF and every Excel part identical to the baseline);
   `npm run check` 42/42. Not merged, not pushed: waits for the release train's one full gate.

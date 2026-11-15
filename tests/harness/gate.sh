@@ -2110,7 +2110,10 @@ done
 # year's columns: Update layout on keepcols-heavy unstamped (2026 five columns to four, 2027 seven to five) and Reset
 # Columns on swap-holds. Every heading still drawn is over its own phase, one that had to go (its phase now shares a
 # column under another heading) is named in the one-line #heading-notice, one Undo restores all, and the saved file
-# holds no heading on a position that no longer exists. Red on 2089aa5 at H1, H2, H4 (A) and H1 (B).
+# holds no heading on a position that no longer exists. Red on 2089aa5 at H1, H2, H4 (A) and H1 (B). Review repair (same
+# day): only two TYPED headings landing on one column remove one (H5a: a heading over custom3 alone moves with no strip;
+# H5b: over custom3 and custom4, one is named), and a shareable copy exported with the strip up carries it hidden and
+# empty (H6). H5a, H5b, H6 red on 0afa1ca.
 # showfolder (owner, 4 Nov 2026, "I want to see where the file is saved") guards the file menu's right-click "Show in
 # folder…": the app's own menu opens on a loaded file, the Mac's file window is asked for with startIn = THAT file's
 # handle and Load…'s types, Cancel changes nothing, unsaved work is asked about only AFTER a pick, a pick loads, and a

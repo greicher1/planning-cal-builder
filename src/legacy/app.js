@@ -28297,8 +28297,8 @@ export function initLegacyApp() {
   // Re-key the position-keyed heading stores of every year whose holders changed. Each old position's phase is the one
   // with the most weeks there (a tie: the first key in order; the Sim Post lane only where no phase sits at all, since a
   // heading names a phase and the lane marks the shoot's weeks beside Production); it goes to the position where that
-  // phase now has the most weeks (a tie: the left one). Two old positions landing on one new position: the one whose
-  // phase now leads it keeps it, else the one whose phase has more weeks there, else the left one; the other's heading
+  // phase now has the most weeks (a tie: the left one). Two old positions HOLDING SOMETHING TYPED landing on one new
+  // position (an untyped one never competes): the one whose phase now leads it keeps it, else the one whose phase has more weeks there, else the left one; the other's heading
   // is REMOVED (its column was merged into another), as are headings on a position that held nothing or no longer
   // exists. Fresh objects, never a mutation: an undo step may hold the old ones. Returns the texts of the typed headings
   // removed, for the one-line notice; a re-keyed heading needs none, it simply stays over its phase.
@@ -28309,6 +28309,9 @@ export function initLegacyApp() {
       return k !== null ? k : (m.has(COL_KEEP_LANE) ? COL_KEEP_LANE : null);
     };
     const sig = slots => slots.map(m => [...m.keys()].sort().join(',')).join('|');
+    // Typed = anything the three stores hold on that position: a label, a Split, a heading text style.
+    const has = (store, k) => !!store && Object.prototype.hasOwnProperty.call(store, k);
+    const isTyped = k => has(headerRowLabels, k) || has(headerRowSplits, k) || has(textStyle && textStyle.heading, k);
     const maps = {};   // year -> [old position -> new position, or -1]
     Object.keys(before).forEach(y=>{
       const B = before[y], A = after[y];
@@ -28320,8 +28323,14 @@ export function initLegacyApp() {
         A.forEach((am, j)=>{ const v = am.get(p) || 0; if(v > n){ at = j; n = v; } });
         return at;
       });
+      // ⭐ Only TYPED positions compete (review repair, 14 Nov 2026). A position with nothing typed on it has nothing to
+      // lose, so it never takes a column from one that has: until this repair the winner was picked by which phase
+      // leads the new column alone, and a heading typed over custom3 lost its column to an empty position and was
+      // removed with nothing typed competing (keepcols-heavy, headings typed only over y2027:s5 and y2027:s6). The
+      // phase-lead order below now decides only between two typed headings, and only then is one removed.
+      const typedAt = i => isTyped('y' + y + ':s' + i);
       A.forEach((am, j)=>{
-        const claim = []; to.forEach((t, i)=>{ if(t === j) claim.push(i); });
+        const claim = []; to.forEach((t, i)=>{ if(t === j && typedAt(i)) claim.push(i); });
         if(claim.length < 2) return;
         const top = lead(am);
         claim.sort((a, b)=> ((lead(B[b]) === top) - (lead(B[a]) === top))
@@ -29984,6 +29993,9 @@ export function initLegacyApp() {
     // removed because the copy is a working app: its own engine may need to raise these later.
     // #browser-notice (audit L-20) joined them: a copy exported from Safari must not carry it into Chrome.
     clone.querySelectorAll('#legacy-notice, #update-notice, #holiday-notice, #browser-notice, #calrange-notice, #layout-notice, #heading-notice').forEach(el=>{ el.hidden = true; });
+    // #heading-notice's text is EMPTIED as well (review repair, 14 Nov 2026): it names the headings the SENDER removed,
+    // which the recipient's file never held. Its own engine writes the text afresh whenever it raises the strip.
+    clone.querySelectorAll('#heading-notice .ln-text').forEach(el=>{ el.textContent = ''; });
     // Transient interaction classes on <body> must not be serialised. grid-cell-hover carries
     // cursor:cell and grid-selecting carries user-select:none -- baked into an exported copy either
     // would be a permanent, page-wide state in someone else's file.
