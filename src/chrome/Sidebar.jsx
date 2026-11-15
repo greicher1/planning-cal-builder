@@ -912,7 +912,8 @@ export function HiatusPrefsCard() {
         <InfoHint label="Ripple Hiatus Periods" width={300}>
           On: when a hiatus is added, removed, lengthened, shortened or moved, every phase that starts on or
           after it moves by the same number of weeks, so the gaps between phases stay as they were. Locked
-          hiatuses, holidays and notes with a date stay put. ⌘Z takes back the push and keeps your hiatus change.
+          hiatuses, holidays and notes with a date stay put. ⌘Z takes back your hiatus change and its push
+          together. To change a hiatus without moving anything else, turn this off first.
         </InfoHint>
       </h2>
       <div className="side-block">

@@ -32,16 +32,17 @@
 //       immediately"): Production, Post, Summer Break and the undated note 1 wk; Pre Prep, the dated note and the locked
 //       breaks stay; the line under the Break reads "Pushed 1 wk: Production, Post · Wrap 6/12/26". Tab onto Lock in
 //       place then moves nothing more and KEEPS the line
-//   R2  undo/redo: ONE undo takes back the push and keeps Weeks 3; a second takes back Weeks 3; redo twice comes back; none
-//       of it ripples again
+//   R2  undo/redo: ONE undo takes back Weeks 3 AND its push, a second finds nothing in between; ONE redo brings both
+//       back, a second finds nothing more; none of it ripples again. (Until the audit fix AUD2-038, owner decision D2 = b,
+//       Nov 2026, the edit and its push were two steps: one undo took back the push alone. Re-expected for that ruling.)
 //   R3  ArrowUp twice: two pushes of 1 week, each at once (Production 3/23, then 3/30; "Pushed 1 wk: Production, Post ·
-//       Wrap 6/19/26"); ONE undo takes back the second push alone (Weeks 4 kept, Production 3/23)
+//       Wrap 6/19/26"); ONE undo takes back the second ArrowUp and its push together (Weeks 3, Production 3/23)
 //   R4  R5's move by typing: Break's Starts typed 0 4 1 3 2 0 2 6, digit by digit (the year passes through 0002 / 0020 /
 //       0202): nothing moves while typing, nor on Tab to its own Weeks; Tab on to Lock in place pulls Production back to
 //       3/2 and leaves Post on 4/27 (out at wk 7, in at wk 15); "Pulled 2 wks: Production · Wrap 6/5/26"
 //   R5  a typed number pushes at once too: 5 over the 2 pushes 3 wks; Backspace to an empty box moves nothing (a number is
-//       still coming); 3 pulls 2 wks back; Enter then moves nothing and keeps the line; ONE undo takes back that pull alone
-//       (Weeks 3 kept, Production 4/6), though it came inside the 500 ms undo debounce
+//       still coming); 3 pulls 2 wks back; Enter then moves nothing and keeps the line; ONE undo takes back the typed 3
+//       and its pull together (Production 4/6, the box as before the 3)
 //   R6  the row's ×, answered Remove: Production 3/2, Post 4/13, Summer Break 8/3, the undated note 5/4; the line goes
 //       at the top of the All-phase card (.hiatus-ripple-card), "Pulled 2 wks: Production, Post · Wrap 5/22/26"
 //   R7  a phase starting INSIDE the hiatus (Post typed 2/23, in the Break) lands the break's 2 weeks before where it really
@@ -53,14 +54,14 @@
 //       back Weeks 3 (the flip banked no step); on again: the preference gone; it survives a reload both ways
 //   R10 code writes never ripple: Weeks set by script (no focus), and the fixture's own load
 //   R11 the month view's drag, START grip up a row, Keep: the question says "Ripple Hiatus Periods is on (Settings): Pushed 1 wk:
-//       Production, Post"; Production 3/23; ONE undo -> the drag without its push (Break 2/9 x 3, Production 3/16), a
-//       second -> Break 2/16 x 2
+//       Production, Post"; Production 3/23; ONE undo -> the calendar as before the drag (Break 2/16 x 2, Production 3/16),
+//       a second finds nothing in between
 //   R12 the same drag, Undo: every date back as at the press, the undo button as it was
 //   R13 the waterfall's right-click Hiatus > All phases on the week of 5/4/26: no phase starts after it, so the line says so;
 //       Summer Break 8/31, the undated note 6/1, Production and Post (running) only paused
 //   S1-S4 the ripple steps over locked breaks (HIATUS-RIPPLE-PLAN.md §12, owner 6 Nov 2026), on ripplestep.sptcal: S1 Writer's
 //       Rm's own hiatus 9/7 x2 pushes Pre Prep and Post 2 wks and Prod Prep 4 (its start crosses the locked 12/21 break);
-//       S2 one undo takes the push back; S3 redo, then the switch off pulls Prod Prep back over the break to 12/14; S4 the
+//       S2 one undo takes the hiatus and its push back together; S3 redo, then the switch off pulls Prod Prep back over the break to 12/14; S4 the
 //       trap: the all-phase Break 2 -> 3 moves the phase that starts the week after it 1 wk, not 2
 import fs from 'node:fs';
 import path from 'node:path';
@@ -324,15 +325,18 @@ try {
          && /hiatus-locked/.test(after.active) && after.prod === '2026-03-23' && after.post === '2026-05-04' && after.by.Break === '2026-02-16/3'
          && (after.rows.find(r => r.name === 'Break') || {}).note === LINE, out.R1);
 
+    // ⭐ ONE STEP (audit AUD2-038, owner decision D2 = b, Nov 2026: "the edit and its push are one Undo"). Until then the
+    // first undo took back the push alone (Production 3/16 with Weeks 3 kept) and a second took back Weeks 3.
     await undoBtn(); const u1 = await st();
     await undoBtn(); const u2 = await st();
     await redoBtn(); const r1 = await st();
     await redoBtn(); const r2 = await st();
-    out.R2 = { u1: [u1.prod, u1.by.Break], u2: [u2.prod, u2.by.Break], r1: [r1.prod, r1.by.Break], r2: [r2.prod, r2.by.Break], notes: [u1.notes, r2.notes] };
-    kase('R2', 'ONE undo takes back the push and keeps Weeks 3 (Production 3/16); a second takes back Weeks 3; redo, redo comes back to 3/23; nothing ripples on the way',
-         u1.prod === '2026-03-16' && u1.by.Break === '2026-02-16/3' && u2.prod === '2026-03-16' && u2.by.Break === '2026-02-16/2'
-         && r1.prod === '2026-03-16' && r1.by.Break === '2026-02-16/3' && r2.prod === '2026-03-23' && r2.by.Break === '2026-02-16/3'
-         && u1.post === '2026-04-27' && r2.post === '2026-05-04', out.R2);
+    out.R2 = { u1: [u1.prod, u1.post, u1.by.Break], u2: [u2.prod, u2.by.Break], r1: [r1.prod, r1.post, r1.by.Break], r2: [r2.prod, r2.by.Break], notes: [u1.notes, r2.notes] };
+    kase('R2', 'ONE undo takes back Weeks 3 AND its push (Weeks 2, Production 3/16, Post 4/27); a second finds no "Weeks 3 without its push" in between; ONE redo brings both back (Weeks 3, Production 3/23, Post 5/4), a second finds nothing more; nothing ripples on the way',
+         u1.prod === '2026-03-16' && u1.by.Break === '2026-02-16/2' && u1.post === '2026-04-27'
+         && u2.prod === '2026-03-16' && u2.by.Break === '2026-02-16/2'
+         && r1.prod === '2026-03-23' && r1.by.Break === '2026-02-16/3' && r1.post === '2026-05-04'
+         && r2.prod === '2026-03-23' && r2.by.Break === '2026-02-16/3', out.R2);
   }
 
   // ---- R3: two ArrowUps, two pushes ---------------------------------------------------------------------------------------
@@ -346,11 +350,11 @@ try {
     await undoBtn();
     const back = await st();
     out.R3 = { one: [one.prod, one.by.Break], two: [two.prod, two.post, two.by.Break, two.active], line: (two.rows.find(r => r.name === 'Break') || {}).note, back: [back.prod, back.by.Break] };
-    kase('R3', 'ArrowUp twice (2 -> 3 -> 4): a push of 1 week at each, Production 3/23 then 3/30, Post 5/11, focus still in Weeks; "Pushed 1 wk: Production, Post · Wrap 6/19/26"; ONE undo takes back the second push alone (Weeks 4, Production 3/23)',
+    kase('R3', 'ArrowUp twice (2 -> 3 -> 4): a push of 1 week at each, Production 3/23 then 3/30, Post 5/11, focus still in Weeks; "Pushed 1 wk: Production, Post · Wrap 6/19/26"; ONE undo takes back the second ArrowUp and its push together (Weeks 3, Production 3/23; audit AUD2-038)',
          one.prod === '2026-03-23' && one.by.Break === '2026-02-16/3'
          && two.prod === '2026-03-30' && two.post === '2026-05-11' && two.by.Break === '2026-02-16/4' && /hiatus-weeks/.test(two.active)
          && out.R3.line === 'Pushed 1 wk: Production, Post · Wrap 6/19/26'
-         && back.prod === '2026-03-23' && back.by.Break === '2026-02-16/4', out.R3);
+         && back.prod === '2026-03-23' && back.by.Break === '2026-02-16/3', out.R3);
   }
 
   // ---- R4: the move, typed digit by digit -------------------------------------------------------------------------------
@@ -390,18 +394,19 @@ try {
     const empty = await st();
     await typeDigits('3'); await press('Enter'); await sleep(600);   // ~150 ms apart: inside the undo debounce
     const three = await st();
-    // The 3 came within the 500 ms undo debounce of the emptied box, so only the ripple's own banking makes it a step of its
-    // own: one undo must take back the pull and keep Weeks 3.
+    // ⭐ The typed 3 and its pull are ONE step (audit AUD2-038, owner decision D2 = b, Nov 2026): one undo takes back both,
+    // so Production is 4/6 again and the box is as it was before the 3 (emptied: the Backspace and its 600 ms pause banked
+    // a step of their own; or 5, had they not). Until then one undo took back the pull alone and kept Weeks 3.
     await undoBtn();
     const back = await st();
     const line = s => (s.rows.find(r => r.name === 'Break') || {}).note;
     out.R5 = { five: [five.prod, five.by.Break, five.active], empty: [empty.prod, empty.by.Break], three: [three.prod, three.post, three.by.Break, three.active, line(three)], back: [back.prod, back.by.Break] };
-    kase('R5', 'a typed 5 over the 2 pushes 3 wks at once (Production 4/6); Backspace to an empty box moves nothing; a typed 3 pulls 2 wks (Production 3/23, Post 5/4) and Enter after it moves nothing and keeps "Pulled 2 wks: Production, Post · Wrap 6/12/26"; ONE undo takes back the pull alone (Weeks 3, Production 4/6)',
+    kase('R5', 'a typed 5 over the 2 pushes 3 wks at once (Production 4/6); Backspace to an empty box moves nothing; a typed 3 pulls 2 wks (Production 3/23, Post 5/4) and Enter after it moves nothing and keeps "Pulled 2 wks: Production, Post · Wrap 6/12/26"; ONE undo takes back the 3 and its pull together (Production 4/6, the box as before the 3)',
          five.prod === '2026-04-06' && five.by.Break === '2026-02-16/5' && /hiatus-weeks/.test(five.active)
          && empty.prod === '2026-04-06' && empty.by.Break === '2026-02-16/'
          && three.prod === '2026-03-23' && three.post === '2026-05-04' && three.by.Break === '2026-02-16/3' && /hiatus-weeks/.test(three.active)
          && line(three) === 'Pulled 2 wks: Production, Post · Wrap 6/12/26'
-         && back.prod === '2026-04-06' && back.by.Break === '2026-02-16/3', out.R5);
+         && back.prod === '2026-04-06' && (back.by.Break === '2026-02-16/' || back.by.Break === '2026-02-16/5'), out.R5);
   }
 
   // ---- R6: the row's × ------------------------------------------------------------------------------------------------------
@@ -613,11 +618,12 @@ try {
     await undoBtn(); const u1 = await st();
     await undoBtn(); const u2 = await st();
     out.R11 = { question: asked.question, asked: [asked.prod, asked.by.Break], kept: [kept.prod, kept.post, kept.by.Break, kept.by['Summer Break']],
-                u1: [u1.prod, u1.by.Break], u2: [u2.prod, u2.by.Break], preUndoOff: pre.undoOff };
-    kase('R11', 'month view, the Break\'s START grip up a row: the question says "Ripple Hiatus Periods is on (Settings): Pushed 1 wk: Production, Post"; Keep: Break 2/9 x 3, Production 3/23, Post 5/4, Summer Break 8/24; ONE undo -> Break 2/9 x 3 with Production 3/16; a second -> 2/16 x 2',
+                u1: [u1.prod, u1.post, u1.by.Break, u1.by['Summer Break']], u2: [u2.prod, u2.by.Break], preUndoOff: pre.undoOff };
+    kase('R11', 'month view, the Break\'s START grip up a row: the question says "Ripple Hiatus Periods is on (Settings): Pushed 1 wk: Production, Post"; Keep: Break 2/9 x 3, Production 3/23, Post 5/4, Summer Break 8/24; ONE undo -> the calendar as before the drag (Break 2/16 x 2, Production 3/16, Post 4/27; audit AUD2-038); a second finds nothing in between',
          /Ripple Hiatus Periods is on \(Settings\): Pushed 1 wk: Production, Post/.test(asked.question) && asked.prod === '2026-03-23'
          && kept.prod === '2026-03-23' && kept.post === '2026-05-04' && kept.by.Break === '2026-02-09/3' && kept.by['Summer Break'] === '2026-08-24/1'
-         && u1.prod === '2026-03-16' && u1.by.Break === '2026-02-09/3' && u2.prod === '2026-03-16' && u2.by.Break === '2026-02-16/2', out.R11);
+         && u1.prod === '2026-03-16' && u1.by.Break === '2026-02-16/2' && u1.post === '2026-04-27' && u1.by['Summer Break'] === '2026-08-17/1'
+         && u2.prod === '2026-03-16' && u2.by.Break === '2026-02-16/2', out.R11);
   }
   await load();
   {
@@ -709,8 +715,8 @@ try {
     await undoBtn();
     const s2 = await stepState();
     out.S2 = s2;
-    kase('S2', 'ONE undo takes back the push and keeps the hiatus (9/7 x2): Pre Prep 11/2, Prod Prep 12/14, Post 1/25, Break 9/28',
-         s2.wrHi === '2026-09-07/2/true' && s2.a === '2026-11-02' && s2.b === '2026-12-14' && s2.c === '2027-01-25' && s2.brk === '2026-09-28/2', out.S2);
+    kase('S2', 'ONE undo takes back the hiatus\'s date AND its push together (audit AUD2-038): no 9/7 hiatus; Pre Prep 11/2, Prod Prep 12/14, Post 1/25, Break 9/28',
+         s2.wrHi.indexOf('2026-09-07/') !== 0 && s2.a === '2026-11-02' && s2.b === '2026-12-14' && s2.c === '2027-01-25' && s2.brk === '2026-09-28/2', out.S2);
 
     await redoBtn();
     const r = await stepState();
@@ -718,8 +724,8 @@ try {
     await sleep(900);
     const s3 = await stepState();
     out.S3 = { redo: r, off: s3 };
-    kase('S3', 'redo brings the stepped push back (Prod Prep 1/11/27); the hiatus switched off pulls everything back, Prod Prep stepping back over the break to 12/14 (not 12/28), Pre Prep 11/2, Post 1/25, Break 9/28; "Pulled 2 wks: Pre Prep, Post · Pulled 4 wks: Prod Prep" (the line lists pushes largest first, pulls smallest first, as it always has)',
-         r.b === '2027-01-11' && r.a === '2026-11-16'
+    kase('S3', 'redo brings the hiatus and its stepped push back (9/7 x2, Prod Prep 1/11/27); the hiatus switched off pulls everything back, Prod Prep stepping back over the break to 12/14 (not 12/28), Pre Prep 11/2, Post 1/25, Break 9/28; "Pulled 2 wks: Pre Prep, Post · Pulled 4 wks: Prod Prep" (the line lists pushes largest first, pulls smallest first, as it always has)',
+         r.b === '2027-01-11' && r.a === '2026-11-16' && r.wrHi === '2026-09-07/2/true'
          && s3.a === '2026-11-02' && s3.b === '2026-12-14' && s3.c === '2027-01-25' && s3.brk === '2026-09-28/2' && s3.locked === LOCKED
          && /^Pulled 2 wks: Pre.?Prep, Post · Pulled 4 wks: Prod.?Prep$/.test(s3.wrLine), out.S3);
   }

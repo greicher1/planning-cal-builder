@@ -1984,6 +1984,13 @@ done
 # WORKING week, so ▼ from the week before an all-phase hiatus lands the week after it and ▲ comes back (the locked
 # Summer Break, the two-week Christmas break, the unlocked Fall Break), the label counts calendar weeks ("Pushed 3
 # wks"), and no band moves. Red on the build before (R1, R4, R6 land inside the break). On phasearrows.sptcal.
+# rippleundo (audit AUD2-038, owner decision D2 = b, Nov 2026: "the edit and its push are one Undo") is Ripple Hiatus ON
+# (the users' default) and a hiatus edit with its push as ONE undo step, wherever the edit is made: the month view's band
+# drag answered Keep, the month day menu's Add hiatus (all phases, one phase) and Remove hiatus…, the waterfall's Add
+# hiatus, and the sidebar's Weeks (pushed inside the undo debounce), Starts (typed, banked by a pause, then Enter), × and
+# a phase's Hiatus switch. Each: one Cmd+Z = the calendar as saved before, byte for byte; Shift+Cmd+Z = the edit AND its
+# push; Cmd+Z again. All 18 undo / redo cases red on the build before (each needed a second Cmd+Z). On rippleundo.sptcal (the audit's synthetic
+# audit-gap-hiatus: Production 6/29/26, the unlocked Summer break 7/13/26).
 # mvdragcarry (owner, 4 Nov 2026, by picker; PHASE-WEEK-ARROWS-PLAN.md §5) is the month view's body drag on the arrows'
 # mover: a dragged phase carries its own hiatus and its "<week>|<key>" stores by the whole weeks its run moved, always
 # from the press (out and back is exact, a stale band label included), live while the button is down, as ONE undo step;
@@ -2224,6 +2231,7 @@ for AFSPEC in pwagate:-:120 pwagatelogic:-:120 settingswin:-:240 newtab:-:120 \
               paneldrag:anchorside:300 \
               phasearrows:phasearrows:400 \
               phasearrowsripple:phasearrows:300 \
+              rippleundo:rippleundo:400 \
               mvdragcarry:mvdragcarry:400 \
               stalebandkey:stalebandkey:400 \
               shiftheld:shiftheld:300 \
@@ -2980,7 +2988,8 @@ PYHD
 # when an edit SETTLES (focus leaves the hiatus's Starts / Weeks, Enter, a pick in the date popover), never per
 # keystroke, and only CDP input is trusted input that moves focus as Tab and a click do. On hiatusripple.sptcal, ON by
 # default: the three copies of the switch, no id, no file key (R0); Weeks by the spinner, one push on Tab, the notes
-# and the locked/unlocked hiatuses (R1, R3); two undo steps (R2, R5); a move typed digit by digit through 0002 /
+# and the locked/unlocked hiatuses (R1, R3); the edit and its push ONE undo step (R2, R3, R5, R11, S2: re-expected for
+# audit AUD2-038, owner decision D2 = b, Nov 2026; they were two steps until then); a move typed digit by digit through 0002 /
 # 0020 / 0202 (R4); Enter (R5); the x (R6); a phase starting inside the hiatus (R7); a phase's own hiatus, picked in
 # the popover, and switched off (R8); the switch off, on, and across reloads (R9); code writes (R10); the month drag,
 # Keep and Undo (R11, R12); the waterfall's right-click (R13). Red on origin/main (every case) and on six mutants, each

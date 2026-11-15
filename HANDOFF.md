@@ -4,6 +4,44 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### 🩹 14 Nov 2026 (overnight audit fix, item 2.5, AUD2-038 only): A HIATUS CHANGE AND ITS RIPPLE PUSH ARE ONE UNDO STEP. ⛔ **NOT merged, NOT pushed**; waits for the release train's one full gate. Branch `audit-2-5` (worktree `.claude/worktrees/audit-2-5`, from `origin/main` at `2089aa5`; `node_modules` is a clone copy, not a symlink)
+- **Owner decision:** D2 = b on the November audit (PLAYBOOK §3): *"the edit and its push are one Undo"*. Only AUD2-038
+  was accepted from item 2.5. ⛔ **AUD2-016 and AUD2-037** (a ripple's day marks and the note inside the break, the rest of
+  D2's wording) are UNDECIDED and were not touched.
+- **The bug:** with Ripple Hiatus Periods on (the default) every hiatus change banked TWO undo steps (`bankStepAt`, a
+  session's call, never ruled: HIATUS-RIPPLE-PLAN §6). The first Cmd/Ctrl+Z took back only the push: after a month-view
+  band drag answered Keep the break stayed where it was dropped (on a phase's first week nothing visible changed); after
+  the day menu's Add hiatus, Post went back while the new break stayed, so Post started inside the shoot.
+- **Built** (`src/legacy/app.js`, no frozen code, no save-format change, no new id): `bankRippleWithEdit(editJSON)`
+  replaces `bankStepAt()` in the undo section. Edit still pending (Weeks pushes at once, inside the 500 ms debounce; the
+  row's ×; a phase's Hiatus switch) → one `pushUndoSnapshot()` banks both. Edit already banked (a typed Starts that paused
+  past the debounce; the day menus, which bracket with `pushUndoSnapshot()`) → `foldIntoBankedStep()` moves the push into
+  that step. The month drag's `endDrag` no longer banks the drag on its own: its baseline is still the press, so Keep's
+  one push is the step. Redo restores both everywhere.
+- ⚠️ **What changes for the user ("not this time"):** on 10 Nov 2026 the owner was told "not this time" is one ⌘Z (plan
+  §13, the case for "Settings only"). That route is GONE: one ⌘Z now takes back the hiatus change too. The new route is to
+  switch Ripple Hiatus Periods off first. Wording changed to say so: the Settings switch's "i" (`Sidebar.jsx`
+  `HiatusPrefsCard`: "⌘Z takes back your hiatus change and its push together. To change a hiatus without moving
+  anything else, turn this off first.") and the help paragraph (`src/index.html`). **Chosen for the owner, not ruled:**
+  no third answer ("Keep, don't push") in the month drag's question, which the finding offered as an example; it would
+  cover one path of seven and add a button.
+- **Proof:** new leg `t/rippleundo.js` (gate.sh AFSPEC, beside `phasearrowsripple`; fixture `tests/fixtures/rippleundo.sptcal`
+  = the audit's synthetic `audit-gap-hiatus.sptcal`). Nine edits (month drag Keep, month menu Add all/one phase and
+  Remove, waterfall Add, sidebar Weeks, Starts with a pause + Enter, ×, a phase's Hiatus switch), each: one Cmd+Z = the
+  Save As snapshot before, byte for byte (Date Last Edited and view left out); Shift+Cmd+Z = after; Cmd+Z again. Build:
+  29/29 every run (4 runs at 29, 10 at the earlier 23). Build before the fix: all 18 undo / redo cases red, each needing
+  exactly one more Cmd+Z. `hiatusripple.mjs` R2, R3, R5, R11, S2 RE-EXPECTED for the one step (19/19; on the build before
+  those five red, the other 14 green). Green on the build: `hiatusdrag` 14/14, `undokeys` 11/11, `dlgkeys` 16/16,
+  `monthdragundo` (oneStep), `phasearrowsripple` 10/10, `hiatussidebar` 16/16, `mvmenu` 81/81, `wfmenu` 39/39,
+  `settingswin` 21/21, `snapbox` 12/12, `phiatuspick` 12/12; `npm run check` 42/42. No full gate (by instruction).
+- ⚠️ **Harness trap found:** `T.fakeSavePicker()` reads its bytes back with `Blob.arrayBuffer()`, answered in REAL time,
+  while a leg's `T.until` polls on VIRTUAL time; twice in about a dozen runs the 10 s virtual wait ran out first ("calls
+  1", nothing closed). `rippleundo` keeps the written text itself instead. lib.js is unchanged; a leg that snapshots
+  through Save As many times may want the same.
+- Noticed, not touched: `sidebarTab` is in the undo history but a tab switch is no step of its own, so it rides with the
+  next step and an undo can put the sidebar back on the tab the user was on before that step (the leg banks its tab
+  switch before the cases for that reason).
+
 ### 🩹 13 Nov 2026: WHEN THE LINKED FILE IS GONE, SAVE SAYS SO AND OFFERS SAVE AS; A DOUBLE-CLICKED CALENDAR SAYS WHERE SAVE WRITES (audit AUD2-039, AUD2-017). ⏳ **NOT merged, NOT pushed**: waits for the release train's one full gate. Branch `audit-2-6` (worktree `.claude/worktrees/audit-2-6`, cut from `origin/main` at `2089aa5`, the audited commit). The November 2026 audit's item 2.6, built overnight on the owner's "finish all of them".
 - **AUD2-039 (reproduced first: the audit's `a5-gone` leg was red at S1 S2 R1 on `2089aa5`, its perm=1 variant at S1
   S2):** `saveToFile` now catches a failed write to an EXISTING linked file (not one the picker just made, not a
@@ -2296,7 +2334,7 @@
   - Green: settingswin 21/21, phasesui 8/8, wfmenu 39/39, mvmenu 81/81, hiatussidebar 16/16, hiatusdrag 14/14, check
     40/40. `check-refs.py` reports 4 prose line numbers, all already on `origin/main` (not this branch's).
   - Browser pane, real mouse and keys: Break 2 → 3 weeks, Tab → Production 3/16 → 3/23 and the line under the Break.
-- My calls, not rulings: two undo steps (one ⌘Z = "not this time"); no "N locked hiatuses held" in the line (New's
+- My calls, not rulings: two undo steps (one ⌘Z = "not this time") ⛔ SUPERSEDED 14 Nov 2026: ONE step (AUD2-038, owner D2 = b; see the top); no "N locked hiatuses held" in the line (New's
   four locked winter breaks would print it on every push); Tab from Weeks onto Lock in place settles.
 - ✅ **The Anchor To overlap is resolved.** The one Shift tool landed first; merging `origin/main` (`c52094f`) as
   `ae6b107` kept its `opts.part` / `phaseMoves` / `stayedPhases` in `shiftCalendarDates` and added this branch's
