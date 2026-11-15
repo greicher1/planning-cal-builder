@@ -2175,6 +2175,11 @@ done
 # renamed Pilot, a 7.5-day episode, prep days and a re-ordered shoot) every edit, id and the order survive with 96.5 days
 # (E2); a real lowering still warns and Undo / Redo take the line down (E4-E6); a Save mid-typing writes the calendar on
 # screen (E7); arrow keys apply on leave (E8). Red on the build before it (B1, B2, B4, E1, E2, E4, E7, E8).
+# notesreset (audit item 3.5, AUD2-054 + AUD2-070, 14 Nov 2026): Reset Waterfall Notes and Reset Month Notes ask first
+# (one danger question naming how many notes go; ⌘Z inert under it; Cancel changes nothing; Reset then one Undo), ask
+# nothing and change nothing when there is nothing to clear (Q0, W6, M5), and each clears the linked notes its own view
+# shows: a month-only linked note ("Crew BBQ", sheetHidden) survives the waterfall's reset (W4) and goes with the
+# month's (M2). On the reference calendar (T.buildFixture, live). Red on 2089aa5 at Q0 W1 W2 W3 W4 M1 M2 M4.
 for AFSPEC in pwagate:-:120 pwagatelogic:-:120 settingswin:-:240 newtab:-:120 \
               interfonts:-:60 monthlayout:-:150 monthlayout:colswap-simpost-refuse:150 \
               loadcarry:-:90 hiatusblank:hiatus-blank:90 hostile:xss-mixed:240 sharecopy2:-:90 loadfail:-:1500 \
@@ -2271,6 +2276,7 @@ for AFSPEC in pwagate:-:120 pwagatelogic:-:120 settingswin:-:240 newtab:-:120 \
               comparehiatus:compare-hiatus:240 \
               phasesui:hidewf:1500 \
               epcount:blocks:300 \
+              notesreset:-:400 \
               stylebarplace:fill-intent:300; do
   AFLEG="${AFSPEC%%:*}"; AFREST="${AFSPEC#*:}"; AFSTATE="${AFREST%%:*}"; AFSECS="${AFREST#*:}"
   [[ $AFSTATE == - ]] && AFSTATE=""

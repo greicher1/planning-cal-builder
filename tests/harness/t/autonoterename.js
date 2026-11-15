@@ -461,11 +461,15 @@ window.addEventListener('load', function () { (async function () {
     });
     await step('R1', async function () {
       byId('tb-notes-reset-btn').click();
+      // It asks first since 14 Nov 2026 (audit AUD2-054): answered Reset (the notesreset leg holds the question).
+      for (var g = 0; g < 30 && !/Reset Waterfall Notes/.test(T.modalText()); g++) await T.sleep(100);
+      var asked = T.modalText();
+      T.clickModalButton('Reset');
       await settle();
       var s = JSON.parse(await save());
       var c = { jun29: cellText('2026-06-29'), oct19: cellText('2026-10-19'), nov2: cellText('2026-11-02') };
       kase('R1', 'Reset Notes clears the typed notes and leaves the Automatic notes switches alone (the wrap, hidden in the month view only, stays in its waterfall cell)',
-           !Object.keys(s.userNotes || {}).length && same((s.autoNotesView || {}).principalStart, { sheet: false })
+           /Reset Waterfall Notes/.test(asked) && !Object.keys(s.userNotes || {}).length && same((s.autoNotesView || {}).principalStart, { sheet: false })
              && same((s.autoNotesView || {}).principalWrap, { month: false })
              && (c.jun29 === '' || c.jun29 === '+') && c.oct19 === 'Principal Photography Wraps 10/20/26' && (c.nov2 === '' || c.nov2 === '+'),
            { userNotes: s.userNotes, autoNotesOff: s.autoNotesOff, view: s.autoNotesView, cells: c });

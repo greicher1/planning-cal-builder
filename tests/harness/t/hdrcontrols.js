@@ -43,9 +43,10 @@
 //       (Month), and each tooltip says what it clears. Since 6 Nov 2026 (owner: Reset Columns, "Add it") the
 //       Waterfall's ends divider, Reset Notes, Reset Columns; since 11 Nov 2026 the Month view ends divider, Reset Month
 //       Notes, Reset Bar Order, and Export PDF and both resets occupy the same boxes in both views (fixed slots)
-//   N1  "Reset Month Notes" clears the day note; the waterfall note stays (in both views)
+//   N1  "Reset Month Notes" clears the day note; the waterfall note stays (in both views). Since 14 Nov 2026 (audit
+//       AUD2-054) it asks first: the leg answers "Reset Month Notes" with Reset (the notesreset leg holds the question)
 //   N2  "Reset Notes" clears the waterfall note and its colour; the hiatus band and a holiday's
-//       Waterfall-note tick (holidayView) are left alone
+//       Waterfall-note tick (holidayView) are left alone. Asks first too, answered with Reset
 //   N3  that reset is ONE undo step: Undo brings the note back
 //   N4  the All-phase hiatus card ends with "Reset hiatus bands"; naming the row takes over the band typed by hand
 //       (since 4 Nov 2026), and after the reset a NAMED hiatus row's band shows its name at once (update(), not
@@ -66,6 +67,15 @@ window.addEventListener('load', function () { (async function () {
     return txt + (b.querySelector('.caret') ? ' ▾' : '');
   }
   function resetBtn(){ return byId('tb-notes-reset-btn'); }
+  // Since 14 Nov 2026 (audit AUD2-054) both notes resets ASK FIRST: press, wait for the question, answer Reset.
+  // Returns the question's text ('' when none came), which N1 and N2 hold.
+  async function pressResetAndConfirm(){
+    resetBtn().click();
+    for(var g = 0; g < 30 && !T.modalText(); g++) await T.sleep(100);
+    var asked = T.modalText();
+    T.clickModalButton('Reset');
+    return asked;
+  }
   function pop(){ return document.querySelector('.hdr-mode-pop'); }
   // The menu's width, and whether any line in it runs past its row (the owner asked for a tighter menu once the
   // descriptions went, 23 Oct 2026; 170 px, so a long line has to wrap, never spill).
@@ -250,7 +260,7 @@ window.addEventListener('load', function () { (async function () {
     // ---- N1: the month's own reset, in the Month view --------------------------------------------
     await goTo('January 2028');
     var n1 = {dayBefore: monthHas('Test')};
-    resetBtn().click();
+    n1.asked = await pressResetAndConfirm();
     await T.sleep(900);
     n1.dayAfter = monthHas('Test');
     await goTo('October 2027');
@@ -258,7 +268,7 @@ window.addEventListener('load', function () { (async function () {
     await view('sheet');
     n1.wfInSheet = noteCellText('2027-10-11').indexOf('CARRY-NOTE') >= 0;
     add('N1', '"Reset Month Notes" clears the day note; the waterfall note stays, in both views',
-      n1.dayBefore && !n1.dayAfter && n1.wfInMonth && n1.wfInSheet, n1, 'the day note gone; CARRY-NOTE kept');
+      /Reset Month Notes/.test(n1.asked) && n1.dayBefore && !n1.dayAfter && n1.wfInMonth && n1.wfInSheet, n1, 'asked first; the day note gone; CARRY-NOTE kept');
 
     // ---- N2: the waterfall reset -------------------------------------------------------------------
     // Tick a holiday's Waterfall-note box first: that is holidayView, which this reset must no longer touch.
@@ -266,13 +276,13 @@ window.addEventListener('load', function () { (async function () {
     var hvHid = hv ? hv.dataset.hid : null;
     if(hv){ hv.click(); await T.sleep(500); }
     var n2 = {noteBefore: noteCellText('2027-10-11'), bgBefore: noteCellBg('2027-10-11'), bandBefore: bandText('2027-12-20')};
-    resetBtn().click();
+    n2.asked = await pressResetAndConfirm();
     await T.sleep(900);
     var hvNow = hvHid ? document.querySelector('#holiday-vis-list .hv-cb[data-view="sheet"][data-hid="' + hvHid + '"]') : null;
     n2.noteAfter = noteCellText('2027-10-11'); n2.bgAfter = noteCellBg('2027-10-11'); n2.bandAfter = bandText('2027-12-20');
     n2.holidayTickKept = !!hvNow && hvNow.checked;
     add('N2', '"Reset Notes" clears the waterfall note and its colour; the hiatus band and the holiday tick stay',
-      /CARRY-NOTE/.test(n2.noteBefore) && !/CARRY-NOTE/.test(n2.noteAfter) && n2.bgAfter !== n2.bgBefore
+      /Reset Waterfall Notes/.test(n2.asked) && /CARRY-NOTE/.test(n2.noteBefore) && !/CARRY-NOTE/.test(n2.noteAfter) && n2.bgAfter !== n2.bgBefore
         && n2.bandBefore === 'CARRY-HIATUS' && n2.bandAfter === 'CARRY-HIATUS' && n2.holidayTickKept,
       n2, 'note + colour gone; CARRY-HIATUS kept; the tick kept');
 
