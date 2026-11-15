@@ -39698,11 +39698,54 @@ export function initLegacyApp() {
     }
     return 'saved';
   }
+  // ---------- Month view: WHICH MONTHS the PDF writes (audit AUD2-026, item 2.11; owner D8 = c, 13 Nov 2026) ----------
+  // A show prints this month for the crew, or this month and next, and the month PDF wrote every month of the calendar
+  // (16 pages on the reference calendar) whatever was on screen. So Export PDF asks first, in the month twin of the
+  // waterfall's Export PDF dialog (src/chrome/MonthPdfDialog.jsx): Months All / This month / Some months (From .. to),
+  // opening on All. Owner-approved defaults with the go-ahead:
+  //  - ALL IS THE DEFAULT, and Export at the default is exactly the file from before: nothing is filtered, so the model,
+  //    the fit and every byte are what they were (gate 13 holds that, through t/lib.js answering the dialog at its
+  //    defaults in every leg, as it does the waterfall's).
+  //  - SESSION ONLY: the choice is not calendar data. Nothing is saved, no snapshot key, and the dialog opens on All
+  //    every time. Its controls are inside `.export-pdf-dlg`, which collectFieldValues() skips.
+  //  - The print rollback (frozen exportMonthPdf, MV_PDF_MODE 'print') is not asked and keeps printing every month.
+  // The choice is applied by FILTERING the layout model's months before fitMonthLayout. Each month is fitted on its own
+  // (mvlFitMonth), so a chosen month's page is the same page the all-months file holds for it; the writer is untouched.
+  // The months offered are monthPrintRange()'s, the very range buildMonthLayout walks, so the two cannot disagree.
+  // With only one month to print there is nothing to choose, and the PDF is written as before, with no dialog.
+  function monthPdfKey(year, month){ return year + '-' + String(month + 1).padStart(2, '0'); }   // '2026-07', sortable
+  function monthPdfChoices(schedule){
+    const range = schedule ? monthPrintRange(schedule) : null, out = [];
+    if(!range) return out;
+    let cur = new Date(range.first.getTime()), guard = 0;
+    while(cur <= range.last && guard++ < 240){
+      const y = cur.getUTCFullYear(), m = cur.getUTCMonth(), name = HDR_MONTHS[m];
+      out.push({ value: monthPdfKey(y, m), label: name + ' ' + y, short: name.slice(0, 3) + ' ' + y });
+      cur = monthStep(cur, 1);
+    }
+    return out;
+  }
+  // Resolves {all: true}, {from, to} (two keys, from <= to, never the whole run), or null for Cancel.
+  async function askMonthPdfMonths(){
+    const months = monthPdfChoices(currentSchedule);
+    if(months.length < 2) return { all: true };
+    const keys = months.map(m=> m.value);
+    const shown = monthCursor ? monthPdfKey(monthCursor.getUTCFullYear(), monthCursor.getUTCMonth()) : '';
+    const answer = await chrome.monthPdfDialog({ months, current: keys.includes(shown) ? shown : '' });
+    if(!answer) return null;
+    let from = keys.indexOf(answer.from), to = keys.indexOf(answer.to);
+    if(answer.all || from < 0 || to < 0) return { all: true };
+    if(from > to){ const t = from; from = to; to = t; }
+    if(from === 0 && to === keys.length - 1) return { all: true };
+    return { from: keys[from], to: keys[to] };
+  }
   async function exportMonthPdfDirect(){
     if(!monthRangeForSchedule(currentSchedule)){
       await uiAlert('Add at least one phase with a start date before exporting the calendar.');
       return;
     }
+    const pick = await askMonthPdfMonths();
+    if(!pick) return;
     chrome.exportBtn({ busy: true, disabled: true });
     try {
       let bytes, places;
@@ -39713,6 +39756,11 @@ export function initLegacyApp() {
         // one-day custom pill decides whether it wraps while the model is built, at the bars' own size. At Standard
         // ('') no month carries a size, so its model and its file are byte for byte as before.
         const model = buildMonthLayout(currentSchedule, fonts['500'], fonts['600'], fonts, mvBarSize);
+        // The months chosen in the dialog (askMonthPdfMonths): All leaves the model exactly as built.
+        if(!pick.all){
+          model.months = model.months.filter(function(m){ const k = monthPdfKey(m.year, m.month); return k >= pick.from && k <= pick.to; });
+          if(!model.months.length) throw new Error('none of the chosen months is in the calendar any more.');
+        }
         // The month header's Off (23 Oct 2026): stamped here, between the model and the fit, and only while it is
         // on, so a calendar whose header shows writes byte for byte as before. Not inside buildMonthLayout: the
         // monthlayout leg slices that function to its last statement, and mvlFrame reads the flag off the month,

@@ -100,6 +100,7 @@ import { SelectPop } from './chrome/SelectPop.jsx'
 import { SeasonPop } from './chrome/SeasonPop.jsx'
 import { Dialogs } from './chrome/Dialogs.jsx'
 import { ExportPdfDialog } from './chrome/ExportPdfDialog.jsx'
+import { MonthPdfDialog } from './chrome/MonthPdfDialog.jsx'
 import { ZoomControl } from './chrome/ZoomControl.jsx'
 import { ScenarioTabs } from './chrome/ScenarioTabs.jsx'
 import { CompareDialog } from './chrome/CompareDialog.jsx'
@@ -167,6 +168,8 @@ function Chrome() {
       <Dialogs />
       {/* The Export PDF dialog (PAPER-SIZE-PLAN.md §5a). Inline in #react-root for Dialogs' reason. */}
       <ExportPdfDialog />
+      {/* The month view's Export PDF dialog: which months (audit AUD2-026). Inline for the same reason. */}
+      <MonthPdfDialog />
       {/* The calendar zoom, bottom right beside the help button. In #react-root for DatePop's reason. */}
       <ZoomControl />
       {/* The scenario tabs, bottom left in the strip the zoom shares, and the Compare window (SCENARIOS-PLAN.md).
