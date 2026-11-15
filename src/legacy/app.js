@@ -39619,8 +39619,8 @@ export function initLegacyApp() {
       'Each month prints on one sheet, so ' + (one ? 'this month is' : 'these months are') + ' shrunk to fit, and '
       + (one ? 'its' : 'their') + ' notes and bars print smaller than 6 pt:\n\n'
       + lines.join('\n')
-      + '\n\nFewer notes on ' + (one ? 'its' : 'their') + ' busiest days'
-      + (mvNoteSize ? ', or a smaller Note size,' : '') + ' prints ' + (one ? 'it' : 'them') + ' larger.',
+      + '\n\nWith fewer notes on ' + (one ? 'its' : 'their') + ' busiest days'
+      + (mvNoteSize ? ', or a smaller Note size,' : ',') + (one ? ' it prints' : ' they print') + ' larger.',
       { title: one ? 'A month prints very small' : 'Some months print very small', confirmLabel: 'Export anyway', cancelLabel: 'Cancel' }));
   }
   // ---------- The SPTCal mark (owner, 2 Nov 2026: "Add hidden text too") ----------

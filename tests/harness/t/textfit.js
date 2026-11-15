@@ -6,6 +6,7 @@
 //   HARNESS_PAGE=/dist/index.html HARNESS_STATE=textfit-dense  HARNESS_QUERY="g=date&notesize=14" ./run.sh textfit 300
 //   HARNESS_PAGE=/dist/index.html HARNESS_STATE=textfit-shared HARNESS_QUERY=g=lines ./run.sh textfit 120
 //   HARNESS_PAGE=/dist/index.html HARNESS_STATE=textfit-heavy  HARNESS_QUERY=g=wf    ./run.sh textfit 60
+//   HARNESS_PAGE=/dist/index.html HARNESS_STATE=textfit-dense  HARNESS_QUERY="g=screen&notesize=14" ./run.sh textfit 300
 //
 // The three fixtures are the audit's own synthetic calendars (repro/audit-shared-month, audit-m1-dense2, audit-a3-heavy),
 // copied in as textfit-shared, textfit-dense and textfit-heavy.
@@ -28,8 +29,12 @@
 //   L1  four pasted lines: the box keeps three, the fourth joined to the third with a space
 //   L2  saved (Tab): the day's note on the calendar is those three lines
 //   L3  three lines pasted are kept exactly
-// g=wf     (AUD2-044, a FROZEN edit the owner has not approved: red on the branch until it lands)
+// g=screen (AUD2-045 on screen, FROZEN edit D1, proposed, not applied: red on the branch until it lands) run with
+//          HARNESS_QUERY="g=screen&notesize=14" (and at 12 with HARNESS_WINDOW=1100,800)
+//   V1  every waterfall line ending in a date shows it whole in the month view
+// g=wf     (AUD2-044, FROZEN edit R4, proposed, not applied: red on the branch until it lands)
 //   W1  the waterfall's Notes cells holding two holiday lines (Thanksgiving week, both years) show both lines whole
+// The two frozen edits are "SPTCal Audit 2026-11/work/overnight/3.1-frozen.patch"; V1 and W1 are their acceptance checks.
 // E0 no console errors, no native alert (every group)
 var T = window.__T, cases = [];
 T.memoryIDB();
@@ -204,6 +209,27 @@ window.addEventListener('load', function () { (async function () {
       add('L1', 'four lines pasted into a day note: the box keeps three, the fourth joined to the third', r4.boxed === want4, r4.boxed, want4);
       add('L2', 'saved, the day shows those three lines', r4.shown.indexOf(want4) >= 0, r4.shown, want4);
       add('L3', 'three lines are kept exactly', r3.boxed === 'Unit move\nLunch at basecamp\nWrap by 7p' && r3.shown.indexOf(r3.boxed) >= 0, r3, 'unchanged');
+    }
+
+    if (G === 'screen') {
+      // (AUD2-045, FROZEN edit D1, proposed) On screen at a note size: every waterfall line ending in a date shows its
+      // date, i.e. no line box of it lies below the bottom of its block. Run narrow (HARNESS_WINDOW) so lines wrap.
+      await toMonthView();
+      var g3 = 0; while (g3++ < 60 && await step('mv-prev')) {}
+      var seen3 = 0, cut3 = []; g3 = 0;
+      do {
+        qa('#table-wrap .mv-note-block[data-note-kind="wf"]').forEach(function (b) {
+          var t = (b.textContent || '').trim();
+          if (!/\s\d{1,2}\/\d{1,2}\/\d{2,4}$/.test(t)) return;
+          seen3++;
+          var r = b.getBoundingClientRect(), rg = document.createRange(); rg.selectNodeContents(b);
+          var last = 0; Array.prototype.forEach.call(rg.getClientRects(), function (x) { if (x.height) last = Math.max(last, x.bottom); });
+          if (last > r.bottom + 0.5) cut3.push(month() + ': ' + t + ' [' + Math.round(last - r.bottom) + ' px hidden]');
+        });
+      } while (g3++ < 60 && await step('mv-next'));
+      out.screenCut = cut3;
+      add('V1', 'on screen at note size ' + (out.noteSize || '10') + ', every waterfall line ending in a date shows it whole (FROZEN edit D1, proposed)',
+          seen3 > 0 && cut3.length === 0, {lines: seen3, cut: cut3.slice(0, 10), window: [window.innerWidth, window.innerHeight]}, 'none cut');
     }
 
     if (G === 'wf') {
