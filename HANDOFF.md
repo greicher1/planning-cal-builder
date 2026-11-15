@@ -60,6 +60,14 @@
   picked), P16b, P17 (a holiday alone: Copy and Cut copy nothing, the message) and P18 (an automatic note alone): P16,
   P17, P18 red on the reviewed build (`843e45b2…`), `g=pick` 22/22 and `g=enter` 16/16 after, `mvkeysreal` 8/8; with
   item 2.3's repair on the same build `wfnotelines` ×6 32/32, `wfkeys` 84/84, `wfnoteeditor` 14/14, `npm run check` 42/42.
+- **Second repair (14 Nov 2026, review slips in the chip above).** (a) `buildSavedHtml`'s clone strip list named
+  `.month-sel-box` but not the chip, so a shareable copy exported inside the chip's 4.2 s carried it as a permanently
+  visible element: `.month-sel-chip` added to the list. (b) `mvSelFlash` survived a view switch: the chip stayed over the
+  waterfall and came back with the month view (drawn at the old pick's rect). `setViewMode` now calls
+  `flashMvSel(null)` when the view changes. `mvkeys` `g=pick` P19 (Export App With Data inside the 4.2 s: no chip in the
+  copy) and P20 (to the waterfall and back inside 4.2 s: no chip on either): both red before (P20 saw the chip on the
+  waterfall AND back in the month), green after; `g=pick` 24/24, `g=enter` 16/16, `mvkeysreal` 8/8, `mvtextstyle` LIVE
+  23/23. Merged into `note-editor-a2` the same day.
 - **Proof.** New leg `t/mvkeys.js` (`g=pick` 18, `g=enter` 16; `g=mint` writes `tests/fixtures/mvkeys.sptcal`, new,
   synthetic) and `mvkeysreal.mjs` (8 cases, TRUSTED keys and clipboard over CDP, port 8238), both in `gate.sh` (the
   audit-fix loop, then a block of its own). Before the fix (the build saved as `tests/harness/pre-2-8.html`, ignored):

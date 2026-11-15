@@ -29282,6 +29282,9 @@ export function initLegacyApp() {
   });
 
   function setViewMode(mode){
+    // The month grid's message chip goes with the view (second review of item 2.8, 14 Nov 2026): it was kept for its
+    // 4.2 s, so it hung over the waterfall and came back with the month view, drawn at the old pick's rect.
+    if(mode !== viewMode && mvSelFlash) flashMvSel(null);
     if(mode !== 'month' && mvSel.size){ clearMvSel(); if(styleTarget === 'month') setStyleTarget(null); }
     viewMode = mode;
     ['sheet','month'].forEach(m=>{
@@ -30370,7 +30373,9 @@ export function initLegacyApp() {
     // .hiatus-drag-layer / .hiatus-grip / .hiatus-drag-shield added 19 Oct 2026 with the hiatus drag
     // (HIATUS-DRAG-PLAN.md): the same body-level chrome, over a hiatus band. The copy's own engine
     // makes fresh ones when it boots, so a kept set would be a second, dead one.
-    clone.querySelectorAll('.note-pop, .mv-note-pop, .day-ov-pop, .phase-color-pop, .date-pop, .select-pop, .hdr-mode-pop, .hdr-token-pop, .hde-overlay, .phase-edge-handle, .phase-edge-shield, .day-menu, .day-menu-ring, .hdrrow-ring, .paste-notes-overlay, .sb-fmt, .sb-menu, .sb-drop, .hiatus-drag-layer, .hiatus-grip, .hiatus-drag-shield, .mv-order-grip, .mv-drag-ghost, .mv-drag-shield, .wf-notes-ring, .month-sel-box, .fm-ctx, .ripple-note').forEach(el=>el.remove());
+    clone.querySelectorAll('.note-pop, .mv-note-pop, .day-ov-pop, .phase-color-pop, .date-pop, .select-pop, .hdr-mode-pop, .hdr-token-pop, .hde-overlay, .phase-edge-handle, .phase-edge-shield, .day-menu, .day-menu-ring, .hdrrow-ring, .paste-notes-overlay, .sb-fmt, .sb-menu, .sb-drop, .hiatus-drag-layer, .hiatus-grip, .hiatus-drag-shield, .mv-order-grip, .mv-drag-ghost, .mv-drag-shield, .wf-notes-ring, .month-sel-box, .month-sel-chip, .fm-ctx, .ripple-note').forEach(el=>el.remove());
+    // .month-sel-chip added 14 Nov 2026 (second review of item 2.8): the month grid's message chip (flashMvSel), body-level
+    // for 4.2 s after a copy leaves a note out, so a copy exported inside that window carried it, visible, for good.
     // .fm-ctx added 4 Nov 2026 with the file menu's right-click menu ("Show in folder…"): a Mantine dropdown portalled to
     // <body>, so a Share click (or Shift+Cmd+E) with it open, or still fading out, would export it hanging in the copy.
     // .month-sel-box added 27 Oct 2026 with the month view's highlight (MONTH-TEXT-STYLE-PLAN.md §3.2): body-level boxes
