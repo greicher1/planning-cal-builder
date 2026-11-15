@@ -1962,6 +1962,42 @@ done
 # so computeSchedule returns no `hiatuses`, and the backward pass must still count the default winter break
 # (hiatusRangesForSolve reads the rows). Writer's Rm 20 wks before Pre Prep 4/26/27 = 11/23/26; red (F1-F3) on the old
 # build, which gave 12/7/26 and ran the room two weeks into Pre Prep until a second Build.
+# buildcarry (audit AUD2-009, the Nov 2026 audit's item 2.2, 13 Nov 2026) is Build Around carrying each placed phase's
+# OWN hiatus and its "<week>|<key>" stores (band label, colour, phase-cell styles, hand-widened cells) by the weeks its
+# start moved, as Shift and the card arrows do, in the same undo step: Post keeps its break and its end (A1-A4),
+# Localization chains off Post's real end and the preview agrees (B1, B2), Post placed BACK from Localization is solved
+# with its break where it will land (C1, C2), and Production's own break holds through "ends by" and a backward
+# placement (D1, D2), and a custom Days phase with its own break is placed back the same way (F1). Typed notes stay on
+# their weeks and the line counts them (A5, the owner-approved default). Red on 2089aa5 at A1-A5 B1 C1 C2 D1 D2 F1. On
+# buildcarry.sptcal (the audit's audit-b2-mov.sptcal + three Post-keyed stores).
+# buildendsby (audit AUD2-010, same item) is Build Around's "Production ends by" with Snap to Mon on: the LATEST MONDAY
+# whose wrap is on or before the date. Red on 2089aa5 at B0 (12/18/26: 8/10/26 wrapping 12/2/26 for 8/24/26 wrapping
+# 12/16/26) and B1 (12/17/27), the two targets just before the Christmas break; snap off stays to the day (S0, S1).
+# panelstale (audit AUD2-049, the Nov 2026 audit's item 3.2, 14 Nov 2026) is a tool panel left open while the calendar
+# changes under it: a date typed into Build Around or Shift's To a date stays through edits underneath and is the date
+# built / landed on (A1-A4, D1, D2); a new pin, the other edge and reopening refill it as before (A5-A7); a phase dated
+# while Shift is open with every phase ticked comes in ticked, so 1 wk later is still the whole-calendar move (B1-B3),
+# and a hand-picked set keeps it out (B4). Red on audit-2-2's build (894ae9f1) at A1-A4 D1 D2 B1-B3.
+# builddates (audit AUD2-068, same item) is Build Around placing a custom phase given by DATES: it keeps its number of
+# weekdays, so a Mon-Fri phase built before the pin is Mon-Fri ending the weekday before the next phase (B2), built after
+# it ends on a weekday (F2), and pinned itself "starts on" a Wednesday ends on a Tuesday and "ends by" lands on its date
+# (P1, P2). Red on 894ae9f1 at B2 (Wed-Sun), F2 (Tue-Sat), P1 (Wed-Sun), P2 (a Saturday start).
+# shiftbandline (audit AUD2-069, same item) is the Shift result line after a part move that carried an unlocked
+# all-phase hiatus (rule T2, kept): it says the hiatus moved and names each unticked phase whose dates it changed, in
+# the owner's pushed / pulled words, and the "stayed" list keeps only the rest (L1-L4; To a date's Go line G1; After X
+# P1); a part move that carries no hiatus reads word for word as before (N1). Red on 894ae9f1 at L1-L4, G1 and P1.
+# seasonroll (audit AUD2-050, AUD2-051, the Nov 2026 audit's item 3.3, 14 Nov 2026) is a season rolled forward a year
+# (Shift, To a date Writer's Rm 1/4/27, and By weeks 52) with a locked summer break the user added: with every holiday
+# shown in the waterfall the new year's holidays come in shown (H1-H3, the Holidays list ticked, one Undo exact, Redo),
+# and so do a longer plan's (H4, U4); with one unticked, or none shown, nothing is written (N1, N2). The line says
+# "working weeks" (L1, L3; "weeks" when nothing stepped, L4) and names the held breaks the moved phases left (L2).
+# Red on audit-3-2's build (ef873c6d) at H1-H4, R1, L1-L3. On v1.13.0-saved.sptcal.
+# yearroll (audit AUD2-052, same item) is typed headings, a heading style, a dragged width and a hidden Notes column
+# against a whole-calendar move: By weeks 52 moves all of them a year with their columns (K1, K2) and back (K4); By
+# weeks 40, which changes the years and the blocks' shape, leaves them and the line says so (K5). Red on ef873c6d
+# at K1, K2, K5. A1-A2 (review repair) are Single Column ON with only the year-blocked layout's widths (colWidthsAlt):
+# By weeks 52 moves them a year (A1, already green), By weeks 40 leaves them and the line counts them as "column widths"
+# (A2, red on d021506: it said nothing).
 # anchorside (owner, 4 Nov 2026: "one master shift tool"; ANCHOR-TO-DIRECTION-PLAN.md §6, §7, §7.6) is the ONE Shift
 # tool that replaced Shift From and Anchor To. Since 9 Nov 2026 it is THE LIST FIRST (the owner's eight-point spec and
 # three corrections): no What moves buttons; a header strip with a select-all box (a minus when every phase is ticked)
@@ -2248,6 +2284,13 @@ for AFSPEC in pwagate:-:120 pwagatelogic:-:120 settingswin:-:240 newtab:-:120 \
               anchorside:anchorside:400 \
               buildalongside:anchorside:200 \
               buildaroundfresh:-:120 \
+              buildcarry:buildcarry:600 \
+              buildendsby:-:900 \
+              panelstale:-:400 \
+              builddates:-:600 \
+              shiftbandline:-:400 \
+              seasonroll:v1.13.0-saved:400 \
+              yearroll:-:400 \
               paneldrag:anchorside:300 \
               phasearrows:phasearrows:400 \
               phasearrowsripple:phasearrows:300 \

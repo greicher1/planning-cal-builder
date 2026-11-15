@@ -288,6 +288,11 @@ instead of moving it. These are all the writers, found by reading on 15 Oct 2026
   pinned them to one. The drag likewise leaves their hidden box alone.
 - **Rebuild backwards, Dates:** keeps its calendar length and ends the day before the cursor, back to back. Ending on
   the last WEEKDAY was tried first: a Wed–Tue range then began on a Saturday, an empty waterfall week row.
+  ⚠️ **Superseded 14 Nov 2026 (audit AUD2-068, item 3.2):** the day before a Monday is a Sunday, so a Mon–Fri phase
+  became Wed–Sun. Build Around now keeps a Dates phase's number of WEEKDAYS (Mon–Fri) wherever it places it: before
+  the pin it ends on the last weekday before the next phase and starts that many weekdays back; after the pin, or as
+  the pin, it ends that many weekdays after its start (`datesWeekdays`, `nthWeekday`, `placeBuilt`). Counting weekdays
+  at both ends is what the earlier try lacked, so neither end can land on a weekend.
 - **Rebuild backwards, Days:** counts N working days back from the day before the cursor, with `isUnitWorkDay()`.
   ⚠️ **This deviates from the plan above,** which said to search the scheduler. That search is needed for
   Production, whose length depends on its overrides. Here the predicate is the whole rule, so the forward walk from

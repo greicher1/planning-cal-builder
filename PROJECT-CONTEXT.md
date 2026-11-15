@@ -659,6 +659,14 @@ id, everything is inside `.tools-menu`, never saved.
   preview is the real solvers run and put back (`trialBuild`, which also applies the typed lengths).
   **Lengths are typed in the list** (`solveLens`, saved on Build through the phase's own field, one undo
   step); Production's is read-only (Show info).
+  - **It carries each placed phase's own hiatus and its `<week>|<key>` stores** (13 Nov 2026, audit AUD2-009) by
+    the weeks the phase's start moved, as every other mover does: through the card arrows' mover (`shiftCalendar`,
+    `part` = the phases, an empty week window, `carryOnly`) inside the build's undo step (`placeBuilt` /
+    `carryBuilt`). The solvers place a phase with its hiatus where it will land (`startForWeeksEndingAtCarried`,
+    `customStartEndingByCarried`, Production's trials inside `searchCarried`). Typed notes still stay on their
+    weeks; the result line counts them ("6 typed notes stayed on their weeks."). "Ends by" on a SNAPPED Production
+    searches whole Mondays (`productionMondayEndingBy`, AUD2-010): the day search stalled two weeks short just
+    before the Christmas break.
   - **Shift's look and feel since 10 Nov 2026** (`mockups/build-around-like-shift.html`): "Phases", the list
     in `.shift-box` with the header strip (`[data-solve-all]`, the count "N of M build"), the line that says
     why a phase was left unticked (`[data-solve-left]`), then "Pin to a date": `#tool-solve-phase` above

@@ -24,7 +24,8 @@
 //       11/30; the wrap (Wed 5/5) is before Post (Mon 5/10)
 //   S3  ... notes ride with their phase's week: PROD-WK1 11/30/26, PROD-WK4 1/4/27 (Production's 4th week, after the
 //       break), POST-WK1 5/10/27; XMAS-NOTE stays under the break
-//   S4  ... the result line says it: "Production was pulled 6 wks to step over a held hiatus."
+//   S4  ... the result line says it: "Production was pulled 6 wks to step over a held hiatus." Its headline says "4 WORKING
+//       weeks" since 14 Nov 2026 (audit AUD2-051, item 3.3: the line says so whenever a phase stepped over a held break)
 //   U1  one Undo restores the calendar
 //   A1  the toolbar arrow, ← 1 wk twice: the second click takes Production from 1/4/27 over the break to 12/14/26
 //       (3 calendar weeks), Prod Prep ends Fri 12/11, and the readout says "Production pulled 3 wks"
@@ -120,7 +121,7 @@ window.addEventListener('load', function () { (async function () {
     add('S3', 'notes ride with their phase\'s week: PROD-WK1 11/30/26, PROD-WK4 1/4/27 (the shoot\'s 4th week, after the break), POST-WK1 5/10/27; XMAS-NOTE stays under the break',
       same(n1, {'2026-11-30': 'PROD-WK1', '2026-12-21': 'XMAS-NOTE', '2027-01-04': 'PROD-WK4', '2027-05-10': 'POST-WK1'}), n1, 'those four keys');
     add('S4', 'the result line says Production stepped over the held hiatus',
-      /Shifted 4 weeks earlier\./.test(mS) && /Production was pulled 6 wks to step over a held hiatus\./.test(mS) && /Pre Prep starts 8\/10\/26\./.test(mS),
+      /Shifted 4 working weeks earlier\./.test(mS) && /Production was pulled 6 wks to step over a held hiatus\./.test(mS) && /Pre Prep starts 8\/10\/26\./.test(mS),
       mS, '"... Production was pulled 6 wks to step over a held hiatus. ..."');
 
     // ---- U1 ----

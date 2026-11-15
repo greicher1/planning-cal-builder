@@ -4,6 +4,115 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### 🩹 14 Nov 2026: ROLLING A SEASON FORWARD A YEAR: NEW HOLIDAYS FOLLOW THE CALENDAR'S CHOICE, SHIFT SAYS "WORKING WEEKS" AND NAMES THE BREAKS IT LEFT, YEAR-KEYED HEADINGS AND WIDTHS MOVE WITH THE YEAR WHEN THE COLUMNS DO (audit AUD2-050, AUD2-051, AUD2-052). ⏳ **NOT merged, NOT pushed**: waits for the release train's one full gate. Branch `audit-3-3` (worktree `.claude/worktrees/audit-3-3`, cut from `audit-3-2` at `f362ebb`, so it carries items 2.2 and 3.2; `node_modules` is a clone copy). The November 2026 audit's item 3.3, owner-approved on the feature tracker.
+- **AUD2-050, holidays:** `followHolidayViews(sch)`, called by `update()` between `computeSchedule` and `render()`. While
+  every holiday the calendar held a moment ago (`holidayIdsSeen`, session only) is shown in a view, a holiday that
+  enters the calendar gets `holidayView[hid][view] = true`, the entry its own tick writes. NO new stored value. Never
+  over a choice the newcomer carries, and only where it would not show anyway, so an untouched calendar never gains an
+  entry (the month view shows all by default). Under `suppressDirty` (every restore, Undo / Redo, New, Load, scenario
+  switch, the scenario probe) it only REBASES. A calendar with no holidays for a moment keeps the last set.
+- **AUD2-051, the Shift line:** `describeShift(res, tail, before)`: "Shifted 49 WORKING weeks later." whenever
+  `res.stepped` is non-empty (else "weeks", as before), and `heldLeftText` names each held band (`res.heldBands`, new
+  from `shiftCalendarDates`: locked, or outside a part move's windows, never the ripple's own) that some phase ran
+  through before the move (`phaseRunsNow()`, now taken before EVERY Shift form move) and none runs through after:
+  "Hiatus 8/10/26 and Hiatus 12/21/26 stayed on their dates, so no phase pauses for them now." Shift's step-over (5 Nov
+  2026 ruling) and the locked default of a hiatus added from the sidebar are untouched. The toolbar arrows' readout is
+  unchanged.
+- **AUD2-052, year-keyed stores:** a WHOLE-calendar move (`!part && !fromIso && !except && !carryOnly`: the Shift form
+  with every phase ticked, the toolbar arrows) with any `y<year>:` key in `colWidths`, `colWidthsAlt`,
+  `headerRowLabels`, `headerRowSplits`, `textStyle.heading` or `hiddenNotesCols` measures the waterfall's year blocks
+  before and after (`yearBlockShape`: frozen `computeSchedule` / `computeYearBlocks` / `computeBlockLayout`, called
+  read-only, as `simLaneMovedYears` does; `colWidthsAlt` on the other layout's own blocks). Every block a whole number of
+  years on with the same phases in the same columns (`yearShapeDelta`) moves the keys on the old years by that many
+  (`moveYearKeys`; a moved key wins over a dormant key on its new year), then one more `update()`. Any other whole move
+  that changes the years leaves them and returns `yearKeysStayed`: "The column headings, column widths and hidden Notes
+  columns you set stayed on 2026 and 2027." `gridStintSwaps` keeps its year (E5). ⚠️ **It is NOT a "whole-year
+  move" rule** (the docs said so until the review repair; the code never was): the blocks' shape decides, whatever
+  the week count. In Single Column mode the one block is keyed by the FIRST week's year, so a whole move of a few
+  weeks that carries the first week across New Year re-keys too (no leg covers that case).
+- **🩹 Review repair (same day, on `audit-3-3` after `d021506`):** `colWidthsAlt` re-keyed correctly but was left out
+  of `yearKeysStayed`: with Single Column ON, a 40- or 60-week move changes only the year-blocked layout's years (the
+  single block keeps 2026), so `yearKeysAfterMove` returned null and the line said nothing while the alt widths stayed
+  on 2026 / 2027. Now, when the alt layout's blocks changed years without a same-shape move, the alt keys on its old
+  years count as "column widths" (no new words), merged into the sentence's kinds and years; it is reported even when
+  the active layout's keys moved (`{moved, stayed}`; the caller already reads both). Proved by `yearroll` A1 (Single
+  Column on, `colWidthsAlt` only, By weeks 52 re-keys it: green before and after) and A2 (back, then By weeks 40: "The
+  column widths you set stayed on 2026 and 2027.": RED on `d021506`, green now). Wording: "whole-year move" replaced
+  in the code's comments, this section, the README entry, `yearroll`'s header and `gate.sh`'s note.
+- **Defaults applied:** AUD2-050's own default ("yes": when every holiday is shown in a view, holidays that enter later
+  are shown there too; the finding's question "Should Toggle all set a default for holidays that enter the calendar
+  later?" was answered with its recommendation, chosen for the owner). AUD2-051's ("keep Shift as ruled; the result
+  line names the breaks that stayed and says working weeks; no change to how a new hiatus starts"). AUD2-052's, as the
+  item gave it: re-key when every year block moves whole years with the same columns, otherwise say so in the line (the finding's own text says "accept and
+  document" only). D1–D8 do not touch this item. **Chosen here** (also in the structured result): (1) no new key: the
+  finding's "store a per-view default beside holidayView" would be a new saved value, so the rule acts at the moment a
+  holiday arrives instead; (2) "shown" only: a view whose holidays are ALL HIDDEN does not hide newcomers (the month
+  view's mirror case), as the default names "shown"; (3) a newcomer that already carries a choice (it was in the
+  calendar before, ticked or unticked) keeps it; (4) "working" is said only when a phase stepped over a held break;
+  (5) a break is named only when a moved phase ran through it before and none does after, so the far-off winter breaks
+  are not listed (the 2026 Christmas break IS named on a year roll: the new season's own Christmas break is a different
+  row); (6) the year re-key needs the SAME phases in the same columns in every block, so a move that only changes some
+  columns' contents re-keys nothing; (7) the line says nothing when the keys moved, or when the years did not change.
+- **Proof (build `a9ace495…` sha1):** new legs `seasonroll` 17/17 (on `v1.13.0-saved`) and `yearroll` 9/9 (11/11 after the review repair), in `gate.sh`'s
+  audit-fix list, red on item 3.2's build `ef873c6d` (seasonroll H1 H2 H3 H4 R1 L1 L2 L3; yearroll K1 K2 K5).
+  ⚠️ **Re-expected:** `shiftheld` S4 now reads "Shifted 4 working weeks earlier." (the approved wording): 13/13. Green:
+  `anchorside` 39, `shiftbandline` 10, `panelstale` 16, `paneldrag` 9, `stalebandkey` 9, `phasearrows` 26,
+  `phasearrowsripple` 10, `hdrrow` 40, `holidayenable` 8 + 2, `calrange` 18, `rowheight` 7, `snaptools` 14, `overrides`
+  20, `hidewf` 19, `colsreset` 8, `colswapcache` 9, `buildaround` 36, `buildcarry` 17, `wfnoteeditor` 14,
+  `autonoteview` 18, `hdrcontrols` 12, `mvmenu` 81, `notescols` 49, `simpostbeside` 19, `mvdragcarry` 15,
+  `rebuildticks` 20, `textstyle` 52, `lastedited` 22, `seasons` 15, `autonotekinds` 16, `hiatusripple` 19; gate.sh's
+  base section by hand (grid identical, waterfall PDF identical apart from the date stamp, Excel parts identical);
+  `npm run check` 42/42. No full gate.
+- **Not verified:** Single Column mode's few-weeks-across-New-Year re-key (above); a
+  dormant key colliding with a moved one; Build Around (not a whole-calendar move: untouched); the region changing
+  with every holiday shown (the new region's holidays come in shown, by the same rule: reasoned, not run); nothing
+  tried in a real browser window.
+
+### 🩹 14 Nov 2026: THE MOVING TOOLS' LEFTOVERS: OPEN PANELS KEEP A TYPED DATE AND TICK NEW PHASES, DATES PHASES KEEP THEIR WEEKDAYS, SHIFT NAMES WHAT A CARRIED HIATUS MOVED (audit AUD2-049, AUD2-068, AUD2-069). ⏳ **NOT merged, NOT pushed**: waits for the release train's one full gate. Branch `audit-3-2` (worktree `.claude/worktrees/audit-3-2`, cut from `audit-2-2` at `dd69b01`, so it carries item 2.2; `node_modules` is a clone copy, not a symlink). The November 2026 audit's item 3.2, owner-approved on the feature tracker. ⛔ AUD2-047 and AUD2-048 were REJECTED by the owner: untouched.
+- **AUD2-049, panels left open:** a date typed (or picked) into Build Around's box or Shift's To a date box now survives
+  the `#table-wrap` observer's refresh: `solveDateTyped` / `anchorDateTyped` hold the `{key, edge}` it was typed for,
+  and `syncSolveDate` / `syncAnchorDate` keep it while they match. Cleared by another pin / landing phase, the other
+  edge, closing the panel (`closeAllPops`), and the panel's own tool running (Build, Go, Earlier / Later), after which
+  the box follows the calendar as before. Shift's ticks: `syncShiftTicks(rows)` (from `fillShiftPhase` and
+  `shiftPlan`) ticks a row that appeared since the last reconcile (`shiftKnown`) while every known row was ticked, so a
+  phase dated with the panel open keeps "every phase" meaning the whole calendar; a hand-picked set leaves it unticked.
+- **AUD2-068, Dates phases:** Build Around keeps a Dates phase's number of WEEKDAYS (Mon–Fri, holidays and hiatuses not
+  subtracted: the phase is its two dates). Before the pin, `customStartEndingBy` counts them back from the last weekday
+  before the next phase; `placeBuilt` ends every Dates phase it writes (after the pin, and the pin itself) that many
+  weekdays after its start, via `setPhaseStart`'s existing `endTo`. Helpers `datesWeekdays`, `nthWeekday`.
+- **AUD2-069, the Shift line:** `moveTail(res, plan, before)` with `before = phaseRunsNow()` (each phase's first and
+  last WORKING day, from `seg.weekNo`) names each unticked phase whose run changed and ends: *"1 hiatus moved with it,
+  so Music now ends 12/25/26 (pulled 2 wks) and Titles now runs 1/18/27 to 2/12/27 (pushed 2 wks)."* The "stayed"
+  sentence keeps its place and wording and lists only the rest, so a move carrying nothing reads as before. The carry
+  itself (T2) is unchanged.
+- **Defaults applied:** AUD2-069's own default (keep the ruled T2 carry; fix only the line). D1–D8 do not touch this
+  item. **Chosen here** (also in the structured result): (1) the typed-date rule covers Shift's To a date box too, not
+  only Build Around's (same bug, same refresh); (2) a typed date is dropped when the panel's own tool runs, as the box
+  always refilled after a run; (3) Dates phases count WEEKDAYS, not working days, so a range typed across Christmas
+  keeps its length elsewhere; a Mon–Fri phase stays Mon–Fri and no end lands on a weekend, but an odd pattern (Wed–Tue)
+  can become Mon–Fri; (4) the Dates rule also covers the PIN itself ("starts on" a Wednesday ends on a Tuesday), since
+  "ends by" would otherwise disagree with its own solver; (5) the line says "hiatus", the app's word, and counts them
+  ("1 hiatus moved with it"), it does not name their dates; (6) the new sentence comes LAST, after "stayed".
+- ⚠️ **Re-expected, as the approved Dates rule requires:** `customunits` (restore run): Stage Build built back from Mon
+  3/1/27 ends Fri 2/26/27, not Sun 2/28/27; `builtindates` (restore run): Pre Prep ends Fri 2/26/27, not Sun 2/28/27, and
+  Post built forward ends Fri 5/7/27, not Sun 5/9/27. Every start is unchanged. `CUSTOM-PHASE-UNITS-PLAN.md` carries a
+  superseded note on the old rule.
+- **Proof (build `ef873c6d…` sha1):** new legs `panelstale` 16/16, `builddates` 9/9, `shiftbandline` 10/10, in `gate.sh`'s
+  audit-fix list, red on item 2.2's build `894ae9f1` (panelstale A1-A4 D1 D2 B1-B3; builddates B2 F2 P1 P2;
+  shiftbandline L1-L4 G1 P1). Green: `customunits` live 23 + restore 28, `builtindates` live 17 + restore 15, `buildcarry`
+  17, `buildendsby` 21, `buildaround` 36, `rebuildticks` 20, `buildalongside` 8, `buildaroundfresh` 5, `anchorside` 39,
+  `paneldrag` 9, `phasearrows` 26, `phasearrowsripple` 10, `shiftheld` 13, `mvdragcarry` 15, `stalebandkey` 9,
+  `datepick` 17, `endsdate` 17, `prodends` 14, `snaptools` 14, `overrides` 20, `calrange` 18, `hdrcontrols` 12,
+  `stylebarplace` 14, `phasenotes` 21, `phaselink` 14; `npm run check` 42/42. No full gate.
+- ⚠️ **Seen, not fixed (not this item):** Build Around pinning a CUSTOM phase to a date past the phases after it (VFX
+  12/7/26 pinned "starts on" 3/3/27, with Localization and Music at 3/1/27) gives "Can't place" on the pin and "Build 0
+  phases", seen on the build before this item (894ae9f1) too. Most likely (read from the code, not traced): the
+  backward pass writes the pin first, `phaseSequence()` re-slots a custom phase by its new date, and the forward pass
+  then finds nothing after it ("Nothing runs after that phase.").
+  Close to AUD2-048's class (rejected), so left alone; `builddates` pins to 2/3/27 to stay clear of it.
+- **Not verified:** a Dates phase with only weekend days (falls back to the calendar span) has no case; Shift's line
+  with two or more carried hiatuses has no case; nothing tried in a real browser window.
+
 ### 🩹 14 Nov 2026: A WATERFALL ADJUSTED IN THE APP NO LONGER GROWS WIDER; TYPED HEADINGS FOLLOW THEIR PHASE (audit AUD2-057, AUD2-077). ⏳ **NOT merged, NOT pushed**: waits for the release train's one full gate. Branch `audit-3-8` (worktree `.claude/worktrees/audit-3-8`, cut from `origin/main` at `2089aa5`; `node_modules` is a clone copy, not a symlink). The November 2026 audit's item 3.8, owner-approved on the feature tracker. Both findings were not skeptic-verified; both REPRODUCED first on the build.
 - **AUD2-057, the writer (`noteMovedPhases`):** a column is remembered (`colKeep`) only for a DELIBERATE MOVE OF ONE
   PHASE: its given start (`enteredDate`, via `placedEntered`; a holiday or a break never moves it) changed and no other
@@ -135,6 +244,38 @@
 - Noticed, not touched: `sidebarTab` is in the undo history but a tab switch is no step of its own, so it rides with the
   next step and an undo can put the sidebar back on the tab the user was on before that step (the leg banks its tab
   switch before the cases for that reason).
+
+### 🩹 13 Nov 2026: BUILD AROUND CARRIES A MOVED PHASE'S OWN BREAK; "ENDS BY" A SNAPPED SHOOT SEARCHES MONDAYS (audit AUD2-009, AUD2-010). ⏳ **NOT merged, NOT pushed**: waits for the release train's one full gate. Branch `audit-2-2` (worktree `.claude/worktrees/audit-2-2`, cut from `origin/main` at `2089aa5`, the audited commit). The November 2026 audit's item 2.2; started on the owner's *"Yes, start both"*.
+- **AUD2-009:** `buildAround` wrote `start-<key>` only, so a moved phase's own hiatus and its `<week>|<key>` stores
+  stayed behind (Post carried past its own break lost it in the waterfall and the workbook and ended a week early).
+  Now every start the build writes goes through `placeBuilt`, and `carryBuilt` moves the phase's own hiatus and stores
+  by the weeks its start moved, through the card arrows' mover (`shiftCalendar`, `part` = the phases, `NUDGE_NO_WEEKS`,
+  `carryOnly`), inside the build's undo step and `asShootDayMove`. ⚠️ **Where it runs matters:** at the END of the
+  backward pass (no `update()` runs inside it, so the hiatus-name sync cannot claim the band's new weeks ahead of a
+  hand-typed label, which would then be dropped by `shiftKeyedMap`'s "arrivals yield"), and BEFORE each forward
+  recompute (the next phase chains off the real end, break counted). The solvers place a phase with its hiatus where it
+  will land: `startForWeeksEndingAtCarried`, `customStartEndingByCarried` (Days), Production's trials inside
+  `searchCarried` (`productionTrial` reads `buildCarrySearch`). A trial moves only the `phiatus-start-` fields;
+  `trialBuild` puts them back. `shiftCalendarDates` is CALLED, not changed (item 1.1 edits it on another branch).
+- **Default applied (owner-approved with the go-ahead):** typed week notes stay on their weeks, as documented; the
+  result line counts the ones inside the moved phases' old runs (`buildNotesStayed`): *"6 typed notes stayed on their
+  weeks."* Date-pinned notes count too. ⚠️ So every Build on a calendar with typed notes now ends with that sentence.
+- **AUD2-010:** with Snap to Mon on, "Production ends by" is `productionMondayEndingBy`: the latest Monday whose last
+  shoot day is on or before the date, walked back from the date's week like `productionStartEndingBy`. The day search
+  (`solveProductionEndsStart`) stays for snap off. 12/18/26 now gives 8/24/26 wrapping 12/16/26 (was 8/10 → 12/2). A
+  snapped pin now writes the MONDAY, never the first shoot day (a Labor Day start writes 9/7, not 9/8).
+- **Proof (build `894ae9f1…` sha1):** new legs `buildcarry` 17/17 (`tests/fixtures/buildcarry.sptcal` = the audit's
+  `audit-b2-mov.sptcal` + three Post-keyed stores; F1 adds a custom Days phase with its own break through the UI) and
+  `buildendsby` 21/21, both in `gate.sh`'s audit-fix list, red on `2089aa5` rebuilt (`0f0caf0d…`, the audited build:
+  buildcarry 6/17, A1-A5 B1 C1 C2 D1 D2 F1; buildendsby B0 B1). Nearest legs green: `buildaround` 36, `rebuildticks`
+  20, `buildalongside` 8, `buildaroundfresh` 5, `endsdate` 17, `prodends` 14, `phasenotes` 21, `phasearrows` 26,
+  `phasearrowsripple` 10, `shiftheld` 13, `paneldrag` 9, `anchorside` 39, `mvdragcarry` 15, `stalebandkey` 9,
+  `snaptools` 14, `overrides` 20, `datepick` 17, `hdrcontrols` 12, `stylebarplace` 14, `monthmap` ×3 20, `customunits`
+  and `builtindates` (both runs), `phaselink` 14; `npm run check` 42/42. A real Build on the fixture: 145–210 ms.
+  ⚠️ `phasenotes`' FIRST run in a long batch stalled (no result, wall-clock cap) while another session's legs ran; four
+  reruns alone gave 21/21 in 7 s each. Watch it in the full gate.
+- **Not verified:** an Ends-mode phase (or Production held by its wrap) with its own hiatus moved by Build Around was
+  not tried; a Days phase's "ends by" pin with its own hiatus has no case (its backward placement has, F1). No full gate.
 
 ### 🩹 13 Nov 2026: WHEN THE LINKED FILE IS GONE, SAVE SAYS SO AND OFFERS SAVE AS; A DOUBLE-CLICKED CALENDAR SAYS WHERE SAVE WRITES (audit AUD2-039, AUD2-017). ⏳ **NOT merged, NOT pushed**: waits for the release train's one full gate. Branch `audit-2-6` (worktree `.claude/worktrees/audit-2-6`, cut from `origin/main` at `2089aa5`, the audited commit). The November 2026 audit's item 2.6, built overnight on the owner's "finish all of them".
 - **AUD2-039 (reproduced first: the audit's `a5-gone` leg was red at S1 S2 R1 on `2089aa5`, its perm=1 variant at S1
@@ -1644,11 +1785,14 @@
   - `buildAround(key, iso, {edge, before, after, leaveBefore, leaveAfter, trial})` runs `workBackwardsFrom` then
     `workForwardsFrom` from one pin under ONE `asShootDayMove` (nested, they defer). A side with nothing ticked is not
     run. `afterBlocked` = the pin has no length to end it with (Production, Show info unset).
-  - `pinStartEndingBy` ("ends by"): Production by `solveProductionEndsStart` (to the day), Days/Dates by
+  - `pinStartEndingBy` ("ends by"): Production by `solveProductionEndsStart` (to the day) — ⚠️ since 13 Nov 2026 only
+    with Snap to Mon OFF; snapped it is `productionMondayEndingBy` (whole Mondays, audit AUD2-010, see the 13 Nov
+    entry at the top) — Days/Dates by
     `customStartEndingBy(day after)`, Weeks by `startForWeeksEndingAt(mondayOf(date + 3 days))` (the Monday after the
-    last Friday on or before the date; snap off: the day after). The same landmark as Shift's ends by.
+    last Friday on or before the date; snap off: the day after). The same landmark as Shift's ends by. (Since 13 Nov
+    2026 each through its `…Carried` twin, which places a phase with its own hiatus where the build carries it.)
   - `trialBuild` (was `trialRebuild`) also writes the staged lengths into the fields for the trial and puts back
-    `weeks-` / `days-` with `start-` / `end-`. `saveTypedLengths` writes them for real with an `input` event (every
+    `weeks-` / `days-` with `start-` / `end-` (and, since 13 Nov 2026, `phiatus-start-`). `saveTypedLengths` writes them for real with an `input` event (every
     phase row binds that to `update()`), inside the tool's `asOneUndoStep`, before `buildAround`. `lengthFieldFor()`
     never returns Production's (R4) or a Dates phase's field.
   - The box: `solveDir` -1 / 0 / 1 (Before / Both / After, reset to Both on every opening), `solveTicks` the hand

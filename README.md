@@ -29,6 +29,75 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — Rolling a season forward a year: the new year's holidays show, Shift says which breaks it left behind, and typed headings and widths move with the year (14 Nov 2026)
+
+The November 2026 audit, item 3.3 (AUD2-050, AUD2-051, AUD2-052; each reproduced here before the fix).
+
+- **A holiday that comes into the calendar follows your choice.** With every holiday shown in the waterfall, rolling
+  the season forward a year (Shift, To a date or By weeks 52) or making the plan longer brought the new year's holidays
+  in as month-view-only, so Independence Day, Labor Day and Thanksgiving 2027 were missing from the waterfall, Excel and
+  the PDF while 2026's still showed. Now, while every holiday in the calendar is shown in a view, a holiday that comes
+  in is shown there too. Untick one and new ones come in as before. Nothing new is saved: each newcomer gets the same
+  choice its own tick gives it, and Undo takes it back with the move.
+- **Shift's line says "working weeks" and names the breaks it left behind.** Shift counts working weeks and steps over
+  locked hiatuses (the 5 Nov 2026 ruling, unchanged), so a season moved to Writer's Room 1/4/27 read "Shifted 49 weeks
+  later" and a locked summer break stayed in 2026 with nothing said. It now reads "Shifted 49 working weeks later. 5
+  locked hiatuses held. Hiatus 8/10/26 and Hiatus 12/21/26 stayed on their dates, so no phase pauses for them now. …"
+  "Working" appears only when a phase stepped over a held break; a break is named only when a moved phase ran through
+  it before and no phase runs through it now. How a new hiatus starts (locked) is unchanged.
+- **Typed headings, their styles, column widths and hidden Notes columns move with the year when the columns do.**
+  They belong to their year's columns, and a shift moved only dates, so after By weeks 52 the 2027 columns (now
+  Writer's Room to Post) read last year's "POST" and the 2026 heading's bold red style and width were left on a year
+  that was gone. Now, when moving every phase leaves each year's columns exactly as they were, just a whole number of
+  years later or earlier, all of them move by that many years. It is the columns that decide, not the number of weeks
+  moved: in Single Column Mode, whose one block is named by its first week's year, a few weeks across New Year
+  qualifies too. Any other move that changes the years leaves them, and the line says so: "The column headings,
+  column widths and hidden Notes columns you set stayed on 2026 and 2027."
+- **Review repair (same day):** the widths of the layout not on screen (Single Column's while it is off, the year
+  columns' while it is on) moved with the rest but were left out of that sentence, so with Single Column on a 40- or
+  60-week move left them on 2026 and 2027 and the line said nothing. They now count as "column widths" there. And the
+  words above, the code's comments and HANDOFF said "a whole-year move", which the rule never was; they now say what
+  it does. Behaviour otherwise unchanged.
+- Nothing frozen, no new saved key, no new id.
+- **Proof:** new legs `seasonroll` (17 cases, on `v1.13.0-saved`) and `yearroll` (9, 11 with the repair), red on item
+  3.2's build (`ef873c6d`: seasonroll H1-H4, R1, L1-L3; yearroll K1, K2, K5) and green on this one. The repair's A2
+  (Single Column on, only the other layout's widths, By weeks 40) was red on `d021506` and is green; A1 (By weeks 52
+  moves them) was already green. `shiftheld` re-expected at S4 for
+  the new wording ("Shifted 4 working weeks earlier."). The nearest legs green (listed in HANDOFF.md), and the gate's
+  base section by hand; `npm run check` 42/42. Not yet through the full gate.
+
+### Unreleased — The moving tools leave phases where you put them: open panels keep your date and new phases, Dates phases stay Mon–Fri, and Shift says what a moved hiatus did (14 Nov 2026)
+
+The November 2026 audit, item 3.2 (AUD2-049, AUD2-068, AUD2-069; each reproduced here before the fix). AUD2-047 and
+AUD2-048 were rejected by the owner and are untouched.
+
+- **A panel left open keeps the date you typed.** Build Around's date box, and Shift's To a date box, were refilled
+  from the calendar after any edit underneath (a sidebar field, the grid, Undo), so Build then built around the OLD
+  date: typed 9/7/26 for Production, changed Post's weeks, pressed Build, got 6/29/26. A typed (or picked) date now
+  stays until you pin another phase or pick another landing phase, switch starts / ends by, close the panel, or run the
+  tool. Each of those refills it from the calendar, as before.
+- **A phase dated while Shift is open is ticked when every phase is.** The ticks were fixed when the panel opened, so
+  a new phase came in unticked ("6 of 7 move") and 1 wk later quietly became a part move that left it, its notes and
+  the range behind. Now a panel with every phase ticked ticks it too ("7 of 7 move"); a set you picked by hand keeps it
+  unticked.
+- **Build Around keeps a Dates phase's weekdays.** A custom phase given by Dates, built before the pin, ended the
+  calendar day before the next phase (a Sunday) and kept its calendar span, so Mon 12/7/26–Fri 1/15/27 built before a
+  Monday became Wed 3/3/27–Sun 4/11/27; built after the pin it became Tue–Sat. It now keeps its number of weekdays
+  (Mon–Fri): before the pin it ends on the last weekday before the next phase (Mon 3/1/27–Fri 4/9/27), after it, or as
+  the pin, it ends that many weekdays after its start. No end lands on a weekend. Holidays and hiatuses don't shorten
+  it: a Dates phase is its two dates.
+- **Shift's result line says what a carried hiatus did.** Moving some phases carries an unlocked all-phase hiatus inside
+  their weeks (as ruled), and that hiatus also pauses the unticked phases running through it. The line said those
+  "stayed where they were". It now ends: "1 hiatus moved with it, so Music now ends 12/25/26 (pulled 2 wks) and Titles
+  now runs 1/18/27 to 2/12/27 (pushed 2 wks)", and the "stayed" list keeps only the phases that really stayed. A move
+  that carries no hiatus reads exactly as before.
+- Nothing frozen, no new saved key, no new id.
+- **Proof:** new legs `panelstale` (16 cases), `builddates` (9) and `shiftbandline` (10), red on item 2.2's build
+  (`894ae9f1`: panelstale A1-A4, D1, D2, B1-B3; builddates B2, F2, P1, P2; shiftbandline L1-L4, G1, P1) and green on this
+  one. `customunits` and `builtindates` re-expected for the new rule (a Dates phase built back from a Monday now ends Fri
+  2/26/27, not Sun 2/28/27; built forward, Fri 5/7/27, not Sun 5/9/27). The nearest legs green (listed in HANDOFF.md);
+  `npm run check` 42/42. Not yet through the full gate.
+
 ### Unreleased — a waterfall adjusted in the app no longer grows wider, and typed headings follow their phase (14 Nov 2026)
 
 Audit item 3.8 (Nov 2026 audit, findings AUD2-057 and AUD2-077), built with the findings' defaults.
@@ -113,6 +182,31 @@ Production was still shooting, a plan that never existed. A second press was alw
   the other 14 green). Green: `hiatusdrag` 14/14, `undokeys` 11/11, `dlgkeys` 16/16, `monthdragundo` (one step),
   `phasearrowsripple` 10/10, `hiatussidebar` 16/16, `mvmenu` 81/81, `wfmenu` 39/39, `settingswin` 21/21, `snapbox`
   12/12, `phiatuspick` 12/12; `npm run check` 42/42. Not merged, not pushed: it waits for the release train's one gate.
+
+### Unreleased — Build Around keeps a moved phase's own break, and "ends by" no longer lands two weeks early before Christmas (13 Nov 2026)
+
+The November 2026 audit, item 2.2 (AUD2-009, AUD2-010; both reproduced by a second agent, and again here before the
+fix).
+
+- **A phase's own hiatus now travels with it.** Build Around wrote each phase's start and nothing else, so a moved
+  phase's own break stayed on its old dates. Carried past it, the break vanished from the waterfall and the workbook and
+  the phase ended a week early, with nothing said (Post 2/15/27 with its 4/5/27 "Spring break", re-pinned behind a
+  shoot moved to 1/4/27: Post started 5/3/27, lost the break and ended 8/20/27 instead of 8/27/27). Now each phase the
+  build places takes its own break along by the weeks its start moved, with everything keyed to it: the band's label,
+  colour and size, its phase-cell text styles, its hand-widened cells and its column swaps. The same mover the phase
+  card's ▲ / ▼ use, in the build's one undo step. The solvers place a phase with its break where it will land, so a
+  phase built back from the next one ends where that one starts, and the phase after it starts from its real end.
+- **Typed notes stay on their weeks**, as documented (link a note to its phase to have it follow). The result line now
+  says how many: "6 typed notes stayed on their weeks."
+- **"Production ends by" with Snap to Mon on** (the default) now finds the latest Monday whose last shoot day is on or
+  before the date. It searched start days while every trial snapped to its Monday, and just before the Christmas break
+  it stopped two weeks short: ends by Fri 12/18/26 started the shoot 8/10/26 and wrapped it 12/2/26, where 8/24/26
+  wraps 12/16/26 (Shift's own "ends by" gives that). Snap off still lands to the day.
+- Nothing frozen, no new saved key, no new id.
+- **Proof:** new legs `buildcarry` (17 cases, on `tests/fixtures/buildcarry.sptcal`, the audit's fixture plus three
+  Post-keyed stores) and `buildendsby` (21 cases), both red on the audited build (`2089aa5`: buildcarry A1-A5, B1, C1,
+  C2, D1, D2, F1; buildendsby B0, B1) and green on this one; the nearest legs green (listed in HANDOFF.md); `npm run check`
+  42/42. Not yet through the full gate.
 
 ### Unreleased — when the linked file is gone, Save says so and offers Save As; a double-clicked calendar says where Save writes (13 Nov 2026)
 

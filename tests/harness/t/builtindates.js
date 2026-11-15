@@ -193,23 +193,25 @@ window.addEventListener('load', function () { (async function () {
       check(out.movers.anchor.post === '2027-04-15' && out.movers.anchor.postEnd === '2027-05-26', 'Anchor To moves BOTH ends of a built-in Dates phase');
       await undo(); check(same(), 'one undo restores every date after Anchor To');
 
-      // Rebuild BACKWARDS from Prod Prep pinned to Mon 3/1: Pre Prep (Dates, 13 days) ends Sun 2/28,
-      // so Mon 2/15 -> Sun 2/28; Writer's Room (snapped, 4 wk) ends by Mon 2/15 -> starts Mon 1/18.
+      // Rebuild BACKWARDS from Prod Prep pinned to Mon 3/1: Pre Prep (Dates, Wed 2/10 - Tue 2/23, 10 weekdays) ends on
+      // the last weekday before it, so Mon 2/15 -> Fri 2/26; Writer's Room (snapped, 4 wk) ends by Mon 2/15 -> starts
+      // Mon 1/18. (Until the audit's AUD2-068, 14 Nov 2026, it ended the day before, Sun 2/28, keeping 13 calendar days.)
       $('pop-solve-btn').click(); await T.sleep(150);
       T.set('tool-solve-phase', 'prodPrep'); T.set('tool-solve-date', '2027-03-01');
       T.rebuildAll(-1); await settle();
       out.movers.back = dates();
-      check(out.movers.back.pre === '2027-02-15' && out.movers.back.preEnd === '2027-02-28' && out.movers.back.wr === '2027-01-18',
-            'Rebuild backwards: a built-in Dates phase ends the day before the next, keeping its length');
+      check(out.movers.back.pre === '2027-02-15' && out.movers.back.preEnd === '2027-02-26' && out.movers.back.wr === '2027-01-18',
+            'Rebuild backwards: a built-in Dates phase ends on the last weekday before the next, keeping its weekdays');
       await undo(); check(same(), 'one undo restores every date after Rebuild backwards');
 
-      // Rebuild FORWARDS from Prod Prep: Production has no span (skipped), so Post (Dates, 41 days)
-      // follows Prod Prep's exclusive end Mon 3/29 -> Mon 3/29 to Sun 5/9.
+      // Rebuild FORWARDS from Prod Prep: Production has no span (skipped), so Post (Dates, Thu 4/1 - Wed 5/12, 30
+      // weekdays) follows Prod Prep's exclusive end Mon 3/29 -> Mon 3/29 to Fri 5/7, its 30 weekdays kept. (Until the
+      // audit's AUD2-068, 14 Nov 2026, it kept its 41 calendar days and ended Sun 5/9.)
       $('pop-solve-btn').click(); await T.sleep(150);
       T.set('tool-solve-phase', 'prodPrep'); T.set('tool-solve-date', '2027-03-01');
       T.rebuildAll(1); await settle();
       out.movers.fwd = dates();
-      check(out.movers.fwd.post === '2027-03-29' && out.movers.fwd.postEnd === '2027-05-09', 'Rebuild forwards chains a built-in Dates phase, keeping its length');
+      check(out.movers.fwd.post === '2027-03-29' && out.movers.fwd.postEnd === '2027-05-07', 'Rebuild forwards chains a built-in Dates phase, keeping its weekdays');
       await undo(); check(same(), 'one undo restores every date after Rebuild forwards');
 
       // The month-view drag: Pre Prep's first pill two day-columns right (synthetic events: this proves

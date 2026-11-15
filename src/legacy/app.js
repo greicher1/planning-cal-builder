@@ -4802,6 +4802,44 @@ export function initLegacyApp() {
     if(sel && sel[view] !== undefined) return !!sel[view];
     return !!HOLIDAY_VIEW_DEFAULT[view];
   }
+  // ⭐ A HOLIDAY THAT ENTERS THE CALENDAR FOLLOWS THE CALENDAR'S CHOICE (audit AUD2-050, the Nov 2026 audit's item 3.3,
+  // 14 Nov 2026; the finding's default, "yes"). holidayView is per holiday, and showing every holiday in a view (the
+  // list's Toggle all, or one tick at a time) writes an entry for the holidays in the calendar AT THAT MOMENT. A holiday
+  // that entered later -- the season rolled forward a year, a longer plan -- had no entry and fell back to
+  // HOLIDAY_VIEW_DEFAULT, so the new season's holidays were silently missing from the waterfall, Excel and the PDF
+  // while last season's still showed. THE RULE: while every holiday the calendar held a moment ago is shown in a view,
+  // a holiday that enters it is shown there too.
+  //   * NOTHING NEW IS SAVED. The newcomer gets the same per-holiday entry its tick would write, so the file format is
+  //     unchanged and an older build reads the result exactly as this one draws it.
+  //   * Written only where the newcomer would otherwise NOT show, and never over a choice it already carries. The month
+  //     view shows every holiday by default, so a calendar nobody touched never gains an entry (it saves as before).
+  //   * Hidden ones are not followed: the finding asked for "shown" only (the waterfall's default is hidden already).
+  //   * `holidayIdsSeen` is session state, never saved. Every restore, Undo / Redo, New, Load and scenario switch runs
+  //     with suppressDirty, and there it is REBASED, never acted on, so another calendar's holidays never count as
+  //     arrivals and an Undo restores holidayView exactly. A calendar with no holidays for a moment (a date half typed)
+  //     keeps the last set, so the holidays coming back are judged against the calendar the user had.
+  // Called by update() between computeSchedule and render(): holidayView is display-only, so the schedule is unchanged
+  // and the render draws the newcomers. `var` and a declaration: update() reaches it.
+  var holidayIdsSeen = null;
+  function followHolidayViews(sch){
+    const hols = (sch && !sch.error && sch.phaseHolidays) || [];
+    if(suppressDirty){ holidayIdsSeen = hols.length ? hols.map(h => h.hid) : null; return; }
+    if(!hols.length) return;
+    const seen = holidayIdsSeen;
+    holidayIdsSeen = hols.map(h => h.hid);
+    if(!seen || !seen.length) return;
+    const was = new Set(seen);
+    const fresh = hols.filter(h => !was.has(h.hid));
+    if(!fresh.length) return;
+    ['sheet', 'month'].forEach(view=>{
+      if(!seen.every(hid => holidayVisibleIn(hid, view))) return;
+      fresh.forEach(h=>{
+        const cur = holidayView[h.hid];
+        if((cur && cur[view] !== undefined) || holidayVisibleIn(h.hid, view)) return;
+        holidayView[h.hid] = Object.assign({}, cur, {[view]: true});
+      });
+    });
+  }
 
   // ---- Holiday identity -------------------------------------------------------------------
   // A holiday's id used to be its ISO date, which was fragile: switching region kept the date but
@@ -9707,12 +9745,37 @@ export function initLegacyApp() {
     return !!phaseWeeksFor(p);
   }
 
+  // A Dates phase's length as Build Around keeps it (AUD2-068): the weekdays (Mon-Fri) from its typed start to its typed
+  // end, both counted. 0 when it has no valid range or holds no weekday.
+  function datesWeekdays(key){
+    const s = parseDateUTC((document.getElementById('start-' + key) || {}).value || '');
+    const e = parseDateUTC((document.getElementById('end-' + key) || {}).value || '');
+    if(!s || !e || e < s) return 0;
+    let n = 0;
+    for(let d = s, g = 0; d <= e && g < MAX_WEEKS * 7 + 7; d = addDays(d, 1), g++){ const w = d.getUTCDay(); if(w !== 0 && w !== 6) n++; }
+    return n;
+  }
+  // The n-th weekday (n >= 1) counting from `d`, which counts when it is one: forwards for dir 1, backwards for -1.
+  function nthWeekday(d, n, dir){
+    let counted = 0;
+    for(let g = 0; g < n * 2 + 14; g++, d = addDays(d, dir)){
+      const w = d.getUTCDay();
+      if(w !== 0 && w !== 6 && ++counted === n) return d;
+    }
+    return null;
+  }
+
   // Rebuild From, backwards, for a Days or Dates phase: the latest start that still ENDS by `cursor`
   // (exclusive), or null.
-  //   Dates  keeps its calendar length and ends the day before the cursor, back to back, exactly as
-  //          Rebuild forwards starts one the day the previous phase ends; setPhaseStart() then moves
-  //          its end by the same delta. (Ending it on the last WEEKDAY instead was tried: a Wed-Tue
-  //          range then began on a Saturday, an empty week row in the waterfall.)
+  //   Dates  keeps its number of WEEKDAYS (datesWeekdays) and ends on the last weekday before the cursor: it starts that
+  //          many weekdays back, and placeBuilt() ends it that many weekdays on, so it ends on that weekday (audit
+  //          AUD2-068, item 3.2, 14 Nov 2026). ⛔ Until then it kept its CALENDAR length and ended the day before the
+  //          cursor: before a Monday that is a Sunday, so a Mon-Fri phase became Wed-Sun, lost its first two working days
+  //          from the waterfall, and the phase before it was built to end on the Tuesday. (Ending it on the last weekday
+  //          while still keeping the calendar length had been tried earlier: a Wed-Tue range then began on a Saturday.
+  //          Counting weekdays at both ends can't land on a weekend.) Weekdays, not working days: a Dates phase is its
+  //          two dates, which no holiday or hiatus shortens, so a span typed across Christmas keeps its length elsewhere.
+  //          A range of weekend days only (no weekday at all) keeps the calendar rule, as it has nothing else to keep.
   //   Days   counts its N working days BACK from the day before the cursor, with isUnitWorkDay() --
   //          the scheduler's own predicate, so the forward walk from the start found here counts
   //          exactly those N days and ends by the cursor. (The plan proposed searching the
@@ -9726,7 +9789,8 @@ export function initLegacyApp() {
       const s = parseDateUTC((document.getElementById('start-' + key) || {}).value || '');
       const e = parseDateUTC((document.getElementById('end-' + key) || {}).value || '');
       if(!s || !e || e < s) return null;
-      return addDays(last, -Math.round((e - s) / DAY_MS));
+      const wd = datesWeekdays(key);
+      return wd ? nthWeekday(last, wd, -1) : addDays(last, -Math.round((e - s) / DAY_MS));
     }
     const n = parseInt((document.getElementById('days-' + key) || {}).value, 10);
     if(!(n > 0)) return null;
@@ -27318,6 +27382,9 @@ export function initLegacyApp() {
     // sheetColumnWidths, and the latter measures every label and note of every week.
     const gated = maybeRunColSwapGate(state, currentSchedule);
     if(gated && gated.schedule) currentSchedule = gated.schedule;
+    // A holiday that entered the calendar with this edit follows the calendar's choice (AUD2-050, followHolidayViews).
+    // Before render() and every writer: holidayView is display-only, so the schedule just computed stands.
+    followHolidayViews(currentSchedule);
     // ⭐ THE CALENDAR RANGE CUTS THE WATERFALL, EXCEL AND THE WATERFALL PDF, NEVER THE MONTH VIEW (owner
     // ruling 3, 20 Oct 2026). computeSchedule hands back the waterfall's rows, so in the month view this
     // puts the whole calendar back. Picked here, per view, because frozen render() hands its schedule to
@@ -32300,6 +32367,129 @@ export function initLegacyApp() {
   function shiftHeldWeeks(part){
     return hiatusFatesFor(shiftScope(null, part || null).inRange, null).held;
   }
+  // ---------- ⭐ THE YEAR-KEYED STORES FOLLOW A SAME-SHAPE MOVE (audit AUD2-052, the Nov 2026 audit's item 3.3) ----------
+  // Six stores name a waterfall column by its YEAR BLOCK ("y2026:s0", "y2026:date", "y2027:notes"): the typed headings
+  // and their splits (headerRowLabels, headerRowSplits), the headings' text styles (textStyle.heading), the dragged
+  // widths of both layouts (colWidths, colWidthsAlt) and the hidden Notes columns (hiddenNotesCols). The shift re-keys
+  // week-keyed stores only, so rolling a season forward a year left all six on the old years: the 2027 block (now
+  // Writer's Room to Post) was headed with last year's "POST", and the 2026 heading's style and width sat on a year the
+  // calendar no longer has. Undone by shifting back, never lost, but nothing said so.
+  // THE RULE (the item's default): when a WHOLE-CALENDAR move (every phase, no cutoff: the Shift form with every phase
+  // ticked, the toolbar arrows) leaves the waterfall's year blocks exactly as they were, each one a whole number of
+  // years later or earlier with the same phases in the same columns (yearShapeDelta), the six stores move by that many
+  // years, as moveSlotKeys moves them for the Sim Post lane. Any other whole-calendar move that changes the years
+  // leaves them on their years, and the Shift line says so (describeShift, `yearKeysStayed`).
+  //   * ⚠️ It is the BLOCKS' shape that decides, NOT the week count: this is not a "52-week" or "whole-year" rule. Any
+  //     whole-calendar move qualifies when the blocks come out the same, shifted by whole years. In Single Column Mode
+  //     the one block is named by the first week's year, so a few weeks that carry the first week across New Year
+  //     re-key the stores too (review slip on 3.3: the docs called this a "whole-year move" and the code never was one).
+  //   * Measured by CALLING the frozen layout (computeSchedule, computeYearBlocks, computeBlockLayout) on the
+  //     waterfall's own rows, read-only, never re-derived: simLaneMovedYears' arrangement. colWidthsAlt is the OTHER
+  //     layout's set (Single Column on / off), so it is judged on that layout's own blocks.
+  //   * Only keys on a year the calendar had BEFORE the move travel. A key on any other year is left as it is; where
+  //     a moved key lands on one (a heading left on 2028 by an older build), the moved key wins: it is the one on
+  //     screen. gridStintSwaps keeps its year: owner ruling E5, untouched.
+  //   * Nothing new is saved, and a calendar with no year key pays nothing (yearKeyedStoresUsed).
+  // ⛔ Function declarations only (update() and captureSnapshot() rules, as for slotKeyParts above).
+  function yearKeyParts(k){ return /^y(\d{4}):(.+)$/.exec(k); }
+  function hasYearKey(o){ return !!o && Object.keys(o).some(k => !!yearKeyParts(k)); }
+  function yearKeyedStoresUsed(){
+    return hasYearKey(colWidths) || hasYearKey(colWidthsAlt) || hasYearKey(headerRowLabels) || hasYearKey(headerRowSplits)
+        || hasYearKey(textStyle.heading) || hasYearKey(hiddenNotesCols);
+  }
+  // The waterfall's year blocks as the frozen layout places them now: [{year, cols}] where `cols` says which phases
+  // sit in which column of the block (and how many columns, and Sim Post's), or null when there is no waterfall.
+  // `alt`: the other layout's (Single Column flipped), for colWidthsAlt.
+  function yearBlockShape(alt){
+    const keepOne = singleColumn;
+    try {
+      if(alt) singleColumn = !singleColumn;
+      const sch = computeSchedule(readState());
+      if(!sch || sch.error || !sch.weeks || !sch.weeks.length) return null;
+      const blocks = computeYearBlocks(sch.weeks);      // FROZEN, read-only
+      const bl = computeBlockLayout(sch, blocks);       // FROZEN, read-only
+      return blocks.map((b, bi)=>{
+        const map = bl.blockSlotMaps[bi], at = new Set();
+        for(let i = b.startIdx; i < b.startIdx + b.count; i++){
+          (sch.weeks[i].cells || []).forEach(c=>{ if(c.key && c.col !== undefined && map.has(c.col)) at.add(c.key + '@' + map.get(c.col)); });
+        }
+        return {year: b.year, cols: bl.blockMaxConcurrent[bi] + '|' + bl.blockSimSlot[bi] + '|' + Array.from(at).sort().join(',')};
+      });
+    } catch(e){ console.error(e); return null; }
+    finally { singleColumn = keepOne; }
+  }
+  // How many years `after` is `before` moved by: the same number of blocks, each the same number of years on with the
+  // same columns, whatever the number of weeks moved. 0 when the blocks changed shape (or did not move at all).
+  function yearShapeDelta(before, after){
+    if(!before || !after || !before.length || before.length !== after.length) return 0;
+    const d = after[0].year - before[0].year;
+    if(!d) return 0;
+    return before.every((b, i)=> after[i].year === b.year + d && after[i].cols === b.cols) ? d : 0;
+  }
+  // One store's keys on `years` moved by `d` years. A fresh object when anything moved (moveSlotKeys' rule), the same
+  // object otherwise.
+  function moveYearKeys(store, years, d){
+    if(!store || !d) return store;
+    const out = {}, arrivals = [];
+    Object.keys(store).forEach(k=>{
+      const m = yearKeyParts(k);
+      if(m && years.has(+m[1])) arrivals.push(['y' + (+m[1] + d) + ':' + m[2], store[k]]);
+      else out[k] = store[k];
+    });
+    if(!arrivals.length) return store;
+    arrivals.forEach(([k, v])=>{ out[k] = v; });
+    return out;
+  }
+  // What a whole-calendar move needs from before it runs: the blocks of both layouts. Null when no store holds a year
+  // key, so the move costs nothing extra.
+  function yearKeysBeforeMove(){
+    if(!yearKeyedStoresUsed()) return null;
+    return {shape: yearBlockShape(false), alt: hasYearKey(colWidthsAlt) ? yearBlockShape(true) : null};
+  }
+  // After the move (its update() has run): move the six stores when the blocks moved by whole years. Returns
+  // {moved: d} when they moved, {stayed: {kinds, years}} when the years changed and the user's own keys on them stayed
+  // (for the Shift line), or null. The caller redraws when they moved.
+  function yearKeysAfterMove(before){
+    if(!before || !before.shape) return null;
+    const after = yearBlockShape(false);
+    const d = yearShapeDelta(before.shape, after);
+    const years = new Set(before.shape.map(b => b.year));
+    const keyYears = (o, ys) => !o ? [] : Object.keys(o).map(k => yearKeyParts(k)).filter(m => !!m && ys.has(+m[1])).map(m => +m[1]);
+    // colWidthsAlt, judged on its own layout's blocks. When they did not move by whole years but their years changed,
+    // the alt widths on those years STAYED and count as "column widths" in the line (review slip on 3.3: with Single
+    // Column on, a 40-week move changes only the year-blocked layout's years, and the line said nothing).
+    let altStayed = [];
+    if(before.alt){
+      const altAfter = yearBlockShape(true), da = yearShapeDelta(before.alt, altAfter);
+      const altYears = new Set(before.alt.map(b => b.year));
+      if(da) colWidthsAlt = moveYearKeys(colWidthsAlt, altYears, da);
+      else if(before.alt.map(b => b.year).join() !== (altAfter || []).map(b => b.year).join()) altStayed = keyYears(colWidthsAlt, altYears);
+    }
+    const stayed = (kinds, ys)=> kinds.length ? {kinds, years: Array.from(new Set(ys)).sort((a, b)=> a - b)} : null;
+    if(d){
+      colWidths       = moveYearKeys(colWidths, years, d);
+      headerRowLabels = moveYearKeys(headerRowLabels, years, d);
+      headerRowSplits = moveYearKeys(headerRowSplits, years, d);
+      hiddenNotesCols = moveYearKeys(hiddenNotesCols, years, d);
+      const h = moveYearKeys(textStyle.heading, years, d);
+      if(h !== textStyle.heading) textStyle = Object.assign({}, textStyle, { heading: h });
+      const st = stayed(altStayed.length ? ['column widths'] : [], altStayed);
+      return st ? {moved: d, stayed: st} : {moved: d};
+    }
+    const yearsAfter = (after || []).map(b => b.year);
+    const mainChanged = before.shape.map(b => b.year).join() !== yearsAfter.join();
+    const kinds = [], ys = altStayed.slice();
+    if(mainChanged){
+      const head = [headerRowLabels, headerRowSplits, textStyle.heading].reduce((a, o)=> a.concat(keyYears(o, years)), []);
+      const wid = keyYears(colWidths, years), hid = keyYears(hiddenNotesCols, years);
+      if(head.length) kinds.push('column headings');
+      if(wid.length || altStayed.length) kinds.push('column widths');
+      if(hid.length) kinds.push('hidden Notes columns');
+      ys.push.apply(ys, head.concat(wid, hid));
+    } else if(altStayed.length) kinds.push('column widths');
+    const st = stayed(kinds, ys);
+    return st ? {stayed: st} : null;   // the same years and no alt widths left behind: nothing to say
+  }
   //   stepHeld -- THE STEP-OVER (stepOverHeld, above): count only working weeks, so a phase that crosses a held hiatus
   //           moves that many extra calendar weeks and every gap and overlap is kept. The Shift form, the toolbar
   //           arrows and the hiatus ripple pass it; the phase arrows pass it while Ripple Hiatus is on (nudgePhase);
@@ -32323,6 +32513,9 @@ export function initLegacyApp() {
     const move = stepHeld ? stepOverHeld(n, hf.obstacles) : days;
     // Each moved phase's start before the move, so the step-over can say which ones moved more or less than asked.
     const startsBefore = {};
+    // A WHOLE-CALENDAR move (every phase, no cutoff, no ripple): the year blocks before it, for the year-keyed stores
+    // (AUD2-052, yearKeysAfterMove below). Null when no store holds a year key.
+    const yearKeysBefore = (!part && !fromIso && !except && !opts.carryOnly) ? yearKeysBeforeMove() : null;
 
     // 1. Phase start dates -- built-ins and custom phases alike.
     let movedPhases = 0;
@@ -32362,8 +32555,20 @@ export function initLegacyApp() {
     // lengthen a Dates phase), and judged by its week alone its later weeks' labels would stay behind.
     const stayingHiatusWeeks = hf.held;
     const movingHiatusWeeks = hf.moving;
-    hf.fates.forEach(({startEl, fate})=>{
+    // Every band this move holds (locked, or outside its windows), with its name and weeks, for the Shift line: the ones
+    // the moved phases no longer run through are named there (AUD2-051, heldLeftText). The ripple's own hiatus is not
+    // one (it is the reason for the push). Read before anything moves; a held band's dates do not change.
+    const heldBands = [];
+    hf.fates.forEach(({row, startEl, fate})=>{
       if(fate === 'locked') lockedHiatuses++;
+      if(fate !== 'move' && !(except && except.kind === 'all' && except.row === row)){
+        const s = startEl && startEl.value ? parseDateUTC(startEl.value) : null;
+        if(s){
+          const wks = Math.min(MAX_WEEKS, Math.max(1, parseInt((row.querySelector('.hiatus-weeks') || {}).value, 10) || 1));
+          heldBands.push({name: ((row.querySelector('.hiatus-name') || {}).value || '').trim() || HIATUS_DEFAULT_LABEL,
+                          start: s, first: mondayOf(s), last: addDays(mondayOf(s), wks * 7 - 1)});
+        }
+      }
       if(fate === 'move' && shiftDateFieldValue(startEl, move)) movedHiatuses++;
     });
     // 2b. The calendar range's two dates (owner ruling 3, 20 Oct 2026, by picker: "Move like a hiatus").
@@ -32485,6 +32690,10 @@ export function initLegacyApp() {
     // Only now is there a post-shift schedule to read the new auto texts from. The note texts do not
     // feed the schedule, so a repaint is all it takes.
     if(rewriteMovedAutoNotes(staleAuto, move)) render(currentSchedule);
+    // The year-keyed stores follow a same-shape move (AUD2-052): measured on the layout the update() above placed, then
+    // drawn by one more. Inside the caller's undo bracket, like everything above.
+    const yearKeys = yearKeysBefore ? yearKeysAfterMove(yearKeysBefore) : null;
+    if(yearKeys && yearKeys.moved) update();
     // Audit L-14: an all-phase hiatus row is ONE band across the whole block, the notes column
     // included, so a note moved onto such a week is hidden in the waterfall, Excel and the PDF. It is
     // not lost -- it comes back when the hiatus or the note moves off -- but the user has to be told.
@@ -32523,6 +32732,7 @@ export function initLegacyApp() {
 
     return {
       weeks: n, movedPhases, stayedPhases, movedHiatuses, lockedHiatuses, notesOnHiatus, stepped, steppedHiatuses,
+      heldBands, yearKeysStayed: (yearKeys && yearKeys.stayed) || null,
       productionWrap: productionWrapText()
     };
   }
@@ -33127,7 +33337,13 @@ export function initLegacyApp() {
     const el = document.getElementById('start-production');
     if(!el) return null;
     const prev = el.value, prevOverrides = dayOverrides;
+    // Build Around's own searches (searchCarried) try each start with Production's own hiatus where that start would
+    // carry it, as the build leaves it (audit AUD2-009; carriedHiatusIso). Every other search leaves it where it is.
+    const hEl = buildCarrySearch ? document.getElementById('phiatus-start-production') : null;
+    const hTo = hEl ? carriedHiatusIso('production', startIso) : null;
+    const hPrev = hEl ? hEl.value : null;
     el.value = startIso;
+    if(hTo) hEl.value = hTo;
     let sch = null;
     try {
       // Inside a move the day overrides travel with the shoot (asShootDayMove), so each candidate
@@ -33136,7 +33352,7 @@ export function initLegacyApp() {
       if(overrideMove){ const r = overridesForMove(overrideMove); if(r) dayOverrides = r.map; }
       sch = computeSchedule(readState());
     } catch(e){ /* treat an unschedulable candidate as "doesn't fit" */ }
-    finally { dayOverrides = prevOverrides; el.value = prev; }
+    finally { dayOverrides = prevOverrides; el.value = prev; if(hTo) hEl.value = hPrev; }
     return sch;
   }
   function productionEndFor(startIso){
@@ -33240,6 +33456,26 @@ export function initLegacyApp() {
     }
     return null;
   }
+  // Build Around's "ends by" for a SNAPPED Production (audit AUD2-010, 13 Nov 2026): the latest MONDAY whose last shoot
+  // day is on or before `targetIso`, walked back from the date's own week as productionStartEndingBy walks (so a start
+  // that crosses a break and one that does not are both tried, whatever the break does to the wrap). ⛔ Not
+  // solveProductionEndsStart: that searches start DAYS, and with Snap to Mon on every trial day collapses to its Monday,
+  // so its last step ("one shoot day later while the wrap still fits") stalls inside the week. Just before the
+  // Christmas break it stopped two weeks short: "ends by Fri 12/18/26" started the shoot 8/10/26 and wrapped it 12/2/26,
+  // where 8/24/26 wraps 12/16/26, the date Shift's own "ends by" gives. Production's own Ends (syncProductionEndsStart)
+  // is to the day and turns Snap off first, so it never had the fault; nor does a snap-off pin here, which still uses
+  // the day search.
+  function productionMondayEndingBy(targetIso){
+    const target = parseDateUTC(targetIso || '');
+    if(!target) return null;
+    let s = mondayOf(target), safety = 0;
+    while(safety++ < 300){
+      const r = productionShootTrial(isoOf(s));
+      if(r && r.last <= targetIso) return s;
+      s = addDays(s, -7);
+    }
+    return null;
+  }
 
   // How many calendar-eligible weeks a phase needs. Production returns null -- it has no week count
   // and is placed by productionStartEndingBy() instead.
@@ -33300,6 +33536,155 @@ export function initLegacyApp() {
     return cur;
   }
 
+  // ---------- ⭐ BUILD AROUND CARRIES EACH PHASE'S OWN HIATUS (audit AUD2-009, Nov 2026 audit item 2.2, 13 Nov 2026) ----------
+  // Until now the build wrote start-<key> and nothing else (setPhaseStart). A moved phase's own hiatus
+  // (phiatus-start-<key>) and every store keyed "<week>|<key>" (its band's label, colour and size, its phase-cell
+  // styles, its hand-widened cells, its column swaps) stayed on the old weeks. Carried past its own break, Post lost the
+  // break in the waterfall and the workbook and ended a week early, with nothing said, while Shift, the card's ▲ / ▼ and
+  // the month drag all carry them ("per-phase hiatuses always travel: they belong to their phase's work").
+  //
+  // So each phase the build places takes them along by the weeks its start moved (the Monday difference, as the month
+  // drag counts it: phaseDragWeeks), through the arrows' own mover with an empty week window (nudgePhase's
+  // shiftCalendar `part`, with carryOnly because the start is already written), inside the build's undo step and its
+  // asShootDayMove binding. And the solvers place each phase with its hiatus where it will LAND, or a phase placed back
+  // from the next one would be solved without its break and then overlap it by a week once the break arrived:
+  //   Weeks       startForWeeksEndingAtCarried    Days        customStartEndingByCarried
+  //   Production  productionTrial, inside searchCarried (the backward walk and both "ends by" searches)
+  // A trial (the preview) carries only the hiatus FIELDS, which its schedule reads; trialBuild puts them back.
+  // Typed week notes stay on their weeks, as documented (PROJECT-CONTEXT §7a; owner-approved default with the audit's
+  // go-ahead): a note follows a phase only when linked to it. The result line says how many stayed (notesStayed).
+  // `var`, not `let`: productionTrial reads them, and can run before this line during the IIFE's own start-up.
+  var buildCarry = null;        // {trial, pre, phases: {key: {from, hiatus, to, carried}}} while buildAround runs
+  var buildCarrySearch = false; // true inside Build Around's own Production searches (searchCarried)
+  function beginBuildCarry(trial){
+    const phases = {};
+    getAllPhaseDefs().forEach(p=>{
+      const from = parseDateUTC((document.getElementById('start-' + p.key) || {}).value || '');
+      const hEl = document.getElementById('phiatus-start-' + p.key);
+      // A phase with no date yet has nowhere to carry from: its hiatus stays where it was typed.
+      if(from) phases[p.key] = {from, hiatus: hEl && parseDateUTC(hEl.value || '') ? hEl.value : null, to: null, carried: 0};
+    });
+    // Each phase's run before the build, for the typed notes it leaves behind (real runs only).
+    const pre = trial ? null : ((wholeCalendar(currentSchedule) || {}).segments || []).map(s => ({key: s.key, from: mondayOf(s.start), to: s.end}));
+    return {trial: !!trial, pre, phases};
+  }
+  // The weeks a phase whose start is `iso` has moved since the build began. 0 when it had no date.
+  function buildCarryWeeks(key, iso){
+    const c = buildCarry && buildCarry.phases[key], to = parseDateUTC(iso || '');
+    if(!c || !to) return 0;
+    return phaseDragWeeks(key, c.from, Math.round((to - c.from) / DAY_MS));
+  }
+  // Where the phase's own hiatus is when its start is `iso`: as many weeks on as the start, so it keeps its place in the
+  // phase. null when it has no hiatus date to carry.
+  function carriedHiatusIso(key, iso){
+    const c = buildCarry && buildCarry.phases[key];
+    if(!c || !c.hiatus) return null;
+    return isoOf(addDays(parseDateUTC(c.hiatus), buildCarryWeeks(key, iso) * 7));
+  }
+  function carriesOwnHiatus(key){
+    const c = buildCarry && buildCarry.phases[key];
+    return !!(c && c.hiatus);
+  }
+  // The build's writer: setPhaseStart, noting where the phase went for carryBuilt.
+  // ⭐ A DATES PHASE KEEPS ITS WEEKDAYS (audit AUD2-068, item 3.2, 14 Nov 2026): its end goes the same number of weekdays
+  // on from the start written (datesWeekdays, nthWeekday), through setPhaseStart's own `endTo`, so it never ends on a
+  // weekend and a Mon-Fri phase stays Mon-Fri wherever the build puts it: before the pin (customStartEndingBy counted
+  // back from the last weekday before the next phase), after it (rebuildForwards starts it on the next weekday), and
+  // the pin itself ("starts on" a Wednesday ends on a Tuesday; "ends by" ends on its date, or the weekday before it). Before, setPhaseStart moved
+  // the end by the start's calendar distance: a Mon-Fri phase built after a Monday finish became Tue-Sat.
+  function placeBuilt(key, iso){
+    const wd = customPhaseUnit(key) === 'dates' ? datesWeekdays(key) : 0;
+    const to = wd ? parseDateUTC(iso) : null;
+    const end = to ? nthWeekday(to, wd, 1) : null;
+    if(!setPhaseStart(key, iso, end ? (()=> end) : null)) return false;
+    const c = buildCarry && buildCarry.phases[key];
+    if(c) c.to = iso;
+    return true;
+  }
+  // Carry what these placed phases own by the weeks each has moved and not yet carried (the pin is placed twice when
+  // both sides run, and carried once). Phases moved by the same weeks go in one call. Returns true when the mover ran,
+  // which ends in refreshAfterRestore() and so in update().
+  function carryBuilt(keys){
+    const bc = buildCarry;
+    if(!bc) return false;
+    const groups = new Map();
+    keys.forEach(k=>{
+      const c = bc.phases[k];
+      if(!c || !c.to) return;
+      const inc = buildCarryWeeks(k, c.to) - c.carried;
+      if(!inc) return;
+      c.carried += inc;
+      if(!groups.has(inc)) groups.set(inc, []);
+      if(groups.get(inc).indexOf(k) < 0) groups.get(inc).push(k);
+    });
+    if(!groups.size) return false;
+    groups.forEach((ks, inc)=>{
+      if(bc.trial) ks.forEach(k => shiftDateFieldValue(document.getElementById('phiatus-start-' + k), inc * 7));
+      else shiftCalendar(inc, null, {part: Object.assign({phases: ks}, NUDGE_NO_WEEKS), keepView: true, carryOnly: true});
+    });
+    return !bc.trial;
+  }
+  // The typed week notes inside the runs of the phases the build moved, which stayed on their weeks.
+  function buildNotesStayed(){
+    const bc = buildCarry;
+    if(!bc || !bc.pre) return 0;
+    const runs = bc.pre.filter(r => { const c = bc.phases[r.key]; return c && c.carried; });
+    if(!runs.length) return 0;
+    return Object.keys(userNotes).filter(k=>{
+      const d = parseDateUTC(k);
+      if(!d || !noteValueText(userNotes[k]).trim()) return false;
+      const w = mondayOf(d);
+      return runs.some(r => w >= r.from && w < r.to);
+    }).length;
+  }
+  function searchCarried(fn){
+    const was = buildCarrySearch;
+    buildCarrySearch = true;
+    try { return fn(); } finally { buildCarrySearch = was; }
+  }
+  // startForWeeksEndingAt with the phase's own hiatus carried with the answer: the latest start whose run, its hiatus
+  // where that start puts it, ends by `endExclusive`. Searched, not inverted, because the hiatus moves with the start:
+  // from the latest start the run could have WITHOUT its hiatus (which only ever lengthens it), back a week at a time,
+  // each checked by extendEndForHiatus's own walk. A phase with no own hiatus to carry is startForWeeksEndingAt exactly.
+  function startForWeeksEndingAtCarried(endExclusive, weeks, phaseKey, ranges){
+    const own = ranges.own[phaseKey];
+    if(!own || !carriesOwnHiatus(phaseKey)) return startForWeeksEndingAt(endExclusive, weeks, phaseKey, ranges);
+    const span = own.end - own.start;
+    let s = startForWeeksEndingAt(endExclusive, weeks, null, ranges);
+    for(let i = 0; i < MAX_WEEKS; i++, s = addDays(s, -7)){
+      const h = mondayOf(parseDateUTC(carriedHiatusIso(phaseKey, isoOf(s))));
+      const ownHi = {start: h, end: new Date(h.getTime() + span)};
+      let delivered = 0, cur = s, safety = 0;
+      while(delivered < weeks && safety++ < 2000){
+        if(!(ranges.global.some(g => cur >= g.start && cur < g.end) || (cur >= ownHi.start && cur < ownHi.end))) delivered++;
+        cur = addDays(cur, 7);
+      }
+      if(cur <= endExclusive) return s;
+    }
+    return startForWeeksEndingAt(endExclusive, weeks, phaseKey, ranges);
+  }
+  // customStartEndingBy, the same way, for a DAYS phase with its own hiatus (a Dates phase's hiatus never moves its
+  // dates, so it needs none): the latest working day from which its N working days, its hiatus carried with that
+  // start, are done before `cursor`. Each candidate is walked forward by isUnitWorkDay, the scheduler's own rule.
+  function customStartEndingByCarried(key, cursor, ranges){
+    const own = ranges.own[key];
+    if(customPhaseUnit(key) !== 'days' || !own || !carriesOwnHiatus(key)) return customStartEndingBy(key, cursor, ranges);
+    const n = parseInt((document.getElementById('days-' + key) || {}).value, 10);
+    let s = customStartEndingBy(key, cursor, {global: ranges.global, own: {}});
+    if(!s || !(n > 0)) return customStartEndingBy(key, cursor, ranges);
+    const span = own.end - own.start;
+    const holidayIsos = new Set(fullHolidayList(effectiveRegionKey()).filter(h=> h.enabled).map(h=> h.date));
+    for(let i = 0; i < MAX_WEEKS * 7; i++, s = addDays(s, -1)){
+      if(!isUnitWorkDay(s, {holidayIsos, hiatuses: ranges.global, ownHi: null})) continue;
+      const h = mondayOf(parseDateUTC(carriedHiatusIso(key, isoOf(s))));
+      const ctx = {holidayIsos, hiatuses: ranges.global, ownHi: {start: h, end: new Date(h.getTime() + span)}};
+      let d = s, counted = 0, last = null, guard = 0;
+      while(counted < n && guard++ < MAX_WEEKS * 7 + 7){ if(isUnitWorkDay(d, ctx)){ counted++; last = d; } d = addDays(d, 1); }
+      if(last && counted === n && last < cursor) return s;
+    }
+    return customStartEndingBy(key, cursor, ranges);
+  }
+
   // Pin `key` to `targetIso` and rebuild every phase BEFORE it so they run consecutively, ending
   // where the next one begins. Returns a summary, or {error} describing why it stopped. The day
   // overrides travel by shoot-day number (asShootDayMove) -- including through the Production
@@ -33343,12 +33728,12 @@ export function initLegacyApp() {
         // The shoot is placed by searching the real simulation, not by subtracting weeks -- it has
         // no week count, and how many weeks it occupies depends on the holidays it lands on.
         if(!showInfoStatus().complete){ skipped.push(p.label || p.key); return; }
-        start = productionStartEndingBy(cursor);
+        start = searchCarried(()=> productionStartEndingBy(cursor));   // its own hiatus carried with each try
         if(!start){ skipped.push(p.label || p.key); return; }
       } else if(customPhaseUnit(p.key) !== 'weeks'){
         // A Days or Dates custom phase (CUSTOM-PHASE-UNITS-PLAN §8): placed by its own length, to
         // the day. It can leave the cursor mid-week for the phase before it -- see just below.
-        start = customStartEndingBy(p.key, cursor, ranges);
+        start = customStartEndingByCarried(p.key, cursor, ranges);
         if(!start){ skipped.push(p.label || p.key); return; }
       } else {
         const weeks = phaseWeeksFor(p);
@@ -33358,13 +33743,13 @@ export function initLegacyApp() {
         // be mid-week too, and the scheduler would snap it back to its Monday regardless -- this
         // writes that Monday instead of a date the field would then show as "Snapped to Mon".
         // Identical for every Monday cursor, so every existing rebuild is unchanged.
-        start = startForWeeksEndingAt(phaseSnapped(p.key) ? mondayOf(cursor) : cursor, weeks, p.key, ranges);
+        start = startForWeeksEndingAtCarried(phaseSnapped(p.key) ? mondayOf(cursor) : cursor, weeks, p.key, ranges);
       }
       // Keep the previous date: on a calendar that is already fully dated this tool OVERWRITES
       // rather than fills, and absorbing several weeks of deliberate slack would otherwise be an
       // invisible side effect of pinning one date.
       const prevIso = el.value;
-      setPhaseStart(p.key, isoOf(start));   // the one writer: a Dates phase's end moves with it
+      placeBuilt(p.key, isoOf(start));   // setPhaseStart, the one writer: a Dates phase's end moves with it
       written.push({key: p.key, label: p.label || p.key, start, wasBlank: !prevIso, prevIso});
       cursor = start;   // the next phase back must end where this one begins
     });
@@ -33374,7 +33759,10 @@ export function initLegacyApp() {
     // shoot day and the wrap with it. The phases rebuilt before it still end by that week's Monday:
     // cursor above is anchorMonday either way, so a snapped predecessor lands on a Monday as before.
     const anchorDay = phaseSnapped(key) ? anchorMonday : target;
-    setPhaseStart(key, isoOf(anchorDay));
+    placeBuilt(key, isoOf(anchorDay));
+    // Each placed phase's own hiatus and "<week>|<key>" stores, now (AUD2-009): no update() runs inside this pass, so
+    // this is before the hiatus-name sync can claim the band's new weeks ahead of its own label.
+    carryBuilt(written.map(w => w.key).concat([key]));
     return {written, skipped, anchor: anchorDay};
   }
 
@@ -33408,8 +33796,11 @@ export function initLegacyApp() {
     }
     // The pinned phase keeps the typed day when its snap is off (audit M-11; see rebuildBackwards).
     const anchorDay = phaseSnapped(key) ? mondayOf(target) : target;
-    setPhaseStart(key, isoOf(anchorDay));
-    step();   // so the anchor's own computed end is available to place the next phase
+    placeBuilt(key, isoOf(anchorDay));
+    // Its own hiatus and stores go with it (AUD2-009; a no-op when the backward pass already carried it), and THEN the
+    // recompute, so the anchor's own computed end -- its hiatus counted -- is available to place the next phase. The
+    // carry's mover ends in update() itself.
+    if(!carryBuilt([key])) step();
 
     const written = [], skipped = [];
     // The phase each new one hands off from is the last one actually PLACED, not the previous entry
@@ -33437,10 +33828,12 @@ export function initLegacyApp() {
       // the waterfall a week row holding only its blank weekend.
       if(customPhaseUnit(p.key) !== 'weeks'){ let g = 0; while((d.getUTCDay() === 0 || d.getUTCDay() === 6) && g++ < 7) d = addDays(d, 1); }
       const prevIso = el.value;   // see the note in workBackwardsFrom: overwrites must be visible
-      setPhaseStart(p.key, isoOf(d));   // the one writer: a Dates phase's end moves with it
+      placeBuilt(p.key, isoOf(d));   // setPhaseStart, the one writer: a Dates phase's end moves with it
       written.push({key: p.key, label: p.label || p.key, start: d, wasBlank: !prevIso, prevIso});
       prevKey = p.key;
-      step();   // recompute so the NEXT phase reads this one's real end
+      // Its own hiatus first (AUD2-009), then the recompute, so the NEXT phase reads this one's real end, its break
+      // counted. Before the carry, Post's break stayed behind and Localization chained off an end a week early.
+      if(!carryBuilt([p.key])) step();
     });
     return {written, skipped, anchor: anchorDay};
   }
@@ -33453,7 +33846,8 @@ export function initLegacyApp() {
   // preview that disagreed with the rebuild it promises would be worse than none.
   //
   // What makes a run undoable without the undo stack: the solvers write nothing but start-<key> and
-  // end-<key> (setPhaseStart, the one writer), and the day overrides (asShootDayMove). The forward
+  // end-<key> (setPhaseStart, the one writer), the day overrides (asShootDayMove), and since 13 Nov 2026
+  // phiatus-start-<key> (a trial's carryBuilt moves only that field, never a store). The forward
   // pass's update() becomes trialSchedule() below, so nothing renders, nothing is marked dirty and no
   // undo step is banked -- the same footing productionEndFor() has always searched on.
   function trialSchedule(){
@@ -33473,6 +33867,13 @@ export function initLegacyApp() {
   // Returns {written, skipped, anchor, afterBlocked} or {error}. `afterBlocked` = the after side was wanted but the
   // pin has no length to end it with (Production with Show info incomplete), so it was not run.
   function buildAround(key, targetIso, opts){
+    // Every phase's start and own hiatus as the build finds them, which each carry is measured from (AUD2-009).
+    const outer = buildCarry;
+    buildCarry = beginBuildCarry(opts.trial);
+    try { return buildAroundRun(key, targetIso, opts); }
+    finally { buildCarry = outer; }
+  }
+  function buildAroundRun(key, targetIso, opts){
     return asShootDayMove(()=>{
       let startIso = targetIso;
       if(opts.edge === 'end'){
@@ -33501,6 +33902,8 @@ export function initLegacyApp() {
       // result line can quote it. Only in a trial: a real run with nothing to place never comes here (the button is
       // disabled, or it only saves lengths).
       if(!out.anchor) out.anchor = parseDateUTC(startIso) && (phaseSnapped(key) ? mondayOf(parseDateUTC(startIso)) : parseDateUTC(startIso));
+      // The typed notes the moved phases left on their weeks, for the result line (a real run only).
+      if(!opts.trial) out.notesStayed = buildNotesStayed();
       return out;
     });
   }
@@ -33521,23 +33924,27 @@ export function initLegacyApp() {
     }
     const fail = {error: 'Couldn’t fit ' + (p.label || 'that phase') + ' before that date.'};
     if(key === 'production'){
+      // Snap to Mon on (the default): whole Mondays (audit AUD2-010, productionMondayEndingBy). Off: to the day.
+      // Either way its own hiatus is carried with each start tried (AUD2-009).
+      if(phaseSnapped('production')) return searchCarried(()=> productionMondayEndingBy(endIso)) || fail;
       const warm = prodEndsWarm(endIso);
-      const r = warm ? solveProductionEndsStart(endIso, warm) : null;
+      const r = warm ? searchCarried(()=> solveProductionEndsStart(endIso, warm)) : null;
       return r ? parseDateUTC(r.start) : fail;
     }
     const ranges = hiatusRangesForSolve();
-    if(customPhaseUnit(key) !== 'weeks') return customStartEndingBy(key, addDays(end, 1), ranges) || fail;
+    if(customPhaseUnit(key) !== 'weeks') return customStartEndingByCarried(key, addDays(end, 1), ranges) || fail;
     const weeks = phaseWeeksFor(p);
     if(!weeks) return fail;
     const endEx = phaseSnapped(key) ? mondayOf(addDays(end, 3)) : addDays(end, 1);
-    return startForWeeksEndingAt(endEx, weeks, key, ranges);
+    return startForWeeksEndingAtCarried(endEx, weeks, key, ranges);
   }
   // The preview's run (trialRebuild until 5 Nov 2026), now with LENGTHS: `lens` maps a phase key to a length typed in
   // the box and not yet saved (plan D2, ruling R2(a)). They are written into the phase's own field for the trial and
   // put back with everything else, so the solvers read them exactly as they will after Build saves them.
   function trialBuild(key, targetIso, opts, lens){
     const fields = [];
-    getAllPhaseDefs().forEach(p=> ['start-', 'end-', 'weeks-', 'days-'].forEach(pre=>{
+    // phiatus-start-: the build carries each placed phase's own hiatus (AUD2-009), in a trial by its field alone.
+    getAllPhaseDefs().forEach(p=> ['start-', 'end-', 'weeks-', 'days-', 'phiatus-start-'].forEach(pre=>{
       const el = document.getElementById(pre + p.key);
       if(el) fields.push([el, el.value]);
     }));
@@ -34454,6 +34861,21 @@ export function initLegacyApp() {
     let shiftTicks = new Set();
     let shiftMark = '';
     let shiftDrag = null;
+    // ⭐ A PANEL LEFT OPEN DOES NOT GO STALE (audit AUD2-049, the Nov 2026 audit's item 3.2, 14 Nov 2026). Since 11 Nov
+    // 2026 both panels stay open while the grid and the sidebar are used, and every new schedule re-reads the calendar
+    // into them (the #table-wrap observer below). Two things that re-read used to throw away:
+    //   * A DATE THE USER TYPED (Build Around's box, Shift's To a date box). syncSolveDate / syncAnchorDate refilled it
+    //     from the phase's current date, so after any edit underneath Build built around the OLD date. A typed date now
+    //     stays until the user changes what it is FOR (another pin or landing phase, the other edge), closes the panel,
+    //     or runs the panel's own tool. `{key, edge}` it was typed for, or null while the box follows the calendar.
+    //   * A PHASE THAT APPEARS while Shift is open (one dated in the sidebar). The ticks were a fixed set filled on
+    //     opening, so it came in unticked ("6 of 7 move") and the whole-calendar move the panel showed became a part
+    //     move that left the new phase, its notes and the range behind. `shiftKnown` is the rows the ticks were last
+    //     reconciled with (syncShiftTicks): while every one of them is ticked, a new row is ticked too. A hand-picked
+    //     set keeps a new row unticked, as the user left the set.
+    let solveDateTyped = null;
+    let anchorDateTyped = null;
+    let shiftKnown = null;
 
     // Results are written into whichever popover is open, so each tool reports in its own panel.
     function say(text, isWarning){
@@ -34480,14 +34902,29 @@ export function initLegacyApp() {
     }
     // `tail` is the caller's own sentence; the note about Production's day marks (a worked holiday
     // that no longer falls on one, say -- see asShootDayMove) always comes last.
-    function describeShift(res, tail){
+    // `before`: phaseRunsNow() taken just before the move, so the held breaks the moved phases left behind can be named.
+    // ⭐ THE SHIFT IS COUNTED IN WORKING WEEKS AND THE LINE SAYS SO (audit AUD2-051, the Nov 2026 audit's item 3.3, the
+    // finding's default). The step-over (stepOverHeld, owner's ruling, 5 Nov 2026, kept) moves every date N WORKING weeks,
+    // so a season rolled forward "52 weeks" past two locked Christmas breaks lands 54-55 calendar weeks on, and To a date
+    // a year on read "Shifted 49 weeks later". Now: (1) the headline says "working weeks" whenever the step-over made a
+    // phase go further than N calendar weeks (otherwise the two are the same and it reads as before); (2) a held break a
+    // moved phase ran through and no phase runs through now is NAMED ("Hiatus 8/10/26 stayed on its dates, so no phase
+    // pauses for it now."), so a summer break left in last year is said, not silent. How a new hiatus starts (locked)
+    // is unchanged.
+    function describeShift(res, tail, before){
       if(!res) return 'Nothing to shift.';
       const n = Math.abs(res.weeks);
-      let out = 'Shifted ' + n + (n === 1 ? ' week ' : ' weeks ') + (res.weeks < 0 ? 'earlier' : 'later') + '.';
+      const unit = (res.stepped && res.stepped.length) ? ' working week' : ' week';
+      let out = 'Shifted ' + n + unit + (n === 1 ? ' ' : 's ') + (res.weeks < 0 ? 'earlier' : 'later') + '.';
       if(res.lockedHiatuses) out += ' ' + res.lockedHiatuses + ' locked hiatus' + (res.lockedHiatuses === 1 ? '' : 'es') + ' held.';
+      out += heldLeftText(res, before);
       out += steppedText(res);
       if(res.productionWrap) out += ' Wrap ' + res.productionWrap + '.';
       if(tail) out += tail;
+      // A whole-calendar move into other years whose year blocks changed shape: the year-keyed stores stayed (AUD2-052).
+      if(res.yearKeysStayed){
+        out += ' The ' + andList(res.yearKeysStayed.kinds) + ' you set stayed on ' + andList(res.yearKeysStayed.years.map(String)) + '.';
+      }
       if(res.notesOnHiatus){
         out += res.notesOnHiatus === 1
           ? ' A note moved onto a hiatus week, where the hiatus band covers it: it won’t show in the waterfall or the exports until one of them moves.'
@@ -34511,6 +34948,20 @@ export function initLegacyApp() {
       return ' ' + groups.map(g => andList(g.names) + (g.names.length > 1 ? ' were ' : ' was ')
           + (g.weeks > 0 ? 'pushed ' : 'pulled ') + rippleWks(Math.abs(g.weeks))).join(' and ')
         + ' to step over ' + (res.steppedHiatuses > 1 ? 'held hiatuses.' : 'a held hiatus.');
+    }
+    // The held breaks the move left behind (AUD2-051): a band this move held (res.heldBands, shiftCalendarDates) that some
+    // phase ran through before it and none runs through now. "Runs through" is the phase's first to last WORKING day
+    // (phaseRunsNow), which spans a break that pauses it. A break that was already outside the calendar, or that an
+    // unmoved phase still runs through, is not named. '' when there is nothing to say.
+    function heldLeftText(res, before){
+      const bands = (res && res.heldBands) || [];
+      if(!before || !bands.length) return '';
+      const after = phaseRunsNow();
+      const through = (runs, b) => Object.keys(runs).some(k => runs[k].start <= b.last && runs[k].end >= b.first);
+      const left = bands.filter(b => through(before, b) && !through(after, b)).sort((a, b)=> a.start - b.start);
+      if(!left.length) return '';
+      return ' ' + andList(left.map(b => b.name + ' ' + fmtShort(b.start)))
+        + (left.length === 1 ? ' stayed on its dates, so no phase pauses for it now.' : ' stayed on their dates, so no phase pauses for them now.');
     }
     function readWeeks(id){
       const v = Math.round(Number((document.getElementById(id) || {}).value));
@@ -34576,6 +35027,9 @@ export function initLegacyApp() {
     // edits from there rather than typing into a blank box.
     function syncAnchorDate(){
       const {key, edge, current} = anchorSelection();
+      // A date the user typed for this landing phase and edge stays (AUD2-049, above); anything else follows the calendar.
+      if(anchorDateTyped && anchorDateTyped.key === key && anchorDateTyped.edge === edge) return;
+      anchorDateTyped = null;
       // A start is Monday-snapped like every other start in this tool -- unless the phase's own Snap to
       // Mon is off, when the field shows its REAL start (audit M-11). The whole schedule's start is
       // the earliest segment's, which computeSchedule has already snapped or not. An end is a real
@@ -34594,8 +35048,13 @@ export function initLegacyApp() {
     }
     function syncSolveDate(){
       const key = (document.getElementById('tool-solve-phase')||{}).value;
+      const edge = (document.getElementById('tool-solve-edge') || {}).value === 'end' ? 'end' : 'start';
+      // A date the user typed for this pin and edge stays (AUD2-049, above): an edit underneath must not swap it for the
+      // pin's current date. A new pin or the other edge refills it, as before.
+      if(solveDateTyped && solveDateTyped.key === key && solveDateTyped.edge === edge) return;
+      solveDateTyped = null;
       // "Ends by" (ruling R3) starts from where the phase ends now: its last workday, Shift's own landmark.
-      if((document.getElementById('tool-solve-edge') || {}).value === 'end'){
+      if(edge === 'end'){
         const last = key ? landmarkDate(key, 'end') : null;
         document.getElementById('tool-solve-date').value = last ? isoOf(last) : '';
         return;
@@ -34619,6 +35078,7 @@ export function initLegacyApp() {
     }
     function closeAllPops(){
       shiftDrag = null; solveDrag = null;   // a drag down either list ends with its box
+      solveDateTyped = null; anchorDateTyped = null;   // a typed date lasts while its panel is open (AUD2-049)
       popPos.clear();                       // a dragged panel opens under its button again next time
       POPS.forEach(p=>{
         p.menu.classList.remove('open');
@@ -34727,7 +35187,7 @@ export function initLegacyApp() {
       if(wasOpen) return;
       // R2(a): the Shift form opens with every phase ticked, By weeks, every time, and no row touched yet.
       // Before the refresh, which fills the landing phase's list for the choice in force.
-      if(target.menu === shiftMenu){ shiftFar = 'weeks'; shiftMark = ''; shiftTicks = new Set(shiftRows().map(r => r.key)); }
+      if(target.menu === shiftMenu){ shiftFar = 'weeks'; shiftMark = ''; shiftTicks = new Set(shiftRows().map(r => r.key)); shiftKnown = new Set(shiftTicks); }
       refreshMenuFromCalendar();   // every dropdown quotes live dates
       // Build Around forgets everything between openings, so each one starts on its default ticks, its starts date
       // and no typed lengths. The edge goes back to "starts" BEFORE the refresh, which fills the date from it.
@@ -34828,6 +35288,7 @@ export function initLegacyApp() {
     // is ticked.
     function shiftPlan(){
       const rows = shiftRows();
+      syncShiftTicks(rows);   // a phase dated since the list was drawn (AUD2-049): read live, so the move agrees
       const moving = rows.filter(r => shiftTicks.has(r.key));
       if(moving.length === rows.length) return {move: 'all', pivot: null, moving, staying: [], part: null};
       if(!moving.length) return null;
@@ -34841,17 +35302,69 @@ export function initLegacyApp() {
     }
     // The result line's tail for a part-calendar move (plan §1, §7). Every phase ticked adds nothing, so its line is
     // the old Shift All / Anchor To line word for word.
-    function moveTail(res, plan){
+    // ⭐ A HIATUS THE MOVE CARRIED (audit AUD2-069, the Nov 2026 audit's item 3.2, 14 Nov 2026). A part move carries
+    // every UNLOCKED all-phase hiatus inside a ticked phase's weeks (rule T2, kept as ruled), and that hiatus also
+    // pauses the unticked phases running through it: one it leaves ends earlier, one it lands on starts later. The line
+    // used to say they all "stayed where they were". `before` is phaseRunsNow() taken just before the move: an unticked
+    // phase whose first or last working day changed is named with where it is now and the owner's words for the move
+    // ("Music now ends 12/25/26 (pulled 2 wks)"), and left out of the "stayed" sentence, which keeps its place and
+    // wording so a line with nothing carried reads exactly as before. The hiatus sentence comes last.
+    function moveTail(res, plan, before){
       if(!res || !plan || plan.move === 'all') return '';
+      const after = before ? phaseRunsNow() : null;
+      const changed = [];
+      const stay = plan.staying.filter(r => {
+        const t = before ? runChangeText(r.label, before[r.key], after[r.key]) : '';
+        if(t) changed.push(t);
+        return !t;
+      }).map(r => r.label);
+      let out;
       if(plan.move === 'custom'){
-        const stay = plan.staying.map(r => r.label);
-        return ' ' + res.movedPhases + ' ticked phase' + (res.movedPhases === 1 ? '' : 's') + ' moved.'
+        out = ' ' + res.movedPhases + ' ticked phase' + (res.movedPhases === 1 ? '' : 's') + ' moved.'
           + (stay.length ? ' ' + andList(stay) + (stay.length === 1 ? ' stayed where it was.' : ' stayed where they were.') : '');
+      } else {
+        out = ' ' + plan.pivot.label + ' and everything ' + plan.move + ' it moved (' + res.movedPhases
+          + ' phase' + (res.movedPhases === 1 ? '' : 's') + ').';
+        const nStay = Math.max(0, res.stayedPhases - changed.length);
+        if(nStay) out += ' ' + nStay + ' stayed where ' + (nStay === 1 ? 'it was' : 'they were') + '.';
       }
-      let out = ' ' + plan.pivot.label + ' and everything ' + plan.move + ' it moved (' + res.movedPhases
-        + ' phase' + (res.movedPhases === 1 ? '' : 's') + ').';
-      if(res.stayedPhases) out += ' ' + res.stayedPhases + ' stayed where ' + (res.stayedPhases === 1 ? 'it was' : 'they were') + '.';
+      const carried = res.movedHiatuses
+        ? ' ' + res.movedHiatuses + (res.movedHiatuses === 1 ? ' hiatus' : ' hiatuses') + ' moved with ' + (plan.moving.length === 1 ? 'it' : 'them')
+        : '';
+      if(carried) out += carried + (changed.length ? ', so ' + andList(changed) : '') + '.';
+      else if(changed.length) out += ' ' + andList(changed) + '.';
       return out;
+    }
+    // Every phase's first and last WORKING day as the calendar draws it now, by key: the first and last week it works
+    // (seg.weekNo: the weeks no hiatus pauses), on its own start or last workday when that falls in the week, else that
+    // week's Monday or Friday. The whole calendar, not the range's rows; prep is not a phase here.
+    function phaseRunsNow(){
+      const out = {};
+      ((wholeCalendar(currentSchedule) || {}).segments || []).forEach(s => {
+        if(!s.key || s.key === PREP_KEY) return;
+        const wks = Object.keys(s.weekNo || {}).sort();
+        if(!wks.length) return;
+        const firstWk = parseDateUTC(wks[0]), lastWk = parseDateUTC(wks[wks.length - 1]);
+        const last = phaseLastWorkday(s);
+        out[s.key] = {
+          start: mondayOf(s.start).getTime() === firstWk.getTime() ? s.start : firstWk,
+          end: (last && mondayOf(last).getTime() === lastWk.getTime()) ? last : addDays(lastWk, 4)
+        };
+      });
+      return out;
+    }
+    // "Music now ends 12/25/26 (pulled 2 wks)", "Titles now runs 1/18/27 to 2/12/27 (pushed 2 wks)", or '' when the
+    // phase's run did not change. Moved dates in the owner's words (solveMovedWords), never + or -.
+    function runChangeText(label, b, a){
+      if(!b || !a) return '';
+      const ds = Math.round((a.start - b.start) / DAY_MS), de = Math.round((a.end - b.end) / DAY_MS);
+      if(!ds && !de) return '';
+      const moved = (from, to) => solveMovedWords(from, to).toLowerCase();
+      if(ds && ds === de) return label + ' now runs ' + fmtShort(a.start) + ' to ' + fmtShort(a.end) + ' (' + moved(b.start, a.start) + ')';
+      if(ds && de) return label + ' now starts ' + fmtShort(a.start) + ' (' + moved(b.start, a.start) + ') and ends '
+        + fmtShort(a.end) + ' (' + moved(b.end, a.end) + ')';
+      return ds ? label + ' now starts ' + fmtShort(a.start) + ' (' + moved(b.start, a.start) + ')'
+                : label + ' now ends ' + fmtShort(a.end) + ' (' + moved(b.end, a.end) + ')';
     }
     // How far To a date would move the landmark right now (the Go handler's own arithmetic), or 0.
     // Counted in WORKING weeks (the step-over, stepOverHeld): the held hiatuses' weeks are not counted, so the landmark
@@ -34867,6 +35380,18 @@ export function initLegacyApp() {
     function heldForMove(){
       const plan = shiftPlan();
       return shiftHeldWeeks(plan ? plan.part : null);
+    }
+    // The ticks against the rows as they are now (AUD2-049): a row that left takes its tick with it; a row that came
+    // since the last reconcile is ticked while every row that was there before is ticked (the panel means the whole
+    // calendar), and left unticked under a hand-picked set.
+    function syncShiftTicks(rows){
+      const have = new Set(rows.map(r => r.key));
+      if(shiftKnown){
+        const fresh = rows.filter(r => !shiftKnown.has(r.key));
+        if(fresh.length && [...shiftKnown].filter(k => have.has(k)).every(k => shiftTicks.has(k))) fresh.forEach(r => shiftTicks.add(r.key));
+      }
+      shiftTicks = new Set([...shiftTicks].filter(k => have.has(k)));
+      shiftKnown = have;
     }
     // The phase that LANDS on the date (#tool-anchor-phase, Anchor To's select by id; it shows only To a date, on the
     // row above "starts on"). Refilled on every sync, because it follows the list (owner, 9 Nov 2026, on a screenshot
@@ -34888,8 +35413,7 @@ export function initLegacyApp() {
       if(!sel) return false;
       const was = sel.value;
       const rows = shiftRows();
-      const have = new Set(rows.map(r => r.key));
-      shiftTicks = new Set([...shiftTicks].filter(k => have.has(k)));
+      syncShiftTicks(rows);
       const ticked = rows.filter(r => shiftTicks.has(r.key));
       const offerWhole = shiftFar === 'date' && rows.length > 0 && ticked.length === rows.length;
       fillPhaseSelect('tool-anchor-phase', scheduledPhases().filter(x => shiftTicks.has(x.p.key)), 'production', offerWhole);
@@ -35084,8 +35608,12 @@ export function initLegacyApp() {
       let shiftDateTimer = null;
       const dateEl = document.getElementById('tool-anchor-date');
       if(dateEl){
-        dateEl.addEventListener('input', ()=>{ clearTimeout(shiftDateTimer); shiftDateTimer = setTimeout(renderShiftList, 250); });
-        dateEl.addEventListener('change', ()=>{ clearTimeout(shiftDateTimer); renderShiftList(); });
+        // Typed (or picked: the date picker fires the same events) for the landing phase and edge in the boxes now. The
+        // code that refills the box writes .value, which fires nothing, so only the user's own date is marked (AUD2-049).
+        const typed = ()=>{ anchorDateTyped = {key: (document.getElementById('tool-anchor-phase') || {}).value,
+                                               edge: (document.getElementById('tool-anchor-edge') || {}).value}; };
+        dateEl.addEventListener('input', ()=>{ typed(); clearTimeout(shiftDateTimer); shiftDateTimer = setTimeout(renderShiftList, 250); });
+        dateEl.addEventListener('change', ()=>{ typed(); clearTimeout(shiftDateTimer); renderShiftList(); });
       }
       document.getElementById('tool-anchor-edge').addEventListener('change', renderShiftList);
     }
@@ -35099,13 +35627,17 @@ export function initLegacyApp() {
       if(!n) return say('Enter a number of weeks.', true);
       const plan = shiftPlan();
       if(!plan) return say('Tick a phase to move.', true);
+      anchorDateTyped = null;   // the panel's own tool ran: To a date's box follows the calendar again (AUD2-049)
+      // Every phase's run before the move: the line names the held breaks it leaves behind (AUD2-051) and, on a part
+      // move, the unticked phases a carried hiatus changed (AUD2-069).
+      const runsBefore = phaseRunsNow();
       // Every phase ticked: the old Shift All form -- the same call, the same result line.
-      if(!plan.part) return say(describeShift(asOneUndoStep(()=> shiftCalendar(sign * n, null, {stepHeld: true}))));
+      if(!plan.part) return say(describeShift(asOneUndoStep(()=> shiftCalendar(sign * n, null, {stepHeld: true})), '', runsBefore));
       // The bottom of the list from one phase is the old Shift From; the top down to one its mirror; any other set
       // the user's own.
       const res = asOneUndoStep(()=> shiftCalendar(sign * n, null, {part: plan.part, stepHeld: true}));
       if(!res) return say('Nothing to shift.', true);
-      say(describeShift(res, moveTail(res, plan)));
+      say(describeShift(res, moveTail(res, plan, runsBefore), runsBefore));
     }
     document.getElementById('tool-shift-earlier').addEventListener('click', ()=> shiftBy(-1));
     document.getElementById('tool-shift-later').addEventListener('click', ()=> shiftBy(1));
@@ -35149,6 +35681,8 @@ export function initLegacyApp() {
           : label + ' already ends ' + fmtShort(current) + ' — as late as it can without passing that date.');
       }
       if(!plan) return say(label + ' has no start date to move.', true);
+      anchorDateTyped = null;   // Go used it: the box follows the calendar again, as it always did after a run (AUD2-049)
+      const runsBefore = phaseRunsNow();   // every move: the held breaks it leaves behind are named (AUD2-051)
       const res = asOneUndoStep(()=> part ? shiftCalendar(delta, null, {part, stepHeld: true}) : shiftCalendar(delta, null, {stepHeld: true}));
       // Report where the landmark actually landed rather than the date asked for: whole-week steps
       // land short of a deadline, and because holidays don't travel with the plan a shifted shoot
@@ -35158,7 +35692,7 @@ export function initLegacyApp() {
       const out = describeShift(res, (landed ? ' ' + label + (edge === 'end' ? ' ends ' : ' starts ') + fmtShort(landed) + '.' : '')
         + (inHeld && landed ? ' Your date is inside a held hiatus, so it starts the week after it.' : '')
         + (overshot ? ' Still past your date — the shoot grew over a holiday it now overlaps.' : '')
-        + moveTail(res, plan));
+        + moveTail(res, plan, runsBefore), runsBefore);
       say(out, overshot);
     });
 
@@ -35441,6 +35975,7 @@ export function initLegacyApp() {
       const edge = solveEdge();
       const lv = solveLeaves(f);
       const lens = Object.assign({}, solveLens);
+      solveDateTyped = null;   // Build used it: the box follows the calendar again, as it always did after a run
       const res = asOneUndoStep(()=>{
         // The lengths first, so the solvers place each phase by the length it is saved with (ruling R2(a): saved on
         // Build, in the same undo step as the dates, and every one of them, even for a phase that can't be placed yet).
@@ -35469,6 +36004,8 @@ export function initLegacyApp() {
       if(far) out += ' ' + far.label + ' starts ' + fmtShort(far.start) + '.';
       if(res.afterBlocked) out += ' The phases after Production wait for its length in Show info.';
       if(res.skipped.length) out += ' Skipped ' + res.skipped.join(', ') + ' (no length).';
+      // Typed week notes stay on their weeks (AUD2-009's default, as documented): say how many the build left there.
+      if(res.notesStayed) out += ' ' + res.notesStayed + (res.notesStayed === 1 ? ' typed note stayed on its week.' : ' typed notes stayed on their weeks.');
       const ov = takeShootDayMoveNote();
       if(ov) out += ' ' + ov;
       say(out);
@@ -35612,6 +36149,8 @@ export function initLegacyApp() {
     // A typed date fires `input` per keystroke: draw once it settles, not once per digit.
     let solveDateTimer = null;
     ['input', 'change'].forEach(t => document.getElementById('tool-solve-date').addEventListener(t, ()=>{
+      // The user's own date, for this pin and edge (AUD2-049: syncSolveDate keeps it). A refill writes .value, silently.
+      solveDateTyped = {key: (document.getElementById('tool-solve-phase') || {}).value, edge: solveEdge()};
       clearTimeout(solveDateTimer);
       solveDateTimer = setTimeout(renderSolve, 120);
     }));
