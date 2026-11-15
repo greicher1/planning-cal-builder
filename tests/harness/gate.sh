@@ -2146,6 +2146,12 @@ done
 # (Production, a Days phase, episode prep; or the holiday is already off), is one list in date order, and marks the
 # holidays inside a phase that counts days with a strip in its colours ("Prod" when one row tall); a Production holiday
 # marked Work this day reads "Marked Working Day". Two runs: anchorside (Production) and customunits (Days phases).
+# epcount (audit item 2.1, AUD2-008, 13 Nov 2026): Number of Episodes and Number of Blocks apply when the box is left or
+# Enter is pressed, never per keystroke. Typed one key at a time into the focused box on blocks.sptcal: 12 over 10 keeps
+# every block's episodes (B), 10 blocks over 5 keeps Block 3's typed 13 days (B4), and in Episodes mode (reloaded with a
+# renamed Pilot, a 7.5-day episode, prep days and a re-ordered shoot) every edit, id and the order survive with 96.5 days
+# (E2); a real lowering still warns and Undo / Redo take the line down (E4-E6); a Save mid-typing writes the calendar on
+# screen (E7); arrow keys apply on leave (E8). Red on the build before it (B1, B2, B4, E1, E2, E4, E7, E8).
 for AFSPEC in pwagate:-:120 pwagatelogic:-:120 settingswin:-:240 newtab:-:120 \
               interfonts:-:60 monthlayout:-:150 monthlayout:colswap-simpost-refuse:150 \
               loadcarry:-:90 hiatusblank:hiatus-blank:90 hostile:xss-mixed:240 sharecopy2:-:90 loadfail:-:1500 \
@@ -2238,6 +2244,7 @@ for AFSPEC in pwagate:-:120 pwagatelogic:-:120 settingswin:-:240 newtab:-:120 \
               hoverhiatus:hover-hiatus:400 \
               comparehiatus:compare-hiatus:240 \
               phasesui:hidewf:1500 \
+              epcount:blocks:300 \
               stylebarplace:fill-intent:300; do
   AFLEG="${AFSPEC%%:*}"; AFREST="${AFSPEC#*:}"; AFSTATE="${AFREST%%:*}"; AFSECS="${AFREST#*:}"
   [[ $AFSTATE == - ]] && AFSTATE=""

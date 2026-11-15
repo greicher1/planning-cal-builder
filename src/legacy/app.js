@@ -9016,6 +9016,12 @@ export function initLegacyApp() {
   // Names of user-edited episodes discarded by lowering the episode count, shown once as a
   // warning so the loss isn't silent.
   let lastDroppedEpisodes = [];
+  // Number of Episodes / Number of Blocks while a typed count waits for Enter or for the box to be left (bindCountField,
+  // audit item 2.1): id -> the box's value the calendar is computed on. countFieldBase holds that value for each box as
+  // of the last apply, focus or restore. Session UI, never saved: collectFieldValues() writes the waiting entry in place
+  // of the half-typed box, and every restore drops it (forgetCountFieldEdits).
+  const countFieldWaiting = new Map();
+  const countFieldBase = new Map();
   // Shooting blocks (BLOCKS-PLAN.md). Each: {id, name, days, daysEdited, episodes:[episodeId]}.
   // ⭐ Deliberately the SAME SHAPE as episodeDefs (§4.4): in Blocks mode Production's total is
   // Σ blockDefs[].days exactly as it is Σ episodeDefs[].days in Episodes mode, so showInfoStatus()
@@ -16270,7 +16276,10 @@ export function initLegacyApp() {
           + '.' + (blockAssignEdited ? ' Its episodes moved to the last block.' : '');
         lastDroppedBlocks = [];
       } else {
+        // Emptied as well as hidden (audit item 2.1): the old line used to stay in the page, hidden, after Undo, and
+        // anything reading the panel's text (the audit's legs did) found a "Removed ..." that was no longer true.
         warn.style.display = 'none';
+        warn.innerHTML = '';
       }
     }
     if(info.blocks) renderBlockRows(); else renderEpisodeRows();
@@ -29442,7 +29451,69 @@ export function initLegacyApp() {
     refreshEpisodesUI(); update();
   });
   document.getElementById('shoot-days-per-ep').addEventListener('input', ()=>{ refreshEpisodesUI(); update(); });
-  document.getElementById('num-episodes').addEventListener('input', ()=>{ showInfoEdited(); refreshEpisodesUI(); update(); });
+  // ⛔ NUMBER OF EPISODES AND NUMBER OF BLOCKS ARE APPLIED WHEN THE BOX IS LEFT OR ENTER IS PRESSED, never per keystroke
+  // (audit item 2.1, AUD2-008, 13 Nov 2026). A count is destructive in one direction: lowering it pops the episodes (or
+  // blocks) past it, with their names, day counts, prep and month styles, and a hand-arranged block keeps only the
+  // episodes that still exist. Applied per keystroke, typing 12 over 10 passed through '1', which dropped episodes
+  // 202-210 and minted new ids at '12' (every edit gone, Production's wrap moved, a "Removed ..." line saying the count
+  // had been LOWERED), and in Blocks mode piled every re-minted episode into the last block. Typing 10 blocks over 5 did
+  // the same to a typed block length. A value the user only passes through must never act: the dates rule is the same
+  // ("A typed date never ripples per keystroke", HIATUS-RIPPLE-PLAN.md §4).
+  //  - While the box has focus, a keystroke only records that a new count waits (countFieldWaiting keeps the count the
+  //    calendar is computed on). Enter, leaving the box (Tab, a click elsewhere) or a script's change event applies it.
+  //  - A write made while the box does NOT have focus applies at once, as before: a leg's T.set, and any other script.
+  //  - The 200 cap (capCountField) still clamps while typing; it never removes anything.
+  //  - An arrow key waits the same way: Mantine steps the box with no input event, so before this two ArrowUp presses
+  //    left the box reading one count while the calendar kept another until some unrelated edit.
+  //  - Mantine's clamp on blur (a typed 0 becomes 1) is applied too, as BATCH 5 below did for these two boxes.
+  //  - collectFieldValues() writes the WAITING entry's count, so a crash backup, an undo step or a ⌘S taken mid-typing
+  //    holds the calendar on screen and never a half-typed count over the old episode list (an undo onto "1 episode,
+  //    10 rows" would have dropped nine episodes on restore). Every restore drops a waiting count
+  //    (forgetCountFieldEdits): the box was just rewritten, so what was typed in it is gone.
+  // ⚠️ A real lowering still drops and still names the edited ones it dropped; Undo brings them back.
+  function bindCountField(id){
+    const el = document.getElementById(id);
+    if(!el) return;
+    const wait = ()=>{
+      if(!countFieldWaiting.has(id)) countFieldWaiting.set(id, countFieldBase.has(id) ? countFieldBase.get(id) : el.value);
+    };
+    const apply = ()=>{
+      countFieldWaiting.delete(id);
+      countFieldBase.set(id, el.value);
+      showInfoEdited(); refreshEpisodesUI(); update();
+    };
+    const commit = ()=>{ if(countFieldWaiting.has(id)) apply(); };
+    el.addEventListener('focusin', ()=>{ if(!countFieldWaiting.has(id)) countFieldBase.set(id, el.value); });
+    el.addEventListener('input', ()=>{
+      capCountField(id);
+      if(document.activeElement === el) wait(); else apply();
+    });
+    el.addEventListener('keydown', e=>{
+      if(e.key === 'Enter' && !e.isComposing) commit();
+      else if(e.key === 'ArrowUp' || e.key === 'ArrowDown') wait();
+    });
+    // A script's change event is its "done" (the harness's T.set sends input then change). A person's change event
+    // comes from Enter or leaving the box, both handled here, so it is left alone.
+    el.addEventListener('change', e=>{ if(!e.isTrusted) commit(); });
+    el.addEventListener('focusout', ()=>{
+      commit();   // at once, so whatever took the focus (Save As, New, a toolbar button) acts on the applied count
+      // ...and again if Mantine's blur clamp rewrites the box. setTimeout, not a microtask: this listener is on the
+      // input and runs before React's root listener, where the clamp happens (the BATCH 5 note below). Only a change
+      // made in that gap: a box merely tabbed through is never re-applied (it would markDirty() a clean calendar).
+      const left = el.value;
+      setTimeout(()=>{ if(el.value !== left && document.activeElement !== el) apply(); }, 0);
+    });
+  }
+  // A restore (Load, Undo / Redo, a scenario tab, backup recovery, New) rewrites both boxes: nothing typed in them is
+  // waiting any more, and what the calendar is computed on is what they now hold.
+  function forgetCountFieldEdits(){
+    countFieldWaiting.clear();
+    ['num-episodes', 'num-blocks'].forEach(id=>{
+      const el = document.getElementById(id);
+      if(el) countFieldBase.set(id, el.value);
+    });
+  }
+  bindCountField('num-episodes');
   // The calendar range (owner ruling 3): it moves where the waterfall starts and ends, so it recomputes.
   ['cal-range-start', 'cal-range-end'].forEach(id=>{
     const el = document.getElementById(id);
@@ -29455,7 +29526,10 @@ export function initLegacyApp() {
     const el = document.getElementById(id);
     if(el) el.addEventListener('change', ()=>{ showInfoEdited(); refreshEpisodesUI(); update(); });
   });
-  ['num-blocks', 'days-per-block'].forEach(id=>{
+  // Number of Blocks is applied on leave / Enter like Number of Episodes (bindCountField above). Shooting Days per
+  // Block stays per keystroke: it changes only the blocks nobody typed a length into, and removes nothing.
+  bindCountField('num-blocks');
+  ['days-per-block'].forEach(id=>{
     const el = document.getElementById(id);
     if(el) el.addEventListener('input', ()=>{ showInfoEdited(); refreshEpisodesUI(); update(); });
   });
@@ -29473,7 +29547,9 @@ export function initLegacyApp() {
   // ⚠️ Only when the user TYPED during this visit and the value then changed under them. Re-running
   // update() on every blur would markDirty() a clean calendar just for being tabbed through, and a
   // Load writes these fields with no input event, so "changed since the last input" would misfire.
-  ['shoot-days-per-ep', 'num-episodes', 'num-blocks', 'days-per-block'].forEach(id=>{
+  // Number of Episodes and Number of Blocks left this list on 13 Nov 2026: bindCountField() applies them on leave and
+  // re-applies Mantine's clamp itself (audit item 2.1).
+  ['shoot-days-per-ep', 'days-per-block'].forEach(id=>{
     const el = document.getElementById(id);
     if(!el) return;
     let typed = null;   // the value after the last keystroke of THIS visit to the field
@@ -29586,6 +29662,8 @@ export function initLegacyApp() {
     blockDefs = []; blockCounter = 0; blockAssignEdited = false; lastDroppedBlocks = [];
     blocksEpisodesLegacy = false;
     episodeShootOrder = [];
+    forgetCountFieldEdits();   // both count boxes were just emptied (bindCountField)
+    lastDroppedEpisodes = [];
     refreshEpisodesUI();
     headerMode = 'auto'; headerManual = {}; headerTemplates = false; headerOff = false;
     mvHeaderMode = 'auto'; mvHeaderManual = {}; mvHeaderTemplates = false; mvHeaderOff = false;
@@ -29699,6 +29777,9 @@ export function initLegacyApp() {
       if(el.closest('.export-pdf-dlg')) return;
       // ...and so is the Compare window (CompareDialog.jsx): Mantine mints an id for each scenario Chip's checkbox.
       if(el.closest('.compare-dlg')) return;
+      // A count still being typed (bindCountField, audit item 2.1) is not the calendar's yet: the calendar on screen
+      // is computed on the count it waits to replace, so that is what a backup, an undo step or a Save holds.
+      if(countFieldWaiting.has(el.id)){ byId[el.id] = {value: countFieldWaiting.get(el.id)}; return; }
       if(el.type === 'checkbox' || el.type === 'radio') byId[el.id] = {checked: el.checked};
       else byId[el.id] = {value: el.value};
     });
@@ -41339,6 +41420,9 @@ export function initLegacyApp() {
       ...blockDefs.map(b=> parseInt(String(b.id).replace(/^blk/, ''), 10) || 0));
     blockAssignEdited = snap.blockAssignEdited === true;
     lastDroppedBlocks = [];
+    // ...and the episodes' twin (audit item 2.1): a "Removed ..." line is about the calendar before this restore, so an
+    // Undo of a lowered count, a Redo or a Load never shows it again.
+    lastDroppedEpisodes = [];
     // Unconditional, [] = natural order: a file without the key must not inherit the previously
     // open calendar's shooting order.
     episodeShootOrder = Array.isArray(snap.episodeShootOrder)
@@ -41365,6 +41449,9 @@ export function initLegacyApp() {
         }
       });
     }
+    // Both count boxes now hold this calendar's counts: a count typed into one and not yet applied is gone with the
+    // old value, and must not be written over this calendar by collectFieldValues() (bindCountField, audit item 2.1).
+    forgetCountFieldEdits();
 
     // ⛔ UNCONDITIONAL (LABELS-SETUP-PLAN.md item 4), read off the fields just applied: a count-less
     // Blocks calendar WITHOUT the key was saved before episodes became optional, and keeps the old rule

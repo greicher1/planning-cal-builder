@@ -4,6 +4,38 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### 🩹 13 Nov 2026: NUMBER OF EPISODES / NUMBER OF BLOCKS APPLY ON LEAVE OR ENTER (audit item 2.1, AUD2-008). ⛔ **NOT merged, NOT pushed**: branch `audit-2-1` (worktree `.claude/worktrees/audit-2-1`, from `origin/main` at `2089aa5`); waits for the release train's one full gate. Built overnight on the owner's "finish all approved", no questions possible.
+- **Bug (reproduced, red on `2089aa5`):** the `#num-episodes` 'input' listener ran `syncEpisodesFromShowInfo()` per
+  keystroke, so typing 12 over 10 applied "1" first: episodes 202-210 popped (names, days, prep, `mvTextStyle.episode`),
+  ids re-minted at "12", a "Removed ..." line saying the count was lowered; in Blocks mode `reconcileBlockEpisodes()`
+  piled the new ids into the last block. `#num-blocks` had the same shape (reproduced: 10 over 5 lost Block 3's 13 days).
+- **Built:** `bindCountField(id)` beside the Show info listeners binds both boxes. Focused keystrokes and ArrowUp/Down
+  only mark the count waiting (`countFieldWaiting`: id -> the value the calendar is on; `countFieldBase` tracks that value
+  per box); Enter, focusout, or an UNTRUSTED change event (T.set) applies; a write without focus applies at once as
+  before. `capCountField` still clamps while typing. focusout re-applies after Mantine's blur clamp (setTimeout 0), so
+  the two boxes left BATCH 5's list. `collectFieldValues()` writes the waiting entry's value (crash backup, undo step,
+  ⌘S mid-typing hold the calendar on screen). `forgetCountFieldEdits()` runs after `applyStateSnapshot`'s field replay
+  and in `resetAll`. The hidden "Removed ..." text is emptied when hidden; `lastDroppedEpisodes` is cleared on restore.
+  Days per Episode / Days per Block stay per keystroke (they remove nothing).
+- **Defaults / choices applied:** commit-on-leave/Enter (the item's chosen fix); the non-destructive "hidden tail" was
+  NOT built (it needs block membership and month styles kept per session, every restore to clear it, and new wording);
+  Number of Blocks fixed the same way since it reproduced; episode ids kept (11, 12 minted only when the count is
+  applied). No save-format change, nothing frozen.
+- **Did not reproduce as visible:** "the Removed line stays up after Undo" (E5/E6 green on `2089aa5`): the text stayed in
+  the hidden `#ep-panel-warn` and the audit's readers counted hidden text. Emptied now anyway.
+- ⚠️ **Still open (not this item):** an engine write to a Mantine NumberInput (Undo, Load) does not reach Mantine's own
+  state, so an arrow key afterwards steps from the OLD number (after Undo 12 -> 10, ArrowUp gave 13). The calendar now
+  follows whatever the box shows when left, so they no longer disagree; the step's starting point is still wrong.
+- ⚠️ **Harness:** `epcount` must run under 600 virtual seconds (gate spec `epcount:blocks:300`): at 600 / 610 headless
+  never dumped after E7's Save As (590 dumps in 6 s). Likely the 10-minute autosave hitting fakeSavePicker's handle,
+  which has no getFile(); not chased.
+- **Proof:** `epcount` 16/16 (red before: B1, B2, B4, E1, E2, E4, E7, E8); `numclamp` 6/6, `caps` 5/5, `wholenum` 12/12,
+  `halfdays` 27/27, `undokeys` 11/11, `dlgkeys` 16/16, `filekeys` 16/16, `labelsetup` 41/41, `buildaround` 36/36,
+  `mvtextstyle` 23/23, `autonotekinds` 16/16, `seasons` 15/15; gate sections `blocks` 16/16, `wrapdate` 6/6, `epnames`
+  17/17, `episodeprep` 74/74, `scenarios` 23/23; `npm run check` 42/42. Real keys in the pane: 12 over 10 then Tab, 10
+  blocks then Enter, two ArrowUp then Tab, Undo. No full gate (release train). Leg added to `gate.sh`'s audit-fix list;
+  changelog under Unreleased.
+
 ### 🩹 12 Nov 2026: RENAMING AN AUTO NOTE NO LONGER SHOWS THE TYPED-NOTE ROWS. ✅ **PUSHED to `origin/main`** on the owner's picker *"Push and deploy"* (the commit that carries this entry), from branch `autonote-rename-rows` (worktree `.claude/worktrees/autonote-rename-rows`, from `main` at `5f1b67a`; `node_modules` is a symlink). Tracker card `wf-autonote-edit-shows-note-rows`
 - **The ask (owner):** *"when you start editing an auto note, the regular note editor menu opens up - why?"*, then *"do it"*,
   then *"Finish it"*.
