@@ -8380,17 +8380,34 @@ export function initLegacyApp() {
   // or a drag filled gridSel, so Alt+←/→ after a plain click did nothing and said nothing. Now the highlighted phase
   // cells become the swap's selection when the keys are pressed, exactly as if they had been ⌘-clicked (the circle then
   // shows beside them, as after a ⌘-click), and a highlight with no phase cell in it says what to do.
-  // ⛔ Only when something in the waterfall is highlighted: with nothing selected the keys stay the page's.
+  // ⛔ Only when a phase, Notes or date cell of the waterfall is highlighted (swapKeysClaimed): with nothing selected,
+  // or a highlight on anything else (a column heading, Sim Post's cell, cells a re-render took away), the keys stay the
+  // page's -- Alt+← is the browser's Back on Windows. (Review slip on 2.12: it claimed them for ANY highlight.)
   document.addEventListener('keydown', e=>{
     if(!e.altKey || e.metaKey || e.ctrlKey) return;
     if(e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
-    if(viewMode !== 'sheet' || !(gridSel.size || textSel.size)) return;
+    if(viewMode !== 'sheet' || !swapKeysClaimed()) return;
     const a = document.activeElement;
     if(a && (a.tagName === 'INPUT' || a.tagName === 'TEXTAREA' || a.isContentEditable)) return;
     e.preventDefault();
     if(!gridSel.size && !seedSwapFromHighlight()){ flashSwapMsg(SWAP_SELECT_FIRST); return; }
     doSwapMove(e.key === 'ArrowLeft' ? -1 : 1);
   });
+  // Does the waterfall hold a highlight the swap keys answer to? A ⌘-click / drag selection (gridSel: phase cells only),
+  // or a plain-click highlight with at least one LIVE phase, phase-band, Notes or date cell in #table-wrap. A date or
+  // Notes cell alone still claims the keys, so the chip can say "Select a phase cell first".
+  const SWAP_KEY_KINDS = new Set(['phase', 'hiatus', 'note', 'date']);
+  function swapKeysClaimed(){
+    if(gridSel.size){
+      const live = new Set(allPhaseTds().map(SEL_KEY));
+      if([...gridSel].some(k => live.has(k))) return true;
+    }
+    if(!textSel.size) return false;
+    const kinds = [...textSel].filter(k => SWAP_KEY_KINDS.has(splitTextKey(k)[0]));
+    if(!kinds.length) return false;
+    const idx = textCellIndex();
+    return kinds.some(k => idx.has(k));
+  }
   // The highlighted phase cells (and per-phase hiatus bands) as the swap's selection, anchored on the cell clicked last.
   // False when the highlight holds none (a note, a date, a heading).
   function seedSwapFromHighlight(){
@@ -30035,6 +30052,13 @@ export function initLegacyApp() {
     // removed because the copy is a working app: its own engine may need to raise these later.
     // #browser-notice (audit L-20) joined them: a copy exported from Safari must not carry it into Chrome.
     clone.querySelectorAll('#legacy-notice, #update-notice, #holiday-notice, #browser-notice, #calrange-notice, #layout-notice').forEach(el=>{ el.hidden = true; });
+    // #colswap-notice (the purple strip, review slip on audit 2.12) joined them, and its text is EMPTIED too: it names
+    // the sender's phases and weeks (since audit 3.9) and was missing from this list, so a copy exported while it was
+    // up carried it, visible, for good. The copy's own engine raises it again (reflectSwapNotice) if ITS state needs it.
+    clone.querySelectorAll('#colswap-notice').forEach(el=>{
+      el.hidden = true;
+      el.querySelectorAll('.ln-text').forEach(t=>{ t.textContent = ''; });
+    });
     // Transient interaction classes on <body> must not be serialised. grid-cell-hover carries
     // cursor:cell and grid-selecting carries user-select:none -- baked into an exported copy either
     // would be a permanent, page-wide state in someone else's file.
