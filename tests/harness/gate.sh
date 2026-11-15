@@ -2142,6 +2142,12 @@ done
 # mode's Default; scenario tabs; New. Red on any build before it (L1 reads today).
 # N2 (10 Nov 2026): New, one edit, Undo logs no "value ignored" warning and leaves the saved file with no stamp. Red on a
 # build without the guard in lastEditedForStep() (3e09ce9), where the undo step carried `lastEdited: null`.
+# viewclean (audit AUD2-022, the Nov 2026 audit's item 2.9, 13 Nov 2026; its default, owner-approved): switching
+# between the Waterfall and the Month view is not an unsaved change. A file just Loaded through the real picker stays
+# clean through a switch each way (no "Unsaved changes", no leave warning, no crash backup, Undo off: V1, V2) and a whole
+# 10-minute autosave tick after a switch writes nothing (A1); the view is still written by the next Save (S1) and, with
+# unsaved work, by the next autosave (D1, the control that autosave runs at all). Red on 2089aa5 at V1, V2, A1. 1500
+# virtual seconds: two autosave ticks.
 # holidayenable (11 Nov 2026, owner): the Holidays list shows Enable only where switching a holiday off moves a date
 # (Production, a Days phase, episode prep; or the holiday is already off), is one list in date order, and marks the
 # holidays inside a phase that counts days with a strip in its colours ("Prod" when one row tall); a Production holiday
@@ -2211,6 +2217,7 @@ for AFSPEC in pwagate:-:120 pwagatelogic:-:120 settingswin:-:240 newtab:-:120 \
               stalebandkey:stalebandkey:400 \
               shiftheld:shiftheld:300 \
               lastedited:lastedited:400 \
+              viewclean:-:1500 \
               wfnotecolors:wfkeys:400 \
               noteviews:wfkeys:500 \
               phasenotes:phasenotes:900 \

@@ -4,6 +4,44 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### 🩹 13 Nov 2026: A VIEW SWITCH IS NO LONGER AN UNSAVED CHANGE (audit AUD2-022, item 2.9). ⏳ **NOT merged, NOT pushed**: waits for the release train's one full gate. Branch `audit-2-9` (worktree `.claude/worktrees/audit-2-9`, cut from `origin/main` at `2089aa5`, the audited commit). Built overnight on the owner's *"I have approved a ton of features, could you just run over night and finish all of them"*.
+- **The bug (reproduced first):** Load a saved calendar, click Month view (or Month and back): "Unsaved changes", the
+  leave warning armed, and the 10-minute autosave rewrote a file nobody edited (which can raise "File changed on disk"
+  for a colleague in the same file). `setViewMode` → `update()` → `markDirty()`, and `viewMode` is a `captureSnapshot()`
+  key. Paging months, a sidebar tab, Settings and Excel export never dirtied.
+- **Fix (`setViewMode` only):** on a CLEAN page (`!isDirty`) the `update()` runs under `suppressDirty`, restored in a
+  `finally`. Nothing is marked, no crash backup or undo push is scheduled. A page with unsaved work takes the old path,
+  so its crash backup still records the view (`undokeys` X3). `markDirty()` is NOT edited (audit item 1.1's branch
+  edits it). Every view switch goes through `setViewMode`: the view buttons, the month menu's "Show this week in the
+  waterfall" and the waterfall menu's "Show this day / week in the month view".
+- **Default applied (the audit's "Default (no decision needed)", owner-approved):** a view switch is not an unsaved
+  change; the view is still saved with the next real save (Save, Save As, or an autosave after a real edit).
+  ⚠️ **Consequence, accepted with the default:** a calendar that was ONLY switched to the other view and then closed
+  reopens in the view it was saved in. Also: Load / New after only a view switch no longer asks about unsaved work.
+- **Checked, unchanged:** the Date Last Edited already left `viewMode` out (`lastEditedKey`), and still does not move
+  for a switch (`viewclean` S1, `lastedited` V1). The undo history already left `viewMode` out (`undoStateJSON`).
+  Autosave only writes when `isDirty`, so the guard covers it (`viewclean` A1, with D1 as the control that it runs).
+- **Not frozen, save format unchanged:** no new key, no id'd control; `PHASE_COLOR_OPTIONS` untouched.
+- **Proof:** new leg **`viewclean`** (no state, 1500 virtual s, in `gate.sh`'s audit-fix list after `lastedited`):
+  P0 precondition, V1 Month clean, V2 back clean, A1 an autosave tick writes nothing, S1 Save writes `viewMode`
+  'month' and the old stamp, D1 unsaved work stays unsaved and autosave writes the view with it, E0. **Red on 2089aa5
+  at V1, V2, A1**; 7/7 after. Nearest legs on the build, one at a time, all green: `undokeys` 11/11 (K7, X3),
+  `lastedited` 22/22, `monthmap` (mvnotes) 20/20, `calzoom` pass, `halfdays` 27/27, `mvnotes` 30/30 and (mvnotes) 14/14,
+  `mvdragcarry` 15/15, `phasearrows` 26/26, `monthnotes` 8/8, `overrides` 20/20, `halfworked` 24/24, `halfmarks` 5/5,
+  `snaptools` 14/14, `sideboxes` pass, `settingswin` 21/21, `conflict` 9/9, `pdfdialog` 15/15, `phasefold` 11/11,
+  `hiatusfold` 11/11, `hiatuscolour` 14/14, `scenariofacts` 12/12, `mvbarsize` 13/13, `mvnotesize` 12/12, `filekeys`
+  16/16, `wfmenu` 39/39, `mvmenu` 81/81, `builtindates` (live, restore) pass, `numclamp` 6/6, `autonotephases` 27/27,
+  `pilllabel` (halfdays, the gate's own judge) all pass, `dlgkeys` 16/16. ⚠️ `labelsetup` (halfdays) was 40/41 once in
+  that batch (B4 read the page before the v1.5.0 file had finished loading: the title was still the previous file's,
+  and by B5 it had loaded), then 41/41 twice alone. Read as Load timing under a loaded machine, not this change (B3r
+  loads the same way, with no question, and passed every run), but ⚠️ if the gate trips there, re-run it first. The one
+  difference there: the page is no longer dirty before B4's Load (a view switch was its only "edit"), so that Load
+  no longer asks "Load another calendar?" first.
+  `npm run check` 42/42.
+- **Not verified:** not tried by hand in the browser pane (the leg drives the real buttons, Load picker and autosave
+  timer); the two menu items that switch views were not driven by `viewclean` (they call the same `setViewMode`;
+  `wfmenu` and `mvmenu` cover the items themselves). No full gate (the release train runs it once).
+
 ### 🩹 13 Nov 2026: NUMBER OF EPISODES / NUMBER OF BLOCKS APPLY ON LEAVE OR ENTER (audit item 2.1, AUD2-008). ⛔ **NOT merged, NOT pushed**: branch `audit-2-1` (worktree `.claude/worktrees/audit-2-1`, from `origin/main` at `2089aa5`); waits for the release train's one full gate. Built overnight on the owner's "finish all approved", no questions possible.
 - **Bug (reproduced, red on `2089aa5`):** the `#num-episodes` 'input' listener ran `syncEpisodesFromShowInfo()` per
   keystroke, so typing 12 over 10 applied "1" first: episodes 202-210 popped (names, days, prep, `mvTextStyle.episode`),
