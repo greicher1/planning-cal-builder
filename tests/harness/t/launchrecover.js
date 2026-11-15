@@ -15,6 +15,7 @@
 //   R3  Save writes it straight into show-a.sptcal (no picker, no "changed on disk")
 //   phase 2, the backup is ANOTHER file's (show-b.sptcal, three days old):
 //   R4  show-a loads with no dialog, and a strip says the unsaved work from show-b.sptcal (with its date) was kept
+//   R4b a shareable copy exported with the strip up opens with it hidden and names no file of the sender's
 //   R5  its x hides it; the backup is kept, and the file menu lists it
 //   phase 3, the same as phase 2:
 //   R6  with unsaved work on screen the strip's Recover asks first, then brings show-b's work back, linked to
@@ -119,6 +120,23 @@ window.addEventListener('load', function () { (async function () {
         title() === 'SHOW A' && !dlg && s.shown && /show-b\.sptcal/.test(s.text) && s.text.indexOf(day) !== -1 && /kept/i.test(s.text)
           && !!document.querySelector('#backup-notice .ln-go'),
         {title: title(), modal: dlg, strip: s}, 'no dialog; "Unsaved work from show-b.sptcal (' + day + ', …) was kept." + Recover');
+      // R4b (the 14 Nov 2026 review): a shareable copy exported WITH the strip up must not carry the sender's other file.
+      var cap = T.captureDownload();
+      document.getElementById('share-copy-btn').click();
+      await T.until(cap.peek, 'the shareable-copy blob', 200, 100).catch(function () {});
+      var copyBlob = cap.stop(), copyHtml = copyBlob ? await copyBlob.text() : '';
+      var cdoc = new DOMParser().parseFromString(copyHtml, 'text/html');
+      var cn = cdoc.getElementById('backup-notice');
+      // Searched without the page's scripts: the harness injects THIS file into the page, and its comments name
+      // show-b.sptcal. The calendar itself (#saved-state) is kept in the search.
+      cdoc.querySelectorAll('script:not(#saved-state)').forEach(function (e) { e.remove(); });
+      var cdocHtml = cdoc.documentElement.outerHTML;
+      var cnText = cn ? ((cn.querySelector('.ln-text') || cn).textContent || '').trim() : null;
+      add('R4b', 'a shareable copy exported with the strip up opens with it hidden, and carries no word of show-b.sptcal',
+        !!copyHtml && !!cn && cn.hasAttribute('hidden') && cnText === '' && cdocHtml.indexOf('show-b.sptcal') === -1 && strip().shown,
+        {copy: copyHtml.length, inCopy: !!cn, hidden: !!cn && cn.hasAttribute('hidden'), text: cnText,
+         namesShowB: cdocHtml.indexOf('show-b.sptcal') !== -1, where: cdocHtml.indexOf('show-b.sptcal') === -1 ? '' : cdocHtml.substr(Math.max(0, cdocHtml.indexOf('show-b.sptcal') - 300), 400), stripStillUp: strip().shown},
+        'present, hidden, empty; no "show-b.sptcal" in the copy outside the harness script; the strip still up here');
       var x = document.querySelector('#backup-notice .ln-x');
       if(x) x.click();
       await T.sleep(1000);

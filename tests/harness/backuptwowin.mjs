@@ -9,7 +9,7 @@
 //
 //   W1  window B, opened while A holds unsaved work, is NOT offered A's work
 //   W2  ...and B's file menu does not list it either
-//   W3  A closes with its work unsaved: B's next press of the file menu button lists A's backup under Unsaved work
+//   W3  A closes with its work unsaved: B's file menu, next opened with Enter (a real key over CDP), lists A's backup
 //   W4  a window C opened after A closed IS offered A's work (the backup survived its window, and is no longer live)
 //   W5  A's backup is still there after all of it (nothing retired it; C was answered Cancel)
 import fs from 'node:fs';
@@ -121,10 +121,17 @@ try {
   await fetch(`http://127.0.0.1:${devPort}/json/close/${target.id}`);
   try { A.ws.close(); } catch (e) { /* gone */ }
   await sleep(1500);
-  await B.ev(`(() => { const b = document.querySelector('.file-menu-btn'); if (b) b.dispatchEvent(new PointerEvent('pointerdown', {bubbles: true})); return !!b; })()`);
+  // Opened FROM THE KEYBOARD (the 14 Nov 2026 review of item 3.7): focus the button and press a real Enter over CDP. The
+  // list used to be redrawn only on a pointerdown on the button, so a menu opened this way listed what was kept at
+  // launch; the engine now redraws on every opening (Header.jsx's 'sptcal-file-menu-open').
+  await B.send('Page.bringToFront');
+  await B.ev(`(() => { const b = document.querySelector('.file-menu-btn'); if (b) b.focus(); return document.activeElement === b; })()`);
+  await B.send('Input.dispatchKeyEvent', { type: 'keyDown', key: 'Enter', code: 'Enter', windowsVirtualKeyCode: 13, text: '\r' });
+  await B.send('Input.dispatchKeyEvent', { type: 'keyUp', key: 'Enter', code: 'Enter', windowsVirtualKeyCode: 13 });
   await sleep(1500);
+  const openedB = await B.ev(`document.querySelector('.file-menu-btn').getAttribute('aria-expanded')`);
   const listedB2 = await B.ev(LISTED);
-  kase('W3', 'A closed unsaved: B\'s next press of the file menu button lists A\'s backup', Array.isArray(listedB2) && listedB2.length === 1, { listed: listedB2 });
+  kase('W3', 'A closed unsaved: B\'s file menu, next opened with Enter, lists A\'s backup', openedB === 'true' && Array.isArray(listedB2) && listedB2.length === 1, { opened: openedB, listed: listedB2 });
 
   // Window C, after A has gone: offered A's work.
   const tC = await newWindow(`http://localhost:${PORT}${PAGE}`);
