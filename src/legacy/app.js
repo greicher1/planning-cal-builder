@@ -4662,11 +4662,73 @@ export function initLegacyApp() {
   // exports show ("1/5/26", not "01/05/26"), in the date column and inside note text alike.
   // Notes in calendars saved before this change keep whatever they were written with; the
   // formatter is not retroactive and rewriting stored note text was not worth it.
+  // ⭐ IN THE CALENDAR'S ORDER since 13 Nov 2026: d/m/yy on a day-first calendar (see datesDayFirst, below).
   function fmtShort(date){
     const mm = date.getUTCMonth()+1;
     const dd = date.getUTCDate();
     const yy = String(date.getUTCFullYear()).slice(2);
-    return `${mm}/${dd}/${yy}`;
+    return datesDayFirst() ? `${dd}/${mm}/${yy}` : `${mm}/${dd}/${yy}`;
+  }
+  // ⭐ EVERY DATE FOLLOWS THE CALENDAR'S ORDER (November 2026 audit, Batch 2 item 2.4: AUD2-012, AUD2-066; the owner's
+  // decision D3 (a), 13 Nov 2026, which reverses the 20 Oct ruling "automatic notes keep 1/6/25" for day-first
+  // calendars). On a calendar whose Dates setting is DD/MM (dateFormat 'd/m/yyyy' or 'd/m/yy') every date the app
+  // WRITES reads day first -- holiday and automatic note lines, the title block, the sidebar, the tool lists, the note
+  // editors, Compare -- and every date it READS from text (a typed note's trailing date, Paste notes) is read day first.
+  // Before, only the Date column changed, so one printed page said 30/3/2026 beside "Good Friday 4/3/26".
+  //   - ONLY THE ORDER follows, never the year's length: a note keeps its two-digit year on a DD/MM/YYYY calendar, as
+  //     on MM/DD/YYYY (where nothing changes), because the month view places a typed line by a two-digit-year date.
+  //   - ⛔ A month-first calendar (no dateFormat, or 'm/d/yyyy') writes and reads EXACTLY what it did, byte for byte:
+  //     every helper here returns the old string or date when datesDayFirst() is false.
+  //   - fmtShort above, orderedDate (any separator, the header's 6.22.26) and the readers below are the one rule;
+  //     audit item 1.1's followAutoNotes matches a typed note's lines by the text these write (autoNoteLine).
+  // `dateFormat` is declared below with `let`: a call during the IIFE's evaluation before that line would read its
+  // dead zone, so that reads as month first.
+  function datesDayFirst(){
+    try { return typeof dateFormat === 'string' && dateFormat.charAt(0) === 'd'; } catch(e){ return false; }
+  }
+  // Month and day (and the year, when given) in the calendar's order, joined by `sep`: 6/22/26, 22.6.26.
+  function orderedDate(m, d, y, sep){
+    const md = datesDayFirst() ? [d, m] : [m, d];
+    return (y === undefined || y === null ? md : md.concat([y])).join(sep || '/');
+  }
+  // ---- Reading a slashed date out of text: a/b/yy (or a/b/yyyy), as notes and pastes carry them ----
+  // The day it names in the calendar's order, Date.UTC's arithmetic exactly as the readers always did it (no
+  // validation: 2/30/26 rolls to 3/2/26, as notesForWaterfallDate()'s own reader rolls it). `flip` reads it the other
+  // way round.
+  function slashParts(a, b, y, flip){
+    const dayFirst = datesDayFirst() !== !!flip;
+    const ys = String(y);
+    return {y: ys.length === 2 ? 2000 + parseInt(ys, 10) : parseInt(ys, 10),
+            m: parseInt(dayFirst ? b : a, 10), d: parseInt(dayFirst ? a : b, 10)};
+  }
+  function slashDate(a, b, y, flip){
+    const p = slashParts(a, b, y, flip);
+    return new Date(Date.UTC(p.y, p.m - 1, p.d));
+  }
+  // The day a/b/y names inside the week of `weekIso` (its Monday's ISO), else null: the rule a typed note's line is
+  // placed on its day by. On a DAY-FIRST calendar a date that reads outside its week is read month first when THAT falls
+  // inside it -- a line typed before the Dates setting changed, or written by an older build. Never a guess: the two
+  // readings of the same numbers are four weeks or more apart unless they are the same day, so at most one is ever
+  // inside a week. ⛔ A month-first calendar reads month first only, as it always did.
+  function slashDateInWeek(a, b, y, weekIso){
+    const inWeek = dt => Number.isFinite(dt.getTime()) && isoOf(mondayOf(dt)) === weekIso;
+    const dt = slashDate(a, b, y);
+    if(inWeek(dt)) return dt;
+    if(!datesDayFirst()) return null;
+    const fl = slashDate(a, b, y, true);
+    return inWeek(fl) ? fl : null;
+  }
+  // Does a/b/y name `date`? Its numbers compared as written (no rollover), as the old readers compared them: in the
+  // calendar's order, and on a day-first calendar month first too (the same fallback).
+  function slashNames(a, b, y, date){
+    return !!date && (slashPartsAre(slashParts(a, b, y), date) || slashNamesFlipped(a, b, y, date));
+  }
+  // ...true when it names `date` ONLY month first, on a day-first calendar, so a rewrite keeps the form it was written in.
+  function slashNamesFlipped(a, b, y, date){
+    return !!date && datesDayFirst() && !slashPartsAre(slashParts(a, b, y), date) && slashPartsAre(slashParts(a, b, y, true), date);
+  }
+  function slashPartsAre(p, date){
+    return p.y === date.getUTCFullYear() && p.m === date.getUTCMonth() + 1 && p.d === date.getUTCDate();
   }
   // ---------- The waterfall's date format (owner ruling 4, 20 Oct 2026; HEADER-ROW-PLAN.md §3) ----------
   // A CALENDAR setting: 1/6/25 (the default, '') or 1/6/2025 ('m/d/yyyy'). It reaches the waterfall's
@@ -4675,6 +4737,9 @@ export function initLegacyApp() {
   // automatic notes (owner's picker, "Keep 1/6/25"): those notes also feed the month view and both month
   // PDFs, which the ruling leaves out, and notesForWaterfallDate() places an edited note's line by a
   // two-digit-year date in its text.
+  // ⚠️ WIDENED 13 Nov 2026 for DAY-FIRST calendars (audit item 2.4, the owner's decision D3 (a)): on DD/MM every
+  // other date follows the ORDER too, notes included, keeping their two-digit year (datesDayFirst, above). MM/DD/YYYY
+  // is still the Date column only, so a month-first calendar is exactly as described here.
   // ⛔ CALENDAR DATA: captureSnapshot()'s `dateFormat`, written only when not the default, so a calendar
   // that never picks it saves byte for byte as before. ⛔ The key and the value 'm/d/yyyy' are permanent.
   // ⭐ Day first since 11 Nov 2026 (owner: the Dates menu reads MM/DD/YYYY, MM/DD/YY, DD/MM/YYYY, DD/MM/YY):
@@ -12677,7 +12742,8 @@ export function initLegacyApp() {
       const txt = el.textContent;
       const m = /^(\d{1,2}\/\d{1,2}\/\d{2} → )(\d{1,2})\/(\d{1,2})\/(\d{2})(?= \(\d+ wk\))/.exec(txt);
       if(!m) return;
-      const end = new Date(Date.UTC(2000 + +m[4], +m[2] - 1, +m[3]));
+      // In the calendar's order: fmtShort wrote it (day first on a DD/MM calendar, audit item 2.4).
+      const end = slashDate(m[2], m[3], m[4]);
       if(end.getUTCDay() !== 0) return;
       el.textContent = m[1] + fmtShort(addDays(end, -2)) + txt.slice(m[0].length);
     });
@@ -13787,8 +13853,9 @@ export function initLegacyApp() {
       for(const line of text.split('\n')){
         const m = line.match(/(\d{1,2})\/(\d{1,2})\/(\d{2})\s*$/);
         if(!m) continue;
-        const d = new Date(Date.UTC(2000 + parseInt(m[3], 10), parseInt(m[1], 10) - 1, parseInt(m[2], 10)));
-        if(d >= ctx.date && d < end) return d;
+        // In the calendar's order (audit item 2.4): slashDateInWeek, the month view's own rule.
+        const d = slashDateInWeek(m[1], m[2], m[3], wk);
+        if(d && d >= ctx.date && d < end) return d;
       }
       const u = userNotes[wk], pin = (u && typeof u === 'object' && typeof u.date === 'string') ? parseDateUTC(u.date) : null;
       return (text && pin && pin >= ctx.date && pin < end) ? pin : null;
@@ -15176,7 +15243,8 @@ export function initLegacyApp() {
     (schedule.monthOnlyHolidays || []).forEach(h=>{ if(holidayVisibleIn(h.hid, 'month')) add(h.date, h.name); });
     const days = new Set();
     Object.keys(lines).forEach(iso=>{
-      const drawn = notesForWaterfallDate(schedule, parseDateUTC(iso));
+      // wfLinesOnDay: notesForWaterfallDate() as the month view draws it, a typed line read in the calendar's order.
+      const drawn = wfLinesOnDay(schedule, parseDateUTC(iso));
       if(lines[iso].some(t=> drawn.indexOf(t) !== -1)) days.add(iso);
     });
     return days;
@@ -19542,12 +19610,12 @@ export function initLegacyApp() {
     if(look.height !== undefined && finiteNum(rowHeightsByWeek[wk]) === null) rowHeightsByWeek[wk] = look.height;
   }
   // A line with the Day picker's stamp -- a trailing m/d/yy (or m/d/yyyy) that is `day` -- taken off its end (D3). A date
-  // typed in the middle of a sentence, or any other date, is left alone.
+  // typed in the middle of a sentence, or any other date, is left alone. Read in the calendar's order (slashNames; d/m on
+  // a day-first calendar, audit item 2.4).
   function stripTrailingDate(line, day){
     const m = /\s*(\d{1,2})\/(\d{1,2})\/(\d{4}|\d{2})\s*$/.exec(String(line || ''));
     if(!m || !day) return String(line || '').trim();
-    const y = m[3].length === 2 ? 2000 + parseInt(m[3], 10) : parseInt(m[3], 10);
-    const same = y === day.getUTCFullYear() && parseInt(m[1], 10) === day.getUTCMonth() + 1 && parseInt(m[2], 10) === day.getUTCDate();
+    const same = slashNames(m[1], m[2], m[3], day);
     return (same ? line.slice(0, m.index) : line).trim();
   }
   function split0(t){ return String(t || '').split('\n').map(l=> l.trim()).filter(Boolean); }
@@ -19827,8 +19895,48 @@ export function initLegacyApp() {
     const ll = mvLinkedLinesOn(schedule, isoOf(d));
     return ll.length ? lines.concat(ll.map(x=> x.text)) : lines;
   }
+  // ⭐ THE MONTH VIEW READS A TYPED LINE'S DATE IN THE CALENDAR'S ORDER (November 2026 audit, Batch 2 item 2.4: AUD2-066;
+  // the owner's decision D3 (a), 13 Nov 2026: "typed or pasted dates are read day first too"). Frozen
+  // notesForWaterfallDate() places each line of a week's typed note on its trailing date when that date falls inside
+  // the week, read MONTH first (\d{1,2}/\d{1,2}/\d{2}, its own inline reader), else on the note's pinned day or the
+  // week's Monday. On a day-first calendar "Table read 17/7/26" therefore sat on Monday 13 July, and so did every
+  // automatic and holiday line a typed note carries once those are written day first.
+  // ZERO FROZEN EDITS (CLAUDE.md's sanctioned pattern 2: the effect is driven from outside, the frozen code asked for the
+  // verdict): its fallback IS the pinned day, so on a day-first calendar the week's note is handed to it, for the call
+  // only, in the list shape userNoteList() has always read ({notes: [{text, date}]}), one entry per line, and a line
+  // whose date reads inside the week only DAY first (slashDateInWeek) carries that day as its own pin. The frozen reader
+  // finds the month-first reading outside the week (the two readings are four weeks or more apart) and places the line
+  // on its pin: the day it names. Every other line keeps the note's own pin, in its order, and the set of lines
+  // (overrideLines, N1, N2, the custom holidays' once-only test) is the same, so nothing else it decides can change.
+  //   - ⛔ A month-first calendar, or a week with no such line, calls it exactly as before, byte for byte.
+  //   - Synchronous, and the stored note is put back in `finally`: nothing can observe the stand-in.
+  //   - Every reader of what the month view draws comes through here: mvWfTypedLinesFor (mvDayNotePlan, so the frozen
+  //     renderer and both month PDFs) and mvHolidayDays (the holiday tint). wfLineOwnDay and wfShowDay read with
+  //     slashDateInWeek too, so the editors agree.
+  //   - The frozen edit this stands in for (reading the date with slashDateInWeek inside notesForWaterfallDate) is
+  //     written up for the owner in the audit's work folder; taking it would make this function a plain call.
+  function wfLinesOnDay(schedule, d){
+    if(!datesDayFirst()) return notesForWaterfallDate(schedule, d);
+    const weekIso = isoOf(mondayOf(d)), v = userNotes[weekIso];
+    if(v === undefined) return notesForWaterfallDate(schedule, d);
+    const list = userNoteList(weekIso), lines = [];
+    let moved = false;
+    list.forEach(n=>{
+      String(n.text || '').split('\n').filter(Boolean).forEach(line=>{
+        const m = line.match(/(\d{1,2})\/(\d{1,2})\/(\d{2})\s*$/);
+        const monthFirst = m && isoOf(mondayOf(slashDate(m[1], m[2], m[3], true))) === weekIso;
+        const own = (m && !monthFirst) ? slashDateInWeek(m[1], m[2], m[3], weekIso) : null;
+        if(own) moved = true;
+        lines.push(own ? {text: line, date: isoOf(own)} : (n.date ? {text: line, date: n.date} : {text: line}));
+      });
+    });
+    if(!moved) return notesForWaterfallDate(schedule, d);
+    userNotes[weekIso] = {notes: lines};
+    try { return notesForWaterfallDate(schedule, d); }
+    finally { userNotes[weekIso] = v; }
+  }
   function mvWfTypedLinesFor(schedule, d){
-    const lines = notesForWaterfallDate(schedule, d);
+    const lines = wfLinesOnDay(schedule, d);
     if(!lines.length) return lines;
     const u = userNotes[isoOf(mondayOf(d))];
     if(!(u && typeof u === 'object' && u.monthHidden === true)) return lines;
@@ -23050,8 +23158,8 @@ export function initLegacyApp() {
       tleft: '',
       title: (t ? t + ' ' : '') + 'Full Prelim Production Calendar',
       subtitle: '',
-      today: (now.getMonth()+1) + '.' + String(now.getDate()).padStart(2,'0')
-             + '.' + String(now.getFullYear()).slice(2),
+      // M.DD.YY, the day zero-padded; DD.M.YY on a day-first calendar (audit item 2.4, D3 (a)), the day still padded.
+      today: orderedDate(now.getMonth()+1, String(now.getDate()).padStart(2,'0'), String(now.getFullYear()).slice(2), '.'),
     };
     // Non-enumerable so it cannot reach a saved file, an Object.assign or the undo stack -- the
     // same guard computeHeaderDefaults() uses and for the same reason.
@@ -27023,15 +27131,17 @@ export function initLegacyApp() {
     const m   = (L ? d.getMonth()   : d.getUTCMonth()) + 1;
     const day = L ? d.getDate()     : d.getUTCDate();
     switch(fmt){
-      case 'slash': return `${m}/${day}/${String(y).slice(2)}`;   // the grid's fmtShort
+      // ⭐ The three numeric forms follow the calendar's order (audit item 2.4, D3 (a)): orderedDate, month first unless
+      // the Dates setting is DD/MM. 'long' (January 5, 2026) and 'iso' name the month and stay as they were.
+      case 'slash': return orderedDate(m, day, String(y).slice(2), '/');   // the grid's fmtShort
       case 'long':  return `${HDR_MONTHS[m-1]} ${day}, ${y}`;
       case 'iso':   return `${y}-${String(m).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
       // ⛔ 'dotpad' is the MONTH header's form and it is NOT the same string as 'dot'. The month
       // view has always zero-padded the day (M.DD.YY); the waterfall header never has (M.D.YY).
       // They agree on 279 days a year and differ on the other 121 -- every 1st to 9th. Added so
       // DEFAULT_MV_TEMPLATE can reproduce the month's printed date exactly rather than nearly.
-      case 'dotpad': return `${m}.${String(day).padStart(2,'0')}.${String(y).slice(2)}`;
-      default:      return `${m}.${day}.${String(y).slice(2)}`;   // 'dot' -- the header's own form
+      case 'dotpad': return orderedDate(m, String(day).padStart(2,'0'), String(y).slice(2), '.');
+      default:      return orderedDate(m, day, String(y).slice(2), '.');   // 'dot' -- the header's own form
     }
   }
 
@@ -27907,7 +28017,9 @@ export function initLegacyApp() {
     // first: this runs on every render and every export, after the change it draws (see lastEdited).
     noteLastEdited();
     const today = lastEditedDate();
-    const todayStr = `${today.getMonth()+1}.${today.getDate()}.${String(today.getFullYear()).slice(2)}`;
+    // ...and every date in the auto header in the calendar's order: 6.22.26, or 22.6.26 on a day-first calendar (audit
+    // item 2.4, D3 (a)); orderedDate is the old template string while the calendar is month first.
+    const todayStr = orderedDate(today.getMonth()+1, today.getDate(), String(today.getFullYear()).slice(2), '.');
     const showTitle = (document.getElementById('show-title').value || '').trim();
     // Carry the season as a short suffix, e.g. "Show Name S2" -- same convention as the month
     // view header, so the two documents identify the season identically. "Show Name S3 & S4" with two ticked.
@@ -27917,7 +28029,7 @@ export function initLegacyApp() {
     let wrLine = '';
     if(wrStartRaw){
       const mon = wrHeaderOpenDay(schedule, wrStartRaw);
-      if(mon) wrLine = `Writer's Room Opens: ${mon.getUTCMonth()+1}.${mon.getUTCDate()}.${String(mon.getUTCFullYear()).slice(2)}`;
+      if(mon) wrLine = `Writer's Room Opens: ${orderedDate(mon.getUTCMonth()+1, mon.getUTCDate(), String(mon.getUTCFullYear()).slice(2), '.')}`;
     }
     let r1='', r2='', r3='';
     // dayCountVal, not parseInt: a 4.5-day episode prints "4.5-Day Shooting Schedule" (half days,
@@ -27939,7 +28051,7 @@ export function initLegacyApp() {
         // buildHeaderCtx() counts the same way -- change both or neither (the hdrtemplate leg).
         if(w.cells.some(c=>c.key==='production')) prodWeeks++;
       }
-      const fmt = d => `${d.getUTCMonth()+1}.${d.getUTCDate()}.${String(d.getUTCFullYear()).slice(2)}`;
+      const fmt = d => orderedDate(d.getUTCMonth()+1, d.getUTCDate(), String(d.getUTCFullYear()).slice(2), '.');
       // ✅ RULING 6 (owner, 22 Sep 2026): in Blocks mode the per-episode half reads
       // "5 Shooting Blocks". The block COUNT, not a day figure, because per-block overrides mean
       // blocks can differ in length and "20-Day Blocks" would then be false. Episodes mode is the
@@ -28748,12 +28860,19 @@ export function initLegacyApp() {
     const sel = document.getElementById('wf-date-format');
     if(sel && sel.value !== dateFormat) sel.value = dateFormat;
   }
+  // ⭐ Since 13 Nov 2026 (audit item 2.4, D3 (a)) a change of ORDER rewrites every date the app writes, notes included.
+  // The automatic and holiday lines a typed Notes cell carries are re-dated by audit item 1.1's followAutoNotes, in the
+  // same undo step: every typed note is remembered first against its week's lines in the OLD order, then update()
+  // rebuilds it against the same lines in the new one. A date the user typed themselves stays as typed (the month view
+  // still reads it, slashDateInWeek's fallback). update(), not render(): the sidebar, the band and the header re-read
+  // their dates too. Nothing scheduled moves, so it changes nothing else.
   function setDateFormat(next){
     next = WEEK_DATE_FORMATS.includes(next) ? next : '';
     if(next === dateFormat){ reflectDateFormat(); return; }
     asOneHeaderStep(()=>{
+      followAutoNotes(currentSchedule, true);
       dateFormat = next;
-      render(currentSchedule);
+      update();
       markDirty();
     });
     reflectDateFormat();
@@ -31610,7 +31729,8 @@ export function initLegacyApp() {
     }
     // The two phases by the names Compare's rows give them.
     const ph = k => ((liveScenarioFacts.phases || []).find(p => p.key === k) || {}).label || null;
-    return { values: mine, same, labels: { wr: ph('writersRoom'), prod: ph('production') } };
+    // `dayFirst`: its dates in the calendar's order (audit item 2.4, D3 (a)); Compare's window gets the same.
+    return { values: mine, same, labels: { wr: ph('writersRoom'), prod: ph('production') }, dayFirst: datesDayFirst() };
   }
   function refreshScenarioFacts(){
     clearTimeout(scenarioFactsTimer);
@@ -31676,6 +31796,7 @@ export function initLegacyApp() {
       scenarios: all.map(s => ({ id: s.id, name: s.name, values: (s.facts && s.facts.values) || {} })),
       currentId: currentScenarioId,
       rows: compareRows(all),
+      dayFirst: datesDayFirst(),   // the dates in the calendar on screen's order (audit item 2.4, D3 (a))
     });
   }
   function compareFileBase(){
@@ -41808,11 +41929,13 @@ export function initLegacyApp() {
   }
   // A waterfall line's own day: its trailing date when that falls in its week, the rule notesForWaterfallDate()
   // places it by; else null (it sits on the note's pinned day, or the week's Monday).
+  // ⭐ Read in the calendar's order since 13 Nov 2026 (audit item 2.4, D3 (a)): slashDateInWeek, which the month view's
+  // own reader (wfLinesOnDay) shares, so the two cannot disagree. A month-first calendar reads exactly as before.
   function wfLineOwnDay(lineText, weekKey){
     const m = String(lineText || '').match(/(\d{1,2})\/(\d{1,2})\/(\d{2})\s*$/);
     if(!m) return null;
-    const d = new Date(Date.UTC(2000 + parseInt(m[3], 10), parseInt(m[1], 10) - 1, parseInt(m[2], 10)));
-    return isoOf(mondayOf(d)) === weekKey ? isoOf(d) : null;
+    const d = slashDateInWeek(m[1], m[2], m[3], weekKey);
+    return d ? isoOf(d) : null;
   }
   // Which day to pin a week's note to when ONE of its lines is edited in the month view. Only undated lines read the
   // pin, and they all sit on one day, so: while another undated line shares the note, keep the pin they already sit
@@ -41830,10 +41953,8 @@ export function initLegacyApp() {
   function stripHolidayDate(text, date){
     const t = String(text || '').trim();
     if(!date) return t;
-    return t.replace(MV_DATE_TOKEN, (all, pre, m, d, y)=>{
-      const yr = y.length === 2 ? 2000 + parseInt(y, 10) : parseInt(y, 10);
-      return (yr === date.getUTCFullYear() && parseInt(m, 10) === date.getUTCMonth() + 1 && parseInt(d, 10) === date.getUTCDate()) ? pre : all;
-    }).replace(/\s+/g, ' ').trim();
+    // In the calendar's order (slashNames; audit item 2.4): its own date as the line writes it, d/m on a day-first calendar.
+    return t.replace(MV_DATE_TOKEN, (all, pre, a, b, y)=> slashNames(a, b, y, date) ? pre : all).replace(/\s+/g, ' ').trim();
   }
   // Rename one holiday (`next` null = back to its own name), and take along what was keyed by its old line: a
   // waterfall note that carries the line word for word (the waterfall's editor freezes the week's lines into its
@@ -42028,7 +42149,7 @@ export function initLegacyApp() {
                      label: phaseNoteHomeLabel(linkSel0) + (linkedInfo.e.parked ? ' (waits on its last week)' : '')});
     }
     const dayD = parseDateUTC(dayIso);
-    const dayName = dayD ? ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][dayD.getUTCDay()] + ' ' + (dayD.getUTCMonth() + 1) + '/' + dayD.getUTCDate() : '';
+    const dayName = dayD ? ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][dayD.getUTCDay()] + ' ' + orderedDate(dayD.getUTCMonth() + 1, dayD.getUTCDate()) : '';
     const linkRow = !linkOpts.length ? '' : `<div class="note-item note-link-row"><label class="note-line"><span class="note-row-name">Stays with</span><select class="note-link-select">`
       + `<option value=""${linkSel0 ? '' : ' selected'}>This day (${escHtml(dayName)})</option>`
       + linkOpts.map(o=> `<option value="${escHtml(o.value)}"${o.value === linkSel0 ? ' selected' : ''}>${escHtml(o.label)}</option>`).join('')
@@ -42292,19 +42413,23 @@ export function initLegacyApp() {
 
   // Every date in `text` naming `fromIso`, in any of the forms a person types (1/6/26, 01/06/26, 1/6/2026), rewritten
   // to `toIso` in that same form. Other dates are left alone: they name something else.
+  // ⭐ In the calendar's order since 13 Nov 2026 (audit item 2.4, D3 (a)): a/b is month/day, or day/month on a day-first
+  // calendar (slashNames), and the new date is written back in the order the old one was read in (`flip`), each number
+  // padded as its own was. A month-first calendar reads and writes exactly as before.
   const MV_DATE_TOKEN = /(^|[^\d/])(\d{1,2})\/(\d{1,2})\/(\d{4}|\d{2})(?![\d/])/g;
-  function mvDateLike(t, m, d, y){
+  function mvDateLike(t, a, b, y, flip){
     const pad = (n, like)=> (like.length === 2 && like[0] === '0') ? String(n).padStart(2, '0') : String(n);
-    return pad(t.getUTCMonth() + 1, m) + '/' + pad(t.getUTCDate(), d) + '/'
+    const dayFirst = datesDayFirst() !== !!flip;
+    const first = dayFirst ? t.getUTCDate() : t.getUTCMonth() + 1, second = dayFirst ? t.getUTCMonth() + 1 : t.getUTCDate();
+    return pad(first, a) + '/' + pad(second, b) + '/'
          + (y.length === 4 ? String(t.getUTCFullYear()) : String(t.getUTCFullYear()).slice(2));
   }
   function mvRetimeNote(text, fromIso, toIso){
     const f = parseDateUTC(fromIso), t = parseDateUTC(toIso);
     if(!f || !t) return String(text || '');
-    return String(text || '').replace(MV_DATE_TOKEN, (all, pre, m, d, y)=>{
-      const yr = y.length === 2 ? 2000 + parseInt(y, 10) : parseInt(y, 10);
-      if(yr !== f.getUTCFullYear() || parseInt(m, 10) !== f.getUTCMonth() + 1 || parseInt(d, 10) !== f.getUTCDate()) return all;
-      return pre + mvDateLike(t, m, d, y);
+    return String(text || '').replace(MV_DATE_TOKEN, (all, pre, a, b, y)=>{
+      if(!slashNames(a, b, y, f)) return all;
+      return pre + mvDateLike(t, a, b, y, slashNamesFlipped(a, b, y, f));
     });
   }
   // A waterfall line's day IS its trailing date (notesForWaterfallDate places it by that), so that one is rewritten
@@ -42779,15 +42904,23 @@ export function initLegacyApp() {
     const hit = MV_NOTE_PALETTE.find(function(p){ return pasteNoteKey(p.name) === k; });
     return hit ? hit.color : null;
   }
+  // A slashed date is read in the calendar's order (audit item 2.4, the owner's decision D3 (a)): 06/07/2026 is 6 July on
+  // a day-first calendar, as a day-first spreadsheet copies it, and 7 June otherwise. The setting decides, so nothing is
+  // guessed, and a day past 12 in the month's place is still refused by name. pasteDateExample() is the hint's date.
   function pasteNoteDate(word){
     const w = String(word || '').trim();
     let y, m, d, x;
-    if((x = /^(\d{1,2})\/(\d{1,2})\/(\d{2}|\d{4})$/.exec(w))){ m = +x[1]; d = +x[2]; y = +x[3]; if(x[3].length === 2) y += 2000; }
+    if((x = /^(\d{1,2})\/(\d{1,2})\/(\d{2}|\d{4})$/.exec(w))){
+      const df = datesDayFirst();
+      m = +x[df ? 2 : 1]; d = +x[df ? 1 : 2]; y = +x[3]; if(x[3].length === 2) y += 2000;
+    }
     else if((x = /^(\d{4})-(\d{1,2})-(\d{1,2})$/.exec(w))){ y = +x[1]; m = +x[2]; d = +x[3]; }
     else return null;
     const dt = new Date(Date.UTC(y, m - 1, d));
     return (dt.getUTCFullYear() === y && dt.getUTCMonth() === m - 1 && dt.getUTCDate() === d) ? dt : null;
   }
+  // 10/20/26, or 20/10/26 on a day-first calendar: the example the box's hint, placeholder and errors give.
+  function pasteDateExample(day){ return fmtShort(new Date(Date.UTC(2026, 9, day || 20))); }
   const PASTE_MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
   function pasteMonthLabel(d){ return PASTE_MONTHS[d.getUTCMonth()] + ' ' + d.getUTCFullYear(); }
   // Every non-blank line of the box, read: {line, iso, date, text, color} or {line, raw, error}.
@@ -42814,7 +42947,7 @@ export function initLegacyApp() {
         dateW = sp < 0 ? t : t.slice(0, sp); body = sp < 0 ? '' : t.slice(sp + 1);
       }
       const date = pasteNoteDate(dateW);
-      if(!date) return bad('can’t read the date “' + String(dateW).trim() + '” (use 10/20/26 or 2026-10-20)');
+      if(!date) return bad('can’t read the date “' + String(dateW).trim() + '” (use ' + pasteDateExample() + ' or 2026-10-20)');
       if(!range) return bad('the calendar has no months to put it on yet: add a phase first');
       if(date < range.first || date >= end){
         return bad(fmtShort(date) + ' is outside the months this calendar shows (' + pasteMonthLabel(range.first)
@@ -42869,11 +43002,11 @@ export function initLegacyApp() {
     ov.innerHTML = '<div class="paste-notes" role="dialog" aria-modal="true" aria-label="Paste notes">'
       + '<div class="paste-notes-head"><div class="paste-notes-title">Paste notes</div>'
       + '<button type="button" class="paste-notes-x" aria-label="Close">×</button></div>'
-      + '<p class="paste-notes-hint">One note per line: <b>date, text, colour</b>. Dates as 10/20/26 or 2026-10-20. '
+      + '<p class="paste-notes-hint">One note per line: <b>date, text, colour</b>. Dates as ' + pasteDateExample() + ' or 2026-10-20. '
       + 'A colour is a swatch’s name (red, pink, pale blue, light grey, no fill…) or #RRGGBB, and can be left off. '
       + 'Columns copied from a spreadsheet work too.</p>'
       + '<textarea class="paste-notes-text" rows="8" spellcheck="false" aria-label="Notes, one per line" '
-      + 'placeholder="10/20/26, Table read, pale blue&#10;10/23/26, Network notes due"></textarea>'
+      + 'placeholder="' + pasteDateExample() + ', Table read, pale blue&#10;' + pasteDateExample(23) + ', Network notes due"></textarea>'
       + '<div class="paste-notes-sum" aria-live="polite"></div>'
       + '<div class="paste-notes-preview"></div>'
       + '<div class="paste-notes-foot"><span class="paste-notes-keys">Month view only · ⌘/Ctrl-Enter to add · Esc to cancel</span>'

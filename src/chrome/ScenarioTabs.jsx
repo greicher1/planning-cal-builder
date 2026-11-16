@@ -43,11 +43,11 @@ function bandGroups(band) {
   if (v.loc) groups.push({ label: 'Location', items: [val('loc', v.loc)] })
   // The label names the unit, so the value is the bare count: "Episodes 8", "Blocks 5".
   if (v.count) groups.push({ label: v.count.unit === 'block' ? 'Blocks' : 'Episodes', items: [val('count', String(v.count.n))] })
-  const wr = [v.wrOpen && val('wrOpen', fmt(v.wrOpen)), v.wrWeeks != null && val('wrWeeks', plural(v.wrWeeks, 'wk'))].filter(Boolean)
+  const wr = [v.wrOpen && val('wrOpen', fmt(v.wrOpen, band.dayFirst)), v.wrWeeks != null && val('wrWeeks', plural(v.wrWeeks, 'wk'))].filter(Boolean)
   if (wr.length) groups.push({ label: labels.wr || 'Writer’s Rm', items: wr })
-  const pr = [v.first && val('first', fmt(v.first)), v.span != null && val('span', plural(v.span, 'wk'))].filter(Boolean)
+  const pr = [v.first && val('first', fmt(v.first, band.dayFirst)), v.span != null && val('span', plural(v.span, 'wk'))].filter(Boolean)
   if (pr.length) groups.push({ label: labels.prod || 'Production', items: pr })
-  if (v.wrap) groups.push({ label: 'Wrap', items: [val('wrap', fmt(v.wrap))] })
+  if (v.wrap) groups.push({ label: 'Wrap', items: [val('wrap', fmt(v.wrap, band.dayFirst))] })
   return groups
 }
 // Writes the band's room, only when it changed: a style write on <html> is a mutation the grid fit observes.
