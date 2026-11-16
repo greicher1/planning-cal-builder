@@ -36281,7 +36281,10 @@ export function initLegacyApp() {
   //     question), by a ResizeObserver on each text and by the window: a strip that was waiting behind another has
   //     no width until it shows, so whether it is cut short is only known then.
   (function wireStripDetails(){
-    const IDS = ['legacy-notice','holiday-notice','layout-notice','update-notice','colswap-notice','calrange-notice','browser-notice'];
+    // The four newer strips joined on the owner's picker (16 Nov 2026, "Yes, same rule"): launch (2.6), heading (3.8),
+    // backup and storage (3.7). Their order of showing is the document's (index.html, legacy.css), not this list's.
+    const IDS = ['legacy-notice','holiday-notice','layout-notice','update-notice','colswap-notice','calrange-notice','browser-notice',
+                 'launch-notice','heading-notice','backup-notice','storage-notice'];
     const strips = IDS.map(id => document.getElementById(id)).filter(Boolean);
     if(!strips.length) return;
     function fitStrip(el){

@@ -4,6 +4,19 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### 🩹 16 Nov 2026: AUDIT ITEM 2.14's ONE-LINE, ONE-AT-A-TIME STRIPS NOW COVER #launch-notice, #heading-notice, #backup-notice, #storage-notice (owner's picker *"Yes, same rule"*). **Committed on `release-v1.15`, NOT PUSHED.**
+- **What:** the four joined every 2.14 list: the nowrap / `.ln-open` / `.ln-more` rules and both one-at-a-time sibling
+  rules in `legacy.css`, and `wireStripDetails`' IDS in `app.js`. The shareable-copy clone rules are untouched (each is
+  still hidden and its text emptied; `.ln-more` and `.ln-open` are dropped by suffix).
+- ⚠️ **Priority IS document order** (a raised strip hides every enrolled strip after it), so `#backup-notice` and
+  `#storage-notice` MOVED in `src/index.html` to before `#legacy-notice`: backup, storage, legacy, launch, holiday,
+  layout, update, colswap, heading, calrange, browser. Backup before launch matters: a double-click load raises both,
+  and `launchrecover` requires the backup strip on show. A strip added later must join every list, and where it sits
+  in `index.html` is its priority.
+- **Proof:** `laptopfit` T9 + T10 (new; red on the build before: five strips at once, no Details, the heading strip on
+  two lines) 11/11 at 1280,800 / 1366,768 / 1280,943; `launchtemp` 14, `savegone` 14, `headingsfollow` 8 + 5,
+  `backupswept` 4, `backupblocked` 6, `launchrecover` 7, `sharecopyguard` 6, `backuplive` 7, `nofsa` 7. Check 42/42.
+
 ### 🩹 16 Nov 2026: AUDIT ITEM 3.1's R4 NO LONGER GOES STALE WHEN HOLIDAYS ARE SHOWN; GATES 1-3 RE-CUT FOR THANKSGIVING'S ROW (owner's picker *"Fix it, update refs"*). **Committed on `release-v1.15`, NOT PUSHED.**
 - **Cause:** frozen edit R4's `autoRowPxFor` cached its row map in a WeakMap keyed by the schedule object, but what it
   reads (`holidayView`, `userNotes`, note sizes, linked and month lines) is not in the schedule, and `setHolidayView` /

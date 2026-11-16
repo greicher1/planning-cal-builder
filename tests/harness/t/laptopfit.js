@@ -25,6 +25,16 @@
 //   T7  Build Around's foot stays on screen: with four more phases in its list, the pin date and the Build button
 //       are fully in view and are what a click there reaches (WIN-4)
 //   T8  the same for Shift's To a date: the date and Go are in view
+//   T9  the four newer strips are enrolled too (owner's picker, 16 Nov 2026: "Yes, same rule"): with all eleven raised
+//       at once exactly one shows at a time, and dismissing each brings the next in priority order: the two about
+//       work at risk first (#backup-notice, then #storage-notice), then 2.14's order with #launch-notice after the
+//       legacy strip and #heading-notice after the column-order strip (legacy, launch, holiday, layout, update,
+//       colswap, heading, calrange, browser). Raised as the engine raises them (`hidden` off, .ln-text written); each
+//       one's own trigger is held by its own leg (launchtemp, headingsfollow, launchrecover, backupblocked)
+//   T10 two of them at once, each with a long line (a long file name; four removed headings): only the backup strip
+//       shows, on one line, with Details, which shows the rest and folds back; its x brings the heading strip, also
+//       one line, with Details where its line is cut short (at 1280 px; at 1366 px the longest line the engine writes
+//       fits). And the storage strip outranks the double-clicked-file strip
 //   Z   no console error
 window.__T.memoryIDB();
 window.addEventListener('load', function () { (async function () {
@@ -167,6 +177,55 @@ window.addEventListener('load', function () { (async function () {
     add('T8', 'Shift\'s To a date: the date and Go are in view and take a click',
         !!far && sgo.ok && sdate.ok, {go: sgo, date: sdate, panel: rnd(R($id('pop-shift')))}, 'both in view');
     T.closePops(); await T.sleep(200);
+
+    // ---- T9 / T10: the four newer strips (#launch-notice, #heading-notice, #backup-notice, #storage-notice) ----
+    var ORDER = ['backup-notice', 'storage-notice', 'legacy-notice', 'launch-notice', 'holiday-notice', 'layout-notice',
+                 'update-notice', 'colswap-notice', 'heading-notice', 'calrange-notice', 'browser-notice'];
+    function shownAll(){ return ORDER.filter(function (id) { var e = $id(id); return e && e.offsetHeight > 0; }); }
+    function raise(id, html){ var e = $id(id), t = q('.ln-text', e); if(html !== undefined) t.innerHTML = html; else if(!t.textContent.trim()) t.textContent = 'A line from ' + id + '.'; e.hidden = false; }
+    var kept = ORDER.map(function (id) { var e = $id(id); return {id: id, hidden: e.hidden, html: q('.ln-text', e).innerHTML}; });
+    ORDER.forEach(function (id) { raise(id); });
+    await T.sleep(300);
+    var seq = [], steps = [];
+    for(var g = 0; g < ORDER.length + 2; g++){
+      var now = shownAll(); steps.push(now);
+      if(now.length !== 1) break;
+      seq.push(now[0]); $id(now[0]).hidden = true; await T.sleep(200);
+    }
+    add('T9', 'all eleven strips raised: one at a time, in priority order (the two about work at risk first)',
+        JSON.stringify(seq) === JSON.stringify(ORDER) && steps.every(function (x, i) { return x.length === (i < ORDER.length ? 1 : 0); }),
+        {order: seq, shownEachStep: steps.map(function (x) { return x.length; })}, ORDER);
+    ORDER.forEach(function (id) { $id(id).hidden = true; });
+    await T.sleep(200);
+
+    // T10: two of them, each with a long line (the engine's own wording, with a long file name and four headings).
+    // One line is the TEXT's height (<= 20 px): the backup strip's Recover button makes the strip itself 46 px, as the
+    // layout strip's buttons make it.
+    raise('heading-notice', 'Removed 4 column headings (\u201cPost-Production and Online Fin\u2026\u201d, \u201cPrincipal Photography, Unit\u2026\u201d, \u201cSecond Unit and Pickups Sched\u2026\u201d and 1 more): their columns were merged with others. Undo brings them back.');
+    raise('backup-notice', 'Unsaved work from <strong>Pilot Season Two Planning Calendar, Revised After the Network Notes, Final Draft for the Studio and the Network, with the Second Unit, the Pickups and the Reshoots Added After the Table Read (Copy 3).sptcal</strong> (Mon 16 Nov, 11:40 AM) was kept.');
+    await T.sleep(400);
+    function line(id){
+      var e = $id(id), t = q('.ln-text', e), m = q('.ln-more', e);
+      return {h: e.offsetHeight, textH: t && Math.round(R(t).height), more: m ? m.textContent.trim() : null,
+              cut: !!t && t.scrollWidth > t.clientWidth + 1};
+    }
+    var both = shownAll(), b1 = line('backup-notice'), bOpen = null, bBack = null;
+    var bm = q('#backup-notice .ln-more');
+    if(bm){ bm.click(); await T.sleep(250); bOpen = line('backup-notice'); bm.click(); await T.sleep(250); bBack = line('backup-notice'); }
+    q('#backup-notice .ln-x').click(); await T.sleep(400);
+    var next = shownAll(), h1 = line('heading-notice');
+    q('#heading-notice .ln-x').click(); await T.sleep(300);
+    raise('launch-notice'); raise('storage-notice'); await T.sleep(300);
+    var pair2 = shownAll();
+    out.t10 = {both: both, backup: b1, open: bOpen, back: bBack, afterX: next, heading: h1, storageLaunch: pair2};
+    add('T10', 'two at once: only the backup strip shows, one line, Details shows the rest and folds back; its x brings the heading strip, one line with Details; storage outranks the double-clicked-file strip',
+        JSON.stringify(both) === JSON.stringify(['backup-notice']) && b1.h <= 46 && b1.textH <= 20 && b1.more === 'Details' &&
+          !!bOpen && bOpen.textH > b1.textH + 10 && bOpen.h > b1.h && bOpen.more === 'Less' && !!bBack && bBack.h === b1.h && bBack.more === 'Details' &&
+          JSON.stringify(next) === JSON.stringify(['heading-notice']) && h1.h <= 38 && h1.textH <= 20 && h1.more === (h1.cut ? 'Details' : null) &&
+          JSON.stringify(pair2) === JSON.stringify(['storage-notice']),
+        out.t10, {both: ['backup-notice'], backup: 'one line, Details', open: 'taller, Less', afterX: ['heading-notice'], storageLaunch: ['storage-notice']});
+    kept.forEach(function (k) { var e = $id(k.id); q('.ln-text', e).innerHTML = k.html; e.hidden = k.hidden; });
+    await T.sleep(200);
   } catch (e) { out.EX = String(e && e.stack || e); }
   out.health = T.appHealth ? T.appHealth() : null;
   var errs = ((out.health || {}).errors || []);

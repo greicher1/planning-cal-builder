@@ -29,6 +29,22 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — the four newer notice strips are one line each and wait their turn too (audit item 2.14, 16 Nov 2026)
+
+Audit item 2.14 made the notice strips above the calendar one line each (a long one offers Details) and shown one at a
+time, but only the seven it knew. The four added since (a double-clicked file's "Save writes back to that copy", a
+removed column heading, unsaved work kept for another calendar, and "this browser isn't keeping SPTCal's backup") still
+wrapped and stacked over the others. They follow the same rule now. The two about work at risk come first: the kept
+unsaved work, then the backup the browser is not keeping; then 2.14's order, with the double-clicked file's strip beside
+the old-format file's and the removed heading's beside the column-order strip. Owner's picker, 16 Nov 2026: *"Yes, same
+rule"*.
+- **Verified:** `laptopfit` T9 (all eleven raised: one at a time, in that order) and T10 (two at once: only the kept-work
+  strip shows, one line, Details shows the rest and folds back; its x brings the heading strip; storage outranks the
+  double-clicked file's strip), red before, 11/11 at 1280 x 800, 1366 x 768 and 1280 x 943; `launchtemp`, `savegone`,
+  `headingsfollow` (both), `backupswept`, `backupblocked`, `launchrecover`, `sharecopyguard`, `backuplive`, `nofsa`
+  green.
+
+
 ### Unreleased — a week showing two holidays gets its taller row however the holidays were shown (audit item 3.1, 16 Nov 2026)
 
 Audit item 3.1's row-height fix (frozen edit R4, AUD2-044: a Notes cell holding only two or more holiday lines, such as

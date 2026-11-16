@@ -298,22 +298,27 @@
        after one on show waits (display:none, never `hidden`, which is the engine's and means "not raised"), and
        shows the moment the one before it is dismissed. Pure CSS off `hidden`, so the grid fit, which watches each
        strip's `hidden`, sees the change in the same mutation.
+     - ⭐ THE FOUR NEWER STRIPS FOLLOW THE SAME RULE (owner's picker, 16 Nov 2026: "Yes, same rule"), and the document
+       order is their priority (index.html says why each sits where it does): backup, storage, legacy, launch,
+       holiday, layout, update, colswap, heading, calrange, browser. The two about work at risk come first; the
+       double-clicked-file strip sits beside the legacy strip, the removed-heading strip beside the column-order one.
+       A strip added later joins every list below, or it wraps and stacks over the others.
      - THE COLUMN QUESTION IS THE WATERFALL'S: #layout-notice is about the waterfall's columns, so the month view never
        shows it, and it does not hold a strip behind it there. It is still raised (not `hidden`) and is back on the
        waterfall. */
-  #legacy-notice .ln-text, #update-notice .ln-text, #colswap-notice .ln-text, #holiday-notice .ln-text, #browser-notice .ln-text, #calrange-notice .ln-text, #layout-notice .ln-text{
+  #legacy-notice .ln-text, #launch-notice .ln-text, #update-notice .ln-text, #colswap-notice .ln-text, #holiday-notice .ln-text, #browser-notice .ln-text, #calrange-notice .ln-text, #layout-notice .ln-text, #heading-notice .ln-text, #backup-notice .ln-text, #storage-notice .ln-text{
     white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-  :is(#legacy-notice, #update-notice, #colswap-notice, #holiday-notice, #browser-notice, #calrange-notice, #layout-notice).ln-open .ln-text{
+  :is(#legacy-notice, #launch-notice, #update-notice, #colswap-notice, #holiday-notice, #browser-notice, #calrange-notice, #layout-notice, #heading-notice, #backup-notice, #storage-notice).ln-open .ln-text{
     white-space:normal; overflow:visible; }
-  :is(#legacy-notice, #update-notice, #colswap-notice, #holiday-notice, #browser-notice, #calrange-notice, #layout-notice) .ln-more{
+  :is(#legacy-notice, #launch-notice, #update-notice, #colswap-notice, #holiday-notice, #browser-notice, #calrange-notice, #layout-notice, #heading-notice, #backup-notice, #storage-notice) .ln-more{
     flex:none; font-family:inherit; font-size:11.5px; font-weight:600; line-height:inherit; padding:0 4px; margin-left:-4px;
     border:0; background:none; color:inherit; text-decoration:underline; text-underline-offset:2px; cursor:pointer; border-radius:4px; }
-  :is(#legacy-notice, #update-notice, #colswap-notice, #holiday-notice, #browser-notice, #calrange-notice, #layout-notice) .ln-more:hover{ background:rgba(0,0,0,.05); }
-  :is(#legacy-notice, #update-notice, #colswap-notice, #holiday-notice, #browser-notice, #calrange-notice, #layout-notice) .ln-more:focus-visible{ outline:2px solid currentColor; outline-offset:1px; }
-  :is(#legacy-notice, #holiday-notice, #update-notice, #colswap-notice, #calrange-notice, #browser-notice):not([hidden])
-    ~ :is(#legacy-notice, #holiday-notice, #layout-notice, #update-notice, #colswap-notice, #calrange-notice, #browser-notice){ display:none; }
+  :is(#legacy-notice, #launch-notice, #update-notice, #colswap-notice, #holiday-notice, #browser-notice, #calrange-notice, #layout-notice, #heading-notice, #backup-notice, #storage-notice) .ln-more:hover{ background:rgba(0,0,0,.05); }
+  :is(#legacy-notice, #launch-notice, #update-notice, #colswap-notice, #holiday-notice, #browser-notice, #calrange-notice, #layout-notice, #heading-notice, #backup-notice, #storage-notice) .ln-more:focus-visible{ outline:2px solid currentColor; outline-offset:1px; }
+  :is(#backup-notice, #storage-notice, #legacy-notice, #launch-notice, #holiday-notice, #update-notice, #colswap-notice, #heading-notice, #calrange-notice, #browser-notice):not([hidden])
+    ~ :is(#backup-notice, #storage-notice, #legacy-notice, #launch-notice, #holiday-notice, #layout-notice, #update-notice, #colswap-notice, #heading-notice, #calrange-notice, #browser-notice){ display:none; }
   body:not(:has(#view-month-btn.active)) > #layout-notice:not([hidden])
-    ~ :is(#legacy-notice, #holiday-notice, #layout-notice, #update-notice, #colswap-notice, #calrange-notice, #browser-notice){ display:none; }
+    ~ :is(#backup-notice, #storage-notice, #legacy-notice, #launch-notice, #holiday-notice, #layout-notice, #update-notice, #colswap-notice, #heading-notice, #calrange-notice, #browser-notice){ display:none; }
   body:has(#view-month-btn.active) > #layout-notice{ display:none; }
   #legacy-notice .ln-text strong, #launch-notice .ln-text strong, #update-notice .ln-text strong, #colswap-notice .ln-text strong, #holiday-notice .ln-text strong, #browser-notice .ln-text strong, #layout-notice .ln-text strong, #backup-notice .ln-text strong, #storage-notice .ln-text strong{ font-weight:600; }
   #legacy-notice .ln-go, #launch-notice .ln-go, #update-notice .ln-go, #layout-notice .ln-go, #layout-notice .ln-keep, #backup-notice .ln-go{
