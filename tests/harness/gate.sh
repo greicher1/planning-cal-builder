@@ -2246,6 +2246,28 @@ done
 # another calendar over unsaved work (answered Load) leaves no slot (C1), and a page with nothing unsaved that closes
 # (pagehide) leaves none (C2); unsaved work is still backed up and kept through a close (K1, K2), and Save still drops it
 # (C3). C1 and C2 red on the build before.
+# ⭐ ADDED 16 Nov 2026 for v1.15.0, the November audit's items built as "try first" and wired at the release (each leg's
+# own header has its cases; README's entry for the item has the rest). One page load each, no query:
+# notelook (layout A2 of the note editors, on autonoterename): heading, one list, Save button, 18 swatches, no id; 10 of 12
+#   red before. monthpick (2.11, AUD2-026): the month Export PDF's All / This month / Range dialog; All byte-identical to
+#   gate 13's reference; red before (no dialog, 16 pages with July on screen).
+# backupdecline, backuplive, launchrecover, backupblocked, backupswept (3.7, AUD2-056/074/075/076): the recovery
+#   question names its day and stops after two No's, a live window's backup is never offered, a double-clicked file's
+#   backup is asked about, a blocked store raises #storage-notice, a question swept away by another dialog is not a No;
+#   each red on the unfixed build (backupblocked's K3 was green on both).
+# dayfirst, dayfirstin (2.4, AUD2-012/066, D3 (a)): on DD/MM every date the app writes reads day first, and typed and
+#   pasted dates are read day first; 10 of 14 and 8 of 13 red before.
+# swapnoop, swapwords, swapplain, weekswapholds, swapsharenotice (2.12, AUD2-027/028/041/042, D5 (b)): no move that
+#   changes nothing, plain refusals, a plain click + Alt+arrow, a part-column swap that holds when a phase moves, and a
+#   shareable copy without the purple strip; each red on 2089aa5's build at its new cases.
+# swapsingleshift, swapsingleyears, swapnewphase, swapsingleorders (3.9, AUD2-058/059): Single Column Mode keeps every
+#   year's swaps (screen, workbook, PDF) and a paused swap says so; red before at S1-S3 S5-S7, Y1 Y2 Y4 Y5, N1-N4 N7 N8,
+#   O2. (S6-S8 reach their first year by <- 1 wk: under v1.14.0's sticky columns a typed start is a remembered move.)
+# comparebreaks, exportnames (2.10, AUD2-023/024/025, on compare-send): Compare's All-phase hiatus row and "Baseline:"
+#   heading, and every export's name carrying the season, the Date Last Edited and the Version; red before at B1-B4 N1
+#   N2 N4 N5 and X1-X7.
+# firstrun (2.13, AUD2-030 to -033, WIN-2): recents on an empty start, Production's Season message, the File menu's
+#   keys and New, Help with nothing stale; 21 of 22 red before (H1 also caught a lost Help correction at the merge).
 for AFSPEC in pwagate:-:120 pwagatelogic:-:120 settingswin:-:240 newtab:-:120 \
               interfonts:-:60 monthlayout:-:150 monthlayout:colswap-simpost-refuse:150 \
               loadcarry:-:90 hiatusblank:hiatus-blank:90 hostile:xss-mixed:240 hostile:xss-proto:240 sharecopy2:-:90 loadfail:-:1500 \
@@ -2352,7 +2374,17 @@ for AFSPEC in pwagate:-:120 pwagatelogic:-:120 settingswin:-:240 newtab:-:120 \
               epcount:blocks:300 \
               notesreset:-:400 \
               stylebarplace:fill-intent:300 \
-              prefsguard:-:200 sharecopyguard:show-a:200; do
+              prefsguard:-:200 sharecopyguard:show-a:200 \
+              notelook:autonoterename:300 monthpick:-:300 \
+              backupdecline:-:150 backuplive:-:120 launchrecover:-:180 backupblocked:-:150 backupswept:-:120 \
+              dayfirst:-:300 dayfirstin:-:300 \
+              swapnoop:swapnoop-three:200 swapnoop:swapnoop-alone:200 swapwords:swapnoop-three:200 swapwords:-:200 \
+              swapplain:colswap-gesture:200 weekswapholds:colswap-widened:400 weekswapholds:weekswap-apart:200 \
+              swapsharenotice:colswap-simpost-refuse:200 \
+              swapsingleshift:swap-holds:200 swapsingleyears:stintswap-chained:200 swapnewphase:swap-holds:300 \
+              swapsingleorders:swapsingle-orders:200 \
+              comparebreaks:compare-send:300 exportnames:compare-send:300 \
+              firstrun:-:240; do
   AFLEG="${AFSPEC%%:*}"; AFREST="${AFSPEC#*:}"; AFSTATE="${AFREST%%:*}"; AFSECS="${AFREST#*:}"
   [[ $AFSTATE == - ]] && AFSTATE=""
   HARNESS_PAGE="$PAGE" HARNESS_STATE="$AFSTATE" "$HERE/run.sh" "$AFLEG" "$AFSECS" >/dev/null 2>&1
@@ -2520,6 +2552,79 @@ for c in cases:
     print(('  PASS  ' if c.get('pass') is True else '  FAIL  ')+label+' '+str(c.get('id'))+': '+str(c.get('title',''))[:110])
 sys.exit(0 if len(cases) >= 8 and all(c.get('pass') is True for c in cases) else 1)
 PYMR
+
+# ---- v1.15.0 audit items: legs that need a query or a window size, and three trusted-input drivers --------------------
+# ⭐ ADDED 16 Nov 2026 (the November audit's items 3.1, 2.14, 3.7 and 3.10, wired at the v1.15.0 release). A spec is
+# leg:state:query:window:secs, an empty field meaning none (a new calendar, no query, run.sh's 1600,1200 window).
+# textfit (3.1, AUD2-043 to -046, D4 (a), on the audit's synthetic textfit-shared / -dense / -heavy): g=small the month
+#   PDF names the months it prints below 6 pt before any Save dialog (S1-S4); g=date a waterfall line ending in a date
+#   prints its date at note sizes 12 and 14 (D1, D2); g=lines a fourth pasted line joins the third (L1-L3); g=screen
+#   frozen edit D1's acceptance check, every dated line whole on screen at 14 px (1600 and 1280 px windows) and 12 px
+#   (1100 px); g=wf frozen edit R4's, both Thanksgiving weeks' two holiday lines whole in a 23 px row; g=tick R4 on a
+#   new calendar with the two holidays ticked in, at once on screen, in the workbook and the waterfall PDF, and the PDF
+#   the same as after a fresh schedule (K1-K5). Red before: S1 S2, D1 at 12 and 14, L1 L2, V1, W1; g=tick 1/6 before
+#   the 16 Nov memo fix.
+# laptopfit (2.14, AUD2-034/035, WIN-4, on laptopstrips) at the three windows it is about (1280,800 = a 1080p laptop at
+#   150%; 1366,768; 1280,943 = the audit's 1280 x 800 page): the toolbar holds still between the views, one notice strip
+#   at a time on one line (T9, T10: all eleven strips, in priority order), the open tool panels fit; red before at
+#   T1-T8 (1280,800) and T4-T8 (1366,768), T9-T10 before the 16 Nov change. phasesmore (2.14, AUD2-036): rare phase
+#   switches wait behind More options, hiatus cards open folded; red before at M1.
+for V15SPEC in "textfit:textfit-shared:g=small::300" "textfit:textfit-dense:g=date&notesize=12::300" \
+               "textfit:textfit-dense:g=date&notesize=14::300" "textfit:textfit-shared:g=lines::120" \
+               "textfit:textfit-heavy:g=wf::60" "textfit:textfit-dense:g=screen&notesize=14::300" \
+               "textfit:textfit-dense:g=screen&notesize=14:1280,800:300" \
+               "textfit:textfit-dense:g=screen&notesize=12:1100,800:300" "textfit::g=tick::120" \
+               "laptopfit:laptopstrips::1280,800:300" "laptopfit:laptopstrips::1366,768:300" \
+               "laptopfit:laptopstrips::1280,943:300" "phasesmore::::300" "phasesmore:::1280,943:300"; do
+  V15LEG="${V15SPEC%%:*}"; V15R="${V15SPEC#*:}"
+  V15STATE="${V15R%%:*}"; V15R="${V15R#*:}"
+  V15Q="${V15R%%:*}"; V15R="${V15R#*:}"
+  V15WIN="${V15R%%:*}"; V15SECS="${V15R#*:}"
+  rm -f "$HERE/$V15LEG.json"
+  ( [[ -n $V15WIN ]] && export HARNESS_WINDOW="$V15WIN"
+    HARNESS_PAGE="$PAGE" HARNESS_STATE="$V15STATE" HARNESS_QUERY="$V15Q" "$HERE/run.sh" "$V15LEG" "$V15SECS" >/dev/null 2>&1 )
+  python3 - "$HERE/$V15LEG.json" "$V15LEG (${V15STATE:-new}${V15Q:+; $V15Q}${V15WIN:+; $V15WIN})" <<'PYV15' || FAIL=1
+import json,sys
+path, label = sys.argv[1], sys.argv[2]
+try: a=json.load(open(path))
+except Exception as e:
+    print('  FAIL  '+label+' produced no result: '+str(e)); sys.exit(1)
+cases = a.get('cases') or []
+bad = [c for c in cases if c.get('pass') is not True]
+for c in cases:
+    print(('  PASS  ' if c.get('pass') is True else '  FAIL  ')+label+' '+str(c.get('id'))+': '+str(c.get('title',''))[:110])
+if not cases: print('  FAIL  '+label+': no cases'); sys.exit(1)
+sys.exit(1 if bad else 0)
+PYV15
+done
+
+# The three trusted-input drivers (real Chrome over CDP, as mvkeysreal.mjs above), each judged on its own minimum count:
+# backuptwowin.mjs (3.7, AUD2-074): TWO real windows of one profile with real IndexedDB and Web Locks: window B is never
+#   offered window A's live work, nor lists it (W1, W2); once A closes, B's file menu opened with a real Enter lists it
+#   (W3), a window C opened later is offered it (W4), and it survives (W5). Red before at W1, and W3, W5 before the review
+#   repair. dblclickdlg.mjs (3.10, AUD2-061): a real double-click on Export PDF, Compare and New leaves the window open
+#   (a click outside is ignored for 500 ms after a dialog or Help opens); red before at D2, D3, D5, D8, D11.
+#   hoverchipreal.mjs (3.10, AUD2-062): a real click at the centre of "Expand?" / "Pull back?" over a two-column blank
+#   reaches the chip, not the column handle under it, and the chip still goes under the sticky heading row; red before
+#   at C2, C3, C5, C6 (C7 red with the heading clip removed).
+for V15MJS in backuptwowin:5 dblclickdlg:14 hoverchipreal:8; do
+  V15M="${V15MJS%%:*}"; V15MIN="${V15MJS#*:}"
+  rm -f "$HERE/$V15M.json"
+  node "$HERE/$V15M.mjs" --page "$PAGE" >/dev/null 2>&1
+  python3 - "$HERE/$V15M.json" "$V15M" "$V15MIN" <<'PYV15M' || FAIL=1
+import json,sys
+path, label, need = sys.argv[1], sys.argv[2], int(sys.argv[3])
+try: a=json.load(open(path))
+except Exception as e:
+    print('  FAIL  '+label+' produced no result: '+str(e)); sys.exit(1)
+if a.get('EX'):
+    print('  FAIL  '+label+' threw: '+str(a['EX'])[:200]); sys.exit(1)
+cases = a.get('cases') or []
+for c in cases:
+    print(('  PASS  ' if c.get('pass') is True else '  FAIL  ')+label+' '+str(c.get('id'))+': '+str(c.get('title',''))[:110])
+sys.exit(0 if len(cases) >= need and all(c.get('pass') is True for c in cases) else 1)
+PYV15M
+done
 
 # ---- mvnotes' WRITTEN month PDF: the one-day custom pills wrap in the file users get (MONTH-NOTES-PLAN.md §6) ---------
 # ⭐ ADDED 20 Oct 2026. The leg's last run (the minted fixture) hands back the written PDF, mvnotes.month.pdf. Its text,
@@ -3022,7 +3127,11 @@ PYBO13
 # above -- only the driver differs: rtleg.mjs runs the page on the REAL clock over CDP, because under
 # --virtual-time-budget a service worker's register() never settles (swscope, FIX-PLAN 4.2 /
 # SUPPLY-3: the boot clean-up unregisters only workers under the app's own path).
-for RTSPEC in swscope:-:90; do
+# scenlist (⭐ ADDED 16 Nov 2026, audit item 3.10, AUD2-060; on the synthetic scenlist-20): with 20 scenario tabs the cut
+# edge fades and an "All scenarios" list names every tab, the one on screen ticked; a pick switches and scrolls its tab
+# clear. Real time because the list is a Mantine Menu whose open transition waits on rAF, starved under run.sh's virtual
+# clock. Red before at L2 (no list button; 2,780 px of tabs in 860).
+for RTSPEC in swscope:-:90 scenlist:scenlist-20:120; do
   RTLEG="${RTSPEC%%:*}"; RTREST="${RTSPEC#*:}"; RTSTATE="${RTREST%%:*}"; RTSECS="${RTREST#*:}"
   [[ $RTSTATE == - ]] && RTSTATE=""
   HARNESS_PAGE="$PAGE" HARNESS_STATE="$RTSTATE" node "$HERE/rtleg.mjs" --leg "$RTLEG" --secs "$RTSECS" >/dev/null 2>&1

@@ -53,7 +53,10 @@
   start is now a remembered move under v1.14.0's sticky columns, 3.8, so the leg reaches 2030 by ← 1 wk instead);
   `snapoffbreak` P1 (2.14 opens hiatus cards folded, and a folded card's box takes no focus: it opens the card first).
 - **Proof so far:** targeted runs of every newly wired leg green on the release build (the assembler's spec, 75 runs,
-  then the four re-expected and three merge-fixed legs again); `npm run check` 42/42. ⛔ **Not yet: the full gate.**
+  then the four re-expected and three merge-fixed legs again); `npm run check` 42/42. The new gate.sh wiring: `zsh -n`
+  clean, and six specs run through gate.sh's own loop bodies (AFSPEC `swapnoop` alone 5/5 + `notelook` 12/12; V15SPEC
+  `textfit` g=tick 6/6 + `laptopfit` 1280,800 11/11; RTSPEC `scenlist` 9/9; V15MJS `hoverchipreal` 8/8), a missing
+  result judged FAIL. ⛔ **Not yet: the full gate.**
 
 
 ### 🩹 16 Nov 2026: AUDIT ITEM 2.14's ONE-LINE, ONE-AT-A-TIME STRIPS NOW COVER #launch-notice, #heading-notice, #backup-notice, #storage-notice (owner's picker *"Yes, same rule"*). **Committed on `release-v1.15`, NOT PUSHED.**
