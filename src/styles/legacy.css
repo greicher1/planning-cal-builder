@@ -1719,22 +1719,46 @@
   .empty-state{color:var(--text-faint); font-size:13.5px; padding:40px 0; text-align:center;}
 
   /* THE RECENT CALENDARS ON AN EMPTY START (audit 2026-11, AUD2-030; StartRecents.jsx). Under the empty-state sentence,
-     centred like it, in the file menu's look: a white list with hairlines, the name cut to one line (its title= shows
-     the whole of it), then Load…. Outside #table-wrap (a sibling after it), so no .sheet-* / .mv-* rule is touched. */
+     centred like it. Since 16 Nov 2026 (owner, version 7 of mockups/start-recents.html) two white cards in the popovers'
+     look: the last calendar's card ("Pick up where you left off", a navy tile, Open), then "Other recent calendars"
+     with Load… in its title row and a two-line row per calendar (an arrow shows on hover). Names cut to one line (the
+     title= shows the whole of it). Outside #table-wrap (a sibling after it), so no .sheet-* / .mv-* rule is touched. */
   .start-recents:not([hidden]){ display:flex; justify-content:center; padding:0 0 40px; }
-  .sr-card{ width:320px; max-width:100%; display:flex; flex-direction:column; gap:6px; }
-  .sr-head{ padding:0 2px; }
-  .sr-list{ background:var(--mantine-color-white); border:1px solid var(--mantine-color-gray-3);
-    border-radius:var(--mantine-radius-md); overflow:hidden; }
-  .sr-row{ display:flex; align-items:center; gap:8px; width:100%; box-sizing:border-box; padding:8px 12px;
-    font-size:var(--mantine-font-size-sm); color:var(--text); }
-  .sr-row + .sr-row{ border-top:1px solid var(--mantine-color-gray-2); }
+  .sr-stack{ width:460px; max-width:100%; display:flex; flex-direction:column; gap:12px; }
+  .sr-hero, .sr-card{ box-sizing:border-box; background:var(--mantine-color-white); border:1px solid var(--mantine-color-gray-2);
+    border-radius:var(--mantine-radius-lg); box-shadow:var(--mantine-shadow-xs); }
+  .sr-hero{ display:flex; align-items:center; gap:14px; width:100%; padding:14px 16px; text-align:left;
+    transition:border-color .12s, box-shadow .12s; }
+  .sr-hero:hover{ border-color:var(--mantine-color-gray-4); box-shadow:var(--mantine-shadow-sm); }
+  .sr-hero:focus-visible{ outline:2px solid var(--accent); outline-offset:2px; }
+  .sr-tile{ width:30px; height:30px; flex:none; display:grid; place-items:center; border-radius:var(--mantine-radius-md);
+    background:var(--mantine-color-navy-0); color:var(--mantine-color-navy-6); }
+  .sr-tile svg{ width:16px; height:16px; }
+  .sr-hero .sr-tile{ width:40px; height:40px; border-radius:var(--mantine-radius-lg); background:var(--mantine-color-navy-6);
+    color:var(--mantine-color-white); }
+  .sr-hero .sr-tile svg{ width:18px; height:18px; }
+  .sr-txt{ flex:1; min-width:0; display:flex; flex-direction:column; line-height:1.35; }
+  .sr-over{ font-size:var(--mantine-font-size-xs); font-weight:500; color:var(--text-faint); }
+  .sr-hero-name{ margin:1px 0; font-size:var(--mantine-font-size-md); font-weight:600; color:var(--text); }
+  .sr-name{ font-size:var(--mantine-font-size-sm); font-weight:500; color:var(--text); }
+  .sr-hero-name, .sr-name{ overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .sr-meta{ font-size:var(--mantine-font-size-xs); color:var(--text-faint); }
+  .sr-ext{ font-weight:400; color:var(--mantine-color-gray-5); }
+  .sr-open{ display:inline-flex; align-items:center; gap:4px; flex:none; font-size:var(--mantine-font-size-sm); font-weight:500;
+    color:var(--mantine-color-navy-6); }
+  .sr-open svg{ width:14px; height:14px; }
+  .sr-card{ padding:6px; }
+  .sr-head{ display:flex; align-items:center; justify-content:space-between; gap:8px; padding:6px 6px 8px 10px; }
+  .sr-title{ font-size:var(--mantine-font-size-sm); font-weight:600; color:var(--text); }
+  .sr-row{ display:flex; align-items:center; gap:11px; width:100%; box-sizing:border-box; padding:6px 8px;
+    border-radius:var(--mantine-radius-md); text-align:left; }
   .sr-row:hover{ background:var(--mantine-color-gray-0); }
   .sr-row:focus-visible{ outline:2px solid var(--accent); outline-offset:-2px; }
-  .sr-ic{ width:16px; height:16px; flex:none; color:var(--text-faint); }
-  .sr-name{ min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-  .sr-load{ align-self:flex-start; margin-top:4px; }
-  .sr-card > .sr-load:first-child{ align-self:center; }   /* no recent calendars yet: Load… alone, under the sentence */
+  .sr-go{ display:grid; flex:none; color:var(--mantine-color-navy-6); opacity:0; transition:opacity .1s; }
+  .sr-go svg{ width:16px; height:16px; }
+  .sr-row:hover .sr-go, .sr-row:focus-visible .sr-go{ opacity:1; }
+  .sr-empty{ padding:0 10px 10px; font-size:var(--mantine-font-size-sm); color:var(--text-faint); }
+  .sr-foot{ display:flex; justify-content:center; }
 
   /* Wraps rather than overflowing once the toggle and the tools can't share a line. */
   /* THE TOOLBAR'S SECTIONS (owner, 10 Nov 2026, variation 27 of mockups/toolbar-variations.html: "the spacing between

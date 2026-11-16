@@ -36759,7 +36759,8 @@ export function initLegacyApp() {
     if(host.hidden === show) host.hidden = !show;
     const panel = host.closest('.preview-panel');
     if(panel) panel.classList.toggle('has-start-recents', show);
-    const items = show ? recentFiles.slice(0, START_RECENTS_MAX).map(f => ({ id: f.id, name: f.name })) : [];
+    // savedAt (set by Save and by every load) is what the list says as "Last opened today at 9:40 AM" (owner, 16 Nov 2026).
+    const items = show ? recentFiles.slice(0, START_RECENTS_MAX).map(f => ({ id: f.id, name: f.name, savedAt: f.savedAt })) : [];
     const key = JSON.stringify(items);
     if(key === startRecentsKey) return;   // update() runs on every keystroke: push only a change
     startRecentsKey = key;

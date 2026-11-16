@@ -4,6 +4,26 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### ✅ 16 Nov 2026: THE RECENT CALENDARS ON AN EMPTY START ARE TWO CARDS. Branch `start-recents-cards` (worktree `.claude/worktrees/start-recents-cards`, from `origin/main` `8f170f9`). One commit, pushed to `main` as a fast-forward on the owner's pickers *"Commit"* and *"Push and deploy"*. No version cut (README: Unreleased). Tracker card `start-recents-look`
+- **Owner, on a screenshot of v1.15.0's list:** *"this recent calendars UI is ugly. Mockup some alternatives that fit in
+  better with the UI and look more elegant and natural"*. [`mockups/start-recents.html`](mockups/start-recents.html)
+  holds today's look and versions 1-7 (1 Quiet list, 2 Card, 3 Continue, 4 Tiles, 5 Inline links; 6 and 7 combine 2
+  and 3 after *"combine 2 and 3"*). Picked: *"Build 7, two cards"*, then *"Looks good, finish it"* after trying it.
+- **As built (`StartRecents.jsx`, the `.sr-*` block in `legacy.css`, `IconArrowRight`):** the most recent file's card
+  (`.sr-hero`, data-id, "Pick up where you left off", "Last opened today at 9:40 AM", Open), then `.sr-card` "Other
+  recent calendars" with Load… (`data-action="open"`) in `.sr-head` and two-line `.sr-row`s. One file: the card plus
+  "Load another calendar…" (`.sr-foot`). None: one `.sr-card` "Recent calendars" + Load… + `.sr-empty`. Names drop
+  `.sptcal`; `.html` stays in `.sr-ext`; `title=` is the whole name. When-lines come from `whenLabel()` in the component
+  (local clock, calendar days, en-US). The engine's only change: `reflectStartRecents()` pushes `savedAt` too.
+  Help's Getting started line now names the two cards.
+- **Proof:** new leg `startrecents` 10/10 on the build, 7/10 red on `releases/v1.15.0.html` (C1-C4, L2, O1, O0), wired
+  into `gate.sh` beside `firstrun`. `firstrun` 22/22 (H1 now looks for "Pick up where you left off" and "Other recent
+  calendars"), `nofsa` 7/7, `npm run check` 42/42. Chrome only, so check + targeted legs, no full gate.
+- 📖 **Trying the start list by hand:** a `?test=` page whose test directory is a scratch folder holding a symlink to
+  `t/lib.js` and a script that calls `T.memoryIDB()` and seeds `__MEMIDB['spt-planning-cal']` with fake handles (as
+  `startrecents.js` does), with no `T.done`. The preview tool reads launch configs from the MAIN checkout's
+  `.claude/launch.json` only, never a worktree's.
+
 ### ✅ 16 Nov 2026: NO BOX AROUND THE NOTE EDITOR'S DAY / STAYS WITH WHEN CLICKED. Branch `note-select-box` (worktree `.claude/worktrees/note-select-box`, from `origin/main` `182cd6d`), one commit, pushed to `main` as a fast-forward on the owner's pickers *"Commit"* and *"Push and deploy"*. No version cut (README: Unreleased). Tracker card `note-editor-select-box`
 - **Owner, on a screenshot of the waterfall note editor:** *"fix this - why do these boxes show up"*. The box was a dark
   2 px outline around the Stays with dropdown, its bottom edge through the hint ("Stays on the week of …").

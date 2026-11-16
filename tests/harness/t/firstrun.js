@@ -337,7 +337,7 @@ window.addEventListener('load', function () { (async function () {
       cmdO: /⌘O/.test(keysSec), cmdY: /⌘Y/.test(keysSec),
       // WIN-2: New's key is offered as a Mac key, and Windows is pointed at New in the File menu (never at Ctrl+N).
       fileMenuNew: /⌘N — New, on a Mac/.test(keysSec) && /On Windows[^.]*New in the File menu/.test(keysSec) && !/Ctrl\+N/.test(keysSec),
-      gettingStarted: /Getting started/.test(help) && /Recent calendars/.test(help)
+      gettingStarted: /Getting started/.test(help) && /Pick up where you left off/.test(help) && /Other recent calendars/.test(help)
     };
     var staleHits = Object.keys(stale).filter(function (k) { return stale[k]; });
     var missing = Object.keys(has).filter(function (k) { return !has[k]; });

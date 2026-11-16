@@ -31,6 +31,29 @@ way a user would notice or a future session would need to return to. See
 
 ## Unreleased
 
+### The recent calendars on an empty start are two cards (16 Nov 2026)
+
+The owner, on a screenshot of the list v1.15.0 put under the empty preview: *"this recent calendars UI is ugly. Mockup
+some alternatives that fit in better with the UI and look more elegant and natural."* Seven versions were mocked up
+(`mockups/start-recents.html`). The owner asked to *"combine 2 and 3"*, then picked the two-card take: *"Build 7, two
+cards"*.
+
+- **What you see.** The calendar you had open last gets its own card: "Pick up where you left off", its name, "Last
+  opened today at 9:40 AM", and Open. The rest follow in a second card, "Other recent calendars", with Load… in its
+  title row and two lines per calendar: the name, then when it was last opened ("Yesterday at 4:15 PM", "Thursday, Nov
+  12", with the year once it is another year's). A row tints and shows an arrow on hover. With one recent calendar, its
+  card is followed by "Load another calendar…". With none, one card says where they will show up, with Load….
+- **Names.** ".sptcal" is dropped, since every calendar saved since v1.1.0 is one. An older ".html" calendar keeps its
+  extension, faintly. Hovering shows the whole file name. The File menu is unchanged.
+- **How it works.** Chrome only: `StartRecents.jsx` and its CSS, outside `#table-wrap`. The engine now also sends each
+  file's `savedAt`, which Save and every load already set. A click still goes through the File menu's own handler, so
+  the unsaved-work question comes along. Help's Getting started names the two cards.
+- **Verified.** New leg `startrecents` 10/10: the last calendar's card, the second card in order with Load…, the ninth
+  file left out, the names, the when-lines, no ids, a row's click loading it, New bringing the list back with that file
+  on top, one file, none, and no console errors. 7 of the 10 fail on `releases/v1.15.0.html`. `firstrun` 22/22 (its
+  Help check now looks for the two cards' names), `nofsa` 7/7, `npm run check` 42/42. Tried in the browser with eight,
+  one and no recent files, in both views.
+
 ### The note editor's Day and Stays with no longer draw a box when clicked (16 Nov 2026)
 
 The owner, on a screenshot of the waterfall note editor: *"fix this - why do these boxes show up"*. Clicking the Day or

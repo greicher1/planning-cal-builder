@@ -2268,6 +2268,9 @@ done
 #   N2 N4 N5 and X1-X7.
 # firstrun (2.13, AUD2-030 to -033, WIN-2): recents on an empty start, Production's Season message, the File menu's
 #   keys and New, Help with nothing stale; 21 of 22 red before (H1 also caught a lost Help correction at the merge).
+# startrecents (owner, 16 Nov 2026, version 7 of mockups/start-recents.html): the recents on an empty start as two cards,
+#   the last calendar's own card and "Other recent calendars" with Load…, one file and none, names without .sptcal, the
+#   when-lines, a row's click loading it; 7 of 10 red on releases/v1.15.0.html (C1-C4, L2, O1, O0).
 for AFSPEC in pwagate:-:120 pwagatelogic:-:120 settingswin:-:240 newtab:-:120 \
               interfonts:-:60 monthlayout:-:150 monthlayout:colswap-simpost-refuse:150 \
               loadcarry:-:90 hiatusblank:hiatus-blank:90 hostile:xss-mixed:240 hostile:xss-proto:240 sharecopy2:-:90 loadfail:-:1500 \
@@ -2384,7 +2387,7 @@ for AFSPEC in pwagate:-:120 pwagatelogic:-:120 settingswin:-:240 newtab:-:120 \
               swapsingleshift:swap-holds:200 swapsingleyears:stintswap-chained:200 swapnewphase:swap-holds:300 \
               swapsingleorders:swapsingle-orders:200 \
               comparebreaks:compare-send:300 exportnames:compare-send:300 \
-              firstrun:-:240; do
+              firstrun:-:240 startrecents:-:240; do
   AFLEG="${AFSPEC%%:*}"; AFREST="${AFSPEC#*:}"; AFSTATE="${AFREST%%:*}"; AFSECS="${AFREST#*:}"
   [[ $AFSTATE == - ]] && AFSTATE=""
   HARNESS_PAGE="$PAGE" HARNESS_STATE="$AFSTATE" "$HERE/run.sh" "$AFLEG" "$AFSECS" >/dev/null 2>&1

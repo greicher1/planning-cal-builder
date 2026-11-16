@@ -245,3 +245,13 @@ export function IconPlus(props) {
     </svg>
   )
 }
+
+// Open. The recent calendars on an empty start (StartRecents.jsx): the "Open" on the last calendar's card, and the
+// arrow a recent row shows on hover.
+export function IconArrowRight(props) {
+  return (
+    <svg {...base} {...props}>
+      <path d="M3 8h10M9 4l4 4-4 4" />
+    </svg>
+  )
+}
