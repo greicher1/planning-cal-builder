@@ -39805,7 +39805,7 @@ export function initLegacyApp() {
   // ---------- Month view: WHICH MONTHS the PDF writes (audit AUD2-026, item 2.11; owner D8 = c, 13 Nov 2026) ----------
   // A show prints this month for the crew, or this month and next, and the month PDF wrote every month of the calendar
   // (16 pages on the reference calendar) whatever was on screen. So Export PDF asks first, in the month twin of the
-  // waterfall's Export PDF dialog (src/chrome/MonthPdfDialog.jsx): Months All / This month / Some months (From .. to),
+  // waterfall's Export PDF dialog (src/chrome/MonthPdfDialog.jsx): Months All / This month / Range (From .. to),
   // opening on All. Owner-approved defaults with the go-ahead:
   //  - ALL IS THE DEFAULT, and Export at the default is exactly the file from before: nothing is filtered, so the model,
   //    the fit and every byte are what they were (gate 13 holds that, through t/lib.js answering the dialog at its

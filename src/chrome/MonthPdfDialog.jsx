@@ -42,7 +42,7 @@ export function MonthPdfDialog() {
           const first = months.length ? months[0].value : ''
           const last = months.length ? months[months.length - 1].value : ''
           setWhich('all')
-          // Some months starts on the month on screen through the last month.
+          // Range starts on the month on screen through the last month.
           setFrom(opts.current || first)
           setTo(last)
           setDlg({ ...opts, months, n: openCount.current })
@@ -103,7 +103,7 @@ export function MonthPdfDialog() {
                 { value: 'all', label: <SegLabel main="All" sub={first.short + ' – ' + last.short} /> },
                 { value: 'this', disabled: !current,
                   label: <SegLabel main="This month" sub={current ? current.label : 'Nothing to print'} /> },
-                { value: 'some', label: <SegLabel main="Some months" sub="From … to" /> },
+                { value: 'some', label: <SegLabel main="Range" sub="From … to" /> },
               ]} />
           </Row>
           {which === 'some' && (
