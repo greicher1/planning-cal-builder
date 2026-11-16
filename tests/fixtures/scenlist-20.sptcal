@@ -1,0 +1,7933 @@
+{
+ "version": 2,
+ "customPhaseDefs": [],
+ "customPhaseCounter": 0,
+ "phaseColorOverride": {},
+ "episodeDefs": [
+  {
+   "id": "ep1",
+   "name": "Episode 201",
+   "days": 8,
+   "nameEdited": false,
+   "daysEdited": false
+  },
+  {
+   "id": "ep2",
+   "name": "Episode 202",
+   "days": 8,
+   "nameEdited": false,
+   "daysEdited": false
+  },
+  {
+   "id": "ep3",
+   "name": "Episode 203",
+   "days": 8,
+   "nameEdited": false,
+   "daysEdited": false
+  },
+  {
+   "id": "ep4",
+   "name": "Episode 204",
+   "days": 8,
+   "nameEdited": false,
+   "daysEdited": false
+  },
+  {
+   "id": "ep5",
+   "name": "Episode 205",
+   "days": 8,
+   "nameEdited": false,
+   "daysEdited": false
+  },
+  {
+   "id": "ep6",
+   "name": "Episode 206",
+   "days": 8,
+   "nameEdited": false,
+   "daysEdited": false
+  },
+  {
+   "id": "ep7",
+   "name": "Episode 207",
+   "days": 8,
+   "nameEdited": false,
+   "daysEdited": false
+  },
+  {
+   "id": "ep8",
+   "name": "Episode 208",
+   "days": 8,
+   "nameEdited": false,
+   "daysEdited": false
+  },
+  {
+   "id": "ep9",
+   "name": "Episode 209",
+   "days": 8,
+   "nameEdited": false,
+   "daysEdited": false
+  },
+  {
+   "id": "ep10",
+   "name": "Episode 210",
+   "days": 8,
+   "nameEdited": false,
+   "daysEdited": false
+  },
+  {
+   "id": "ep23",
+   "name": "Episode 211",
+   "days": 8,
+   "nameEdited": false,
+   "daysEdited": false
+  },
+  {
+   "id": "ep24",
+   "name": "Episode 212",
+   "days": 8,
+   "nameEdited": false,
+   "daysEdited": false
+  }
+ ],
+ "episodeCounter": 24,
+ "blockDefs": [],
+ "blockCounter": 0,
+ "blockAssignEdited": false,
+ "episodeShootOrder": [],
+ "userNotes": {},
+ "dayNotes": {},
+ "mvExtraLanes": {},
+ "dayNoteColors": {},
+ "dayOverrides": {},
+ "headerMode": "auto",
+ "headerManual": {},
+ "headerTemplates": false,
+ "mvHeaderMode": "auto",
+ "mvHeaderManual": {},
+ "mvHeaderTemplates": false,
+ "headerFormat": {},
+ "mvHeaderFormat": {},
+ "noteColors": {},
+ "noteFontSize": {},
+ "hiatusTexts": {},
+ "hiatusColors": {},
+ "hiatusFontSize": {},
+ "hiatusNameSyncedKeys": {},
+ "holidayView": {},
+ "holidayOff": {},
+ "customHolidays": [],
+ "viewMode": "sheet",
+ "singleColumn": false,
+ "sidebarTab": "show",
+ "fillSpaceOff": true,
+ "colWidths": {},
+ "colWidthsAlt": {},
+ "rowHeights": {},
+ "rowHeightsByWeek": {},
+ "cellSpans": {},
+ "gridColSwaps": {},
+ "gridStintSwaps": {},
+ "colReuse": true,
+ "colKeep": {
+  "production": "prodPrep"
+ },
+ "lastEdited": "2026-11-13T07:49:46.185Z",
+ "fields": {
+  "byId": {
+   "show-title": {
+    "value": "Test Show"
+   },
+   "season-num": {
+    "value": "2"
+   },
+   "show-mode": {
+    "value": "episodes"
+   },
+   "shoot-days-per-ep": {
+    "value": "8"
+   },
+   "num-episodes": {
+    "value": "12"
+   },
+   "num-blocks": {
+    "value": ""
+   },
+   "days-per-block": {
+    "value": ""
+   },
+   "show-version": {
+    "value": ""
+   },
+   "show-location": {
+    "value": ""
+   },
+   "cal-range-start": {
+    "value": ""
+   },
+   "cal-range-end": {
+    "value": ""
+   },
+   "union-place": {
+    "value": "us-general"
+   },
+   "custom-hol-name": {
+    "value": ""
+   },
+   "custom-hol-date": {
+    "value": ""
+   },
+   "name-writersRoom": {
+    "value": "Writer's Rm"
+   },
+   "start-writersRoom": {
+    "value": "2026-01-05"
+   },
+   "unit-writersRoom": {
+    "value": "weeks"
+   },
+   "weeks-writersRoom": {
+    "value": "12"
+   },
+   "end-writersRoom": {
+    "value": ""
+   },
+   "snap-writersRoom": {
+    "checked": true
+   },
+   "phiatus-en-writersRoom": {
+    "checked": false
+   },
+   "phiatus-name-writersRoom": {
+    "value": ""
+   },
+   "phiatus-start-writersRoom": {
+    "value": ""
+   },
+   "phiatus-weeks-writersRoom": {
+    "value": "2"
+   },
+   "name-prePrep": {
+    "value": "Pre Prep"
+   },
+   "start-prePrep": {
+    "value": "2026-04-06"
+   },
+   "unit-prePrep": {
+    "value": "weeks"
+   },
+   "weeks-prePrep": {
+    "value": "6"
+   },
+   "end-prePrep": {
+    "value": ""
+   },
+   "snap-prePrep": {
+    "checked": true
+   },
+   "phiatus-en-prePrep": {
+    "checked": false
+   },
+   "phiatus-name-prePrep": {
+    "value": ""
+   },
+   "phiatus-start-prePrep": {
+    "value": ""
+   },
+   "phiatus-weeks-prePrep": {
+    "value": "2"
+   },
+   "name-prodPrep": {
+    "value": "Prod Prep"
+   },
+   "start-prodPrep": {
+    "value": "2026-05-18"
+   },
+   "unit-prodPrep": {
+    "value": "weeks"
+   },
+   "weeks-prodPrep": {
+    "value": "6"
+   },
+   "end-prodPrep": {
+    "value": ""
+   },
+   "snap-prodPrep": {
+    "checked": true
+   },
+   "phiatus-en-prodPrep": {
+    "checked": false
+   },
+   "phiatus-name-prodPrep": {
+    "value": ""
+   },
+   "phiatus-start-prodPrep": {
+    "value": ""
+   },
+   "phiatus-weeks-prodPrep": {
+    "value": "2"
+   },
+   "prep-name": {
+    "value": "Episodic Prep"
+   },
+   "prep-days": {
+    "value": ""
+   },
+   "name-production": {
+    "value": "Production"
+   },
+   "start-production": {
+    "value": "2026-11-02"
+   },
+   "snap-production": {
+    "checked": true
+   },
+   "weeks-production": {
+    "value": "96"
+   },
+   "phiatus-en-production": {
+    "checked": false
+   },
+   "phiatus-name-production": {
+    "value": ""
+   },
+   "phiatus-start-production": {
+    "value": ""
+   },
+   "phiatus-weeks-production": {
+    "value": "2"
+   },
+   "simpost-enabled": {
+    "checked": false
+   },
+   "simpost-offset": {
+    "value": "0"
+   },
+   "simpost-count": {
+    "checked": false
+   },
+   "name-post": {
+    "value": "Post"
+   },
+   "start-post": {
+    "value": "2026-11-02"
+   },
+   "unit-post": {
+    "value": "weeks"
+   },
+   "weeks-post": {
+    "value": "16"
+   },
+   "end-post": {
+    "value": ""
+   },
+   "snap-post": {
+    "checked": true
+   },
+   "phiatus-en-post": {
+    "checked": false
+   },
+   "phiatus-name-post": {
+    "value": ""
+   },
+   "phiatus-start-post": {
+    "value": ""
+   },
+   "phiatus-weeks-post": {
+    "value": "2"
+   },
+   "name-localization": {
+    "value": "Localization"
+   },
+   "start-localization": {
+    "value": "2027-03-01"
+   },
+   "unit-localization": {
+    "value": "weeks"
+   },
+   "weeks-localization": {
+    "value": "8"
+   },
+   "end-localization": {
+    "value": ""
+   },
+   "snap-localization": {
+    "checked": true
+   },
+   "phiatus-en-localization": {
+    "checked": false
+   },
+   "phiatus-name-localization": {
+    "value": ""
+   },
+   "phiatus-start-localization": {
+    "value": ""
+   },
+   "phiatus-weeks-localization": {
+    "value": "2"
+   }
+  },
+  "hiatuses": [
+   {
+    "start": "2026-12-21",
+    "weeks": "2",
+    "locked": true,
+    "name": ""
+   },
+   {
+    "start": "2027-12-20",
+    "weeks": "2",
+    "locked": true,
+    "name": ""
+   },
+   {
+    "start": "2028-12-18",
+    "weeks": "2",
+    "locked": true,
+    "name": ""
+   },
+   {
+    "start": "2029-12-17",
+    "weeks": "2",
+    "locked": true,
+    "name": ""
+   }
+  ]
+ },
+ "scenarios": {
+  "current": "s19",
+  "counter": 20,
+  "tabs": [
+   {
+    "id": "s1",
+    "name": "Scenario A",
+    "snapshot": {
+     "version": 1,
+     "customPhaseDefs": [],
+     "customPhaseCounter": 0,
+     "phaseColorOverride": {},
+     "episodeDefs": [
+      {
+       "id": "ep1",
+       "name": "Episode 201",
+       "days": 8,
+       "nameEdited": false,
+       "daysEdited": false
+      },
+      {
+       "id": "ep2",
+       "name": "Episode 202",
+       "days": 8,
+       "nameEdited": false,
+       "daysEdited": false
+      },
+      {
+       "id": "ep3",
+       "name": "Episode 203",
+       "days": 8,
+       "nameEdited": false,
+       "daysEdited": false
+      },
+      {
+       "id": "ep4",
+       "name": "Episode 204",
+       "days": 8,
+       "nameEdited": false,
+       "daysEdited": false
+      },
+      {
+       "id": "ep5",
+       "name": "Episode 205",
+       "days": 8,
+       "nameEdited": false,
+       "daysEdited": false
+      },
+      {
+       "id": "ep6",
+       "name": "Episode 206",
+       "days": 8,
+       "nameEdited": false,
+       "daysEdited": false
+      },
+      {
+       "id": "ep7",
+       "name": "Episode 207",
+       "days": 8,
+       "nameEdited": false,
+       "daysEdited": false
+      },
+      {
+       "id": "ep8",
+       "name": "Episode 208",
+       "days": 8,
+       "nameEdited": false,
+       "daysEdited": false
+      },
+      {
+       "id": "ep9",
+       "name": "Episode 209",
+       "days": 8,
+       "nameEdited": false,
+       "daysEdited": false
+      },
+      {
+       "id": "ep10",
+       "name": "Episode 210",
+       "days": 8,
+       "nameEdited": false,
+       "daysEdited": false
+      }
+     ],
+     "episodeCounter": 10,
+     "blockDefs": [],
+     "blockCounter": 0,
+     "blockAssignEdited": false,
+     "episodeShootOrder": [],
+     "userNotes": {},
+     "dayNotes": {},
+     "mvExtraLanes": {},
+     "dayNoteColors": {},
+     "dayOverrides": {},
+     "headerMode": "auto",
+     "headerManual": {},
+     "headerTemplates": false,
+     "mvHeaderMode": "auto",
+     "mvHeaderManual": {},
+     "mvHeaderTemplates": false,
+     "headerFormat": {},
+     "mvHeaderFormat": {},
+     "noteColors": {},
+     "noteFontSize": {},
+     "hiatusTexts": {},
+     "hiatusColors": {},
+     "hiatusFontSize": {},
+     "hiatusNameSyncedKeys": {},
+     "holidayView": {},
+     "holidayOff": {},
+     "customHolidays": [],
+     "viewMode": "sheet",
+     "singleColumn": false,
+     "sidebarTab": "show",
+     "fillSpaceOff": true,
+     "colWidths": {},
+     "colWidthsAlt": {},
+     "rowHeights": {},
+     "rowHeightsByWeek": {},
+     "cellSpans": {},
+     "gridColSwaps": {},
+     "gridStintSwaps": {},
+     "colReuse": true,
+     "lastEdited": "2026-11-13T07:49:30.999Z",
+     "fields": {
+      "byId": {
+       "show-title": {
+        "value": "Test Show"
+       },
+       "season-num": {
+        "value": "2"
+       },
+       "show-mode": {
+        "value": "episodes"
+       },
+       "shoot-days-per-ep": {
+        "value": "8"
+       },
+       "num-episodes": {
+        "value": "10"
+       },
+       "num-blocks": {
+        "value": ""
+       },
+       "days-per-block": {
+        "value": ""
+       },
+       "show-version": {
+        "value": ""
+       },
+       "show-location": {
+        "value": ""
+       },
+       "cal-range-start": {
+        "value": ""
+       },
+       "cal-range-end": {
+        "value": ""
+       },
+       "union-place": {
+        "value": "us-general"
+       },
+       "custom-hol-name": {
+        "value": ""
+       },
+       "custom-hol-date": {
+        "value": ""
+       },
+       "name-writersRoom": {
+        "value": "Writer's Rm"
+       },
+       "start-writersRoom": {
+        "value": "2026-01-05"
+       },
+       "unit-writersRoom": {
+        "value": "weeks"
+       },
+       "weeks-writersRoom": {
+        "value": "12"
+       },
+       "end-writersRoom": {
+        "value": ""
+       },
+       "snap-writersRoom": {
+        "checked": true
+       },
+       "phiatus-en-writersRoom": {
+        "checked": false
+       },
+       "phiatus-name-writersRoom": {
+        "value": ""
+       },
+       "phiatus-start-writersRoom": {
+        "value": ""
+       },
+       "phiatus-weeks-writersRoom": {
+        "value": "2"
+       },
+       "name-prePrep": {
+        "value": "Pre Prep"
+       },
+       "start-prePrep": {
+        "value": "2026-04-06"
+       },
+       "unit-prePrep": {
+        "value": "weeks"
+       },
+       "weeks-prePrep": {
+        "value": "6"
+       },
+       "end-prePrep": {
+        "value": ""
+       },
+       "snap-prePrep": {
+        "checked": true
+       },
+       "phiatus-en-prePrep": {
+        "checked": false
+       },
+       "phiatus-name-prePrep": {
+        "value": ""
+       },
+       "phiatus-start-prePrep": {
+        "value": ""
+       },
+       "phiatus-weeks-prePrep": {
+        "value": "2"
+       },
+       "name-prodPrep": {
+        "value": "Prod Prep"
+       },
+       "start-prodPrep": {
+        "value": "2026-05-18"
+       },
+       "unit-prodPrep": {
+        "value": "weeks"
+       },
+       "weeks-prodPrep": {
+        "value": "6"
+       },
+       "end-prodPrep": {
+        "value": ""
+       },
+       "snap-prodPrep": {
+        "checked": true
+       },
+       "phiatus-en-prodPrep": {
+        "checked": false
+       },
+       "phiatus-name-prodPrep": {
+        "value": ""
+       },
+       "phiatus-start-prodPrep": {
+        "value": ""
+       },
+       "phiatus-weeks-prodPrep": {
+        "value": "2"
+       },
+       "prep-name": {
+        "value": "Episodic Prep"
+       },
+       "prep-days": {
+        "value": ""
+       },
+       "name-production": {
+        "value": "Production"
+       },
+       "start-production": {
+        "value": "2026-06-29"
+       },
+       "snap-production": {
+        "checked": true
+       },
+       "weeks-production": {
+        "value": "80"
+       },
+       "phiatus-en-production": {
+        "checked": false
+       },
+       "phiatus-name-production": {
+        "value": ""
+       },
+       "phiatus-start-production": {
+        "value": ""
+       },
+       "phiatus-weeks-production": {
+        "value": "2"
+       },
+       "simpost-enabled": {
+        "checked": false
+       },
+       "simpost-offset": {
+        "value": "0"
+       },
+       "simpost-count": {
+        "checked": false
+       },
+       "name-post": {
+        "value": "Post"
+       },
+       "start-post": {
+        "value": "2026-11-02"
+       },
+       "unit-post": {
+        "value": "weeks"
+       },
+       "weeks-post": {
+        "value": "16"
+       },
+       "end-post": {
+        "value": ""
+       },
+       "snap-post": {
+        "checked": true
+       },
+       "phiatus-en-post": {
+        "checked": false
+       },
+       "phiatus-name-post": {
+        "value": ""
+       },
+       "phiatus-start-post": {
+        "value": ""
+       },
+       "phiatus-weeks-post": {
+        "value": "2"
+       },
+       "name-localization": {
+        "value": "Localization"
+       },
+       "start-localization": {
+        "value": "2027-03-01"
+       },
+       "unit-localization": {
+        "value": "weeks"
+       },
+       "weeks-localization": {
+        "value": "8"
+       },
+       "end-localization": {
+        "value": ""
+       },
+       "snap-localization": {
+        "checked": true
+       },
+       "phiatus-en-localization": {
+        "checked": false
+       },
+       "phiatus-name-localization": {
+        "value": ""
+       },
+       "phiatus-start-localization": {
+        "value": ""
+       },
+       "phiatus-weeks-localization": {
+        "value": "2"
+       }
+      },
+      "hiatuses": [
+       {
+        "start": "2026-12-21",
+        "weeks": "2",
+        "locked": true,
+        "name": ""
+       },
+       {
+        "start": "2027-12-20",
+        "weeks": "2",
+        "locked": true,
+        "name": ""
+       },
+       {
+        "start": "2028-12-18",
+        "weeks": "2",
+        "locked": true,
+        "name": ""
+       },
+       {
+        "start": "2029-12-17",
+        "weeks": "2",
+        "locked": true,
+        "name": ""
+       }
+      ]
+     }
+    }
+   },
+   {
+    "id": "s2",
+    "name": "Shoot +1 wk, 11 eps",
+    "snapshot": {
+     "version": 1,
+     "customPhaseDefs": [],
+     "customPhaseCounter": 0,
+     "phaseColorOverride": {},
+     "episodeDefs": [
+      {
+       "id": "ep1",
+       "name": "Episode 201",
+       "days": 8,
+       "nameEdited": false,
+       "daysEdited": false
+      },
+      {
+       "id": "ep2",
+       "name": "Episode 202",
+       "days": 8,
+       "nameEdited": false,
+       "daysEdited": false
+      },
+      {
+       "id": "ep3",
+       "name": "Episode 203",
+       "days": 8,
+       "nameEdited": false,
+       "daysEdited": false
+      },
+      {
+       "id": "ep4",
+       "name": "Episode 204",
+       "days": 8,
+       "nameEdited": false,
+       "daysEdited": false
+      },
+      {
+       "id": "ep5",
+       "name": "Episode 205",
+       "days": 8,
+       "nameEdited": false,
+       "daysEdited": false
+      },
+      {
+       "id": "ep6",
+       "name": "Episode 206",
+       "days": 8,
+       "nameEdited": false,
+       "daysEdited": false
+      },
+      {
+       "id": "ep7",
+       "name": "Episode 207",
+       "days": 8,
+       "nameEdited": false,
+       "daysEdited": false
+      },
+      {
+       "id": "ep8",
+       "name": "Episode 208",
+       "days": 8,
+       "nameEdited": false,
+       "daysEdited": false
+      },
+      {
+       "id": "ep9",
+       "name": "Episode 209",
+       "days": 8,
+       "nameEdited": false,
+       "daysEdited": false
+      },
+      {
+       "id": "ep10",
+       "name": "Episode 210",
+       "days": 8,
+       "nameEdited": false,
+       "daysEdited": false
+      },
+      {
+       "id": "ep11",
+       "name": "Episode 211",
+       "days": 8,
+       "nameEdited": false,
+       "daysEdited": false
+      }
+     ],
+     "episodeCounter": 11,
+     "blockDefs": [],
+     "blockCounter": 0,
+     "blockAssignEdited": false,
+     "episodeShootOrder": [],
+     "userNotes": {},
+     "dayNotes": {},
+     "mvExtraLanes": {},
+     "dayNoteColors": {},
+     "dayOverrides": {},
+     "headerMode": "auto",
+     "headerManual": {},
+     "headerTemplates": false,
+     "mvHeaderMode": "auto",
+     "mvHeaderManual": {},
+     "mvHeaderTemplates": false,
+     "headerFormat": {},
+     "mvHeaderFormat": {},
+     "noteColors": {},
+     "noteFontSize": {},
+     "hiatusTexts": {},
+     "hiatusColors": {},
+     "hiatusFontSize": {},
+     "hiatusNameSyncedKeys": {},
+     "holidayView": {},
+     "holidayOff": {},
+     "customHolidays": [],
+     "viewMode": "sheet",
+     "singleColumn": false,
+     "sidebarTab": "show",
+     "fillSpaceOff": true,
+     "colWidths": {},
+     "colWidthsAlt": {},
+     "rowHeights": {},
+     "rowHeightsByWeek": {},
+     "cellSpans": {},
+     "gridColSwaps": {},
+     "gridStintSwaps": {},
+     "colReuse": true,
+     "colKeep": {
+      "production": "prodPrep"
+     },
+     "lastEdited": "2026-11-13T07:49:31.570Z",
+     "fields": {
+      "byId": {
+       "show-title": {
+        "value": "Test Show"
+       },
+       "season-num": {
+        "value": "2"
+       },
+       "show-mode": {
+        "value": "episodes"
+       },
+       "shoot-days-per-ep": {
+        "value": "8"
+       },
+       "num-episodes": {
+        "value": "11"
+       },
+       "num-blocks": {
+        "value": ""
+       },
+       "days-per-block": {
+        "value": ""
+       },
+       "show-version": {
+        "value": ""
+       },
+       "show-location": {
+        "value": ""
+       },
+       "cal-range-start": {
+        "value": ""
+       },
+       "cal-range-end": {
+        "value": ""
+       },
+       "union-place": {
+        "value": "us-general"
+       },
+       "custom-hol-name": {
+        "value": ""
+       },
+       "custom-hol-date": {
+        "value": ""
+       },
+       "name-writersRoom": {
+        "value": "Writer's Rm"
+       },
+       "start-writersRoom": {
+        "value": "2026-01-05"
+       },
+       "unit-writersRoom": {
+        "value": "weeks"
+       },
+       "weeks-writersRoom": {
+        "value": "12"
+       },
+       "end-writersRoom": {
+        "value": ""
+       },
+       "snap-writersRoom": {
+        "checked": true
+       },
+       "phiatus-en-writersRoom": {
+        "checked": false
+       },
+       "phiatus-name-writersRoom": {
+        "value": ""
+       },
+       "phiatus-start-writersRoom": {
+        "value": ""
+       },
+       "phiatus-weeks-writersRoom": {
+        "value": "2"
+       },
+       "name-prePrep": {
+        "value": "Pre Prep"
+       },
+       "start-prePrep": {
+        "value": "2026-04-06"
+       },
+       "unit-prePrep": {
+        "value": "weeks"
+       },
+       "weeks-prePrep": {
+        "value": "6"
+       },
+       "end-prePrep": {
+        "value": ""
+       },
+       "snap-prePrep": {
+        "checked": true
+       },
+       "phiatus-en-prePrep": {
+        "checked": false
+       },
+       "phiatus-name-prePrep": {
+        "value": ""
+       },
+       "phiatus-start-prePrep": {
+        "value": ""
+       },
+       "phiatus-weeks-prePrep": {
+        "value": "2"
+       },
+       "name-prodPrep": {
+        "value": "Prod Prep"
+       },
+       "start-prodPrep": {
+        "value": "2026-05-18"
+       },
+       "unit-prodPrep": {
+        "value": "weeks"
+       },
+       "weeks-prodPrep": {
+        "value": "6"
+       },
+       "end-prodPrep": {
+        "value": ""
+       },
+       "snap-prodPrep": {
+        "checked": true
+       },
+       "phiatus-en-prodPrep": {
+        "checked": false
+       },
+       "phiatus-name-prodPrep": {
+        "value": ""
+       },
+       "phiatus-start-prodPrep": {
+        "value": ""
+       },
+       "phiatus-weeks-prodPrep": {
+        "value": "2"
+       },
+       "prep-name": {
+        "value": "Episodic Prep"
+       },
+       "prep-days": {
+        "value": ""
+       },
+       "name-production": {
+        "value": "Production"
+       },
+       "start-production": {
+        "value": "2026-07-06"
+       },
+       "snap-production": {
+        "checked": true
+       },
+       "weeks-production": {
+        "value": "88"
+       },
+       "phiatus-en-production": {
+        "checked": false
+       },
+       "phiatus-name-production": {
+        "value": ""
+       },
+       "phiatus-start-production": {
+        "value": ""
+       },
+       "phiatus-weeks-production": {
+        "value": "2"
+       },
+       "simpost-enabled": {
+        "checked": false
+       },
+       "simpost-offset": {
+        "value": "0"
+       },
+       "simpost-count": {
+        "checked": false
+       },
+       "name-post": {
+        "value": "Post"
+       },
+       "start-post": {
+        "value": "2026-11-02"
+       },
+       "unit-post": {
+        "value": "weeks"
+       },
+       "weeks-post": {
+        "value": "16"
+       },
+       "end-post": {
+        "value": ""
+       },
+       "snap-post": {
+        "checked": true
+       },
+       "phiatus-en-post": {
+        "checked": false
+       },
+       "phiatus-name-post": {
+        "value": ""
+       },
+       "phiatus-start-post": {
+        "value": ""
+       },
+       "phiatus-weeks-post": {
+        "value": "2"
+       },
+       "name-localization": {
+        "value": "Localization"
+       },
+       "start-localization": {
+        "value": "2027-03-01"
+       },
+       "unit-localization": {
+        "value": "weeks"
+       },
+       "weeks-localization": {
+        "value": "8"
+       },
+       "end-localization": {
+        "value": ""
+       },
+       "snap-localization": {
+        "checked": true
+       },
+       "phiatus-en-localization": {
+        "checked": false
+       },
+       "phiatus-name-localization": {
+        "value": ""
+       },
+       "phiatus-start-localization": {
+        "value": ""
+       },
+       "phiatus-weeks-localization": {
+        "value": "2"
+       }
+      },
+      "hiatuses": [
+       {
+        "start": "2026-12-21",
+        "weeks": "2",
+        "locked": true,
+        "name": ""
+       },
+       {
+        "start": "2027-12-20",
+        "weeks": "2",
+        "locked": true,
+        "name": ""
+       },
+       {
+        "start": "2028-12-18",
+        "weeks": "2",
+        "locked": true,
+        "name": ""
+       },
+       {
+        "start": "2029-12-17",
+        "weeks": "2",
+        "locked": true,
+        "name": ""
+       }
+      ]
+     }
+    }
+   },
+   {
+    "id": "s3",
+    "name": "Shoot +2 wk, 12 eps",
+    "snapshot": {
+     "version": 1,
+     "customPhaseDefs": [],
+     "customPhaseCounter": 0,
+     "phaseColorOverride": {},
+     "episodeDefs": [
+      {
+       "id": "ep1",
+       "name": "Episode 201",
+       "days": 8,
+       "nameEdited": false,
+       "daysEdited": false
+      },
+      {
+       "id": "ep2",
+       "name": "Episode 202",
+       "days": 8,
+       "nameEdited": false,
+       "daysEdited": false
+      },
+      {
+       "id": "ep3",
+       "name": "Episode 203",
+       "days": 8,
+       "nameEdited": false,
+       "daysEdited": false
+      },
+      {
+       "id": "ep4",
+       "name": "Episode 204",
+       "days": 8,
+       "nameEdited": false,
+       "daysEdited": false
+      },
+      {
+       "id": "ep5",
+       "name": "Episode 205",
+       "days": 8,
+       "nameEdited": false,
+       "daysEdited": false
+      },
+      {
+       "id": "ep6",
+       "name": "Episode 206",
+       "days": 8,
+       "nameEdited": false,
+       "daysEdited": false
+      },
+      {
+       "id": "ep7",
+       "name": "Episode 207",
+       "days": 8,
+       "nameEdited": false,
+       "daysEdited": false
+      },
+      {
+       "id": "ep8",
+       "name": "Episode 208",
+       "days": 8,
+       "nameEdited": false,
+       "daysEdited": false
+      },
+      {
+       "id": "ep9",
+       "name": "Episode 209",
+       "days": 8,
+       "nameEdited": false,
+       "daysEdited": false
+      },
+      {
+       "id": "ep10",
+       "name": "Episode 210",
+       "days": 8,
+       "nameEdited": false,
+       "daysEdited": false
+      },
+      {
+       "id": "ep11",
+       "name": "Episode 211",
+       "days": 8,
+       "nameEdited": false,
+       "daysEdited": false
+      },
+      {
+       "id": "ep12",
+       "name": "Episode 212",
+       "days": 8,
+       "nameEdited": false,
+       "daysEdited": false
+      }
+     ],
+     "episodeCounter": 12,
+     "blockDefs": [],
+     "blockCounter": 0,
+     "blockAssignEdited": false,
+     "episodeShootOrder": [],
+     "userNotes": {},
+     "dayNotes": {},
+     "mvExtraLanes": {},
+     "dayNoteColors": {},
+     "dayOverrides": {},
+     "headerMode": "auto",
+     "headerManual": {},
+     "headerTemplates": false,
+     "mvHeaderMode": "auto",
+     "mvHeaderManual": {},
+     "mvHeaderTemplates": false,
+     "headerFormat": {},
+     "mvHeaderFormat": {},
+     "noteColors": {},
+     "noteFontSize": {},
+     "hiatusTexts": {},
+     "hiatusColors": {},
+     "hiatusFontSize": {},
+     "hiatusNameSyncedKeys": {},
+     "holidayView": {},
+     "holidayOff": {},
+     "customHolidays": [],
+     "viewMode": "sheet",
+     "singleColumn": false,
+     "sidebarTab": "show",
+     "fillSpaceOff": true,
+     "colWidths": {},
+     "colWidthsAlt": {},
+     "rowHeights": {},
+     "rowHeightsByWeek": {},
+     "cellSpans": {},
+     "gridColSwaps": {},
+     "gridStintSwaps": {},
+     "colReuse": true,
+     "colKeep": {
+      "production": "prodPrep"
+     },
+     "lastEdited": "2026-11-13T07:49:32.432Z",
+     "fields": {
+      "byId": {
+       "show-title": {
+        "value": "Test Show"
+       },
+       "season-num": {
+        "value": "2"
+       },
+       "show-mode": {
+        "value": "episodes"
+       },
+       "shoot-days-per-ep": {
+        "value": "8"
+       },
+       "num-episodes": {
+        "value": "12"
+       },
+       "num-blocks": {
+        "value": ""
+       },
+       "days-per-block": {
+        "value": ""
+       },
+       "show-version": {
+        "value": ""
+       },
+       "show-location": {
+        "value": ""
+       },
+       "cal-range-start": {
+        "value": ""
+       },
+       "cal-range-end": {
+        "value": ""
+       },
+       "union-place": {
+        "value": "us-general"
+       },
+       "custom-hol-name": {
+        "value": ""
+       },
+       "custom-hol-date": {
+        "value": ""
+       },
+       "name-writersRoom": {
+        "value": "Writer's Rm"
+       },
+       "start-writersRoom": {
+        "value": "2026-01-05"
+       },
+       "unit-writersRoom": {
+        "value": "weeks"
+       },
+       "weeks-writersRoom": {
+        "value": "12"
+       },
+       "end-writersRoom": {
+        "value": ""
+       },
+       "snap-writersRoom": {
+        "checked": true
+       },
+       "phiatus-en-writersRoom": {
+        "checked": false
+       },
+       "phiatus-name-writersRoom": {
+        "value": ""
+       },
+       "phiatus-start-writersRoom": {
+        "value": ""
+       },
+       "phiatus-weeks-writersRoom": {
+        "value": "2"
+       },
+       "name-prePrep": {
+        "value": "Pre Prep"
+       },
+       "start-prePrep": {
+        "value": "2026-04-06"
+       },
+       "unit-prePrep": {
+        "value": "weeks"
+       },
+       "weeks-prePrep": {
+        "value": "6"
+       },
+       "end-prePrep": {
+        "value": ""
+       },
+       "snap-prePrep": {
+        "checked": true
+       },
+       "phiatus-en-prePrep": {
+        "checked": false
+       },
+       "phiatus-name-prePrep": {
+        "value": ""
+       },
+       "phiatus-start-prePrep": {
+        "value": ""
+       },
+       "phiatus-weeks-prePrep": {
+        "value": "2"
+       },
+       "name-prodPrep": {
+        "value": "Prod Prep"
+       },
+       "start-prodPrep": {
+        "value": "2026-05-18"
+       },
+       "unit-prodPrep": {
+        "value": "weeks"
+       },
+       "weeks-prodPrep": {
+        "value": "6"
+       },
+       "end-prodPrep": {
+        "value": ""
+       },
+       "snap-prodPrep": {
+        "checked": true
+       },
+       "phiatus-en-prodPrep": {
+        "checked": false
+       },
+       "phiatus-name-prodPrep": {
+        "value": ""
+       },
+       "phiatus-start-prodPrep": {
+        "value": ""
+       },
+       "phiatus-weeks-prodPrep": {
+        "value": "2"
+       },
+       "prep-name": {
+        "value": "Episodic Prep"
+       },
+       "prep-days": {
+        "value": ""
+       },
+       "name-production": {
+        "value": "Production"
+       },
+       "start-production": {
+        "value": "2026-07-13"
+       },
+       "snap-production": {
+        "checked": true
+       },
+       "weeks-production": {
+        "value": "96"
+       },
+       "phiatus-en-production": {
+        "checked": false
+       },
+       "phiatus-name-production": {
+        "value": ""
+       },
+       "phiatus-start-production": {
+        "value": ""
+       },
+       "phiatus-weeks-production": {
+        "value": "2"
+       },
+       "simpost-enabled": {
+        "checked": false
+       },
+       "simpost-offset": {
+        "value": "0"
+       },
+       "simpost-count": {
+        "checked": false
+       },
+       "name-post": {
+        "value": "Post"
+       },
+       "start-post": {
+        "value": "2026-11-02"
+       },
+       "unit-post": {
+        "value": "weeks"
+       },
+       "weeks-post": {
+        "value": "16"
+       },
+       "end-post": {
+        "value": ""
+       },
+       "snap-post": {
+        "checked": true
+       },
+       "phiatus-en-post": {
+        "checked": false
+       },
+       "phiatus-name-post": {
+        "value": ""
+       },
+       "phiatus-start-post": {
+        "value": ""
+       },
+       "phiatus-weeks-post": {
+        "value": "2"
+       },
+       "name-localization": {
+        "value": "Localization"
+       },
+       "start-localization": {
+        "value": "2027-03-01"
+       },
+       "unit-localization": {
+        "value": "weeks"
+       },
+       "weeks-localization": {
+        "value": "8"
+       },
+       "end-localization": {
+        "value": ""
+       },
+       "snap-localization": {
+        "checked": true
+       },
+       "phiatus-en-localization": {
+        "checked": false
+       },
+       "phiatus-name-localization": {
+        "value": ""
+       },
+       "phiatus-start-localization": {
+        "value": ""
+       },
+       "phiatus-weeks-localization": {
+        "value": "2"
+       }
+      },
+      "hiatuses": [
+       {
+        "start": "2026-12-21",
+        "weeks": "2",
+        "locked": true,
+        "name": ""
+       },
+       {
+        "start": "2027-12-20",
+        "weeks": "2",
+        "locked": true,
+        "name": ""
+       },
+       {
+        "start": "2028-12-18",
+        "weeks": "2",
+        "locked": true,
+        "name": ""
+       },
+       {
+        "start": "2029-12-17",
+        "weeks": "2",
+        "locked": true,
+        "name": ""
+       }
+      ]
+     }
+    }
+   },
+   {
+    "id": "s4",
+    "name": "Shoot +3 wk, 13 eps",
+    "snapshot": {
+     "version": 1,
+     "customPhaseDefs": [],
+     "customPhaseCounter": 0,
+     "phaseColorOverride": {},
+     "episodeDefs": [
+      {
+       "id": "ep1",
+       "name": "Episode 201",
+       "days": 8,
+       "nameEdited": false,
+       "daysEdited": false
+      },
+      {
+       "id": "ep2",
+       "name": "Episode 202",
+       "days": 8,
+       "nameEdited": false,
+       "daysEdited": false
+      },
+      {
+       "id": "ep3",
+       "name": "Episode 203",
+       "days": 8,
+       "nameEdited": false,
+       "daysEdited": false
+      },
+      {
+       "id": "ep4",
+       "name": "Episode 204",
+       "days": 8,
+       "nameEdited": false,
+       "daysEdited": false
+      },
+      {
+       "id": "ep5",
+       "name": "Episode 205",
+       "days": 8,
+       "nameEdited": false,
+       "daysEdited": false
+      },
+      {
+       "id": "ep6",
+       "name": "Episode 206",
+       "days": 8,
+       "nameEdited": false,
+       "daysEdited": false
+      },
+      {
+       "id": "ep7",
+       "name": "Episode 207",
+       "days": 8,
+       "nameEdited": false,
+       "daysEdited": false
+      },
+      {
+       "id": "ep8",
+       "name": "Episode 208",
+       "days": 8,
+       "nameEdited": false,
+       "daysEdited": false
+      },
+      {
+       "id": "ep9",
+       "name": "Episode 209",
+       "days": 8,
+       "nameEdited": false,
+       "daysEdited": false
+      },
+      {
+       "id": "ep10",
+       "name": "Episode 210",
+       "days": 8,
+       "nameEdited": false,
+       "daysEdited": false
+      },
+      {
+       "id": "ep11",
+       "name": "Episode 211",
+       "days": 8,
+       "nameEdited": false,
+       "daysEdited": false
+      },
+      {
+       "id": "ep12",
+       "name": "Episode 212",
+       "days": 8,
+       "nameEdited": false,
+       "daysEdited": false
+      },
+      {
+       "id": "ep13",
+       "name": "Episode 213",
+       "days": 8,
+       "nameEdited": false,
+       "daysEdited": false
+      }
+     ],
+     "episodeCounter": 13,
+     "blockDefs": [],
+     "blockCounter": 0,
+     "blockAssignEdited": false,
+     "episodeShootOrder": [],
+     "userNotes": {},
+     "dayNotes": {},
+     "mvExtraLanes": {},
+     "dayNoteColors": {},
+     "dayOverrides": {},
+     "headerMode": "auto",
+     "headerManual": {},
+     "headerTemplates": false,
+     "mvHeaderMode": "auto",
+     "mvHeaderManual": {},
+     "mvHeaderTemplates": false,
+     "headerFormat": {},
+     "mvHeaderFormat": {},
+     "noteColors": {},
+     "noteFontSize": {},
+     "hiatusTexts": {},
+     "hiatusColors": {},
+     "hiatusFontSize": {},
+     "hiatusNameSyncedKeys": {},
+     "holidayView": {},
+     "holidayOff": {},
+     "customHolidays": [],
+     "viewMode": "sheet",
+     "singleColumn": false,
+     "sidebarTab": "show",
+     "fillSpaceOff": true,
+     "colWidths": {},
+     "colWidthsAlt": {},
+     "rowHeights": {},
+     "rowHeightsByWeek": {},
+     "cellSpans": {},
+     "gridColSwaps": {},
+     "gridStintSwaps": {},
+     "colReuse": true,
+     "colKeep": {
+      "production": "prodPrep"
+     },
+     "lastEdited": "2026-11-13T07:49:33.291Z",
+     "fields": {
+      "byId": {
+       "show-title": {
+        "value": "Test Show"
+       },
+       "season-num": {
+        "value": "2"
+       },
+       "show-mode": {
+        "value": "episodes"
+       },
+       "shoot-days-per-ep": {
+        "value": "8"
+       },
+       "num-episodes": {
+        "value": "13"
+       },
+       "num-blocks": {
+        "value": ""
+       },
+       "days-per-block": {
+        "value": ""
+       },
+       "show-version": {
+        "value": ""
+       },
+       "show-location": {
+        "value": ""
+       },
+       "cal-range-start": {
+        "value": ""
+       },
+       "cal-range-end": {
+        "value": ""
+       },
+       "union-place": {
+        "value": "us-general"
+       },
+       "custom-hol-name": {
+        "value": ""
+       },
+       "custom-hol-date": {
+        "value": ""
+       },
+       "name-writersRoom": {
+        "value": "Writer's Rm"
+       },
+       "start-writersRoom": {
+        "value": "2026-01-05"
+       },
+       "unit-writersRoom": {
+        "value": "weeks"
+       },
+       "weeks-writersRoom": {
+        "value": "12"
+       },
+       "end-writersRoom": {
+        "value": ""
+       },
+       "snap-writersRoom": {
+        "checked": true
+       },
+       "phiatus-en-writersRoom": {
+        "checked": false
+       },
+       "phiatus-name-writersRoom": {
+        "value": ""
+       },
+       "phiatus-start-writersRoom": {
+        "value": ""
+       },
+       "phiatus-weeks-writersRoom": {
+        "value": "2"
+       },
+       "name-prePrep": {
+        "value": "Pre Prep"
+       },
+       "start-prePrep": {
+        "value": "2026-04-06"
+       },
+       "unit-prePrep": {
+        "value": "weeks"
+       },
+       "weeks-prePrep": {
+        "value": "6"
+       },
+       "end-prePrep": {
+        "value": ""
+       },
+       "snap-prePrep": {
+        "checked": true
+       },
+       "phiatus-en-prePrep": {
+        "checked": false
+       },
+       "phiatus-name-prePrep": {
+        "value": ""
+       },
+       "phiatus-start-prePrep": {
+        "value": ""
+       },
+       "phiatus-weeks-prePrep": {
+        "value": "2"
+       },
+       "name-prodPrep": {
+        "value": "Prod Prep"
+       },
+       "start-prodPrep": {
+        "value": "2026-05-18"
+       },
+       "unit-prodPrep": {
+        "value": "weeks"
+       },
+       "weeks-prodPrep": {
+        "value": "6"
+       },
+       "end-prodPrep": {
+        "value": ""
+       },
+       "snap-prodPrep": {
+        "checked": true
+       },
+       "phiatus-en-prodPrep": {
+        "checked": false
+       },
+       "phiatus-name-prodPrep": {
+        "value": ""
+       },
+       "phiatus-start-prodPrep": {
+        "value": ""
+       },
+       "phiatus-weeks-prodPrep": {
+        "value": "2"
+       },
+       "prep-name": {
+        "value": "Episodic Prep"
+       },
+       "prep-days": {
+        "value": ""
+       },
+       "name-production": {
+        "value": "Production"
+       },
+       "start-production": {
+        "value": "2026-07-20"
+       },
+       "snap-production": {
+        "checked": true
+       },
+       "weeks-production": {
+        "value": "104"
+       },
+       "phiatus-en-production": {
+        "checked": false
+       },
+       "phiatus-name-production": {
+        "value": ""
+       },
+       "phiatus-start-production": {
+        "value": ""
+       },
+       "phiatus-weeks-production": {
+        "value": "2"
+       },
+       "simpost-enabled": {
+        "checked": false
+       },
+       "simpost-offset": {
+        "value": "0"
+       },
+       "simpost-count": {
+        "checked": false
+       },
+       "name-post": {
+        "value": "Post"
+       },
+       "start-post": {
+        "value": "2026-11-02"
+       },
+       "unit-post": {
+        "value": "weeks"
+       },
+       "weeks-post": {
+        "value": "16"
+       },
+       "end-post": {
+        "value": ""
+       },
+       "snap-post": {
+        "checked": true
+       },
+       "phiatus-en-post": {
+        "checked": false
+       },
+       "phiatus-name-post": {
+        "value": ""
+       },
+       "phiatus-start-post": {
+        "value": ""
+       },
+       "phiatus-weeks-post": {
+        "value": "2"
+       },
+       "name-localization": {
+        "value": "Localization"
+       },
+       "start-localization": {
+        "value": "2027-03-01"
+       },
+       "unit-localization": {
+        "value": "weeks"
+       },
+       "weeks-localization": {
+        "value": "8"
+       },
+       "end-localization": {
+        "value": ""
+       },
+       "snap-localization": {
+        "checked": true
+       },
+       "phiatus-en-localization": {
+        "checked": false
+       },
+       "phiatus-name-localization": {
+        "value": ""
+       },
+       "phiatus-start-localization": {
+        "value": ""
+       },
+       "phiatus-weeks-localization": {
+        "value": "2"
+       }
+      },
+      "hiatuses": [
+       {
+        "start": "2026-12-21",
+        "weeks": "2",
+        "locked": true,
+        "name": ""
+       },
+       {
+        "start": "2027-12-20",
+        "weeks": "2",
+        "locked": true,
+        "name": ""
+       },
+       {
+        "start": "2028-12-18",
+        "weeks": "2",
+        "locked": true,
+        "name": ""
+       },
+       {
+        "start": "2029-12-17",
+        "weeks": "2",
+        "locked": true,
+        "name": ""
+       }
+      ]
+     }
+    }
+   },
+   {
+    "id": "s5",
+    "name": "Shoot +4 wk, 10 eps",
+    "snapshot": {
+     "version": 1,
+     "customPhaseDefs": [],
+     "customPhaseCounter": 0,
+     "phaseColorOverride": {},
+     "episodeDefs": [
+      {
+       "id": "ep1",
+       "name": "Episode 201",
+       "days": 8,
+       "nameEdited": false,
+       "daysEdited": false
+      },
+      {
+       "id": "ep2",
+       "name": "Episode 202",
+       "days": 8,
+       "nameEdited": false,
+       "daysEdited": false
+      },
+      {
+       "id": "ep3",
+       "name": "Episode 203",
+       "days": 8,
+       "nameEdited": false,
+       "daysEdited": false
+      },
+      {
+       "id": "ep4",
+       "name": "Episode 204",
+       "days": 8,
+       "nameEdited": false,
+       "daysEdited": false
+      },
+      {
+       "id": "ep5",
+       "name": "Episode 205",
+       "days": 8,
+       "nameEdited": false,
+       "daysEdited": false
+      },
+      {
+       "id": "ep6",
+       "name": "Episode 206",
+       "days": 8,
+       "nameEdited": false,
+       "daysEdited": false
+      },
+      {
+       "id": "ep7",
+       "name": "Episode 207",
+       "days": 8,
+       "nameEdited": false,
+       "daysEdited": false
+      },
+      {
+       "id": "ep8",
+       "name": "Episode 208",
+       "days": 8,
+       "nameEdited": false,
+       "daysEdited": false
+      },
+      {
+       "id": "ep9",
+       "name": "Episode 209",
+       "days": 8,
+       "nameEdited": false,
+       "daysEdited": false
+      },
+      {
+       "id": "ep10",
+       "name": "Episode 210",
+       "days": 8,
+       "nameEdited": false,
+       "daysEdited": false
+      }
+     ],
+     "episodeCounter": 13,
+     "blockDefs": [],
+     "blockCounter": 0,
+     "blockAssignEdited": false,
+     "episodeShootOrder": [],
+     "userNotes": {},
+     "dayNotes": {},
+     "mvExtraLanes": {},
+     "dayNoteColors": {},
+     "dayOverrides": {},
+     "headerMode": "auto",
+     "headerManual": {},
+     "headerTemplates": false,
+     "mvHeaderMode": "auto",
+     "mvHeaderManual": {},
+     "mvHeaderTemplates": false,
+     "headerFormat": {},
+     "mvHeaderFormat": {},
+     "noteColors": {},
+     "noteFontSize": {},
+     "hiatusTexts": {},
+     "hiatusColors": {},
+     "hiatusFontSize": {},
+     "hiatusNameSyncedKeys": {},
+     "holidayView": {},
+     "holidayOff": {},
+     "customHolidays": [],
+     "viewMode": "sheet",
+     "singleColumn": false,
+     "sidebarTab": "show",
+     "fillSpaceOff": true,
+     "colWidths": {},
+     "colWidthsAlt": {},
+     "rowHeights": {},
+     "rowHeightsByWeek": {},
+     "cellSpans": {},
+     "gridColSwaps": {},
+     "gridStintSwaps": {},
+     "colReuse": true,
+     "colKeep": {
+      "production": "prodPrep"
+     },
+     "lastEdited": "2026-11-13T07:49:34.150Z",
+     "fields": {
+      "byId": {
+       "show-title": {
+        "value": "Test Show"
+       },
+       "season-num": {
+        "value": "2"
+       },
+       "show-mode": {
+        "value": "episodes"
+       },
+       "shoot-days-per-ep": {
+        "value": "8"
+       },
+       "num-episodes": {
+        "value": "10"
+       },
+       "num-blocks": {
+        "value": ""
+       },
+       "days-per-block": {
+        "value": ""
+       },
+       "show-version": {
+        "value": ""
+       },
+       "show-location": {
+        "value": ""
+       },
+       "cal-range-start": {
+        "value": ""
+       },
+       "cal-range-end": {
+        "value": ""
+       },
+       "union-place": {
+        "value": "us-general"
+       },
+       "custom-hol-name": {
+        "value": ""
+       },
+       "custom-hol-date": {
+        "value": ""
+       },
+       "name-writersRoom": {
+        "value": "Writer's Rm"
+       },
+       "start-writersRoom": {
+        "value": "2026-01-05"
+       },
+       "unit-writersRoom": {
+        "value": "weeks"
+       },
+       "weeks-writersRoom": {
+        "value": "12"
+       },
+       "end-writersRoom": {
+        "value": ""
+       },
+       "snap-writersRoom": {
+        "checked": true
+       },
+       "phiatus-en-writersRoom": {
+        "checked": false
+       },
+       "phiatus-name-writersRoom": {
+        "value": ""
+       },
+       "phiatus-start-writersRoom": {
+        "value": ""
+       },
+       "phiatus-weeks-writersRoom": {
+        "value": "2"
+       },
+       "name-prePrep": {
+        "value": "Pre Prep"
+       },
+       "start-prePrep": {
+        "value": "2026-04-06"
+       },
+       "unit-prePrep": {
+        "value": "weeks"
+       },
+       "weeks-prePrep": {
+        "value": "6"
+       },
+       "end-prePrep": {
+        "value": ""
+       },
+       "snap-prePrep": {
+        "checked": true
+       },
+       "phiatus-en-prePrep": {
+        "checked": false
+       },
+       "phiatus-name-prePrep": {
+        "value": ""
+       },
+       "phiatus-start-prePrep": {
+        "value": ""
+       },
+       "phiatus-weeks-prePrep": {
+        "value": "2"
+       },
+       "name-prodPrep": {
+        "value": "Prod Prep"
+       },
+       "start-prodPrep": {
+        "value": "2026-05-18"
+       },
+       "unit-prodPrep": {
+        "value": "weeks"
+       },
+       "weeks-prodPrep": {
+        "value": "6"
+       },
+       "end-prodPrep": {
+        "value": ""
+       },
+       "snap-prodPrep": {
+        "checked": true
+       },
+       "phiatus-en-prodPrep": {
+        "checked": false
+       },
+       "phiatus-name-prodPrep": {
+        "value": ""
+       },
+       "phiatus-start-prodPrep": {
+        "value": ""
+       },
+       "phiatus-weeks-prodPrep": {
+        "value": "2"
+       },
+       "prep-name": {
+        "value": "Episodic Prep"
+       },
+       "prep-days": {
+        "value": ""
+       },
+       "name-production": {
+        "value": "Production"
+       },
+       "start-production": {
+        "value": "2026-07-27"
+       },
+       "snap-production": {
+        "checked": true
+       },
+       "weeks-production": {
+        "value": "80"
+       },
+       "phiatus-en-production": {
+        "checked": false
+       },
+       "phiatus-name-production": {
+        "value": ""
+       },
+       "phiatus-start-production": {
+        "value": ""
+       },
+       "phiatus-weeks-production": {
+        "value": "2"
+       },
+       "simpost-enabled": {
+        "checked": false
+       },
+       "simpost-offset": {
+        "value": "0"
+       },
+       "simpost-count": {
+        "checked": false
+       },
+       "name-post": {
+        "value": "Post"
+       },
+       "start-post": {
+        "value": "2026-11-02"
+       },
+       "unit-post": {
+        "value": "weeks"
+       },
+       "weeks-post": {
+        "value": "16"
+       },
+       "end-post": {
+        "value": ""
+       },
+       "snap-post": {
+        "checked": true
+       },
+       "phiatus-en-post": {
+        "checked": false
+       },
+       "phiatus-name-post": {
+        "value": ""
+       },
+       "phiatus-start-post": {
+        "value": ""
+       },
+       "phiatus-weeks-post": {
+        "value": "2"
+       },
+       "name-localization": {
+        "value": "Localization"
+       },
+       "start-localization": {
+        "value": "2027-03-01"
+       },
+       "unit-localization": {
+        "value": "weeks"
+       },
+       "weeks-localization": {
+        "value": "8"
+       },
+       "end-localization": {
+        "value": ""
+       },
+       "snap-localization": {
+        "checked": true
+       },
+       "phiatus-en-localization": {
+        "checked": false
+       },
+       "phiatus-name-localization": {
+        "value": ""
+       },
+       "phiatus-start-localization": {
+        "value": ""
+       },
+       "phiatus-weeks-localization": {
+        "value": "2"
+       }
+      },
+      "hiatuses": [
+       {
+        "start": "2026-12-21",
+        "weeks": "2",
+        "locked": true,
+        "name": ""
+       },
+       {
+        "start": "2027-12-20",
+        "weeks": "2",
+        "locked": true,
+        "name": ""
+       },
+       {
+        "start": "2028-12-18",
+        "weeks": "2",
+        "locked": true,
+        "name": ""
+       },
+       {
+        "start": "2029-12-17",
+        "weeks": "2",
+        "locked": true,
+        "name": ""
+       }
+      ]
+     }
+    }
+   },
+   {
+    "id": "s6",
+    "name": "Shoot +5 wk, 11 eps",
+    "snapshot": {
+     "version": 1,
+     "customPhaseDefs": [],
+     "customPhaseCounter": 0,
+     "phaseColorOverride": {},
+     "episodeDefs": [
+      {
+       "id": "ep1",
+       "name": "Episode 201",
+       "days": 8,
+       "nameEdited": false,
+       "daysEdited": false
+      },
+      {
+       "id": "ep2",
+       "name": "Episode 202",
+       "days": 8,
+       "nameEdited": false,
+       "daysEdited": false
+      },
+      {
+       "id": "ep3",
+       "name": "Episode 203",
+       "days": 8,
+       "nameEdited": false,
+       "daysEdited": false
+      },
+      {
+       "id": "ep4",
+       "name": "Episode 204",
+       "days": 8,
+       "nameEdited": false,
+       "daysEdited": false
+      },
+      {
+       "id": "ep5",
+       "name": "Episode 205",
+       "days": 8,
+       "nameEdited": false,
+       "daysEdited": false
+      },
+      {
+       "id": "ep6",
+       "name": "Episode 206",
+       "days": 8,
+       "nameEdited": false,
+       "daysEdited": false
+      },
+      {
+       "id": "ep7",
+       "name": "Episode 207",
+       "days": 8,
+       "nameEdited": false,
+       "daysEdited": false
+      },
+      {
+       "id": "ep8",
+       "name": "Episode 208",
+       "days": 8,
+       "nameEdited": false,
+       "daysEdited": false
+      },
+      {
+       "id": "ep9",
+       "name": "Episode 209",
+       "days": 8,
+       "nameEdited": false,
+       "daysEdited": false
+      },
+      {
+       "id": "ep10",
+       "name": "Episode 210",
+       "days": 8,
+       "nameEdited": false,
+       "daysEdited": false
+      },
+      {
+       "id": "ep14",
+       "name": "Episode 211",
+       "days": 8,
+       "nameEdited": false,
+       "daysEdited": false
+      }
+     ],
+     "episodeCounter": 14,
+     "blockDefs": [],
+     "blockCounter": 0,
+     "blockAssignEdited": false,
+     "episodeShootOrder": [],
+     "userNotes": {},
+     "dayNotes": {},
+     "mvExtraLanes": {},
+     "dayNoteColors": {},
+     "dayOverrides": {},
+     "headerMode": "auto",
+     "headerManual": {},
+     "headerTemplates": false,
+     "mvHeaderMode": "auto",
+     "mvHeaderManual": {},
+     "mvHeaderTemplates": false,
+     "headerFormat": {},
+     "mvHeaderFormat": {},
+     "noteColors": {},
+     "noteFontSize": {},
+     "hiatusTexts": {},
+     "hiatusColors": {},
+     "hiatusFontSize": {},
+     "hiatusNameSyncedKeys": {},
+     "holidayView": {},
+     "holidayOff": {},
+     "customHolidays": [],
+     "viewMode": "sheet",
+     "singleColumn": false,
+     "sidebarTab": "show",
+     "fillSpaceOff": true,
+     "colWidths": {},
+     "colWidthsAlt": {},
+     "rowHeights": {},
+     "rowHeightsByWeek": {},
+     "cellSpans": {},
+     "gridColSwaps": {},
+     "gridStintSwaps": {},
+     "colReuse": true,
+     "colKeep": {
+      "production": "prodPrep"
+     },
+     "lastEdited": "2026-11-13T07:49:35.010Z",
+     "fields": {
+      "byId": {
+       "show-title": {
+        "value": "Test Show"
+       },
+       "season-num": {
+        "value": "2"
+       },
+       "show-mode": {
+        "value": "episodes"
+       },
+       "shoot-days-per-ep": {
+        "value": "8"
+       },
+       "num-episodes": {
+        "value": "11"
+       },
+       "num-blocks": {
+        "value": ""
+       },
+       "days-per-block": {
+        "value": ""
+       },
+       "show-version": {
+        "value": ""
+       },
+       "show-location": {
+        "value": ""
+       },
+       "cal-range-start": {
+        "value": ""
+       },
+       "cal-range-end": {
+        "value": ""
+       },
+       "union-place": {
+        "value": "us-general"
+       },
+       "custom-hol-name": {
+        "value": ""
+       },
+       "custom-hol-date": {
+        "value": ""
+       },
+       "name-writersRoom": {
+        "value": "Writer's Rm"
+       },
+       "start-writersRoom": {
+        "value": "2026-01-05"
+       },
+       "unit-writersRoom": {
+        "value": "weeks"
+       },
+       "weeks-writersRoom": {
+        "value": "12"
+       },
+       "end-writersRoom": {
+        "value": ""
+       },
+       "snap-writersRoom": {
+        "checked": true
+       },
+       "phiatus-en-writersRoom": {
+        "checked": false
+       },
+       "phiatus-name-writersRoom": {
+        "value": ""
+       },
+       "phiatus-start-writersRoom": {
+        "value": ""
+       },
+       "phiatus-weeks-writersRoom": {
+        "value": "2"
+       },
+       "name-prePrep": {
+        "value": "Pre Prep"
+       },
+       "start-prePrep": {
+        "value": "2026-04-06"
+       },
+       "unit-prePrep": {
+        "value": "weeks"
+       },
+       "weeks-prePrep": {
+        "value": "6"
+       },
+       "end-prePrep": {
+        "value": ""
+       },
+       "snap-prePrep": {
+        "checked": true
+       },
+       "phiatus-en-prePrep": {
+        "checked": false
+       },
+       "phiatus-name-prePrep": {
+        "value": ""
+       },
+       "phiatus-start-prePrep": {
+        "value": ""
+       },
+       "phiatus-weeks-prePrep": {
+        "value": "2"
+       },
+       "name-prodPrep": {
+        "value": "Prod Prep"
+       },
+       "start-prodPrep": {
+        "value": "2026-05-18"
+       },
+       "unit-prodPrep": {
+        "value": "weeks"
+       },
+       "weeks-prodPrep": {
+        "value": "6"
+       },
+       "end-prodPrep": {
+        "value": ""
+       },
+       "snap-prodPrep": {
+        "checked": true
+       },
+       "phiatus-en-prodPrep": {
+        "checked": false
+       },
+       "phiatus-name-prodPrep": {
+        "value": ""
+       },
+       "phiatus-start-prodPrep": {
+        "value": ""
+       },
+       "phiatus-weeks-prodPrep": {
+        "value": "2"
+       },
+       "prep-name": {
+        "value": "Episodic Prep"
+       },
+       "prep-days": {
+        "value": ""
+       },
+       "name-production": {
+        "value": "Production"
+       },
+       "start-production": {
+        "value": "2026-08-03"
+       },
+       "snap-production": {
+        "checked": true
+       },
+       "weeks-production": {
+        "value": "88"
+       },
+       "phiatus-en-production": {
+        "checked": false
+       },
+       "phiatus-name-production": {
+        "value": ""
+       },
+       "phiatus-start-production": {
+        "value": ""
+       },
+       "phiatus-weeks-production": {
+        "value": "2"
+       },
+       "simpost-enabled": {
+        "checked": false
+       },
+       "simpost-offset": {
+        "value": "0"
+       },
+       "simpost-count": {
+        "checked": false
+       },
+       "name-post": {
+        "value": "Post"
+       },
+       "start-post": {
+        "value": "2026-11-02"
+       },
+       "unit-post": {
+        "value": "weeks"
+       },
+       "weeks-post": {
+        "value": "16"
+       },
+       "end-post": {
+        "value": ""
+       },
+       "snap-post": {
+        "checked": true
+       },
+       "phiatus-en-post": {
+        "checked": false
+       },
+       "phiatus-name-post": {
+        "value": ""
+       },
+       "phiatus-start-post": {
+        "value": ""
+       },
+       "phiatus-weeks-post": {
+        "value": "2"
+       },
+       "name-localization": {
+        "value": "Localization"
+       },
+       "start-localization": {
+        "value": "2027-03-01"
+       },
+       "unit-localization": {
+        "value": "weeks"
+       },
+       "weeks-localization": {
+        "value": "8"
+       },
+       "end-localization": {
+        "value": ""
+       },
+       "snap-localization": {
+        "checked": true
+       },
+       "phiatus-en-localization": {
+        "checked": false
+       },
+       "phiatus-name-localization": {
+        "value": ""
+       },
+       "phiatus-start-localization": {
+        "value": ""
+       },
+       "phiatus-weeks-localization": {
+        "value": "2"
+       }
+      },
+      "hiatuses": [
+       {
+        "start": "2026-12-21",
+        "weeks": "2",
+        "locked": true,
+        "name": ""
+       },
+       {
+        "start": "2027-12-20",
+        "weeks": "2",
+        "locked": true,
+        "name": ""
+       },
+       {
+        "start": "2028-12-18",
+        "weeks": "2",
+        "locked": true,
+        "name": ""
+       },
+       {
+        "start": "2029-12-17",
+        "weeks": "2",
+        "locked": true,
+        "name": ""
+       }
+      ]
+     }
+    }
+   },
+   {
+    "id": "s7",
+    "name": "Shoot +6 wk, 12 eps",
+    "snapshot": {
+     "version": 1,
+     "customPhaseDefs": [],
+     "customPhaseCounter": 0,
+     "phaseColorOverride": {},
+     "episodeDefs": [
+      {
+       "id": "ep1",
+       "name": "Episode 201",
+       "days": 8,
+       "nameEdited": false,
+       "daysEdited": false
+      },
+      {
+       "id": "ep2",
+       "name": "Episode 202",
+       "days": 8,
+       "nameEdited": false,
+       "daysEdited": false
+      },
+      {
+       "id": "ep3",
+       "name": "Episode 203",
+       "days": 8,
+       "nameEdited": false,
+       "daysEdited": false
+      },
+      {
+       "id": "ep4",
+       "name": "Episode 204",
+       "days": 8,
+       "nameEdited": false,
+       "daysEdited": false
+      },
+      {
+       "id": "ep5",
+       "name": "Episode 205",
+       "days": 8,
+       "nameEdited": false,
+       "daysEdited": false
+      },
+      {
+       "id": "ep6",
+       "name": "Episode 206",
+       "days": 8,
+       "nameEdited": false,
+       "daysEdited": false
+      },
+      {
+       "id": "ep7",
+       "name": "Episode 207",
+       "days": 8,
+       "nameEdited": false,
+       "daysEdited": false
+      },
+      {
+       "id": "ep8",
+       "name": "Episode 208",
+       "days": 8,
+       "nameEdited": false,
+       "daysEdited": false
+      },
+      {
+       "id": "ep9",
+       "name": "Episode 209",
+       "days": 8,
+       "nameEdited": false,
+       "daysEdited": false
+      },
+      {
+       "id": "ep10",
+       "name": "Episode 210",
+       "days": 8,
+       "nameEdited": false,
+       "daysEdited": false
+      },
+      {
+       "id": "ep14",
+       "name": "Episode 211",
+       "days": 8,
+       "nameEdited": false,
+       "daysEdited": false
+      },
+      {
+       "id": "ep15",
+       "name": "Episode 212",
+       "days": 8,
+       "nameEdited": false,
+       "daysEdited": false
+      }
+     ],
+     "episodeCounter": 15,
+     "blockDefs": [],
+     "blockCounter": 0,
+     "blockAssignEdited": false,
+     "episodeShootOrder": [],
+     "userNotes": {},
+     "dayNotes": {},
+     "mvExtraLanes": {},
+     "dayNoteColors": {},
+     "dayOverrides": {},
+     "headerMode": "auto",
+     "headerManual": {},
+     "headerTemplates": false,
+     "mvHeaderMode": "auto",
+     "mvHeaderManual": {},
+     "mvHeaderTemplates": false,
+     "headerFormat": {},
+     "mvHeaderFormat": {},
+     "noteColors": {},
+     "noteFontSize": {},
+     "hiatusTexts": {},
+     "hiatusColors": {},
+     "hiatusFontSize": {},
+     "hiatusNameSyncedKeys": {},
+     "holidayView": {},
+     "holidayOff": {},
+     "customHolidays": [],
+     "viewMode": "sheet",
+     "singleColumn": false,
+     "sidebarTab": "show",
+     "fillSpaceOff": true,
+     "colWidths": {},
+     "colWidthsAlt": {},
+     "rowHeights": {},
+     "rowHeightsByWeek": {},
+     "cellSpans": {},
+     "gridColSwaps": {},
+     "gridStintSwaps": {},
+     "colReuse": true,
+     "colKeep": {
+      "production": "prodPrep"
+     },
+     "lastEdited": "2026-11-13T07:49:35.869Z",
+     "fields": {
+      "byId": {
+       "show-title": {
+        "value": "Test Show"
+       },
+       "season-num": {
+        "value": "2"
+       },
+       "show-mode": {
+        "value": "episodes"
+       },
+       "shoot-days-per-ep": {
+        "value": "8"
+       },
+       "num-episodes": {
+        "value": "12"
+       },
+       "num-blocks": {
+        "value": ""
+       },
+       "days-per-block": {
+        "value": ""
+       },
+       "show-version": {
+        "value": ""
+       },
+       "show-location": {
+        "value": ""
+       },
+       "cal-range-start": {
+        "value": ""
+       },
+       "cal-range-end": {
+        "value": ""
+       },
+       "union-place": {
+        "value": "us-general"
+       },
+       "custom-hol-name": {
+        "value": ""
+       },
+       "custom-hol-date": {
+        "value": ""
+       },
+       "name-writersRoom": {
+        "value": "Writer's Rm"
+       },
+       "start-writersRoom": {
+        "value": "2026-01-05"
+       },
+       "unit-writersRoom": {
+        "value": "weeks"
+       },
+       "weeks-writersRoom": {
+        "value": "12"
+       },
+       "end-writersRoom": {
+        "value": ""
+       },
+       "snap-writersRoom": {
+        "checked": true
+       },
+       "phiatus-en-writersRoom": {
+        "checked": false
+       },
+       "phiatus-name-writersRoom": {
+        "value": ""
+       },
+       "phiatus-start-writersRoom": {
+        "value": ""
+       },
+       "phiatus-weeks-writersRoom": {
+        "value": "2"
+       },
+       "name-prePrep": {
+        "value": "Pre Prep"
+       },
+       "start-prePrep": {
+        "value": "2026-04-06"
+       },
+       "unit-prePrep": {
+        "value": "weeks"
+       },
+       "weeks-prePrep": {
+        "value": "6"
+       },
+       "end-prePrep": {
+        "value": ""
+       },
+       "snap-prePrep": {
+        "checked": true
+       },
+       "phiatus-en-prePrep": {
+        "checked": false
+       },
+       "phiatus-name-prePrep": {
+        "value": ""
+       },
+       "phiatus-start-prePrep": {
+        "value": ""
+       },
+       "phiatus-weeks-prePrep": {
+        "value": "2"
+       },
+       "name-prodPrep": {
+        "value": "Prod Prep"
+       },
+       "start-prodPrep": {
+        "value": "2026-05-18"
+       },
+       "unit-prodPrep": {
+        "value": "weeks"
+       },
+       "weeks-prodPrep": {
+        "value": "6"
+       },
+       "end-prodPrep": {
+        "value": ""
+       },
+       "snap-prodPrep": {
+        "checked": true
+       },
+       "phiatus-en-prodPrep": {
+        "checked": false
+       },
+       "phiatus-name-prodPrep": {
+        "value": ""
+       },
+       "phiatus-start-prodPrep": {
+        "value": ""
+       },
+       "phiatus-weeks-prodPrep": {
+        "value": "2"
+       },
+       "prep-name": {
+        "value": "Episodic Prep"
+       },
+       "prep-days": {
+        "value": ""
+       },
+       "name-production": {
+        "value": "Production"
+       },
+       "start-production": {
+        "value": "2026-08-10"
+       },
+       "snap-production": {
+        "checked": true
+       },
+       "weeks-production": {
+        "value": "96"
+       },
+       "phiatus-en-production": {
+        "checked": false
+       },
+       "phiatus-name-production": {
+        "value": ""
+       },
+       "phiatus-start-production": {
+        "value": ""
+       },
+       "phiatus-weeks-production": {
+        "value": "2"
+       },
+       "simpost-enabled": {
+        "checked": false
+       },
+       "simpost-offset": {
+        "value": "0"
+       },
+       "simpost-count": {
+        "checked": false
+       },
+       "name-post": {
+        "value": "Post"
+       },
+       "start-post": {
+        "value": "2026-11-02"
+       },
+       "unit-post": {
+        "value": "weeks"
+       },
+       "weeks-post": {
+        "value": "16"
+       },
+       "end-post": {
+        "value": ""
+       },
+       "snap-post": {
+        "checked": true
+       },
+       "phiatus-en-post": {
+        "checked": false
+       },
+       "phiatus-name-post": {
+        "value": ""
+       },
+       "phiatus-start-post": {
+        "value": ""
+       },
+       "phiatus-weeks-post": {
+        "value": "2"
+       },
+       "name-localization": {
+        "value": "Localization"
+       },
+       "start-localization": {
+        "value": "2027-03-01"
+       },
+       "unit-localization": {
+        "value": "weeks"
+       },
+       "weeks-localization": {
+        "value": "8"
+       },
+       "end-localization": {
+        "value": ""
+       },
+       "snap-localization": {
+        "checked": true
+       },
+       "phiatus-en-localization": {
+        "checked": false
+       },
+       "phiatus-name-localization": {
+        "value": ""
+       },
+       "phiatus-start-localization": {
+        "value": ""
+       },
+       "phiatus-weeks-localization": {
+        "value": "2"
+       }
+      },
+      "hiatuses": [
+       {
+        "start": "2026-12-21",
+        "weeks": "2",
+        "locked": true,
+        "name": ""
+       },
+       {
+        "start": "2027-12-20",
+        "weeks": "2",
+        "locked": true,
+        "name": ""
+       },
+       {
+        "start": "2028-12-18",
+        "weeks": "2",
+        "locked": true,
+        "name": ""
+       },
+       {
+        "start": "2029-12-17",
+        "weeks": "2",
+        "locked": true,
+        "name": ""
+       }
+      ]
+     }
+    }
+   },
+   {
+    "id": "s8",
+    "name": "Shoot +7 wk, 13 eps",
+    "snapshot": {
+     "version": 1,
+     "customPhaseDefs": [],
+     "customPhaseCounter": 0,
+     "phaseColorOverride": {},
+     "episodeDefs": [
+      {
+       "id": "ep1",
+       "name": "Episode 201",
+       "days": 8,
+       "nameEdited": false,
+       "daysEdited": false
+      },
+      {
+       "id": "ep2",
+       "name": "Episode 202",
+       "days": 8,
+       "nameEdited": false,
+       "daysEdited": false
+      },
+      {
+       "id": "ep3",
+       "name": "Episode 203",
+       "days": 8,
+       "nameEdited": false,
+       "daysEdited": false
+      },
+      {
+       "id": "ep4",
+       "name": "Episode 204",
+       "days": 8,
+       "nameEdited": false,
+       "daysEdited": false
+      },
+      {
+       "id": "ep5",
+       "name": "Episode 205",
+       "days": 8,
+       "nameEdited": false,
+       "daysEdited": false
+      },
+      {
+       "id": "ep6",
+       "name": "Episode 206",
+       "days": 8,
+       "nameEdited": false,
+       "daysEdited": false
+      },
+      {
+       "id": "ep7",
+       "name": "Episode 207",
+       "days": 8,
+       "nameEdited": false,
+       "daysEdited": false
+      },
+      {
+       "id": "ep8",
+       "name": "Episode 208",
+       "days": 8,
+       "nameEdited": false,
+       "daysEdited": false
+      },
+      {
+       "id": "ep9",
+       "name": "Episode 209",
+       "days": 8,
+       "nameEdited": false,
+       "daysEdited": false
+      },
+      {
+       "id": "ep10",
+       "name": "Episode 210",
+       "days": 8,
+       "nameEdited": false,
+       "daysEdited": false
+      },
+      {
+       "id": "ep14",
+       "name": "Episode 211",
+       "days": 8,
+       "nameEdited": false,
+       "daysEdited": false
+      },
+      {
+       "id": "ep15",
+       "name": "Episode 212",
+       "days": 8,
+       "nameEdited": false,
+       "daysEdited": false
+      },
+      {
+       "id": "ep16",
+       "name": "Episode 213",
+       "days": 8,
+       "nameEdited": false,
+       "daysEdited": false
+      }
+     ],
+     "episodeCounter": 16,
+     "blockDefs": [],
+     "blockCounter": 0,
+     "blockAssignEdited": false,
+     "episodeShootOrder": [],
+     "userNotes": {},
+     "dayNotes": {},
+     "mvExtraLanes": {},
+     "dayNoteColors": {},
+     "dayOverrides": {},
+     "headerMode": "auto",
+     "headerManual": {},
+     "headerTemplates": false,
+     "mvHeaderMode": "auto",
+     "mvHeaderManual": {},
+     "mvHeaderTemplates": false,
+     "headerFormat": {},
+     "mvHeaderFormat": {},
+     "noteColors": {},
+     "noteFontSize": {},
+     "hiatusTexts": {},
+     "hiatusColors": {},
+     "hiatusFontSize": {},
+     "hiatusNameSyncedKeys": {},
+     "holidayView": {},
+     "holidayOff": {},
+     "customHolidays": [],
+     "viewMode": "sheet",
+     "singleColumn": false,
+     "sidebarTab": "show",
+     "fillSpaceOff": true,
+     "colWidths": {},
+     "colWidthsAlt": {},
+     "rowHeights": {},
+     "rowHeightsByWeek": {},
+     "cellSpans": {},
+     "gridColSwaps": {},
+     "gridStintSwaps": {},
+     "colReuse": true,
+     "colKeep": {
+      "production": "prodPrep"
+     },
+     "lastEdited": "2026-11-13T07:49:36.728Z",
+     "fields": {
+      "byId": {
+       "show-title": {
+        "value": "Test Show"
+       },
+       "season-num": {
+        "value": "2"
+       },
+       "show-mode": {
+        "value": "episodes"
+       },
+       "shoot-days-per-ep": {
+        "value": "8"
+       },
+       "num-episodes": {
+        "value": "13"
+       },
+       "num-blocks": {
+        "value": ""
+       },
+       "days-per-block": {
+        "value": ""
+       },
+       "show-version": {
+        "value": ""
+       },
+       "show-location": {
+        "value": ""
+       },
+       "cal-range-start": {
+        "value": ""
+       },
+       "cal-range-end": {
+        "value": ""
+       },
+       "union-place": {
+        "value": "us-general"
+       },
+       "custom-hol-name": {
+        "value": ""
+       },
+       "custom-hol-date": {
+        "value": ""
+       },
+       "name-writersRoom": {
+        "value": "Writer's Rm"
+       },
+       "start-writersRoom": {
+        "value": "2026-01-05"
+       },
+       "unit-writersRoom": {
+        "value": "weeks"
+       },
+       "weeks-writersRoom": {
+        "value": "12"
+       },
+       "end-writersRoom": {
+        "value": ""
+       },
+       "snap-writersRoom": {
+        "checked": true
+       },
+       "phiatus-en-writersRoom": {
+        "checked": false
+       },
+       "phiatus-name-writersRoom": {
+        "value": ""
+       },
+       "phiatus-start-writersRoom": {
+        "value": ""
+       },
+       "phiatus-weeks-writersRoom": {
+        "value": "2"
+       },
+       "name-prePrep": {
+        "value": "Pre Prep"
+       },
+       "start-prePrep": {
+        "value": "2026-04-06"
+       },
+       "unit-prePrep": {
+        "value": "weeks"
+       },
+       "weeks-prePrep": {
+        "value": "6"
+       },
+       "end-prePrep": {
+        "value": ""
+       },
+       "snap-prePrep": {
+        "checked": true
+       },
+       "phiatus-en-prePrep": {
+        "checked": false
+       },
+       "phiatus-name-prePrep": {
+        "value": ""
+       },
+       "phiatus-start-prePrep": {
+        "value": ""
+       },
+       "phiatus-weeks-prePrep": {
+        "value": "2"
+       },
+       "name-prodPrep": {
+        "value": "Prod Prep"
+       },
+       "start-prodPrep": {
+        "value": "2026-05-18"
+       },
+       "unit-prodPrep": {
+        "value": "weeks"
+       },
+       "weeks-prodPrep": {
+        "value": "6"
+       },
+       "end-prodPrep": {
+        "value": ""
+       },
+       "snap-prodPrep": {
+        "checked": true
+       },
+       "phiatus-en-prodPrep": {
+        "checked": false
+       },
+       "phiatus-name-prodPrep": {
+        "value": ""
+       },
+       "phiatus-start-prodPrep": {
+        "value": ""
+       },
+       "phiatus-weeks-prodPrep": {
+        "value": "2"
+       },
+       "prep-name": {
+        "value": "Episodic Prep"
+       },
+       "prep-days": {
+        "value": ""
+       },
+       "name-production": {
+        "value": "Production"
+       },
+       "start-production": {
+        "value": "2026-08-17"
+       },
+       "snap-production": {
+        "checked": true
+       },
+       "weeks-production": {
+        "value": "104"
+       },
+       "phiatus-en-production": {
+        "checked": false
+       },
+       "phiatus-name-production": {
+        "value": ""
+       },
+       "phiatus-start-production": {
+        "value": ""
+       },
+       "phiatus-weeks-production": {
+        "value": "2"
+       },
+       "simpost-enabled": {
+        "checked": false
+       },
+       "simpost-offset": {
+        "value": "0"
+       },
+       "simpost-count": {
+        "checked": false
+       },
+       "name-post": {
+        "value": "Post"
+       },
+       "start-post": {
+        "value": "2026-11-02"
+       },
+       "unit-post": {
+        "value": "weeks"
+       },
+       "weeks-post": {
+        "value": "16"
+       },
+       "end-post": {
+        "value": ""
+       },
+       "snap-post": {
+        "checked": true
+       },
+       "phiatus-en-post": {
+        "checked": false
+       },
+       "phiatus-name-post": {
+        "value": ""
+       },
+       "phiatus-start-post": {
+        "value": ""
+       },
+       "phiatus-weeks-post": {
+        "value": "2"
+       },
+       "name-localization": {
+        "value": "Localization"
+       },
+       "start-localization": {
+        "value": "2027-03-01"
+       },
+       "unit-localization": {
+        "value": "weeks"
+       },
+       "weeks-localization": {
+        "value": "8"
+       },
+       "end-localization": {
+        "value": ""
+       },
+       "snap-localization": {
+        "checked": true
+       },
+       "phiatus-en-localization": {
+        "checked": false
+       },
+       "phiatus-name-localization": {
+        "value": ""
+       },
+       "phiatus-start-localization": {
+        "value": ""
+       },
+       "phiatus-weeks-localization": {
+        "value": "2"
+       }
+      },
+      "hiatuses": [
+       {
+        "start": "2026-12-21",
+        "weeks": "2",
+        "locked": true,
+        "name": ""
+       },
+       {
+        "start": "2027-12-20",
+        "weeks": "2",
+        "locked": true,
+        "name": ""
+       },
+       {
+        "start": "2028-12-18",
+        "weeks": "2",
+        "locked": true,
+        "name": ""
+       },
+       {
+        "start": "2029-12-17",
+        "weeks": "2",
+        "locked": true,
+        "name": ""
+       }
+      ]
+     }
+    }
+   },
+   {
+    "id": "s9",
+    "name": "Shoot +8 wk, 10 eps",
+    "snapshot": {
+     "version": 1,
+     "customPhaseDefs": [],
+     "customPhaseCounter": 0,
+     "phaseColorOverride": {},
+     "episodeDefs": [
+      {
+       "id": "ep1",
+       "name": "Episode 201",
+       "days": 8,
+       "nameEdited": false,
+       "daysEdited": false
+      },
+      {
+       "id": "ep2",
+       "name": "Episode 202",
+       "days": 8,
+       "nameEdited": false,
+       "daysEdited": false
+      },
+      {
+       "id": "ep3",
+       "name": "Episode 203",
+       "days": 8,
+       "nameEdited": false,
+       "daysEdited": false
+      },
+      {
+       "id": "ep4",
+       "name": "Episode 204",
+       "days": 8,
+       "nameEdited": false,
+       "daysEdited": false
+      },
+      {
+       "id": "ep5",
+       "name": "Episode 205",
+       "days": 8,
+       "nameEdited": false,
+       "daysEdited": false
+      },
+      {
+       "id": "ep6",
+       "name": "Episode 206",
+       "days": 8,
+       "nameEdited": false,
+       "daysEdited": false
+      },
+      {
+       "id": "ep7",
+       "name": "Episode 207",
+       "days": 8,
+       "nameEdited": false,
+       "daysEdited": false
+      },
+      {
+       "id": "ep8",
+       "name": "Episode 208",
+       "days": 8,
+       "nameEdited": false,
+       "daysEdited": false
+      },
+      {
+       "id": "ep9",
+       "name": "Episode 209",
+       "days": 8,
+       "nameEdited": false,
+       "daysEdited": false
+      },
+      {
+       "id": "ep10",
+       "name": "Episode 210",
+       "days": 8,
+       "nameEdited": false,
+       "daysEdited": false
+      }
+     ],
+     "episodeCounter": 16,
+     "blockDefs": [],
+     "blockCounter": 0,
+     "blockAssignEdited": false,
+     "episodeShootOrder": [],
+     "userNotes": {},
+     "dayNotes": {},
+     "mvExtraLanes": {},
+     "dayNoteColors": {},
+     "dayOverrides": {},
+     "headerMode": "auto",
+     "headerManual": {},
+     "headerTemplates": false,
+     "mvHeaderMode": "auto",
+     "mvHeaderManual": {},
+     "mvHeaderTemplates": false,
+     "headerFormat": {},
+     "mvHeaderFormat": {},
+     "noteColors": {},
+     "noteFontSize": {},
+     "hiatusTexts": {},
+     "hiatusColors": {},
+     "hiatusFontSize": {},
+     "hiatusNameSyncedKeys": {},
+     "holidayView": {},
+     "holidayOff": {},
+     "customHolidays": [],
+     "viewMode": "sheet",
+     "singleColumn": false,
+     "sidebarTab": "show",
+     "fillSpaceOff": true,
+     "colWidths": {},
+     "colWidthsAlt": {},
+     "rowHeights": {},
+     "rowHeightsByWeek": {},
+     "cellSpans": {},
+     "gridColSwaps": {},
+     "gridStintSwaps": {},
+     "colReuse": true,
+     "colKeep": {
+      "production": "prodPrep"
+     },
+     "lastEdited": "2026-11-13T07:49:37.585Z",
+     "fields": {
+      "byId": {
+       "show-title": {
+        "value": "Test Show"
+       },
+       "season-num": {
+        "value": "2"
+       },
+       "show-mode": {
+        "value": "episodes"
+       },
+       "shoot-days-per-ep": {
+        "value": "8"
+       },
+       "num-episodes": {
+        "value": "10"
+       },
+       "num-blocks": {
+        "value": ""
+       },
+       "days-per-block": {
+        "value": ""
+       },
+       "show-version": {
+        "value": ""
+       },
+       "show-location": {
+        "value": ""
+       },
+       "cal-range-start": {
+        "value": ""
+       },
+       "cal-range-end": {
+        "value": ""
+       },
+       "union-place": {
+        "value": "us-general"
+       },
+       "custom-hol-name": {
+        "value": ""
+       },
+       "custom-hol-date": {
+        "value": ""
+       },
+       "name-writersRoom": {
+        "value": "Writer's Rm"
+       },
+       "start-writersRoom": {
+        "value": "2026-01-05"
+       },
+       "unit-writersRoom": {
+        "value": "weeks"
+       },
+       "weeks-writersRoom": {
+        "value": "12"
+       },
+       "end-writersRoom": {
+        "value": ""
+       },
+       "snap-writersRoom": {
+        "checked": true
+       },
+       "phiatus-en-writersRoom": {
+        "checked": false
+       },
+       "phiatus-name-writersRoom": {
+        "value": ""
+       },
+       "phiatus-start-writersRoom": {
+        "value": ""
+       },
+       "phiatus-weeks-writersRoom": {
+        "value": "2"
+       },
+       "name-prePrep": {
+        "value": "Pre Prep"
+       },
+       "start-prePrep": {
+        "value": "2026-04-06"
+       },
+       "unit-prePrep": {
+        "value": "weeks"
+       },
+       "weeks-prePrep": {
+        "value": "6"
+       },
+       "end-prePrep": {
+        "value": ""
+       },
+       "snap-prePrep": {
+        "checked": true
+       },
+       "phiatus-en-prePrep": {
+        "checked": false
+       },
+       "phiatus-name-prePrep": {
+        "value": ""
+       },
+       "phiatus-start-prePrep": {
+        "value": ""
+       },
+       "phiatus-weeks-prePrep": {
+        "value": "2"
+       },
+       "name-prodPrep": {
+        "value": "Prod Prep"
+       },
+       "start-prodPrep": {
+        "value": "2026-05-18"
+       },
+       "unit-prodPrep": {
+        "value": "weeks"
+       },
+       "weeks-prodPrep": {
+        "value": "6"
+       },
+       "end-prodPrep": {
+        "value": ""
+       },
+       "snap-prodPrep": {
+        "checked": true
+       },
+       "phiatus-en-prodPrep": {
+        "checked": false
+       },
+       "phiatus-name-prodPrep": {
+        "value": ""
+       },
+       "phiatus-start-prodPrep": {
+        "value": ""
+       },
+       "phiatus-weeks-prodPrep": {
+        "value": "2"
+       },
+       "prep-name": {
+        "value": "Episodic Prep"
+       },
+       "prep-days": {
+        "value": ""
+       },
+       "name-production": {
+        "value": "Production"
+       },
+       "start-production": {
+        "value": "2026-08-24"
+       },
+       "snap-production": {
+        "checked": true
+       },
+       "weeks-production": {
+        "value": "80"
+       },
+       "phiatus-en-production": {
+        "checked": false
+       },
+       "phiatus-name-production": {
+        "value": ""
+       },
+       "phiatus-start-production": {
+        "value": ""
+       },
+       "phiatus-weeks-production": {
+        "value": "2"
+       },
+       "simpost-enabled": {
+        "checked": false
+       },
+       "simpost-offset": {
+        "value": "0"
+       },
+       "simpost-count": {
+        "checked": false
+       },
+       "name-post": {
+        "value": "Post"
+       },
+       "start-post": {
+        "value": "2026-11-02"
+       },
+       "unit-post": {
+        "value": "weeks"
+       },
+       "weeks-post": {
+        "value": "16"
+       },
+       "end-post": {
+        "value": ""
+       },
+       "snap-post": {
+        "checked": true
+       },
+       "phiatus-en-post": {
+        "checked": false
+       },
+       "phiatus-name-post": {
+        "value": ""
+       },
+       "phiatus-start-post": {
+        "value": ""
+       },
+       "phiatus-weeks-post": {
+        "value": "2"
+       },
+       "name-localization": {
+        "value": "Localization"
+       },
+       "start-localization": {
+        "value": "2027-03-01"
+       },
+       "unit-localization": {
+        "value": "weeks"
+       },
+       "weeks-localization": {
+        "value": "8"
+       },
+       "end-localization": {
+        "value": ""
+       },
+       "snap-localization": {
+        "checked": true
+       },
+       "phiatus-en-localization": {
+        "checked": false
+       },
+       "phiatus-name-localization": {
+        "value": ""
+       },
+       "phiatus-start-localization": {
+        "value": ""
+       },
+       "phiatus-weeks-localization": {
+        "value": "2"
+       }
+      },
+      "hiatuses": [
+       {
+        "start": "2026-12-21",
+        "weeks": "2",
+        "locked": true,
+        "name": ""
+       },
+       {
+        "start": "2027-12-20",
+        "weeks": "2",
+        "locked": true,
+        "name": ""
+       },
+       {
+        "start": "2028-12-18",
+        "weeks": "2",
+        "locked": true,
+        "name": ""
+       },
+       {
+        "start": "2029-12-17",
+        "weeks": "2",
+        "locked": true,
+        "name": ""
+       }
+      ]
+     }
+    }
+   },
+   {
+    "id": "s10",
+    "name": "Shoot +9 wk, 11 eps",
+    "snapshot": {
+     "version": 1,
+     "customPhaseDefs": [],
+     "customPhaseCounter": 0,
+     "phaseColorOverride": {},
+     "episodeDefs": [
+      {
+       "id": "ep1",
+       "name": "Episode 201",
+       "days": 8,
+       "nameEdited": false,
+       "daysEdited": false
+      },
+      {
+       "id": "ep2",
+       "name": "Episode 202",
+       "days": 8,
+       "nameEdited": false,
+       "daysEdited": false
+      },
+      {
+       "id": "ep3",
+       "name": "Episode 203",
+       "days": 8,
+       "nameEdited": false,
+       "daysEdited": false
+      },
+      {
+       "id": "ep4",
+       "name": "Episode 204",
+       "days": 8,
+       "nameEdited": false,
+       "daysEdited": false
+      },
+      {
+       "id": "ep5",
+       "name": "Episode 205",
+       "days": 8,
+       "nameEdited": false,
+       "daysEdited": false
+      },
+      {
+       "id": "ep6",
+       "name": "Episode 206",
+       "days": 8,
+       "nameEdited": false,
+       "daysEdited": false
+      },
+      {
+       "id": "ep7",
+       "name": "Episode 207",
+       "days": 8,
+       "nameEdited": false,
+       "daysEdited": false
+      },
+      {
+       "id": "ep8",
+       "name": "Episode 208",
+       "days": 8,
+       "nameEdited": false,
+       "daysEdited": false
+      },
+      {
+       "id": "ep9",
+       "name": "Episode 209",
+       "days": 8,
+       "nameEdited": false,
+       "daysEdited": false
+      },
+      {
+       "id": "ep10",
+       "name": "Episode 210",
+       "days": 8,
+       "nameEdited": false,
+       "daysEdited": false
+      },
+      {
+       "id": "ep17",
+       "name": "Episode 211",
+       "days": 8,
+       "nameEdited": false,
+       "daysEdited": false
+      }
+     ],
+     "episodeCounter": 17,
+     "blockDefs": [],
+     "blockCounter": 0,
+     "blockAssignEdited": false,
+     "episodeShootOrder": [],
+     "userNotes": {},
+     "dayNotes": {},
+     "mvExtraLanes": {},
+     "dayNoteColors": {},
+     "dayOverrides": {},
+     "headerMode": "auto",
+     "headerManual": {},
+     "headerTemplates": false,
+     "mvHeaderMode": "auto",
+     "mvHeaderManual": {},
+     "mvHeaderTemplates": false,
+     "headerFormat": {},
+     "mvHeaderFormat": {},
+     "noteColors": {},
+     "noteFontSize": {},
+     "hiatusTexts": {},
+     "hiatusColors": {},
+     "hiatusFontSize": {},
+     "hiatusNameSyncedKeys": {},
+     "holidayView": {},
+     "holidayOff": {},
+     "customHolidays": [],
+     "viewMode": "sheet",
+     "singleColumn": false,
+     "sidebarTab": "show",
+     "fillSpaceOff": true,
+     "colWidths": {},
+     "colWidthsAlt": {},
+     "rowHeights": {},
+     "rowHeightsByWeek": {},
+     "cellSpans": {},
+     "gridColSwaps": {},
+     "gridStintSwaps": {},
+     "colReuse": true,
+     "colKeep": {
+      "production": "prodPrep"
+     },
+     "lastEdited": "2026-11-13T07:49:38.446Z",
+     "fields": {
+      "byId": {
+       "show-title": {
+        "value": "Test Show"
+       },
+       "season-num": {
+        "value": "2"
+       },
+       "show-mode": {
+        "value": "episodes"
+       },
+       "shoot-days-per-ep": {
+        "value": "8"
+       },
+       "num-episodes": {
+        "value": "11"
+       },
+       "num-blocks": {
+        "value": ""
+       },
+       "days-per-block": {
+        "value": ""
+       },
+       "show-version": {
+        "value": ""
+       },
+       "show-location": {
+        "value": ""
+       },
+       "cal-range-start": {
+        "value": ""
+       },
+       "cal-range-end": {
+        "value": ""
+       },
+       "union-place": {
+        "value": "us-general"
+       },
+       "custom-hol-name": {
+        "value": ""
+       },
+       "custom-hol-date": {
+        "value": ""
+       },
+       "name-writersRoom": {
+        "value": "Writer's Rm"
+       },
+       "start-writersRoom": {
+        "value": "2026-01-05"
+       },
+       "unit-writersRoom": {
+        "value": "weeks"
+       },
+       "weeks-writersRoom": {
+        "value": "12"
+       },
+       "end-writersRoom": {
+        "value": ""
+       },
+       "snap-writersRoom": {
+        "checked": true
+       },
+       "phiatus-en-writersRoom": {
+        "checked": false
+       },
+       "phiatus-name-writersRoom": {
+        "value": ""
+       },
+       "phiatus-start-writersRoom": {
+        "value": ""
+       },
+       "phiatus-weeks-writersRoom": {
+        "value": "2"
+       },
+       "name-prePrep": {
+        "value": "Pre Prep"
+       },
+       "start-prePrep": {
+        "value": "2026-04-06"
+       },
+       "unit-prePrep": {
+        "value": "weeks"
+       },
+       "weeks-prePrep": {
+        "value": "6"
+       },
+       "end-prePrep": {
+        "value": ""
+       },
+       "snap-prePrep": {
+        "checked": true
+       },
+       "phiatus-en-prePrep": {
+        "checked": false
+       },
+       "phiatus-name-prePrep": {
+        "value": ""
+       },
+       "phiatus-start-prePrep": {
+        "value": ""
+       },
+       "phiatus-weeks-prePrep": {
+        "value": "2"
+       },
+       "name-prodPrep": {
+        "value": "Prod Prep"
+       },
+       "start-prodPrep": {
+        "value": "2026-05-18"
+       },
+       "unit-prodPrep": {
+        "value": "weeks"
+       },
+       "weeks-prodPrep": {
+        "value": "6"
+       },
+       "end-prodPrep": {
+        "value": ""
+       },
+       "snap-prodPrep": {
+        "checked": true
+       },
+       "phiatus-en-prodPrep": {
+        "checked": false
+       },
+       "phiatus-name-prodPrep": {
+        "value": ""
+       },
+       "phiatus-start-prodPrep": {
+        "value": ""
+       },
+       "phiatus-weeks-prodPrep": {
+        "value": "2"
+       },
+       "prep-name": {
+        "value": "Episodic Prep"
+       },
+       "prep-days": {
+        "value": ""
+       },
+       "name-production": {
+        "value": "Production"
+       },
+       "start-production": {
+        "value": "2026-08-31"
+       },
+       "snap-production": {
+        "checked": true
+       },
+       "weeks-production": {
+        "value": "88"
+       },
+       "phiatus-en-production": {
+        "checked": false
+       },
+       "phiatus-name-production": {
+        "value": ""
+       },
+       "phiatus-start-production": {
+        "value": ""
+       },
+       "phiatus-weeks-production": {
+        "value": "2"
+       },
+       "simpost-enabled": {
+        "checked": false
+       },
+       "simpost-offset": {
+        "value": "0"
+       },
+       "simpost-count": {
+        "checked": false
+       },
+       "name-post": {
+        "value": "Post"
+       },
+       "start-post": {
+        "value": "2026-11-02"
+       },
+       "unit-post": {
+        "value": "weeks"
+       },
+       "weeks-post": {
+        "value": "16"
+       },
+       "end-post": {
+        "value": ""
+       },
+       "snap-post": {
+        "checked": true
+       },
+       "phiatus-en-post": {
+        "checked": false
+       },
+       "phiatus-name-post": {
+        "value": ""
+       },
+       "phiatus-start-post": {
+        "value": ""
+       },
+       "phiatus-weeks-post": {
+        "value": "2"
+       },
+       "name-localization": {
+        "value": "Localization"
+       },
+       "start-localization": {
+        "value": "2027-03-01"
+       },
+       "unit-localization": {
+        "value": "weeks"
+       },
+       "weeks-localization": {
+        "value": "8"
+       },
+       "end-localization": {
+        "value": ""
+       },
+       "snap-localization": {
+        "checked": true
+       },
+       "phiatus-en-localization": {
+        "checked": false
+       },
+       "phiatus-name-localization": {
+        "value": ""
+       },
+       "phiatus-start-localization": {
+        "value": ""
+       },
+       "phiatus-weeks-localization": {
+        "value": "2"
+       }
+      },
+      "hiatuses": [
+       {
+        "start": "2026-12-21",
+        "weeks": "2",
+        "locked": true,
+        "name": ""
+       },
+       {
+        "start": "2027-12-20",
+        "weeks": "2",
+        "locked": true,
+        "name": ""
+       },
+       {
+        "start": "2028-12-18",
+        "weeks": "2",
+        "locked": true,
+        "name": ""
+       },
+       {
+        "start": "2029-12-17",
+        "weeks": "2",
+        "locked": true,
+        "name": ""
+       }
+      ]
+     }
+    }
+   },
+   {
+    "id": "s11",
+    "name": "Shoot +10 wk, 12 eps",
+    "snapshot": {
+     "version": 1,
+     "customPhaseDefs": [],
+     "customPhaseCounter": 0,
+     "phaseColorOverride": {},
+     "episodeDefs": [
+      {
+       "id": "ep1",
+       "name": "Episode 201",
+       "days": 8,
+       "nameEdited": false,
+       "daysEdited": false
+      },
+      {
+       "id": "ep2",
+       "name": "Episode 202",
+       "days": 8,
+       "nameEdited": false,
+       "daysEdited": false
+      },
+      {
+       "id": "ep3",
+       "name": "Episode 203",
+       "days": 8,
+       "nameEdited": false,
+       "daysEdited": false
+      },
+      {
+       "id": "ep4",
+       "name": "Episode 204",
+       "days": 8,
+       "nameEdited": false,
+       "daysEdited": false
+      },
+      {
+       "id": "ep5",
+       "name": "Episode 205",
+       "days": 8,
+       "nameEdited": false,
+       "daysEdited": false
+      },
+      {
+       "id": "ep6",
+       "name": "Episode 206",
+       "days": 8,
+       "nameEdited": false,
+       "daysEdited": false
+      },
+      {
+       "id": "ep7",
+       "name": "Episode 207",
+       "days": 8,
+       "nameEdited": false,
+       "daysEdited": false
+      },
+      {
+       "id": "ep8",
+       "name": "Episode 208",
+       "days": 8,
+       "nameEdited": false,
+       "daysEdited": false
+      },
+      {
+       "id": "ep9",
+       "name": "Episode 209",
+       "days": 8,
+       "nameEdited": false,
+       "daysEdited": false
+      },
+      {
+       "id": "ep10",
+       "name": "Episode 210",
+       "days": 8,
+       "nameEdited": false,
+       "daysEdited": false
+      },
+      {
+       "id": "ep17",
+       "name": "Episode 211",
+       "days": 8,
+       "nameEdited": false,
+       "daysEdited": false
+      },
+      {
+       "id": "ep18",
+       "name": "Episode 212",
+       "days": 8,
+       "nameEdited": false,
+       "daysEdited": false
+      }
+     ],
+     "episodeCounter": 18,
+     "blockDefs": [],
+     "blockCounter": 0,
+     "blockAssignEdited": false,
+     "episodeShootOrder": [],
+     "userNotes": {},
+     "dayNotes": {},
+     "mvExtraLanes": {},
+     "dayNoteColors": {},
+     "dayOverrides": {},
+     "headerMode": "auto",
+     "headerManual": {},
+     "headerTemplates": false,
+     "mvHeaderMode": "auto",
+     "mvHeaderManual": {},
+     "mvHeaderTemplates": false,
+     "headerFormat": {},
+     "mvHeaderFormat": {},
+     "noteColors": {},
+     "noteFontSize": {},
+     "hiatusTexts": {},
+     "hiatusColors": {},
+     "hiatusFontSize": {},
+     "hiatusNameSyncedKeys": {},
+     "holidayView": {},
+     "holidayOff": {},
+     "customHolidays": [],
+     "viewMode": "sheet",
+     "singleColumn": false,
+     "sidebarTab": "show",
+     "fillSpaceOff": true,
+     "colWidths": {},
+     "colWidthsAlt": {},
+     "rowHeights": {},
+     "rowHeightsByWeek": {},
+     "cellSpans": {},
+     "gridColSwaps": {},
+     "gridStintSwaps": {},
+     "colReuse": true,
+     "colKeep": {
+      "production": "prodPrep"
+     },
+     "lastEdited": "2026-11-13T07:49:39.307Z",
+     "fields": {
+      "byId": {
+       "show-title": {
+        "value": "Test Show"
+       },
+       "season-num": {
+        "value": "2"
+       },
+       "show-mode": {
+        "value": "episodes"
+       },
+       "shoot-days-per-ep": {
+        "value": "8"
+       },
+       "num-episodes": {
+        "value": "12"
+       },
+       "num-blocks": {
+        "value": ""
+       },
+       "days-per-block": {
+        "value": ""
+       },
+       "show-version": {
+        "value": ""
+       },
+       "show-location": {
+        "value": ""
+       },
+       "cal-range-start": {
+        "value": ""
+       },
+       "cal-range-end": {
+        "value": ""
+       },
+       "union-place": {
+        "value": "us-general"
+       },
+       "custom-hol-name": {
+        "value": ""
+       },
+       "custom-hol-date": {
+        "value": ""
+       },
+       "name-writersRoom": {
+        "value": "Writer's Rm"
+       },
+       "start-writersRoom": {
+        "value": "2026-01-05"
+       },
+       "unit-writersRoom": {
+        "value": "weeks"
+       },
+       "weeks-writersRoom": {
+        "value": "12"
+       },
+       "end-writersRoom": {
+        "value": ""
+       },
+       "snap-writersRoom": {
+        "checked": true
+       },
+       "phiatus-en-writersRoom": {
+        "checked": false
+       },
+       "phiatus-name-writersRoom": {
+        "value": ""
+       },
+       "phiatus-start-writersRoom": {
+        "value": ""
+       },
+       "phiatus-weeks-writersRoom": {
+        "value": "2"
+       },
+       "name-prePrep": {
+        "value": "Pre Prep"
+       },
+       "start-prePrep": {
+        "value": "2026-04-06"
+       },
+       "unit-prePrep": {
+        "value": "weeks"
+       },
+       "weeks-prePrep": {
+        "value": "6"
+       },
+       "end-prePrep": {
+        "value": ""
+       },
+       "snap-prePrep": {
+        "checked": true
+       },
+       "phiatus-en-prePrep": {
+        "checked": false
+       },
+       "phiatus-name-prePrep": {
+        "value": ""
+       },
+       "phiatus-start-prePrep": {
+        "value": ""
+       },
+       "phiatus-weeks-prePrep": {
+        "value": "2"
+       },
+       "name-prodPrep": {
+        "value": "Prod Prep"
+       },
+       "start-prodPrep": {
+        "value": "2026-05-18"
+       },
+       "unit-prodPrep": {
+        "value": "weeks"
+       },
+       "weeks-prodPrep": {
+        "value": "6"
+       },
+       "end-prodPrep": {
+        "value": ""
+       },
+       "snap-prodPrep": {
+        "checked": true
+       },
+       "phiatus-en-prodPrep": {
+        "checked": false
+       },
+       "phiatus-name-prodPrep": {
+        "value": ""
+       },
+       "phiatus-start-prodPrep": {
+        "value": ""
+       },
+       "phiatus-weeks-prodPrep": {
+        "value": "2"
+       },
+       "prep-name": {
+        "value": "Episodic Prep"
+       },
+       "prep-days": {
+        "value": ""
+       },
+       "name-production": {
+        "value": "Production"
+       },
+       "start-production": {
+        "value": "2026-09-07"
+       },
+       "snap-production": {
+        "checked": true
+       },
+       "weeks-production": {
+        "value": "96"
+       },
+       "phiatus-en-production": {
+        "checked": false
+       },
+       "phiatus-name-production": {
+        "value": ""
+       },
+       "phiatus-start-production": {
+        "value": ""
+       },
+       "phiatus-weeks-production": {
+        "value": "2"
+       },
+       "simpost-enabled": {
+        "checked": false
+       },
+       "simpost-offset": {
+        "value": "0"
+       },
+       "simpost-count": {
+        "checked": false
+       },
+       "name-post": {
+        "value": "Post"
+       },
+       "start-post": {
+        "value": "2026-11-02"
+       },
+       "unit-post": {
+        "value": "weeks"
+       },
+       "weeks-post": {
+        "value": "16"
+       },
+       "end-post": {
+        "value": ""
+       },
+       "snap-post": {
+        "checked": true
+       },
+       "phiatus-en-post": {
+        "checked": false
+       },
+       "phiatus-name-post": {
+        "value": ""
+       },
+       "phiatus-start-post": {
+        "value": ""
+       },
+       "phiatus-weeks-post": {
+        "value": "2"
+       },
+       "name-localization": {
+        "value": "Localization"
+       },
+       "start-localization": {
+        "value": "2027-03-01"
+       },
+       "unit-localization": {
+        "value": "weeks"
+       },
+       "weeks-localization": {
+        "value": "8"
+       },
+       "end-localization": {
+        "value": ""
+       },
+       "snap-localization": {
+        "checked": true
+       },
+       "phiatus-en-localization": {
+        "checked": false
+       },
+       "phiatus-name-localization": {
+        "value": ""
+       },
+       "phiatus-start-localization": {
+        "value": ""
+       },
+       "phiatus-weeks-localization": {
+        "value": "2"
+       }
+      },
+      "hiatuses": [
+       {
+        "start": "2026-12-21",
+        "weeks": "2",
+        "locked": true,
+        "name": ""
+       },
+       {
+        "start": "2027-12-20",
+        "weeks": "2",
+        "locked": true,
+        "name": ""
+       },
+       {
+        "start": "2028-12-18",
+        "weeks": "2",
+        "locked": true,
+        "name": ""
+       },
+       {
+        "start": "2029-12-17",
+        "weeks": "2",
+        "locked": true,
+        "name": ""
+       }
+      ]
+     }
+    }
+   },
+   {
+    "id": "s12",
+    "name": "Shoot +11 wk, 13 eps",
+    "snapshot": {
+     "version": 1,
+     "customPhaseDefs": [],
+     "customPhaseCounter": 0,
+     "phaseColorOverride": {},
+     "episodeDefs": [
+      {
+       "id": "ep1",
+       "name": "Episode 201",
+       "days": 8,
+       "nameEdited": false,
+       "daysEdited": false
+      },
+      {
+       "id": "ep2",
+       "name": "Episode 202",
+       "days": 8,
+       "nameEdited": false,
+       "daysEdited": false
+      },
+      {
+       "id": "ep3",
+       "name": "Episode 203",
+       "days": 8,
+       "nameEdited": false,
+       "daysEdited": false
+      },
+      {
+       "id": "ep4",
+       "name": "Episode 204",
+       "days": 8,
+       "nameEdited": false,
+       "daysEdited": false
+      },
+      {
+       "id": "ep5",
+       "name": "Episode 205",
+       "days": 8,
+       "nameEdited": false,
+       "daysEdited": false
+      },
+      {
+       "id": "ep6",
+       "name": "Episode 206",
+       "days": 8,
+       "nameEdited": false,
+       "daysEdited": false
+      },
+      {
+       "id": "ep7",
+       "name": "Episode 207",
+       "days": 8,
+       "nameEdited": false,
+       "daysEdited": false
+      },
+      {
+       "id": "ep8",
+       "name": "Episode 208",
+       "days": 8,
+       "nameEdited": false,
+       "daysEdited": false
+      },
+      {
+       "id": "ep9",
+       "name": "Episode 209",
+       "days": 8,
+       "nameEdited": false,
+       "daysEdited": false
+      },
+      {
+       "id": "ep10",
+       "name": "Episode 210",
+       "days": 8,
+       "nameEdited": false,
+       "daysEdited": false
+      },
+      {
+       "id": "ep17",
+       "name": "Episode 211",
+       "days": 8,
+       "nameEdited": false,
+       "daysEdited": false
+      },
+      {
+       "id": "ep18",
+       "name": "Episode 212",
+       "days": 8,
+       "nameEdited": false,
+       "daysEdited": false
+      },
+      {
+       "id": "ep19",
+       "name": "Episode 213",
+       "days": 8,
+       "nameEdited": false,
+       "daysEdited": false
+      }
+     ],
+     "episodeCounter": 19,
+     "blockDefs": [],
+     "blockCounter": 0,
+     "blockAssignEdited": false,
+     "episodeShootOrder": [],
+     "userNotes": {},
+     "dayNotes": {},
+     "mvExtraLanes": {},
+     "dayNoteColors": {},
+     "dayOverrides": {},
+     "headerMode": "auto",
+     "headerManual": {},
+     "headerTemplates": false,
+     "mvHeaderMode": "auto",
+     "mvHeaderManual": {},
+     "mvHeaderTemplates": false,
+     "headerFormat": {},
+     "mvHeaderFormat": {},
+     "noteColors": {},
+     "noteFontSize": {},
+     "hiatusTexts": {},
+     "hiatusColors": {},
+     "hiatusFontSize": {},
+     "hiatusNameSyncedKeys": {},
+     "holidayView": {},
+     "holidayOff": {},
+     "customHolidays": [],
+     "viewMode": "sheet",
+     "singleColumn": false,
+     "sidebarTab": "show",
+     "fillSpaceOff": true,
+     "colWidths": {},
+     "colWidthsAlt": {},
+     "rowHeights": {},
+     "rowHeightsByWeek": {},
+     "cellSpans": {},
+     "gridColSwaps": {},
+     "gridStintSwaps": {},
+     "colReuse": true,
+     "colKeep": {
+      "production": "prodPrep"
+     },
+     "lastEdited": "2026-11-13T07:49:40.167Z",
+     "fields": {
+      "byId": {
+       "show-title": {
+        "value": "Test Show"
+       },
+       "season-num": {
+        "value": "2"
+       },
+       "show-mode": {
+        "value": "episodes"
+       },
+       "shoot-days-per-ep": {
+        "value": "8"
+       },
+       "num-episodes": {
+        "value": "13"
+       },
+       "num-blocks": {
+        "value": ""
+       },
+       "days-per-block": {
+        "value": ""
+       },
+       "show-version": {
+        "value": ""
+       },
+       "show-location": {
+        "value": ""
+       },
+       "cal-range-start": {
+        "value": ""
+       },
+       "cal-range-end": {
+        "value": ""
+       },
+       "union-place": {
+        "value": "us-general"
+       },
+       "custom-hol-name": {
+        "value": ""
+       },
+       "custom-hol-date": {
+        "value": ""
+       },
+       "name-writersRoom": {
+        "value": "Writer's Rm"
+       },
+       "start-writersRoom": {
+        "value": "2026-01-05"
+       },
+       "unit-writersRoom": {
+        "value": "weeks"
+       },
+       "weeks-writersRoom": {
+        "value": "12"
+       },
+       "end-writersRoom": {
+        "value": ""
+       },
+       "snap-writersRoom": {
+        "checked": true
+       },
+       "phiatus-en-writersRoom": {
+        "checked": false
+       },
+       "phiatus-name-writersRoom": {
+        "value": ""
+       },
+       "phiatus-start-writersRoom": {
+        "value": ""
+       },
+       "phiatus-weeks-writersRoom": {
+        "value": "2"
+       },
+       "name-prePrep": {
+        "value": "Pre Prep"
+       },
+       "start-prePrep": {
+        "value": "2026-04-06"
+       },
+       "unit-prePrep": {
+        "value": "weeks"
+       },
+       "weeks-prePrep": {
+        "value": "6"
+       },
+       "end-prePrep": {
+        "value": ""
+       },
+       "snap-prePrep": {
+        "checked": true
+       },
+       "phiatus-en-prePrep": {
+        "checked": false
+       },
+       "phiatus-name-prePrep": {
+        "value": ""
+       },
+       "phiatus-start-prePrep": {
+        "value": ""
+       },
+       "phiatus-weeks-prePrep": {
+        "value": "2"
+       },
+       "name-prodPrep": {
+        "value": "Prod Prep"
+       },
+       "start-prodPrep": {
+        "value": "2026-05-18"
+       },
+       "unit-prodPrep": {
+        "value": "weeks"
+       },
+       "weeks-prodPrep": {
+        "value": "6"
+       },
+       "end-prodPrep": {
+        "value": ""
+       },
+       "snap-prodPrep": {
+        "checked": true
+       },
+       "phiatus-en-prodPrep": {
+        "checked": false
+       },
+       "phiatus-name-prodPrep": {
+        "value": ""
+       },
+       "phiatus-start-prodPrep": {
+        "value": ""
+       },
+       "phiatus-weeks-prodPrep": {
+        "value": "2"
+       },
+       "prep-name": {
+        "value": "Episodic Prep"
+       },
+       "prep-days": {
+        "value": ""
+       },
+       "name-production": {
+        "value": "Production"
+       },
+       "start-production": {
+        "value": "2026-09-14"
+       },
+       "snap-production": {
+        "checked": true
+       },
+       "weeks-production": {
+        "value": "104"
+       },
+       "phiatus-en-production": {
+        "checked": false
+       },
+       "phiatus-name-production": {
+        "value": ""
+       },
+       "phiatus-start-production": {
+        "value": ""
+       },
+       "phiatus-weeks-production": {
+        "value": "2"
+       },
+       "simpost-enabled": {
+        "checked": false
+       },
+       "simpost-offset": {
+        "value": "0"
+       },
+       "simpost-count": {
+        "checked": false
+       },
+       "name-post": {
+        "value": "Post"
+       },
+       "start-post": {
+        "value": "2026-11-02"
+       },
+       "unit-post": {
+        "value": "weeks"
+       },
+       "weeks-post": {
+        "value": "16"
+       },
+       "end-post": {
+        "value": ""
+       },
+       "snap-post": {
+        "checked": true
+       },
+       "phiatus-en-post": {
+        "checked": false
+       },
+       "phiatus-name-post": {
+        "value": ""
+       },
+       "phiatus-start-post": {
+        "value": ""
+       },
+       "phiatus-weeks-post": {
+        "value": "2"
+       },
+       "name-localization": {
+        "value": "Localization"
+       },
+       "start-localization": {
+        "value": "2027-03-01"
+       },
+       "unit-localization": {
+        "value": "weeks"
+       },
+       "weeks-localization": {
+        "value": "8"
+       },
+       "end-localization": {
+        "value": ""
+       },
+       "snap-localization": {
+        "checked": true
+       },
+       "phiatus-en-localization": {
+        "checked": false
+       },
+       "phiatus-name-localization": {
+        "value": ""
+       },
+       "phiatus-start-localization": {
+        "value": ""
+       },
+       "phiatus-weeks-localization": {
+        "value": "2"
+       }
+      },
+      "hiatuses": [
+       {
+        "start": "2026-12-21",
+        "weeks": "2",
+        "locked": true,
+        "name": ""
+       },
+       {
+        "start": "2027-12-20",
+        "weeks": "2",
+        "locked": true,
+        "name": ""
+       },
+       {
+        "start": "2028-12-18",
+        "weeks": "2",
+        "locked": true,
+        "name": ""
+       },
+       {
+        "start": "2029-12-17",
+        "weeks": "2",
+        "locked": true,
+        "name": ""
+       }
+      ]
+     }
+    }
+   },
+   {
+    "id": "s13",
+    "name": "Shoot +12 wk, 10 eps",
+    "snapshot": {
+     "version": 1,
+     "customPhaseDefs": [],
+     "customPhaseCounter": 0,
+     "phaseColorOverride": {},
+     "episodeDefs": [
+      {
+       "id": "ep1",
+       "name": "Episode 201",
+       "days": 8,
+       "nameEdited": false,
+       "daysEdited": false
+      },
+      {
+       "id": "ep2",
+       "name": "Episode 202",
+       "days": 8,
+       "nameEdited": false,
+       "daysEdited": false
+      },
+      {
+       "id": "ep3",
+       "name": "Episode 203",
+       "days": 8,
+       "nameEdited": false,
+       "daysEdited": false
+      },
+      {
+       "id": "ep4",
+       "name": "Episode 204",
+       "days": 8,
+       "nameEdited": false,
+       "daysEdited": false
+      },
+      {
+       "id": "ep5",
+       "name": "Episode 205",
+       "days": 8,
+       "nameEdited": false,
+       "daysEdited": false
+      },
+      {
+       "id": "ep6",
+       "name": "Episode 206",
+       "days": 8,
+       "nameEdited": false,
+       "daysEdited": false
+      },
+      {
+       "id": "ep7",
+       "name": "Episode 207",
+       "days": 8,
+       "nameEdited": false,
+       "daysEdited": false
+      },
+      {
+       "id": "ep8",
+       "name": "Episode 208",
+       "days": 8,
+       "nameEdited": false,
+       "daysEdited": false
+      },
+      {
+       "id": "ep9",
+       "name": "Episode 209",
+       "days": 8,
+       "nameEdited": false,
+       "daysEdited": false
+      },
+      {
+       "id": "ep10",
+       "name": "Episode 210",
+       "days": 8,
+       "nameEdited": false,
+       "daysEdited": false
+      }
+     ],
+     "episodeCounter": 19,
+     "blockDefs": [],
+     "blockCounter": 0,
+     "blockAssignEdited": false,
+     "episodeShootOrder": [],
+     "userNotes": {},
+     "dayNotes": {},
+     "mvExtraLanes": {},
+     "dayNoteColors": {},
+     "dayOverrides": {},
+     "headerMode": "auto",
+     "headerManual": {},
+     "headerTemplates": false,
+     "mvHeaderMode": "auto",
+     "mvHeaderManual": {},
+     "mvHeaderTemplates": false,
+     "headerFormat": {},
+     "mvHeaderFormat": {},
+     "noteColors": {},
+     "noteFontSize": {},
+     "hiatusTexts": {},
+     "hiatusColors": {},
+     "hiatusFontSize": {},
+     "hiatusNameSyncedKeys": {},
+     "holidayView": {},
+     "holidayOff": {},
+     "customHolidays": [],
+     "viewMode": "sheet",
+     "singleColumn": false,
+     "sidebarTab": "show",
+     "fillSpaceOff": true,
+     "colWidths": {},
+     "colWidthsAlt": {},
+     "rowHeights": {},
+     "rowHeightsByWeek": {},
+     "cellSpans": {},
+     "gridColSwaps": {},
+     "gridStintSwaps": {},
+     "colReuse": true,
+     "colKeep": {
+      "production": "prodPrep"
+     },
+     "lastEdited": "2026-11-13T07:49:41.023Z",
+     "fields": {
+      "byId": {
+       "show-title": {
+        "value": "Test Show"
+       },
+       "season-num": {
+        "value": "2"
+       },
+       "show-mode": {
+        "value": "episodes"
+       },
+       "shoot-days-per-ep": {
+        "value": "8"
+       },
+       "num-episodes": {
+        "value": "10"
+       },
+       "num-blocks": {
+        "value": ""
+       },
+       "days-per-block": {
+        "value": ""
+       },
+       "show-version": {
+        "value": ""
+       },
+       "show-location": {
+        "value": ""
+       },
+       "cal-range-start": {
+        "value": ""
+       },
+       "cal-range-end": {
+        "value": ""
+       },
+       "union-place": {
+        "value": "us-general"
+       },
+       "custom-hol-name": {
+        "value": ""
+       },
+       "custom-hol-date": {
+        "value": ""
+       },
+       "name-writersRoom": {
+        "value": "Writer's Rm"
+       },
+       "start-writersRoom": {
+        "value": "2026-01-05"
+       },
+       "unit-writersRoom": {
+        "value": "weeks"
+       },
+       "weeks-writersRoom": {
+        "value": "12"
+       },
+       "end-writersRoom": {
+        "value": ""
+       },
+       "snap-writersRoom": {
+        "checked": true
+       },
+       "phiatus-en-writersRoom": {
+        "checked": false
+       },
+       "phiatus-name-writersRoom": {
+        "value": ""
+       },
+       "phiatus-start-writersRoom": {
+        "value": ""
+       },
+       "phiatus-weeks-writersRoom": {
+        "value": "2"
+       },
+       "name-prePrep": {
+        "value": "Pre Prep"
+       },
+       "start-prePrep": {
+        "value": "2026-04-06"
+       },
+       "unit-prePrep": {
+        "value": "weeks"
+       },
+       "weeks-prePrep": {
+        "value": "6"
+       },
+       "end-prePrep": {
+        "value": ""
+       },
+       "snap-prePrep": {
+        "checked": true
+       },
+       "phiatus-en-prePrep": {
+        "checked": false
+       },
+       "phiatus-name-prePrep": {
+        "value": ""
+       },
+       "phiatus-start-prePrep": {
+        "value": ""
+       },
+       "phiatus-weeks-prePrep": {
+        "value": "2"
+       },
+       "name-prodPrep": {
+        "value": "Prod Prep"
+       },
+       "start-prodPrep": {
+        "value": "2026-05-18"
+       },
+       "unit-prodPrep": {
+        "value": "weeks"
+       },
+       "weeks-prodPrep": {
+        "value": "6"
+       },
+       "end-prodPrep": {
+        "value": ""
+       },
+       "snap-prodPrep": {
+        "checked": true
+       },
+       "phiatus-en-prodPrep": {
+        "checked": false
+       },
+       "phiatus-name-prodPrep": {
+        "value": ""
+       },
+       "phiatus-start-prodPrep": {
+        "value": ""
+       },
+       "phiatus-weeks-prodPrep": {
+        "value": "2"
+       },
+       "prep-name": {
+        "value": "Episodic Prep"
+       },
+       "prep-days": {
+        "value": ""
+       },
+       "name-production": {
+        "value": "Production"
+       },
+       "start-production": {
+        "value": "2026-09-21"
+       },
+       "snap-production": {
+        "checked": true
+       },
+       "weeks-production": {
+        "value": "80"
+       },
+       "phiatus-en-production": {
+        "checked": false
+       },
+       "phiatus-name-production": {
+        "value": ""
+       },
+       "phiatus-start-production": {
+        "value": ""
+       },
+       "phiatus-weeks-production": {
+        "value": "2"
+       },
+       "simpost-enabled": {
+        "checked": false
+       },
+       "simpost-offset": {
+        "value": "0"
+       },
+       "simpost-count": {
+        "checked": false
+       },
+       "name-post": {
+        "value": "Post"
+       },
+       "start-post": {
+        "value": "2026-11-02"
+       },
+       "unit-post": {
+        "value": "weeks"
+       },
+       "weeks-post": {
+        "value": "16"
+       },
+       "end-post": {
+        "value": ""
+       },
+       "snap-post": {
+        "checked": true
+       },
+       "phiatus-en-post": {
+        "checked": false
+       },
+       "phiatus-name-post": {
+        "value": ""
+       },
+       "phiatus-start-post": {
+        "value": ""
+       },
+       "phiatus-weeks-post": {
+        "value": "2"
+       },
+       "name-localization": {
+        "value": "Localization"
+       },
+       "start-localization": {
+        "value": "2027-03-01"
+       },
+       "unit-localization": {
+        "value": "weeks"
+       },
+       "weeks-localization": {
+        "value": "8"
+       },
+       "end-localization": {
+        "value": ""
+       },
+       "snap-localization": {
+        "checked": true
+       },
+       "phiatus-en-localization": {
+        "checked": false
+       },
+       "phiatus-name-localization": {
+        "value": ""
+       },
+       "phiatus-start-localization": {
+        "value": ""
+       },
+       "phiatus-weeks-localization": {
+        "value": "2"
+       }
+      },
+      "hiatuses": [
+       {
+        "start": "2026-12-21",
+        "weeks": "2",
+        "locked": true,
+        "name": ""
+       },
+       {
+        "start": "2027-12-20",
+        "weeks": "2",
+        "locked": true,
+        "name": ""
+       },
+       {
+        "start": "2028-12-18",
+        "weeks": "2",
+        "locked": true,
+        "name": ""
+       },
+       {
+        "start": "2029-12-17",
+        "weeks": "2",
+        "locked": true,
+        "name": ""
+       }
+      ]
+     }
+    }
+   },
+   {
+    "id": "s14",
+    "name": "Shoot +13 wk, 11 eps",
+    "snapshot": {
+     "version": 1,
+     "customPhaseDefs": [],
+     "customPhaseCounter": 0,
+     "phaseColorOverride": {},
+     "episodeDefs": [
+      {
+       "id": "ep1",
+       "name": "Episode 201",
+       "days": 8,
+       "nameEdited": false,
+       "daysEdited": false
+      },
+      {
+       "id": "ep2",
+       "name": "Episode 202",
+       "days": 8,
+       "nameEdited": false,
+       "daysEdited": false
+      },
+      {
+       "id": "ep3",
+       "name": "Episode 203",
+       "days": 8,
+       "nameEdited": false,
+       "daysEdited": false
+      },
+      {
+       "id": "ep4",
+       "name": "Episode 204",
+       "days": 8,
+       "nameEdited": false,
+       "daysEdited": false
+      },
+      {
+       "id": "ep5",
+       "name": "Episode 205",
+       "days": 8,
+       "nameEdited": false,
+       "daysEdited": false
+      },
+      {
+       "id": "ep6",
+       "name": "Episode 206",
+       "days": 8,
+       "nameEdited": false,
+       "daysEdited": false
+      },
+      {
+       "id": "ep7",
+       "name": "Episode 207",
+       "days": 8,
+       "nameEdited": false,
+       "daysEdited": false
+      },
+      {
+       "id": "ep8",
+       "name": "Episode 208",
+       "days": 8,
+       "nameEdited": false,
+       "daysEdited": false
+      },
+      {
+       "id": "ep9",
+       "name": "Episode 209",
+       "days": 8,
+       "nameEdited": false,
+       "daysEdited": false
+      },
+      {
+       "id": "ep10",
+       "name": "Episode 210",
+       "days": 8,
+       "nameEdited": false,
+       "daysEdited": false
+      },
+      {
+       "id": "ep20",
+       "name": "Episode 211",
+       "days": 8,
+       "nameEdited": false,
+       "daysEdited": false
+      }
+     ],
+     "episodeCounter": 20,
+     "blockDefs": [],
+     "blockCounter": 0,
+     "blockAssignEdited": false,
+     "episodeShootOrder": [],
+     "userNotes": {},
+     "dayNotes": {},
+     "mvExtraLanes": {},
+     "dayNoteColors": {},
+     "dayOverrides": {},
+     "headerMode": "auto",
+     "headerManual": {},
+     "headerTemplates": false,
+     "mvHeaderMode": "auto",
+     "mvHeaderManual": {},
+     "mvHeaderTemplates": false,
+     "headerFormat": {},
+     "mvHeaderFormat": {},
+     "noteColors": {},
+     "noteFontSize": {},
+     "hiatusTexts": {},
+     "hiatusColors": {},
+     "hiatusFontSize": {},
+     "hiatusNameSyncedKeys": {},
+     "holidayView": {},
+     "holidayOff": {},
+     "customHolidays": [],
+     "viewMode": "sheet",
+     "singleColumn": false,
+     "sidebarTab": "show",
+     "fillSpaceOff": true,
+     "colWidths": {},
+     "colWidthsAlt": {},
+     "rowHeights": {},
+     "rowHeightsByWeek": {},
+     "cellSpans": {},
+     "gridColSwaps": {},
+     "gridStintSwaps": {},
+     "colReuse": true,
+     "colKeep": {
+      "production": "prodPrep"
+     },
+     "lastEdited": "2026-11-13T07:49:41.879Z",
+     "fields": {
+      "byId": {
+       "show-title": {
+        "value": "Test Show"
+       },
+       "season-num": {
+        "value": "2"
+       },
+       "show-mode": {
+        "value": "episodes"
+       },
+       "shoot-days-per-ep": {
+        "value": "8"
+       },
+       "num-episodes": {
+        "value": "11"
+       },
+       "num-blocks": {
+        "value": ""
+       },
+       "days-per-block": {
+        "value": ""
+       },
+       "show-version": {
+        "value": ""
+       },
+       "show-location": {
+        "value": ""
+       },
+       "cal-range-start": {
+        "value": ""
+       },
+       "cal-range-end": {
+        "value": ""
+       },
+       "union-place": {
+        "value": "us-general"
+       },
+       "custom-hol-name": {
+        "value": ""
+       },
+       "custom-hol-date": {
+        "value": ""
+       },
+       "name-writersRoom": {
+        "value": "Writer's Rm"
+       },
+       "start-writersRoom": {
+        "value": "2026-01-05"
+       },
+       "unit-writersRoom": {
+        "value": "weeks"
+       },
+       "weeks-writersRoom": {
+        "value": "12"
+       },
+       "end-writersRoom": {
+        "value": ""
+       },
+       "snap-writersRoom": {
+        "checked": true
+       },
+       "phiatus-en-writersRoom": {
+        "checked": false
+       },
+       "phiatus-name-writersRoom": {
+        "value": ""
+       },
+       "phiatus-start-writersRoom": {
+        "value": ""
+       },
+       "phiatus-weeks-writersRoom": {
+        "value": "2"
+       },
+       "name-prePrep": {
+        "value": "Pre Prep"
+       },
+       "start-prePrep": {
+        "value": "2026-04-06"
+       },
+       "unit-prePrep": {
+        "value": "weeks"
+       },
+       "weeks-prePrep": {
+        "value": "6"
+       },
+       "end-prePrep": {
+        "value": ""
+       },
+       "snap-prePrep": {
+        "checked": true
+       },
+       "phiatus-en-prePrep": {
+        "checked": false
+       },
+       "phiatus-name-prePrep": {
+        "value": ""
+       },
+       "phiatus-start-prePrep": {
+        "value": ""
+       },
+       "phiatus-weeks-prePrep": {
+        "value": "2"
+       },
+       "name-prodPrep": {
+        "value": "Prod Prep"
+       },
+       "start-prodPrep": {
+        "value": "2026-05-18"
+       },
+       "unit-prodPrep": {
+        "value": "weeks"
+       },
+       "weeks-prodPrep": {
+        "value": "6"
+       },
+       "end-prodPrep": {
+        "value": ""
+       },
+       "snap-prodPrep": {
+        "checked": true
+       },
+       "phiatus-en-prodPrep": {
+        "checked": false
+       },
+       "phiatus-name-prodPrep": {
+        "value": ""
+       },
+       "phiatus-start-prodPrep": {
+        "value": ""
+       },
+       "phiatus-weeks-prodPrep": {
+        "value": "2"
+       },
+       "prep-name": {
+        "value": "Episodic Prep"
+       },
+       "prep-days": {
+        "value": ""
+       },
+       "name-production": {
+        "value": "Production"
+       },
+       "start-production": {
+        "value": "2026-09-28"
+       },
+       "snap-production": {
+        "checked": true
+       },
+       "weeks-production": {
+        "value": "88"
+       },
+       "phiatus-en-production": {
+        "checked": false
+       },
+       "phiatus-name-production": {
+        "value": ""
+       },
+       "phiatus-start-production": {
+        "value": ""
+       },
+       "phiatus-weeks-production": {
+        "value": "2"
+       },
+       "simpost-enabled": {
+        "checked": false
+       },
+       "simpost-offset": {
+        "value": "0"
+       },
+       "simpost-count": {
+        "checked": false
+       },
+       "name-post": {
+        "value": "Post"
+       },
+       "start-post": {
+        "value": "2026-11-02"
+       },
+       "unit-post": {
+        "value": "weeks"
+       },
+       "weeks-post": {
+        "value": "16"
+       },
+       "end-post": {
+        "value": ""
+       },
+       "snap-post": {
+        "checked": true
+       },
+       "phiatus-en-post": {
+        "checked": false
+       },
+       "phiatus-name-post": {
+        "value": ""
+       },
+       "phiatus-start-post": {
+        "value": ""
+       },
+       "phiatus-weeks-post": {
+        "value": "2"
+       },
+       "name-localization": {
+        "value": "Localization"
+       },
+       "start-localization": {
+        "value": "2027-03-01"
+       },
+       "unit-localization": {
+        "value": "weeks"
+       },
+       "weeks-localization": {
+        "value": "8"
+       },
+       "end-localization": {
+        "value": ""
+       },
+       "snap-localization": {
+        "checked": true
+       },
+       "phiatus-en-localization": {
+        "checked": false
+       },
+       "phiatus-name-localization": {
+        "value": ""
+       },
+       "phiatus-start-localization": {
+        "value": ""
+       },
+       "phiatus-weeks-localization": {
+        "value": "2"
+       }
+      },
+      "hiatuses": [
+       {
+        "start": "2026-12-21",
+        "weeks": "2",
+        "locked": true,
+        "name": ""
+       },
+       {
+        "start": "2027-12-20",
+        "weeks": "2",
+        "locked": true,
+        "name": ""
+       },
+       {
+        "start": "2028-12-18",
+        "weeks": "2",
+        "locked": true,
+        "name": ""
+       },
+       {
+        "start": "2029-12-17",
+        "weeks": "2",
+        "locked": true,
+        "name": ""
+       }
+      ]
+     }
+    }
+   },
+   {
+    "id": "s15",
+    "name": "Shoot +14 wk, 12 eps",
+    "snapshot": {
+     "version": 1,
+     "customPhaseDefs": [],
+     "customPhaseCounter": 0,
+     "phaseColorOverride": {},
+     "episodeDefs": [
+      {
+       "id": "ep1",
+       "name": "Episode 201",
+       "days": 8,
+       "nameEdited": false,
+       "daysEdited": false
+      },
+      {
+       "id": "ep2",
+       "name": "Episode 202",
+       "days": 8,
+       "nameEdited": false,
+       "daysEdited": false
+      },
+      {
+       "id": "ep3",
+       "name": "Episode 203",
+       "days": 8,
+       "nameEdited": false,
+       "daysEdited": false
+      },
+      {
+       "id": "ep4",
+       "name": "Episode 204",
+       "days": 8,
+       "nameEdited": false,
+       "daysEdited": false
+      },
+      {
+       "id": "ep5",
+       "name": "Episode 205",
+       "days": 8,
+       "nameEdited": false,
+       "daysEdited": false
+      },
+      {
+       "id": "ep6",
+       "name": "Episode 206",
+       "days": 8,
+       "nameEdited": false,
+       "daysEdited": false
+      },
+      {
+       "id": "ep7",
+       "name": "Episode 207",
+       "days": 8,
+       "nameEdited": false,
+       "daysEdited": false
+      },
+      {
+       "id": "ep8",
+       "name": "Episode 208",
+       "days": 8,
+       "nameEdited": false,
+       "daysEdited": false
+      },
+      {
+       "id": "ep9",
+       "name": "Episode 209",
+       "days": 8,
+       "nameEdited": false,
+       "daysEdited": false
+      },
+      {
+       "id": "ep10",
+       "name": "Episode 210",
+       "days": 8,
+       "nameEdited": false,
+       "daysEdited": false
+      },
+      {
+       "id": "ep20",
+       "name": "Episode 211",
+       "days": 8,
+       "nameEdited": false,
+       "daysEdited": false
+      },
+      {
+       "id": "ep21",
+       "name": "Episode 212",
+       "days": 8,
+       "nameEdited": false,
+       "daysEdited": false
+      }
+     ],
+     "episodeCounter": 21,
+     "blockDefs": [],
+     "blockCounter": 0,
+     "blockAssignEdited": false,
+     "episodeShootOrder": [],
+     "userNotes": {},
+     "dayNotes": {},
+     "mvExtraLanes": {},
+     "dayNoteColors": {},
+     "dayOverrides": {},
+     "headerMode": "auto",
+     "headerManual": {},
+     "headerTemplates": false,
+     "mvHeaderMode": "auto",
+     "mvHeaderManual": {},
+     "mvHeaderTemplates": false,
+     "headerFormat": {},
+     "mvHeaderFormat": {},
+     "noteColors": {},
+     "noteFontSize": {},
+     "hiatusTexts": {},
+     "hiatusColors": {},
+     "hiatusFontSize": {},
+     "hiatusNameSyncedKeys": {},
+     "holidayView": {},
+     "holidayOff": {},
+     "customHolidays": [],
+     "viewMode": "sheet",
+     "singleColumn": false,
+     "sidebarTab": "show",
+     "fillSpaceOff": true,
+     "colWidths": {},
+     "colWidthsAlt": {},
+     "rowHeights": {},
+     "rowHeightsByWeek": {},
+     "cellSpans": {},
+     "gridColSwaps": {},
+     "gridStintSwaps": {},
+     "colReuse": true,
+     "colKeep": {
+      "production": "prodPrep"
+     },
+     "lastEdited": "2026-11-13T07:49:42.740Z",
+     "fields": {
+      "byId": {
+       "show-title": {
+        "value": "Test Show"
+       },
+       "season-num": {
+        "value": "2"
+       },
+       "show-mode": {
+        "value": "episodes"
+       },
+       "shoot-days-per-ep": {
+        "value": "8"
+       },
+       "num-episodes": {
+        "value": "12"
+       },
+       "num-blocks": {
+        "value": ""
+       },
+       "days-per-block": {
+        "value": ""
+       },
+       "show-version": {
+        "value": ""
+       },
+       "show-location": {
+        "value": ""
+       },
+       "cal-range-start": {
+        "value": ""
+       },
+       "cal-range-end": {
+        "value": ""
+       },
+       "union-place": {
+        "value": "us-general"
+       },
+       "custom-hol-name": {
+        "value": ""
+       },
+       "custom-hol-date": {
+        "value": ""
+       },
+       "name-writersRoom": {
+        "value": "Writer's Rm"
+       },
+       "start-writersRoom": {
+        "value": "2026-01-05"
+       },
+       "unit-writersRoom": {
+        "value": "weeks"
+       },
+       "weeks-writersRoom": {
+        "value": "12"
+       },
+       "end-writersRoom": {
+        "value": ""
+       },
+       "snap-writersRoom": {
+        "checked": true
+       },
+       "phiatus-en-writersRoom": {
+        "checked": false
+       },
+       "phiatus-name-writersRoom": {
+        "value": ""
+       },
+       "phiatus-start-writersRoom": {
+        "value": ""
+       },
+       "phiatus-weeks-writersRoom": {
+        "value": "2"
+       },
+       "name-prePrep": {
+        "value": "Pre Prep"
+       },
+       "start-prePrep": {
+        "value": "2026-04-06"
+       },
+       "unit-prePrep": {
+        "value": "weeks"
+       },
+       "weeks-prePrep": {
+        "value": "6"
+       },
+       "end-prePrep": {
+        "value": ""
+       },
+       "snap-prePrep": {
+        "checked": true
+       },
+       "phiatus-en-prePrep": {
+        "checked": false
+       },
+       "phiatus-name-prePrep": {
+        "value": ""
+       },
+       "phiatus-start-prePrep": {
+        "value": ""
+       },
+       "phiatus-weeks-prePrep": {
+        "value": "2"
+       },
+       "name-prodPrep": {
+        "value": "Prod Prep"
+       },
+       "start-prodPrep": {
+        "value": "2026-05-18"
+       },
+       "unit-prodPrep": {
+        "value": "weeks"
+       },
+       "weeks-prodPrep": {
+        "value": "6"
+       },
+       "end-prodPrep": {
+        "value": ""
+       },
+       "snap-prodPrep": {
+        "checked": true
+       },
+       "phiatus-en-prodPrep": {
+        "checked": false
+       },
+       "phiatus-name-prodPrep": {
+        "value": ""
+       },
+       "phiatus-start-prodPrep": {
+        "value": ""
+       },
+       "phiatus-weeks-prodPrep": {
+        "value": "2"
+       },
+       "prep-name": {
+        "value": "Episodic Prep"
+       },
+       "prep-days": {
+        "value": ""
+       },
+       "name-production": {
+        "value": "Production"
+       },
+       "start-production": {
+        "value": "2026-10-05"
+       },
+       "snap-production": {
+        "checked": true
+       },
+       "weeks-production": {
+        "value": "96"
+       },
+       "phiatus-en-production": {
+        "checked": false
+       },
+       "phiatus-name-production": {
+        "value": ""
+       },
+       "phiatus-start-production": {
+        "value": ""
+       },
+       "phiatus-weeks-production": {
+        "value": "2"
+       },
+       "simpost-enabled": {
+        "checked": false
+       },
+       "simpost-offset": {
+        "value": "0"
+       },
+       "simpost-count": {
+        "checked": false
+       },
+       "name-post": {
+        "value": "Post"
+       },
+       "start-post": {
+        "value": "2026-11-02"
+       },
+       "unit-post": {
+        "value": "weeks"
+       },
+       "weeks-post": {
+        "value": "16"
+       },
+       "end-post": {
+        "value": ""
+       },
+       "snap-post": {
+        "checked": true
+       },
+       "phiatus-en-post": {
+        "checked": false
+       },
+       "phiatus-name-post": {
+        "value": ""
+       },
+       "phiatus-start-post": {
+        "value": ""
+       },
+       "phiatus-weeks-post": {
+        "value": "2"
+       },
+       "name-localization": {
+        "value": "Localization"
+       },
+       "start-localization": {
+        "value": "2027-03-01"
+       },
+       "unit-localization": {
+        "value": "weeks"
+       },
+       "weeks-localization": {
+        "value": "8"
+       },
+       "end-localization": {
+        "value": ""
+       },
+       "snap-localization": {
+        "checked": true
+       },
+       "phiatus-en-localization": {
+        "checked": false
+       },
+       "phiatus-name-localization": {
+        "value": ""
+       },
+       "phiatus-start-localization": {
+        "value": ""
+       },
+       "phiatus-weeks-localization": {
+        "value": "2"
+       }
+      },
+      "hiatuses": [
+       {
+        "start": "2026-12-21",
+        "weeks": "2",
+        "locked": true,
+        "name": ""
+       },
+       {
+        "start": "2027-12-20",
+        "weeks": "2",
+        "locked": true,
+        "name": ""
+       },
+       {
+        "start": "2028-12-18",
+        "weeks": "2",
+        "locked": true,
+        "name": ""
+       },
+       {
+        "start": "2029-12-17",
+        "weeks": "2",
+        "locked": true,
+        "name": ""
+       }
+      ]
+     }
+    }
+   },
+   {
+    "id": "s16",
+    "name": "Shoot +15 wk, 13 eps",
+    "snapshot": {
+     "version": 1,
+     "customPhaseDefs": [],
+     "customPhaseCounter": 0,
+     "phaseColorOverride": {},
+     "episodeDefs": [
+      {
+       "id": "ep1",
+       "name": "Episode 201",
+       "days": 8,
+       "nameEdited": false,
+       "daysEdited": false
+      },
+      {
+       "id": "ep2",
+       "name": "Episode 202",
+       "days": 8,
+       "nameEdited": false,
+       "daysEdited": false
+      },
+      {
+       "id": "ep3",
+       "name": "Episode 203",
+       "days": 8,
+       "nameEdited": false,
+       "daysEdited": false
+      },
+      {
+       "id": "ep4",
+       "name": "Episode 204",
+       "days": 8,
+       "nameEdited": false,
+       "daysEdited": false
+      },
+      {
+       "id": "ep5",
+       "name": "Episode 205",
+       "days": 8,
+       "nameEdited": false,
+       "daysEdited": false
+      },
+      {
+       "id": "ep6",
+       "name": "Episode 206",
+       "days": 8,
+       "nameEdited": false,
+       "daysEdited": false
+      },
+      {
+       "id": "ep7",
+       "name": "Episode 207",
+       "days": 8,
+       "nameEdited": false,
+       "daysEdited": false
+      },
+      {
+       "id": "ep8",
+       "name": "Episode 208",
+       "days": 8,
+       "nameEdited": false,
+       "daysEdited": false
+      },
+      {
+       "id": "ep9",
+       "name": "Episode 209",
+       "days": 8,
+       "nameEdited": false,
+       "daysEdited": false
+      },
+      {
+       "id": "ep10",
+       "name": "Episode 210",
+       "days": 8,
+       "nameEdited": false,
+       "daysEdited": false
+      },
+      {
+       "id": "ep20",
+       "name": "Episode 211",
+       "days": 8,
+       "nameEdited": false,
+       "daysEdited": false
+      },
+      {
+       "id": "ep21",
+       "name": "Episode 212",
+       "days": 8,
+       "nameEdited": false,
+       "daysEdited": false
+      },
+      {
+       "id": "ep22",
+       "name": "Episode 213",
+       "days": 8,
+       "nameEdited": false,
+       "daysEdited": false
+      }
+     ],
+     "episodeCounter": 22,
+     "blockDefs": [],
+     "blockCounter": 0,
+     "blockAssignEdited": false,
+     "episodeShootOrder": [],
+     "userNotes": {},
+     "dayNotes": {},
+     "mvExtraLanes": {},
+     "dayNoteColors": {},
+     "dayOverrides": {},
+     "headerMode": "auto",
+     "headerManual": {},
+     "headerTemplates": false,
+     "mvHeaderMode": "auto",
+     "mvHeaderManual": {},
+     "mvHeaderTemplates": false,
+     "headerFormat": {},
+     "mvHeaderFormat": {},
+     "noteColors": {},
+     "noteFontSize": {},
+     "hiatusTexts": {},
+     "hiatusColors": {},
+     "hiatusFontSize": {},
+     "hiatusNameSyncedKeys": {},
+     "holidayView": {},
+     "holidayOff": {},
+     "customHolidays": [],
+     "viewMode": "sheet",
+     "singleColumn": false,
+     "sidebarTab": "show",
+     "fillSpaceOff": true,
+     "colWidths": {},
+     "colWidthsAlt": {},
+     "rowHeights": {},
+     "rowHeightsByWeek": {},
+     "cellSpans": {},
+     "gridColSwaps": {},
+     "gridStintSwaps": {},
+     "colReuse": true,
+     "colKeep": {
+      "production": "prodPrep"
+     },
+     "lastEdited": "2026-11-13T07:49:43.602Z",
+     "fields": {
+      "byId": {
+       "show-title": {
+        "value": "Test Show"
+       },
+       "season-num": {
+        "value": "2"
+       },
+       "show-mode": {
+        "value": "episodes"
+       },
+       "shoot-days-per-ep": {
+        "value": "8"
+       },
+       "num-episodes": {
+        "value": "13"
+       },
+       "num-blocks": {
+        "value": ""
+       },
+       "days-per-block": {
+        "value": ""
+       },
+       "show-version": {
+        "value": ""
+       },
+       "show-location": {
+        "value": ""
+       },
+       "cal-range-start": {
+        "value": ""
+       },
+       "cal-range-end": {
+        "value": ""
+       },
+       "union-place": {
+        "value": "us-general"
+       },
+       "custom-hol-name": {
+        "value": ""
+       },
+       "custom-hol-date": {
+        "value": ""
+       },
+       "name-writersRoom": {
+        "value": "Writer's Rm"
+       },
+       "start-writersRoom": {
+        "value": "2026-01-05"
+       },
+       "unit-writersRoom": {
+        "value": "weeks"
+       },
+       "weeks-writersRoom": {
+        "value": "12"
+       },
+       "end-writersRoom": {
+        "value": ""
+       },
+       "snap-writersRoom": {
+        "checked": true
+       },
+       "phiatus-en-writersRoom": {
+        "checked": false
+       },
+       "phiatus-name-writersRoom": {
+        "value": ""
+       },
+       "phiatus-start-writersRoom": {
+        "value": ""
+       },
+       "phiatus-weeks-writersRoom": {
+        "value": "2"
+       },
+       "name-prePrep": {
+        "value": "Pre Prep"
+       },
+       "start-prePrep": {
+        "value": "2026-04-06"
+       },
+       "unit-prePrep": {
+        "value": "weeks"
+       },
+       "weeks-prePrep": {
+        "value": "6"
+       },
+       "end-prePrep": {
+        "value": ""
+       },
+       "snap-prePrep": {
+        "checked": true
+       },
+       "phiatus-en-prePrep": {
+        "checked": false
+       },
+       "phiatus-name-prePrep": {
+        "value": ""
+       },
+       "phiatus-start-prePrep": {
+        "value": ""
+       },
+       "phiatus-weeks-prePrep": {
+        "value": "2"
+       },
+       "name-prodPrep": {
+        "value": "Prod Prep"
+       },
+       "start-prodPrep": {
+        "value": "2026-05-18"
+       },
+       "unit-prodPrep": {
+        "value": "weeks"
+       },
+       "weeks-prodPrep": {
+        "value": "6"
+       },
+       "end-prodPrep": {
+        "value": ""
+       },
+       "snap-prodPrep": {
+        "checked": true
+       },
+       "phiatus-en-prodPrep": {
+        "checked": false
+       },
+       "phiatus-name-prodPrep": {
+        "value": ""
+       },
+       "phiatus-start-prodPrep": {
+        "value": ""
+       },
+       "phiatus-weeks-prodPrep": {
+        "value": "2"
+       },
+       "prep-name": {
+        "value": "Episodic Prep"
+       },
+       "prep-days": {
+        "value": ""
+       },
+       "name-production": {
+        "value": "Production"
+       },
+       "start-production": {
+        "value": "2026-10-12"
+       },
+       "snap-production": {
+        "checked": true
+       },
+       "weeks-production": {
+        "value": "104"
+       },
+       "phiatus-en-production": {
+        "checked": false
+       },
+       "phiatus-name-production": {
+        "value": ""
+       },
+       "phiatus-start-production": {
+        "value": ""
+       },
+       "phiatus-weeks-production": {
+        "value": "2"
+       },
+       "simpost-enabled": {
+        "checked": false
+       },
+       "simpost-offset": {
+        "value": "0"
+       },
+       "simpost-count": {
+        "checked": false
+       },
+       "name-post": {
+        "value": "Post"
+       },
+       "start-post": {
+        "value": "2026-11-02"
+       },
+       "unit-post": {
+        "value": "weeks"
+       },
+       "weeks-post": {
+        "value": "16"
+       },
+       "end-post": {
+        "value": ""
+       },
+       "snap-post": {
+        "checked": true
+       },
+       "phiatus-en-post": {
+        "checked": false
+       },
+       "phiatus-name-post": {
+        "value": ""
+       },
+       "phiatus-start-post": {
+        "value": ""
+       },
+       "phiatus-weeks-post": {
+        "value": "2"
+       },
+       "name-localization": {
+        "value": "Localization"
+       },
+       "start-localization": {
+        "value": "2027-03-01"
+       },
+       "unit-localization": {
+        "value": "weeks"
+       },
+       "weeks-localization": {
+        "value": "8"
+       },
+       "end-localization": {
+        "value": ""
+       },
+       "snap-localization": {
+        "checked": true
+       },
+       "phiatus-en-localization": {
+        "checked": false
+       },
+       "phiatus-name-localization": {
+        "value": ""
+       },
+       "phiatus-start-localization": {
+        "value": ""
+       },
+       "phiatus-weeks-localization": {
+        "value": "2"
+       }
+      },
+      "hiatuses": [
+       {
+        "start": "2026-12-21",
+        "weeks": "2",
+        "locked": true,
+        "name": ""
+       },
+       {
+        "start": "2027-12-20",
+        "weeks": "2",
+        "locked": true,
+        "name": ""
+       },
+       {
+        "start": "2028-12-18",
+        "weeks": "2",
+        "locked": true,
+        "name": ""
+       },
+       {
+        "start": "2029-12-17",
+        "weeks": "2",
+        "locked": true,
+        "name": ""
+       }
+      ]
+     }
+    }
+   },
+   {
+    "id": "s17",
+    "name": "Shoot +16 wk, 10 eps",
+    "snapshot": {
+     "version": 1,
+     "customPhaseDefs": [],
+     "customPhaseCounter": 0,
+     "phaseColorOverride": {},
+     "episodeDefs": [
+      {
+       "id": "ep1",
+       "name": "Episode 201",
+       "days": 8,
+       "nameEdited": false,
+       "daysEdited": false
+      },
+      {
+       "id": "ep2",
+       "name": "Episode 202",
+       "days": 8,
+       "nameEdited": false,
+       "daysEdited": false
+      },
+      {
+       "id": "ep3",
+       "name": "Episode 203",
+       "days": 8,
+       "nameEdited": false,
+       "daysEdited": false
+      },
+      {
+       "id": "ep4",
+       "name": "Episode 204",
+       "days": 8,
+       "nameEdited": false,
+       "daysEdited": false
+      },
+      {
+       "id": "ep5",
+       "name": "Episode 205",
+       "days": 8,
+       "nameEdited": false,
+       "daysEdited": false
+      },
+      {
+       "id": "ep6",
+       "name": "Episode 206",
+       "days": 8,
+       "nameEdited": false,
+       "daysEdited": false
+      },
+      {
+       "id": "ep7",
+       "name": "Episode 207",
+       "days": 8,
+       "nameEdited": false,
+       "daysEdited": false
+      },
+      {
+       "id": "ep8",
+       "name": "Episode 208",
+       "days": 8,
+       "nameEdited": false,
+       "daysEdited": false
+      },
+      {
+       "id": "ep9",
+       "name": "Episode 209",
+       "days": 8,
+       "nameEdited": false,
+       "daysEdited": false
+      },
+      {
+       "id": "ep10",
+       "name": "Episode 210",
+       "days": 8,
+       "nameEdited": false,
+       "daysEdited": false
+      }
+     ],
+     "episodeCounter": 22,
+     "blockDefs": [],
+     "blockCounter": 0,
+     "blockAssignEdited": false,
+     "episodeShootOrder": [],
+     "userNotes": {},
+     "dayNotes": {},
+     "mvExtraLanes": {},
+     "dayNoteColors": {},
+     "dayOverrides": {},
+     "headerMode": "auto",
+     "headerManual": {},
+     "headerTemplates": false,
+     "mvHeaderMode": "auto",
+     "mvHeaderManual": {},
+     "mvHeaderTemplates": false,
+     "headerFormat": {},
+     "mvHeaderFormat": {},
+     "noteColors": {},
+     "noteFontSize": {},
+     "hiatusTexts": {},
+     "hiatusColors": {},
+     "hiatusFontSize": {},
+     "hiatusNameSyncedKeys": {},
+     "holidayView": {},
+     "holidayOff": {},
+     "customHolidays": [],
+     "viewMode": "sheet",
+     "singleColumn": false,
+     "sidebarTab": "show",
+     "fillSpaceOff": true,
+     "colWidths": {},
+     "colWidthsAlt": {},
+     "rowHeights": {},
+     "rowHeightsByWeek": {},
+     "cellSpans": {},
+     "gridColSwaps": {},
+     "gridStintSwaps": {},
+     "colReuse": true,
+     "colKeep": {
+      "production": "prodPrep"
+     },
+     "lastEdited": "2026-11-13T07:49:44.463Z",
+     "fields": {
+      "byId": {
+       "show-title": {
+        "value": "Test Show"
+       },
+       "season-num": {
+        "value": "2"
+       },
+       "show-mode": {
+        "value": "episodes"
+       },
+       "shoot-days-per-ep": {
+        "value": "8"
+       },
+       "num-episodes": {
+        "value": "10"
+       },
+       "num-blocks": {
+        "value": ""
+       },
+       "days-per-block": {
+        "value": ""
+       },
+       "show-version": {
+        "value": ""
+       },
+       "show-location": {
+        "value": ""
+       },
+       "cal-range-start": {
+        "value": ""
+       },
+       "cal-range-end": {
+        "value": ""
+       },
+       "union-place": {
+        "value": "us-general"
+       },
+       "custom-hol-name": {
+        "value": ""
+       },
+       "custom-hol-date": {
+        "value": ""
+       },
+       "name-writersRoom": {
+        "value": "Writer's Rm"
+       },
+       "start-writersRoom": {
+        "value": "2026-01-05"
+       },
+       "unit-writersRoom": {
+        "value": "weeks"
+       },
+       "weeks-writersRoom": {
+        "value": "12"
+       },
+       "end-writersRoom": {
+        "value": ""
+       },
+       "snap-writersRoom": {
+        "checked": true
+       },
+       "phiatus-en-writersRoom": {
+        "checked": false
+       },
+       "phiatus-name-writersRoom": {
+        "value": ""
+       },
+       "phiatus-start-writersRoom": {
+        "value": ""
+       },
+       "phiatus-weeks-writersRoom": {
+        "value": "2"
+       },
+       "name-prePrep": {
+        "value": "Pre Prep"
+       },
+       "start-prePrep": {
+        "value": "2026-04-06"
+       },
+       "unit-prePrep": {
+        "value": "weeks"
+       },
+       "weeks-prePrep": {
+        "value": "6"
+       },
+       "end-prePrep": {
+        "value": ""
+       },
+       "snap-prePrep": {
+        "checked": true
+       },
+       "phiatus-en-prePrep": {
+        "checked": false
+       },
+       "phiatus-name-prePrep": {
+        "value": ""
+       },
+       "phiatus-start-prePrep": {
+        "value": ""
+       },
+       "phiatus-weeks-prePrep": {
+        "value": "2"
+       },
+       "name-prodPrep": {
+        "value": "Prod Prep"
+       },
+       "start-prodPrep": {
+        "value": "2026-05-18"
+       },
+       "unit-prodPrep": {
+        "value": "weeks"
+       },
+       "weeks-prodPrep": {
+        "value": "6"
+       },
+       "end-prodPrep": {
+        "value": ""
+       },
+       "snap-prodPrep": {
+        "checked": true
+       },
+       "phiatus-en-prodPrep": {
+        "checked": false
+       },
+       "phiatus-name-prodPrep": {
+        "value": ""
+       },
+       "phiatus-start-prodPrep": {
+        "value": ""
+       },
+       "phiatus-weeks-prodPrep": {
+        "value": "2"
+       },
+       "prep-name": {
+        "value": "Episodic Prep"
+       },
+       "prep-days": {
+        "value": ""
+       },
+       "name-production": {
+        "value": "Production"
+       },
+       "start-production": {
+        "value": "2026-10-19"
+       },
+       "snap-production": {
+        "checked": true
+       },
+       "weeks-production": {
+        "value": "80"
+       },
+       "phiatus-en-production": {
+        "checked": false
+       },
+       "phiatus-name-production": {
+        "value": ""
+       },
+       "phiatus-start-production": {
+        "value": ""
+       },
+       "phiatus-weeks-production": {
+        "value": "2"
+       },
+       "simpost-enabled": {
+        "checked": false
+       },
+       "simpost-offset": {
+        "value": "0"
+       },
+       "simpost-count": {
+        "checked": false
+       },
+       "name-post": {
+        "value": "Post"
+       },
+       "start-post": {
+        "value": "2026-11-02"
+       },
+       "unit-post": {
+        "value": "weeks"
+       },
+       "weeks-post": {
+        "value": "16"
+       },
+       "end-post": {
+        "value": ""
+       },
+       "snap-post": {
+        "checked": true
+       },
+       "phiatus-en-post": {
+        "checked": false
+       },
+       "phiatus-name-post": {
+        "value": ""
+       },
+       "phiatus-start-post": {
+        "value": ""
+       },
+       "phiatus-weeks-post": {
+        "value": "2"
+       },
+       "name-localization": {
+        "value": "Localization"
+       },
+       "start-localization": {
+        "value": "2027-03-01"
+       },
+       "unit-localization": {
+        "value": "weeks"
+       },
+       "weeks-localization": {
+        "value": "8"
+       },
+       "end-localization": {
+        "value": ""
+       },
+       "snap-localization": {
+        "checked": true
+       },
+       "phiatus-en-localization": {
+        "checked": false
+       },
+       "phiatus-name-localization": {
+        "value": ""
+       },
+       "phiatus-start-localization": {
+        "value": ""
+       },
+       "phiatus-weeks-localization": {
+        "value": "2"
+       }
+      },
+      "hiatuses": [
+       {
+        "start": "2026-12-21",
+        "weeks": "2",
+        "locked": true,
+        "name": ""
+       },
+       {
+        "start": "2027-12-20",
+        "weeks": "2",
+        "locked": true,
+        "name": ""
+       },
+       {
+        "start": "2028-12-18",
+        "weeks": "2",
+        "locked": true,
+        "name": ""
+       },
+       {
+        "start": "2029-12-17",
+        "weeks": "2",
+        "locked": true,
+        "name": ""
+       }
+      ]
+     }
+    }
+   },
+   {
+    "id": "s18",
+    "name": "Shoot +17 wk, 11 eps",
+    "snapshot": {
+     "version": 1,
+     "customPhaseDefs": [],
+     "customPhaseCounter": 0,
+     "phaseColorOverride": {},
+     "episodeDefs": [
+      {
+       "id": "ep1",
+       "name": "Episode 201",
+       "days": 8,
+       "nameEdited": false,
+       "daysEdited": false
+      },
+      {
+       "id": "ep2",
+       "name": "Episode 202",
+       "days": 8,
+       "nameEdited": false,
+       "daysEdited": false
+      },
+      {
+       "id": "ep3",
+       "name": "Episode 203",
+       "days": 8,
+       "nameEdited": false,
+       "daysEdited": false
+      },
+      {
+       "id": "ep4",
+       "name": "Episode 204",
+       "days": 8,
+       "nameEdited": false,
+       "daysEdited": false
+      },
+      {
+       "id": "ep5",
+       "name": "Episode 205",
+       "days": 8,
+       "nameEdited": false,
+       "daysEdited": false
+      },
+      {
+       "id": "ep6",
+       "name": "Episode 206",
+       "days": 8,
+       "nameEdited": false,
+       "daysEdited": false
+      },
+      {
+       "id": "ep7",
+       "name": "Episode 207",
+       "days": 8,
+       "nameEdited": false,
+       "daysEdited": false
+      },
+      {
+       "id": "ep8",
+       "name": "Episode 208",
+       "days": 8,
+       "nameEdited": false,
+       "daysEdited": false
+      },
+      {
+       "id": "ep9",
+       "name": "Episode 209",
+       "days": 8,
+       "nameEdited": false,
+       "daysEdited": false
+      },
+      {
+       "id": "ep10",
+       "name": "Episode 210",
+       "days": 8,
+       "nameEdited": false,
+       "daysEdited": false
+      },
+      {
+       "id": "ep23",
+       "name": "Episode 211",
+       "days": 8,
+       "nameEdited": false,
+       "daysEdited": false
+      }
+     ],
+     "episodeCounter": 23,
+     "blockDefs": [],
+     "blockCounter": 0,
+     "blockAssignEdited": false,
+     "episodeShootOrder": [],
+     "userNotes": {},
+     "dayNotes": {},
+     "mvExtraLanes": {},
+     "dayNoteColors": {},
+     "dayOverrides": {},
+     "headerMode": "auto",
+     "headerManual": {},
+     "headerTemplates": false,
+     "mvHeaderMode": "auto",
+     "mvHeaderManual": {},
+     "mvHeaderTemplates": false,
+     "headerFormat": {},
+     "mvHeaderFormat": {},
+     "noteColors": {},
+     "noteFontSize": {},
+     "hiatusTexts": {},
+     "hiatusColors": {},
+     "hiatusFontSize": {},
+     "hiatusNameSyncedKeys": {},
+     "holidayView": {},
+     "holidayOff": {},
+     "customHolidays": [],
+     "viewMode": "sheet",
+     "singleColumn": false,
+     "sidebarTab": "show",
+     "fillSpaceOff": true,
+     "colWidths": {},
+     "colWidthsAlt": {},
+     "rowHeights": {},
+     "rowHeightsByWeek": {},
+     "cellSpans": {},
+     "gridColSwaps": {},
+     "gridStintSwaps": {},
+     "colReuse": true,
+     "colKeep": {
+      "production": "prodPrep"
+     },
+     "lastEdited": "2026-11-13T07:49:45.323Z",
+     "fields": {
+      "byId": {
+       "show-title": {
+        "value": "Test Show"
+       },
+       "season-num": {
+        "value": "2"
+       },
+       "show-mode": {
+        "value": "episodes"
+       },
+       "shoot-days-per-ep": {
+        "value": "8"
+       },
+       "num-episodes": {
+        "value": "11"
+       },
+       "num-blocks": {
+        "value": ""
+       },
+       "days-per-block": {
+        "value": ""
+       },
+       "show-version": {
+        "value": ""
+       },
+       "show-location": {
+        "value": ""
+       },
+       "cal-range-start": {
+        "value": ""
+       },
+       "cal-range-end": {
+        "value": ""
+       },
+       "union-place": {
+        "value": "us-general"
+       },
+       "custom-hol-name": {
+        "value": ""
+       },
+       "custom-hol-date": {
+        "value": ""
+       },
+       "name-writersRoom": {
+        "value": "Writer's Rm"
+       },
+       "start-writersRoom": {
+        "value": "2026-01-05"
+       },
+       "unit-writersRoom": {
+        "value": "weeks"
+       },
+       "weeks-writersRoom": {
+        "value": "12"
+       },
+       "end-writersRoom": {
+        "value": ""
+       },
+       "snap-writersRoom": {
+        "checked": true
+       },
+       "phiatus-en-writersRoom": {
+        "checked": false
+       },
+       "phiatus-name-writersRoom": {
+        "value": ""
+       },
+       "phiatus-start-writersRoom": {
+        "value": ""
+       },
+       "phiatus-weeks-writersRoom": {
+        "value": "2"
+       },
+       "name-prePrep": {
+        "value": "Pre Prep"
+       },
+       "start-prePrep": {
+        "value": "2026-04-06"
+       },
+       "unit-prePrep": {
+        "value": "weeks"
+       },
+       "weeks-prePrep": {
+        "value": "6"
+       },
+       "end-prePrep": {
+        "value": ""
+       },
+       "snap-prePrep": {
+        "checked": true
+       },
+       "phiatus-en-prePrep": {
+        "checked": false
+       },
+       "phiatus-name-prePrep": {
+        "value": ""
+       },
+       "phiatus-start-prePrep": {
+        "value": ""
+       },
+       "phiatus-weeks-prePrep": {
+        "value": "2"
+       },
+       "name-prodPrep": {
+        "value": "Prod Prep"
+       },
+       "start-prodPrep": {
+        "value": "2026-05-18"
+       },
+       "unit-prodPrep": {
+        "value": "weeks"
+       },
+       "weeks-prodPrep": {
+        "value": "6"
+       },
+       "end-prodPrep": {
+        "value": ""
+       },
+       "snap-prodPrep": {
+        "checked": true
+       },
+       "phiatus-en-prodPrep": {
+        "checked": false
+       },
+       "phiatus-name-prodPrep": {
+        "value": ""
+       },
+       "phiatus-start-prodPrep": {
+        "value": ""
+       },
+       "phiatus-weeks-prodPrep": {
+        "value": "2"
+       },
+       "prep-name": {
+        "value": "Episodic Prep"
+       },
+       "prep-days": {
+        "value": ""
+       },
+       "name-production": {
+        "value": "Production"
+       },
+       "start-production": {
+        "value": "2026-10-26"
+       },
+       "snap-production": {
+        "checked": true
+       },
+       "weeks-production": {
+        "value": "88"
+       },
+       "phiatus-en-production": {
+        "checked": false
+       },
+       "phiatus-name-production": {
+        "value": ""
+       },
+       "phiatus-start-production": {
+        "value": ""
+       },
+       "phiatus-weeks-production": {
+        "value": "2"
+       },
+       "simpost-enabled": {
+        "checked": false
+       },
+       "simpost-offset": {
+        "value": "0"
+       },
+       "simpost-count": {
+        "checked": false
+       },
+       "name-post": {
+        "value": "Post"
+       },
+       "start-post": {
+        "value": "2026-11-02"
+       },
+       "unit-post": {
+        "value": "weeks"
+       },
+       "weeks-post": {
+        "value": "16"
+       },
+       "end-post": {
+        "value": ""
+       },
+       "snap-post": {
+        "checked": true
+       },
+       "phiatus-en-post": {
+        "checked": false
+       },
+       "phiatus-name-post": {
+        "value": ""
+       },
+       "phiatus-start-post": {
+        "value": ""
+       },
+       "phiatus-weeks-post": {
+        "value": "2"
+       },
+       "name-localization": {
+        "value": "Localization"
+       },
+       "start-localization": {
+        "value": "2027-03-01"
+       },
+       "unit-localization": {
+        "value": "weeks"
+       },
+       "weeks-localization": {
+        "value": "8"
+       },
+       "end-localization": {
+        "value": ""
+       },
+       "snap-localization": {
+        "checked": true
+       },
+       "phiatus-en-localization": {
+        "checked": false
+       },
+       "phiatus-name-localization": {
+        "value": ""
+       },
+       "phiatus-start-localization": {
+        "value": ""
+       },
+       "phiatus-weeks-localization": {
+        "value": "2"
+       }
+      },
+      "hiatuses": [
+       {
+        "start": "2026-12-21",
+        "weeks": "2",
+        "locked": true,
+        "name": ""
+       },
+       {
+        "start": "2027-12-20",
+        "weeks": "2",
+        "locked": true,
+        "name": ""
+       },
+       {
+        "start": "2028-12-18",
+        "weeks": "2",
+        "locked": true,
+        "name": ""
+       },
+       {
+        "start": "2029-12-17",
+        "weeks": "2",
+        "locked": true,
+        "name": ""
+       }
+      ]
+     }
+    }
+   },
+   {
+    "id": "s19",
+    "name": "Shoot +18 wk, 12 eps"
+   },
+   {
+    "id": "s20",
+    "name": "Shoot +19 wk, 13 eps",
+    "snapshot": {
+     "version": 1,
+     "customPhaseDefs": [],
+     "customPhaseCounter": 0,
+     "phaseColorOverride": {},
+     "episodeDefs": [
+      {
+       "id": "ep1",
+       "name": "Episode 201",
+       "days": 8,
+       "nameEdited": false,
+       "daysEdited": false
+      },
+      {
+       "id": "ep2",
+       "name": "Episode 202",
+       "days": 8,
+       "nameEdited": false,
+       "daysEdited": false
+      },
+      {
+       "id": "ep3",
+       "name": "Episode 203",
+       "days": 8,
+       "nameEdited": false,
+       "daysEdited": false
+      },
+      {
+       "id": "ep4",
+       "name": "Episode 204",
+       "days": 8,
+       "nameEdited": false,
+       "daysEdited": false
+      },
+      {
+       "id": "ep5",
+       "name": "Episode 205",
+       "days": 8,
+       "nameEdited": false,
+       "daysEdited": false
+      },
+      {
+       "id": "ep6",
+       "name": "Episode 206",
+       "days": 8,
+       "nameEdited": false,
+       "daysEdited": false
+      },
+      {
+       "id": "ep7",
+       "name": "Episode 207",
+       "days": 8,
+       "nameEdited": false,
+       "daysEdited": false
+      },
+      {
+       "id": "ep8",
+       "name": "Episode 208",
+       "days": 8,
+       "nameEdited": false,
+       "daysEdited": false
+      },
+      {
+       "id": "ep9",
+       "name": "Episode 209",
+       "days": 8,
+       "nameEdited": false,
+       "daysEdited": false
+      },
+      {
+       "id": "ep10",
+       "name": "Episode 210",
+       "days": 8,
+       "nameEdited": false,
+       "daysEdited": false
+      },
+      {
+       "id": "ep23",
+       "name": "Episode 211",
+       "days": 8,
+       "nameEdited": false,
+       "daysEdited": false
+      },
+      {
+       "id": "ep24",
+       "name": "Episode 212",
+       "days": 8,
+       "nameEdited": false,
+       "daysEdited": false
+      },
+      {
+       "id": "ep25",
+       "name": "Episode 213",
+       "days": 8,
+       "nameEdited": false,
+       "daysEdited": false
+      }
+     ],
+     "episodeCounter": 25,
+     "blockDefs": [],
+     "blockCounter": 0,
+     "blockAssignEdited": false,
+     "episodeShootOrder": [],
+     "userNotes": {},
+     "dayNotes": {},
+     "mvExtraLanes": {},
+     "dayNoteColors": {},
+     "dayOverrides": {},
+     "headerMode": "auto",
+     "headerManual": {},
+     "headerTemplates": false,
+     "mvHeaderMode": "auto",
+     "mvHeaderManual": {},
+     "mvHeaderTemplates": false,
+     "headerFormat": {},
+     "mvHeaderFormat": {},
+     "noteColors": {},
+     "noteFontSize": {},
+     "hiatusTexts": {},
+     "hiatusColors": {},
+     "hiatusFontSize": {},
+     "hiatusNameSyncedKeys": {},
+     "holidayView": {},
+     "holidayOff": {},
+     "customHolidays": [],
+     "viewMode": "sheet",
+     "singleColumn": false,
+     "sidebarTab": "show",
+     "fillSpaceOff": true,
+     "colWidths": {},
+     "colWidthsAlt": {},
+     "rowHeights": {},
+     "rowHeightsByWeek": {},
+     "cellSpans": {},
+     "gridColSwaps": {},
+     "gridStintSwaps": {},
+     "colReuse": true,
+     "colKeep": {
+      "production": "prodPrep"
+     },
+     "lastEdited": "2026-11-13T07:49:47.045Z",
+     "fields": {
+      "byId": {
+       "show-title": {
+        "value": "Test Show"
+       },
+       "season-num": {
+        "value": "2"
+       },
+       "show-mode": {
+        "value": "episodes"
+       },
+       "shoot-days-per-ep": {
+        "value": "8"
+       },
+       "num-episodes": {
+        "value": "13"
+       },
+       "num-blocks": {
+        "value": ""
+       },
+       "days-per-block": {
+        "value": ""
+       },
+       "show-version": {
+        "value": ""
+       },
+       "show-location": {
+        "value": ""
+       },
+       "cal-range-start": {
+        "value": ""
+       },
+       "cal-range-end": {
+        "value": ""
+       },
+       "union-place": {
+        "value": "us-general"
+       },
+       "custom-hol-name": {
+        "value": ""
+       },
+       "custom-hol-date": {
+        "value": ""
+       },
+       "name-writersRoom": {
+        "value": "Writer's Rm"
+       },
+       "start-writersRoom": {
+        "value": "2026-01-05"
+       },
+       "unit-writersRoom": {
+        "value": "weeks"
+       },
+       "weeks-writersRoom": {
+        "value": "12"
+       },
+       "end-writersRoom": {
+        "value": ""
+       },
+       "snap-writersRoom": {
+        "checked": true
+       },
+       "phiatus-en-writersRoom": {
+        "checked": false
+       },
+       "phiatus-name-writersRoom": {
+        "value": ""
+       },
+       "phiatus-start-writersRoom": {
+        "value": ""
+       },
+       "phiatus-weeks-writersRoom": {
+        "value": "2"
+       },
+       "name-prePrep": {
+        "value": "Pre Prep"
+       },
+       "start-prePrep": {
+        "value": "2026-04-06"
+       },
+       "unit-prePrep": {
+        "value": "weeks"
+       },
+       "weeks-prePrep": {
+        "value": "6"
+       },
+       "end-prePrep": {
+        "value": ""
+       },
+       "snap-prePrep": {
+        "checked": true
+       },
+       "phiatus-en-prePrep": {
+        "checked": false
+       },
+       "phiatus-name-prePrep": {
+        "value": ""
+       },
+       "phiatus-start-prePrep": {
+        "value": ""
+       },
+       "phiatus-weeks-prePrep": {
+        "value": "2"
+       },
+       "name-prodPrep": {
+        "value": "Prod Prep"
+       },
+       "start-prodPrep": {
+        "value": "2026-05-18"
+       },
+       "unit-prodPrep": {
+        "value": "weeks"
+       },
+       "weeks-prodPrep": {
+        "value": "6"
+       },
+       "end-prodPrep": {
+        "value": ""
+       },
+       "snap-prodPrep": {
+        "checked": true
+       },
+       "phiatus-en-prodPrep": {
+        "checked": false
+       },
+       "phiatus-name-prodPrep": {
+        "value": ""
+       },
+       "phiatus-start-prodPrep": {
+        "value": ""
+       },
+       "phiatus-weeks-prodPrep": {
+        "value": "2"
+       },
+       "prep-name": {
+        "value": "Episodic Prep"
+       },
+       "prep-days": {
+        "value": ""
+       },
+       "name-production": {
+        "value": "Production"
+       },
+       "start-production": {
+        "value": "2026-11-09"
+       },
+       "snap-production": {
+        "checked": true
+       },
+       "weeks-production": {
+        "value": "104"
+       },
+       "phiatus-en-production": {
+        "checked": false
+       },
+       "phiatus-name-production": {
+        "value": ""
+       },
+       "phiatus-start-production": {
+        "value": ""
+       },
+       "phiatus-weeks-production": {
+        "value": "2"
+       },
+       "simpost-enabled": {
+        "checked": false
+       },
+       "simpost-offset": {
+        "value": "0"
+       },
+       "simpost-count": {
+        "checked": false
+       },
+       "name-post": {
+        "value": "Post"
+       },
+       "start-post": {
+        "value": "2026-11-02"
+       },
+       "unit-post": {
+        "value": "weeks"
+       },
+       "weeks-post": {
+        "value": "16"
+       },
+       "end-post": {
+        "value": ""
+       },
+       "snap-post": {
+        "checked": true
+       },
+       "phiatus-en-post": {
+        "checked": false
+       },
+       "phiatus-name-post": {
+        "value": ""
+       },
+       "phiatus-start-post": {
+        "value": ""
+       },
+       "phiatus-weeks-post": {
+        "value": "2"
+       },
+       "name-localization": {
+        "value": "Localization"
+       },
+       "start-localization": {
+        "value": "2027-03-01"
+       },
+       "unit-localization": {
+        "value": "weeks"
+       },
+       "weeks-localization": {
+        "value": "8"
+       },
+       "end-localization": {
+        "value": ""
+       },
+       "snap-localization": {
+        "checked": true
+       },
+       "phiatus-en-localization": {
+        "checked": false
+       },
+       "phiatus-name-localization": {
+        "value": ""
+       },
+       "phiatus-start-localization": {
+        "value": ""
+       },
+       "phiatus-weeks-localization": {
+        "value": "2"
+       }
+      },
+      "hiatuses": [
+       {
+        "start": "2026-12-21",
+        "weeks": "2",
+        "locked": true,
+        "name": ""
+       },
+       {
+        "start": "2027-12-20",
+        "weeks": "2",
+        "locked": true,
+        "name": ""
+       },
+       {
+        "start": "2028-12-18",
+        "weeks": "2",
+        "locked": true,
+        "name": ""
+       },
+       {
+        "start": "2029-12-17",
+        "weeks": "2",
+        "locked": true,
+        "name": ""
+       }
+      ]
+     }
+    }
+   }
+  ]
+ }
+}

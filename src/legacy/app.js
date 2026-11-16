@@ -1111,16 +1111,41 @@ export function initLegacyApp() {
   const HOVER_PROMPT_DELAY_MS = 200;
   let hoverTimer = 0, hoverPendingId = null, hoverPrompt = null;   // hoverPrompt: {id, tds: Set of the cells it outlines}
   let hoverChipBox = null;   // {chip, ux0, uy0, ux1, uy1 (wrap px)}: see placeHoverChip()
-  function ensureHoverLayer(){
+  function ensureHoverLayer(chipLayer){
     const wrap = document.querySelector('.sheet-grid-wrap');
     if(!wrap) return null;
-    let layer = wrap.querySelector(':scope > .grid-hover-layer');
+    let layer = wrap.querySelector(chipLayer ? ':scope > .grid-hover-layer.is-chip' : ':scope > .grid-hover-layer:not(.is-chip)');
     if(layer) return layer;
     layer = document.createElement('div');
-    layer.className = 'grid-hover-layer';
+    layer.className = 'grid-hover-layer' + (chipLayer ? ' is-chip' : '');
     wrap.appendChild(layer);
     return layer;
   }
+  // ⭐ THE CHIP HAS A LAYER OF ITS OWN, above the column handles (audit AUD2-062, 14 Nov 2026). The outlines' layer is
+  // z-index 1, so they scroll UNDER the frozen sticky heading row (z 2); but z-index 1 makes it a stacking context, and
+  // the frozen column handles (.grid-resize.is-col, z 5, 7 px wide, the table's full height) painted over a chip drawn
+  // in it. The chip sits in the very centre of the outlined box (owner, 10 Nov 2026), and over a blank two columns wide
+  // that centre IS a column boundary: a real click on the word "Expand?" landed on the handle and did nothing. The swap
+  // knob met the same trap and has the same answer (.grid-swap-layer, legacy.css). So `.grid-hover-layer.is-chip` holds
+  // the chip alone, at z-index 8; it still carries .grid-hover-layer, so every rule and reader of the prompt's layers
+  // (clearHoverPrompt, insideHoverPrompt, the CSS that hides them during a drag) covers it unchanged.
+  // Above the heading row now, it is CLIPPED to below that row as drawn (clipHoverChip, on every scroll of the pane), so
+  // the chip still goes under the heading as it always did and cannot be pressed there. The handles are untouched:
+  // away from the chip, the same boundary still resizes its column.
+  function clipHoverChip(){
+    const layer = hoverChipBox && hoverChipBox.chip.isConnected ? hoverChipBox.chip.parentNode : null;
+    if(!layer) return;
+    const sc = layer.closest('.sheet-scroll');
+    // A heading CELL, never the <thead>: the sticky rule is on the cells (see sheetHeadBottom).
+    const th = sc && sc.querySelector('table.sheet-table thead th');
+    const z = layer.currentCSSZoom || 1;
+    const top = th ? Math.max(0, (th.getBoundingClientRect().bottom - layer.getBoundingClientRect().top) / z) : 0;
+    const v = top > 0 ? 'inset(' + Math.round(top * 100) / 100 + 'px 0 0 0)' : '';
+    if(layer.style.clipPath !== v) layer.style.clipPath = v;
+  }
+  document.addEventListener('scroll', e=>{
+    if(hoverChipBox && e.target && e.target.classList && e.target.classList.contains('sheet-scroll')) clipHoverChip();
+  }, { capture: true, passive: true });
   function clearHoverPrompt(){
     clearTimeout(hoverTimer); hoverTimer = 0; hoverPendingId = null; hoverPrompt = null; hoverChipBox = null;
     document.querySelectorAll('.grid-hover-layer').forEach(l => { l.textContent = ''; });
@@ -1170,9 +1195,9 @@ export function initLegacyApp() {
     return null;
   }
   function showHoverPrompt(c){
-    const layer = ensureHoverLayer(), g = selGeom();
-    if(!layer || !g || !hoverPromptAllowed()) return;
-    layer.textContent = '';
+    const layer = ensureHoverLayer(), chipLayer = ensureHoverLayer(true), g = selGeom();
+    if(!layer || !chipLayer || !g || !hoverPromptAllowed()) return;
+    layer.textContent = ''; chipLayer.textContent = '';
     const rects = [];   // wrap-space boxes to outline
     let phaseBoxes = [];
     const rowOf = td => td.parentElement;
@@ -1266,7 +1291,7 @@ export function initLegacyApp() {
     chip.title = c.kind === 'expand' ? 'Widen ' + phaseLabelFor(c.pkey) + ' across this space, ' + (n === 1 ? 'this week' : 'these ' + n + ' weeks') + ' only'
                : c.kind === 'pullCell' ? (n === 1 ? 'Undo the width set on this one cell' : 'Undo the widths set on these ' + n + ' weeks')
                : 'Turn off ' + phaseLabelFor(c.pkey) + '’s fill: back to the automatic layout';
-    layer.appendChild(chip);
+    chipLayer.appendChild(chip);   // its own layer, above the column handles (see ensureHoverLayer)
     // Centred on the outlined box (placeHoverChip), stepping aside for the Swap Column button.
     hoverChipBox = { chip, ux0: Math.min(...boxes.map(b => b.wrapLeft)), uy0: Math.min(...boxes.map(b => b.wrapTop)),
                      ux1: Math.max(...boxes.map(b => b.wrapLeft + b.wrapWidth)), uy1: Math.max(...boxes.map(b => b.wrapTop + b.wrapHeight)) };
@@ -1326,17 +1351,19 @@ export function initLegacyApp() {
       }
     }
     chip.style.left = at.x + 'px'; chip.style.top = at.y + 'px';
+    clipHoverChip();
   }
   // Is the pointer still on what the prompt is about? Read from what is DRAWN, at the moment of the move, so a scroll
   // since it appeared changes nothing: any outline or the chip, or the box spanning the outlines and the chip together
   // (the way to a chip that stepped outside the outline, beside the Swap Column button, crosses no cell that would close
   // it). Cells of the run are checked by the caller.
   function insideHoverPrompt(e){
-    const layer = hoverPrompt && document.querySelector('.sheet-grid-wrap > .grid-hover-layer');
-    if(!layer) return false;
+    // Both of the prompt's layers: the outlines', and the chip's own (ensureHoverLayer).
+    const layers = hoverPrompt ? [...document.querySelectorAll('.sheet-grid-wrap > .grid-hover-layer')] : [];
+    if(!layers.length) return false;
     const x = e.clientX, y = e.clientY;
     let l = Infinity, t = Infinity, r = -Infinity, b = -Infinity;
-    for(const el of layer.children){
+    for(const el of layers.flatMap(ly => [...ly.children])){
       const q = el.getBoundingClientRect();
       if(x >= q.left && x <= q.right && y >= q.top && y <= q.bottom) return true;
       if(el.classList.contains('grid-hover-rect') || el.classList.contains('grid-hover-chip')){
@@ -38277,11 +38304,15 @@ export function initLegacyApp() {
   // Help modal
   (function(){
     const overlay = document.getElementById('help-overlay');
-    const openHelp = ()=>{ overlay.classList.add('open'); };
+    // ⭐ A double-clicked ? leaves Help open (audit AUD2-061, 14 Nov 2026), as the app's Mantine windows do
+    // (src/chrome/modalGuard.js, the same 500 ms): the overlay covers the ? button the moment Help opens, so the
+    // double-click's second press landed on it and its click-away closed Help inside the same gesture.
+    let openedAt = 0;
+    const openHelp = ()=>{ if(!overlay.classList.contains('open')) openedAt = performance.now(); overlay.classList.add('open'); };
     const closeHelp = ()=>{ overlay.classList.remove('open'); };
     document.getElementById('help-fab').addEventListener('click', openHelp);
     document.getElementById('help-close').addEventListener('click', closeHelp);
-    overlay.addEventListener('click', e=>{ if(e.target === overlay) closeHelp(); });
+    overlay.addEventListener('click', e=>{ if(e.target === overlay && performance.now() - openedAt >= 500) closeHelp(); });
     document.addEventListener('keydown', e=>{ if(e.key==='Escape' && overlay.classList.contains('open')) closeHelp(); });
   })();
 

@@ -2955,6 +2955,12 @@
      selection's. Purple for Expand (the selection's colour: it becomes a fill), amber for Pull back (the swap layer's
      colour for taking something back). The chip is the only clickable thing on it. Never printed. */
   .grid-hover-layer{ position:absolute; inset:0; pointer-events:none; z-index:1; overflow:hidden; }
+  /* The chip's OWN layer (audit AUD2-062, 14 Nov 2026), the .grid-swap-layer answer below to the same trap: inside
+     the outlines' layer (z 1, a stacking context) the chip painted under the frozen column handles (.grid-resize.is-col,
+     z 5), and over a blank two columns wide its centre, where the owner wants it, is a column boundary: a real click on
+     "Expand?" there hit the handle. Here it is above them; the outlines stay at 1, under the sticky heading row, and the
+     engine clips this layer to below that row as drawn (clipHoverChip), so the chip still scrolls under it. */
+  .grid-hover-layer.is-chip{ z-index:8; }
   .grid-hover-rect{ position:absolute; box-sizing:border-box; border:2px dashed rgba(112,48,160,.8);
     background:rgba(112,48,160,.07); border-radius:2px; }
   .grid-hover-rect.is-pull{ border-color:rgba(185,121,26,.9); background:rgba(232,163,61,.10); }
@@ -4233,6 +4239,9 @@
     display:flex; align-items:center; gap:6px; height:28px; min-width:0;
   }
   .sc-tabs{ display:flex; align-items:center; gap:2px; min-width:0; overflow-x:auto; scrollbar-width:none; }
+  /* Only the TABS give way (audit AUD2-060, 14 Nov 2026). With the strip's other items left to shrink, many tabs
+     squeezed Compare down to its icon (31px at 1,440 px with 20 scenarios), its word cut off. */
+  .sc-strip > :not(.sc-tabs){ flex:none; }
   .sc-tabs::-webkit-scrollbar{ display:none; }
   .sc-tab{
     flex:none; display:inline-flex; align-items:center; gap:2px; height:26px; padding:0 10px;
@@ -4254,6 +4263,19 @@
     border:1px solid var(--mantine-primary-color-filled); border-radius:var(--mantine-radius-sm); outline:none;
   }
   .sc-menu-anchor{ position:fixed; width:1px; height:1px; pointer-events:none; }
+  /* Tabs that do not fit (audit AUD2-060, 14 Nov 2026). The strip has no scrollbar, so a cut edge FADES out over 24px
+     (FADE in ScenarioTabs.jsx) to say there is more that way; only an edge that actually cuts a tab off, so a strip
+     whose tabs all fit is untouched. A mask, so it fades the tabs and nothing behind them. */
+  .sc-tabs.is-cut-l{ -webkit-mask-image:linear-gradient(to right, transparent 0, #000 24px); mask-image:linear-gradient(to right, transparent 0, #000 24px); }
+  .sc-tabs.is-cut-r{ -webkit-mask-image:linear-gradient(to left, transparent 0, #000 24px); mask-image:linear-gradient(to left, transparent 0, #000 24px); }
+  .sc-tabs.is-cut-l.is-cut-r{
+    -webkit-mask-image:linear-gradient(to right, transparent 0, #000 24px, #000 calc(100% - 24px), transparent 100%);
+    mask-image:linear-gradient(to right, transparent 0, #000 24px, #000 calc(100% - 24px), transparent 100%);
+  }
+  /* The list of every scenario behind the strip's "All scenarios" button: up to 50 names, so it scrolls. */
+  .sc-list{ max-height:min(60vh, 440px); overflow-y:auto; }
+  .sc-list-tick{ display:inline-flex; width:13px; color:var(--mantine-primary-color-filled); }
+  .sc-list-item[aria-current="true"] .sc-list-name{ font-weight:600; }
   /* The key facts band (KEY-FACTS-PLAN.md; owner, 23 Oct 2026: "lets go for C", the tinted band). Fixed like the
      strip, 8px above it (the strip's 8px + 28px + 8px). The calendar's edges, measured off .preview-panel as the
      strip's `left` is, bound it (below). Each fact is a STAT TILE, a small label over its
