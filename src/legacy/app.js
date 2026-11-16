@@ -31655,6 +31655,7 @@ export function initLegacyApp() {
     // for 4.2 s after a copy leaves a note out, so a copy exported inside that window carried it, visible, for good.
     // A retry of the Excel library still on its way (loadExcelLib, audit item 3.11): the copy loads its own from the
     // launch tag, so a kept one would be a second fetch of the same file.
+    clone.querySelectorAll('script[data-sptcal-retry]').forEach(el=>el.remove());
     // .fm-ctx added 4 Nov 2026 with the file menu's right-click menu ("Show in folder…"): a Mantine dropdown portalled to
     // <body>, so a Share click (or Shift+Cmd+E) with it open, or still fading out, would export it hanging in the copy.
     // .month-sel-box added 27 Oct 2026 with the month view's highlight (MONTH-TEXT-STYLE-PLAN.md §3.2): body-level boxes
