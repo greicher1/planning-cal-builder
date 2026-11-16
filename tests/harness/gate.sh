@@ -2358,6 +2358,83 @@ print('  FAIL  '+label+': '+json.dumps(a)[:300]); sys.exit(1)
 PYAF
 done
 
+# ---- recoverfail + loadsparse: a backup that cannot be applied, and a file that leaves fields out ---------------------
+# ⭐ ADDED 13 Nov 2026 (the second audit's AUD2-004 and AUD2-005, both data loss, both rare). Each run is one page load,
+# picked by HARNESS_QUERY, because each needs a FRESH window: recovery is offered once, at launch, and "loaded fresh"
+# means the first file a window loads.
+# recoverfail: Recover on a crash backup that cannot be applied -- one snapshot version ahead (newer), a parked scenario
+# tab holding no calendar (damaged), a good backup whose apply throws partway (throws) -- says so, KEEPS the backup, leaves
+# the file it names unlinked and untouched through an autosave tick (11 virtual minutes) and a Save click. `scen` is the
+# control: a good two-tab backup recovers into its file as before. On the build before the fix F1-F4 and F6 were red in
+# all three failing modes: no message, the slot deleted, and a blank 5,170-byte calendar written over the saved file.
+# loadsparse: one file B loaded fresh, then again after carry-heavy.sptcal with EVERY saved field on the page changed in
+# between; its fields, hiatus rows, phase lines and Save text must match to the byte. B is v1.13.0-saved without its
+# hiatus list (nohiatus), with a null one (badhiatus), without the six keys the load path used to restore only when
+# present (sixkeys), sparse-generated.sptcal's six field ids (sixids), a file naming no field at all (bare, which must
+# open as a new calendar's fields: the guard for a field added later with no default), and a two-tab file whose parked
+# tab is the six-id snapshot (scen). On the build before the fix B2 and B3 were red in every run (the first calendar's
+# CARRY-BREAK hiatus stayed and Production wrapped 11/3/26 for 10/20/26), and B1 wherever B names fewer ids than the page.
+# autonotefollow (⭐ ADDED 13 Nov 2026, the second audit's AUD2-001, -002 and -003, the owner's decision D1 (a)): the
+# automatic and holiday lines inside a Notes cell the user has typed in follow the calendar (followAutoNotes). One group
+# per page, so no group's typed notes reach another's weeks: g=a a start moved onto a typed week by the card arrow (the
+# line arrives; one Undo) and Labor Day ticked into the waterfall beside "Camera test" (arrives, and the month view keeps
+# it; unticked, it leaves); g=c the start typed later (it leaves "Cast arrives" on 6/29), away and back (exactly as
+# typed: never chained) and a holiday ticked in and out of an edited week; g=e the user's line ABOVE the start and wrap,
+# then the card arrow and Shift +1 wk (re-dated in place, no old date anywhere; one Undo); g=g the guards (a copy of a
+# milestone line in another week, and a plain note, are left alone). On the build before the fix A1, A2, B1, B2, C1, C2,
+# D0, E1, E2, E4, E5 and E6 were red. (g=m mints tests/fixtures/autonotefollow.sptcal; it is not a gate run.)
+for RSSPEC in "recoverfail:mode=newer:900" "recoverfail:mode=damaged:900" "recoverfail:mode=throws:900" "recoverfail:mode=scen:120" \
+              "loadsparse:v=nohiatus:240" "loadsparse:v=badhiatus:240" "loadsparse:v=sixkeys:240" \
+              "loadsparse:v=sixids:240" "loadsparse:v=bare:240" "loadsparse:v=scen:240" \
+              "autonotefollow:g=a:240" "autonotefollow:g=c:240" "autonotefollow:g=e:240" "autonotefollow:g=g:240"; do
+  RSLEG="${RSSPEC%%:*}"; RSREST="${RSSPEC#*:}"; RSQ="${RSREST%%:*}"; RSSECS="${RSREST#*:}"
+  rm -f "$HERE/$RSLEG.json"
+  HARNESS_PAGE="$PAGE" HARNESS_QUERY="$RSQ" "$HERE/run.sh" "$RSLEG" "$RSSECS" >/dev/null 2>&1
+  python3 - "$HERE/$RSLEG.json" "$RSLEG ($RSQ)" <<'PYRS' || FAIL=1
+import json,sys
+path, label = sys.argv[1], sys.argv[2]
+try: a=json.load(open(path))
+except Exception as e:
+    print('  FAIL  '+label+' produced no result: '+str(e)); sys.exit(1)
+cases = a.get('cases') or []
+bad = [c for c in cases if c.get('pass') is not True]
+for c in cases:
+    print(('  PASS  ' if c.get('pass') is True else '  FAIL  ')+label+' '+str(c.get('id'))+': '+str(c.get('title',''))[:110])
+if not cases: print('  FAIL  '+label+': no cases'); sys.exit(1)
+sys.exit(1 if bad else 0)
+PYRS
+done
+
+# ---- datetoday: the date picker's "today" is the user's LOCAL day, in four time zones ------------------------------
+# ⭐ ADDED 13 Nov 2026 (the second audit's AUD2-007, Batch 1 item 1.5). DatePop.jsx took today as the UTC date of the
+# instant, so from 16:00 Pacific (19:00 Eastern) it rang TOMORROW, a click on the ring entered it, and on a month's last
+# afternoon an empty date field opened on next month; Tokyo and Auckland mornings saw yesterday. Each run is its own page
+# load under its own TZ (a page cannot set its zone; Chrome inherits it), with the LOCAL wall clock faked by the leg from
+# the query. `tz=` names the zone the run expects, so a run whose TZ did not reach Chrome fails Z0 rather than testing
+# this machine's zone. la: Los Angeles 17:30 on Mon 30 Nov 2026 (a month's last afternoon); tokyo: Tokyo 08:00 on
+# Tue 1 Dec; ny: New York 20:30 on Thu 31 Dec (the year's last evening); noon: Los Angeles at 12:00, the control, where
+# the UTC and local dates agree. On the build before the fix T1-T3 were red in la, tokyo and ny, and noon was green.
+for DTSPEC in "la:America/Los_Angeles:2026-11-30T17:30" "tokyo:Asia/Tokyo:2026-12-01T08:00" \
+              "ny:America/New_York:2026-12-31T20:30" "noon:America/Los_Angeles:2026-11-30T12:00"; do
+  DTRUN="${DTSPEC%%:*}"; DTREST="${DTSPEC#*:}"; DTTZ="${DTREST%%:*}"; DTCLOCK="${DTREST#*:}"
+  rm -f "$HERE/datetoday.json"
+  ( export TZ="$DTTZ"
+    HARNESS_PAGE="$PAGE" HARNESS_QUERY="tz=$DTTZ&clock=$DTCLOCK" "$HERE/run.sh" datetoday 150 >/dev/null 2>&1 )
+  python3 - "$HERE/datetoday.json" "datetoday ($DTRUN)" <<'PYDT' || FAIL=1
+import json,sys
+path, label = sys.argv[1], sys.argv[2]
+try: a=json.load(open(path))
+except Exception as e:
+    print('  FAIL  '+label+' produced no result: '+str(e)); sys.exit(1)
+cases = a.get('cases') or []
+bad = [c for c in cases if c.get('pass') is not True]
+for c in cases:
+    print(('  PASS  ' if c.get('pass') is True else '  FAIL  ')+label+' '+str(c.get('id'))+': '+str(c.get('title',''))[:110])
+if not cases: print('  FAIL  '+label+': no cases'); sys.exit(1)
+sys.exit(1 if bad else 0)
+PYDT
+done
+
 # ---- mvnotes' WRITTEN month PDF: the one-day custom pills wrap in the file users get (MONTH-NOTES-PLAN.md §6) ---------
 # ⭐ ADDED 20 Oct 2026. The leg's last run (the minted fixture) hands back the written PDF, mvnotes.month.pdf. Its text,
 # by pdftotext, must carry each wrapping pill's label as TWO lines, the writer's own breaks, and the Friday piece cut

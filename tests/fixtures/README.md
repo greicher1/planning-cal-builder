@@ -203,6 +203,7 @@ holidays. Do not re-mint them without keeping a copy saved with a retired place:
 | `wfkeys.sptcal` | `shift-stores.sptcal` ("Test Show", US General, two year blocks 2026 and 2027) edited by script, nothing else changed: its two tall rows removed (`rowHeightsByWeek: {}`), its notes replaced by four synthetic ones (2026-08-03 "Table read" #FFC000, size 9, bold + italic through `textStyles`; 2026-08-10 two lines; 2026-09-07 "Wrap party 9/10/26" pinned to Thu 9/10; 2026-09-14 "Blocker"), and one unlocked all-phase hiatus added, 11/23/26 for 2 weeks (two band rows with no Notes cell). The automatic notes on 1/5, 6/29 and 10/19/26 are the calendar's own. Read by `t/wfkeys.js` and `wfkeysreal.mjs` |
 | `phasenotes.sptcal` | `wfkeys.sptcal` (synthetic, US General) plus five notes LINKED TO A PHASE (PHASE-LINKED-NOTES-PLAN.md, 5 Nov 2026), a `phaseNotes` key and nothing else changed: `production@2` "Stunt rehearsal" (size 9, height 60), `production@6` "Visitor" (#FF0000, lands under 8/3's typed "Table read"), `production@day10` "Day ten" (the 10th shoot day, Mon 7/13/26), `prodPrep@3` "Tech scout" (Wed, #00B0F0), `post@1` a long line in bold. Read by `t/phasenotes.js`, `t/phaselink.js`, `t/phaselook.js`, `t/phasekeys.js` and `t/phasemonth.js` |
 | `lastedited.sptcal` | ⭐ 9 Nov 2026 (Date Last Edited): `hdrversion.sptcal` (synthetic, "Test Show") with one key added by script, `lastEdited: "2026-10-01T15:00:00.000Z"`, nothing else changed, so its header's date (10.1.26 / 10.01.26 in any US zone) is not today. Read by `t/lastedited.js`. No gate-10 or gate-13 baseline reads it |
+| `autonotefollow.sptcal` | ⭐ 13 Nov 2026 (audit AUD2-001/002/003, D1 (a)): synthetic, the harness's reference calendar (`T.buildFixture()`: "Test Show", US General, Production 6/29/26) with four notes typed through the waterfall editor and saved through the real Save by `autonotefollow` `g=m`: 6/29 "Table read" ABOVE "Start Principal Photography 6/29/26", 7/6 "Dailies review", 9/7 "Camera test", 10/19 the wrap line plus "Wrap party Fri". The calendar to try the fix on by hand (Production's ▼; Labor Day's Waterfall box). No leg loads it yet |
 
 ## Month notes around the phases, and to another day (23 Oct 2026)
 
@@ -215,3 +216,20 @@ The 3/9 week's waterfall note is "Wardrobe 3/10/26" + "Props 3/12/26". No order 
 the untouched layout. Production starts Mon 6/29/26, for the auto-note case. On the live build of 23 Oct
 (`d2ac914e`), M1, M2 and M3 are red.
 
+
+## A file that leaves fields out, and the calendar loaded before it (13 Nov 2026)
+
+Both are read by the `loadsparse` leg (in `gate.sh`), which holds the rule that a file opens with ITS OWN values or a
+default, never with what the calendar before it left in memory.
+
+`carry-heavy.sptcal` is the calendar loaded BEFORE the file under test: synthetic ("CARRY-TITLE", US General, made-up
+2026 to 2028 dates), written by script with almost every store in use, so that anything able to carry has something
+to carry. It holds an UNLOCKED two-week all-phase hiatus named "CARRY-BREAK" from 8/3/26 (inside the shoot, so it
+moves the wrap), Simultaneous Post on, Production's own break from 11/23/26, two custom phases, 22 episodes (counter
+22), an extra month lane (`mvExtraLanes`), a legacy day-note colour (`dayNoteColors`), the month view and the Phases
+tab, plus 41 week notes, 40 day notes, text styles, side boxes, a made-up Location and Legal paper.
+
+`sparse-generated.sptcal` is the shape of a file a tool outside the app would write: `fields.byId` holds six ids (a
+title, Season 1, 8 episodes x 8 days, US General, Production from Mon 3/1/27) and `fields.hiatuses` one two-week break
+from 12/20/27. Nothing else is named. It must open as Production alone, 64 shoot days, 3/1/27 to 5/28/27. No file the
+app has ever written looks like this: every one names every field.

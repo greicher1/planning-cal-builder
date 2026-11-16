@@ -29,6 +29,150 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — the date picker's "today" is your own day, in every time zone (13 Nov 2026)
+
+The November audit's AUD2-007 (Batch 1, item 1.5, P1). The pop-out date picker worked out "today" as the date in UTC
+rather than on the user's own clock. So every afternoon from 16:00 Pacific (19:00 Eastern; an hour later in summer) it
+ringed TOMORROW as today, and a click on the ring entered tomorrow's date. On a month's last afternoon an empty date
+field opened on NEXT month (on New Year's Eve, on next January). In Tokyo and Auckland it ringed yesterday every morning.
+
+- **Now** "today" is the user's local calendar day, for both the ring and the month an empty field opens on
+  (`todayUtc()` in `src/chrome/DatePop.jsx`), as the header date and the save name already were.
+- **Unchanged:** a field that already holds a date opens on that date's month, as before. No stored, saved, printed or
+  exported date was ever affected, and none moves. Nothing frozen was touched, and the save format did not change.
+- **Proof.**
+  - New leg `datetoday` (in `gate.sh`, four runs, each under its own `TZ` with the local clock faked): Los Angeles 17:30
+    on 30 Nov, Tokyo 08:00 on 1 Dec, New York 20:30 on 31 Dec, and Los Angeles at noon as the control. Before the fix
+    the picker opened on the wrong month, ringed the wrong day and a click on the ring wrote it, in the first three; the
+    control was green. Now 6/6 in all four.
+  - The audit's own repro (`audit-vtz-journey`, kept with the audit): its picker check red in Los Angeles and Tokyo
+    before, green after in Los Angeles, Tokyo and Auckland.
+  - Related legs on this build, run on a real Los Angeles evening: `datepick` 17/17, `phiatuspick` 12/12, `snapbox`
+    12/12, `endsdate` 17/17, `prodends` 14/14.
+  - Tried in the browser at 18:18 Pacific on 13 Nov (already the 14th in UTC): an empty Starts box rings Fri 13 Nov.
+    The owner was handed this build on localhost and said "Yes, finish it".
+  - Not run: the full gate (one run is planned for the whole audit batch).
+
+### Unreleased — a Notes cell you have typed in keeps its holiday and Start / Wrap lines in step with the calendar (13 Nov 2026)
+
+The November audit's three P0 findings, AUD2-001, AUD2-002 and AUD2-003, fixed by the owner's decision D1 (a) ("yes":
+the holiday and automatic lines in a typed cell always follow the calendar). Typing in a Notes cell froze the week's
+automatic lines as text, because the editor opens on them. From then on they no longer followed the calendar, on screen,
+in Excel, in both PDFs and in the month view, with no warning:
+
+- **A line that arrived was swallowed (AUD2-001).** Move Production onto a week with a typed note (the card's ▼, Shift,
+  Build Around, the ripple, a typed date) and "Start Principal Photography" was printed nowhere. Tick holidays into the
+  waterfall after typing notes, and Labor Day and Thanksgiving left the waterfall, Excel, the waterfall PDF, and even the
+  month view and the month PDF, which had shown them a moment before.
+- **A line that changed or left stayed printed (AUD2-002).** Add "Cast arrives" under the start note, then type a new
+  start or change the episode count: both the old and the new Start and Wrap lines printed. Switch a holiday off, change
+  the Region, remove a custom holiday, or untick an automatic note: its line stayed printed, alone and plausible.
+- **A line under the user's own was never re-dated (AUD2-003).** Put "Table read" above the start note and Shift the
+  calendar a week: every output printed only the old start and wrap dates.
+
+**Now** every typed note is rebuilt after each change from the note as you left it, against the automatic lines its
+week showed then and shows now, matched by what each line is (its kind, or its holiday), wherever it sits in the note:
+
+- a line still in the week is re-dated (or renamed) in its place;
+- a line that has left (moved, switched off, hidden from the waterfall, removed, another Region) is taken out;
+- a line that has arrived (moved in, ticked into the waterfall, switched on) is added among the week's other automatic
+  lines, or at the top;
+- a line you took out of the note stays out, and your own lines stay exactly as typed, on their week.
+
+It is rebuilt from the note as left, never from the last step, so typing a date (which passes through other dates on
+the way) or a drag out and back lands exactly where it started. One Undo takes back the change and its notes together.
+This is AUTONOTE-FOLLOW-PLAN.md's hook, ruled on 19 Oct 2026, built and widened.
+
+- **What changes for a user, on purpose:** switching an automatic note off in Settings › Preferences › Automatic notes
+  now also takes its line out of a cell you typed in (and ticking it back brings it back); a milestone or a waterfall
+  holiday that moves into a typed week now shows beside your text. Help's Notes paragraph says so.
+- **Limits:** nothing is rewritten when a calendar is loaded, so a stale line already saved in a file stays until you
+  delete it. A note stored in a legacy shape (a bare string, or an old multi-note list) is left as before.
+- **Save format:** no key added, renamed or removed; the memory is session only. Nothing frozen was touched: every
+  reader (the screen, both writers, the month view's frozen notesForWaterfallDate) reads the same note text it always did.
+- **Proof.**
+  - New leg `autonotefollow` (in `gate.sh`, four runs, `g=a|c|e|g`): 12 checks red on the build before the fix, 22/22
+    green after. `g=m` mints `tests/fixtures/autonotefollow.sptcal`, a synthetic calendar to try it on.
+  - The audit's own repro legs on this build (not committed; kept with the audit): the start note, holidays, switched-off
+    and removed holidays, another Region, a typed date, an episode count, and a user line above the milestone, each read
+    back from the waterfall, the month view, Excel, the waterfall PDF, the month PDF and the saved file: all right.
+  - Re-expected for D1 (a), each a leg that had held the old behaviour: `autonotekinds` A3, A4, A9, A12 (a switched-off
+    kind's line now leaves a typed cell; ticking it back is still byte-identical), `phasekeys` C1 and `hiatusripple` R1
+    (the wrap moved into a typed or pasted note's week now shows beside it).
+  - ~55 related legs, 903 checks, green on the final engine (`8774f0d8…`; two that timed out while another run shared
+    the machine are green alone), the note editors, the month notes, every mover and drag, the ripple, renames,
+    per-view automatic notes, linked notes, undo and Load among them (HANDOFF lists them). A first run found one real gap,
+    fixed: a line renamed in the waterfall editor stopped following (`autonoteview` T5).
+  - Tried by hand in the browser: Production's ▼ on the minted calendar moves the start out from under "Table read" and
+    in above "Dailies review"; the owner tried it ("Yes, finish it").
+  - Not run: the full gate (one run is planned for the whole audit batch).
+
+### Unreleased — Recover can no longer blank a saved file, and a file that leaves fields out opens with its own values (13 Nov 2026)
+
+Two data-safety fixes from the November audit, findings AUD2-004 and AUD2-005. Both are rare: neither can be reached
+with a file or a backup this version of the app wrote itself. Both ended with wrong data written into a saved file and
+nothing on screen saying so.
+
+- **Recover unsaved work, when the backup cannot be opened.** At launch the app offers to recover work a closed window
+  left unsaved. If that backup could not be applied (it was written by a newer version and the app was then rolled
+  back, one of its scenario tabs was damaged, or applying it failed partway), Recover carried on as if it had worked.
+  The screen kept the blank calendar the app starts with, and that blank calendar was linked to the backup's file,
+  marked unsaved, and backed up in place of the real work, which was deleted. Ten minutes later autosave wrote the
+  blank calendar over the saved file (measured: 5,170 bytes over a 6.3 KB calendar), with no click where Chrome still
+  held permission to write.
+  - **Now** Recover says so, in one of two messages: *"That unsaved work was saved by a newer version of SPTCal, so
+    this version can't open it. It has been kept: update the app, and it will be offered again."* or *"That unsaved
+    work couldn't be opened. It may be damaged. Nothing was changed, and the backup has been kept."* The backup is
+    kept, no file is linked, nothing is marked unsaved, and nothing is written.
+  - `restoreSavedState()` now returns what happened, and `offerBackupRecovery()` stops unless that is `'ok'`.
+- **A calendar file that leaves fields out.** A file written by a tool outside the app, repaired by hand or damaged,
+  or a scenario tab that names only some fields, kept whatever the calendar before it had left in memory wherever
+  the file was silent. Loaded after another show, it took that show's all-phase hiatuses (so its own dates moved:
+  measured, Production wrapping 11/3/26 for 10/20/26), its phase dates, Simultaneous Post, Production's own break,
+  episodes, extra month lanes, view and sidebar tab, and the next Save wrote the mix into the second file.
+  - **Now** a file opens with its own values or a default, the project's own rule ("a missing key falls back to a
+    default, never to whatever is in memory"), which had been applied one feature at a time. Every saved field the
+    file does not name gets a new calendar's value (`savedFieldDefault()`, over exactly the fields the save sweep
+    saves, `isSweptField()`). A file with no hiatus list has no all-phase hiatus; with no episode list, the episodes
+    its Show info gives; with no view or sidebar tab, the waterfall and Show info.
+  - ⚠️ **One thing opens differently in a fresh window:** a file with NO hiatus list. It used to keep a new
+    calendar's four default winter breaks (they were simply still on screen), and now opens with none. Everything
+    else about a fresh-window load is byte for byte what it was. Every file the app has ever written carries its
+    hiatus list and names every field, so no saved calendar, release fixture or shareable copy opens differently.
+- **Save format:** no key added, renamed or removed. Nothing frozen was touched.
+- **Proof.** Two new legs, both in `gate.sh`, both red on the build before the fix.
+  - `recoverfail`, four runs: a backup one version ahead, a damaged scenario tab, an apply that throws partway, and a
+    good two-tab backup as the control. Before: no message, the backup deleted, the blank calendar written over the
+    file after one autosave tick. Now 7/7, 7/7, 8/8 and 3/3.
+  - `loadsparse`, six runs: one file loaded fresh, then again after a calendar with almost every store in use
+    (`carry-heavy.sptcal`) and with every saved field on the page changed in between; fields, hiatus rows, phase lines
+    and the Save text must match to the byte. Without a hiatus list, with a null one, without the six keys the load
+    path used to restore only when present, a six-field generated file (`sparse-generated.sptcal`), a file naming no
+    field at all (it must open as a new calendar's fields: the guard for a field added later with no default), and
+    a two-tab file whose parked tab is the six-field one. Now 8/8 in each of the first five and 7/7 in the last.
+    A mutation run backs the last guard: with one default deleted (`phiatus-weeks`), the `bare` run is red at N1.
+  - 22 real files, each loaded through the real Load on the build before the fix and on this one: the seventeen
+    saved-release fixtures (v1.0.0 to v1.13.0) and `show-a`, `blocks`, `carry-rich`, `scenarios-3`, `customunits`.
+    What each saves and its grid are identical on the two builds, and on this build each saves the same after
+    `carry-heavy.sptcal` as loaded fresh.
+  - Existing legs on this build (sha256 `ea9bd9cf…`): `restore` matches its baseline (rows, cells, width, bytes, grid
+    signature, the 77 field ids); `loadcarry` 6/6, `loadfail` 6/6, `hiatusblank` 4/4, `hostile` 13/13, `sharecopy2`,
+    `legacyparse` 7/7, `backupslots` 5/5, `backuplink` 5/5, `backuplinkstale` 3/3, `conflict` 9/9, `filekeys` 16/16,
+    `undokeys` 11/11, `nofsa` 7/7, `newtab` 6/6, `noresetall` 5/5, `autonote` 9/9, `numclamp` 6/6, `cmdprint` 6/6,
+    `hdroverrides` 4/4, `retiredplaces` 8/8, `regionlock` 14/14, `regionmirror` 9/9, `lastedited` 22/22, `seasons`
+    15/15, `phiatusnum` 18/18, `calrange` 18/18, `hidewf` 19/19, `phasefold` 11/11, `hiatusfold` 11/11,
+    `comparehiatus` 8/8, `snapoff` x3, `rowheight` 7/7, `caps` 5/5, `dlgkeys` 16/16, `prepreptitle` 7/7, `mvhdroff`
+    9/9, `hdrrow` 40/40, `labelsetup` 41/41, `settingswin` 21/21, `scenarios` 23/23, `scenariofacts` 12/12,
+    `sideboxes`, `hiatuscolour` 14/14, `hiatussidebar` 16/16, `simpostname` 14/14, `customunits`, `builtindates`.
+    `stintcollide`, `stintgroup` and `stintmulti` (their fixtures have no episode list) give the same result on both
+    builds. `npm run check` 42/42.
+  - `launchopen` was 12/13 once, in that batch: its read-only launch step timed out while other work was running on
+    the machine. Alone it is 16/16 three times on this build, and 16/16 on the build before the fix.
+  - Tried in the browser on the built app with a real IndexedDB backup one version ahead: the message shows, the
+    backup is still there, the file menu still reads Untitled.
+  - Not run: the full gate (one run is planned for the whole audit batch), and a real window's close and reopen (the
+    legs stand in a fake file handle and an in-memory IndexedDB, as `backuplink` does).
+
 ## v1.14.0 — the November audit's first fixes: one Undo for a hiatus change and its push, the notes resets ask first, Save explains a missing file, Excel export fetches its library again, episode and block counts apply when you leave the box, a view switch is not an unsaved change, rolling a season forward, the moving tools keep your dates, columns that stay narrow; plus everything since v1.13.0 (15 Nov 2026)
 
 ### Export to Excel tries again when its Excel library hasn't loaded, and says why plainly (audit item 3.11, 14 Nov 2026)

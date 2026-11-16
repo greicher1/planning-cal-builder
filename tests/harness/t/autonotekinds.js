@@ -6,7 +6,9 @@
 // computeSchedule tags each automatic note with a kind ('writersRoomOpens', 'principalStart', 'principalWrap'),
 // and autoNotesForView() -- the one filter every reader of the notes goes through -- drops a kind the calendar has
 // switched off. Holiday notes are not a kind (owner's picker: they keep their per-holiday list). A note the user
-// typed (userNotes) is never touched, even one that began as an automatic note's text.
+// typed (userNotes) keeps the user's own lines; since 13 Nov 2026 (audit AUD2-002, the owner's decision D1 (a)) the
+// automatic line it carries LEAVES it while its kind is off and comes back when ticked on (followAutoNotes). Until then
+// such a line stayed printed after its kind was switched off: A3, A4, A9 and A12 were re-expected for it.
 //
 // THE CALENDAR (synthetic: made-up 2027 dates, no region, so no holidays):
 //   Writer's Room Mon 1/4/27 x 8        -> "Writer's Room Opens 1/4/27", which the user then EDITS (+ "Pitch day")
@@ -196,8 +198,8 @@ window.addEventListener('load', function () { (async function () {
       await clickBox('writersRoomOpens');
       await clickBox('principalWrap');
       var n = notes();
-      kase('A3', 'all three off: Wraps\'s week is empty, and the user\'s EDITED Writer\'s Room note and their own note are untouched',
-           same(n, { '2027-01-04': EDITED, '2027-03-01': 'Table read', '2027-05-03': '', '2027-05-24': '' }) && same(boxes(), [false, false, false]),
+      kase('A3', 'all three off: Wraps\'s week is empty, the user\'s EDITED Writer\'s Room note keeps only their line (D1 (a)), and their own note is untouched',
+           same(n, { '2027-01-04': 'Pitch day', '2027-03-01': 'Table read', '2027-05-03': '', '2027-05-24': '' }) && same(boxes(), [false, false, false]),
            { notes: n, boxes: boxes() });
     });
 
@@ -212,8 +214,8 @@ window.addEventListener('load', function () { (async function () {
         var v = c.value; if (v && typeof v === 'object' && v.richText) v = v.richText.map(function (r) { return r.text; }).join('');
         if (typeof v === 'string') cells.push(v);
       }); }); });
-      kase('A4', 'Excel: no Start or Wraps note; the user\'s two notes are there as typed',
-           !has(cells, NOTE_RE) && has(cells, /^Table read$/) && has(cells, /^Writer's Room Opens 1\/4\/27\nPitch day$/),
+      kase('A4', 'Excel: no Start or Wraps note; the user\'s two lines are there, and not the switched-off Writer\'s Room line',
+           !has(cells, NOTE_RE) && has(cells, /^Table read$/) && has(cells, /^Pitch day$/) && !has(cells, /Writer's Room Opens/),
            { notes: cells.filter(function (c) { return /Table read|Pitch day|Principal/.test(c); }) });
     });
 
@@ -260,9 +262,10 @@ window.addEventListener('load', function () { (async function () {
     await step('A9', async function () {
       saveC = await save();
       var s = JSON.parse(saveC), a = JSON.parse(saveA);
-      kase('A9', 'Save writes autoNotesOff with the three kinds; fields.byId holds the SAME ids, and userNotes is untouched',
+      kase('A9', 'Save writes autoNotesOff with the three kinds; fields.byId holds the SAME ids, and userNotes differs only by the switched-off line (D1 (a))',
            same(sorted(s.autoNotesOff), { principalStart: true, principalWrap: true, writersRoomOpens: true }) &&
-           same(idSet(saveC), idSet(saveA)) && same(s.userNotes, a.userNotes),
+           same(idSet(saveC), idSet(saveA)) &&
+           same(s.userNotes, Object.assign({}, a.userNotes, { '2027-01-04': Object.assign({}, a.userNotes['2027-01-04'], { text: 'Pitch day' }) })),
            { key: s.autoNotesOff, ids: idSet(saveC).length, idsBefore: idSet(saveA).length });
     });
 
@@ -289,7 +292,7 @@ window.addEventListener('load', function () { (async function () {
       await load(saveA);
       var m5 = { boxes: boxes(), notes: notes() };
       kase('A12', 'Load round trip: the file with kinds off opens with them off; the same calendar with no key, loaded after it, opens with every kind ON (the M-5 trap)',
-           same(rt.boxes, [false, false, false]) && same(rt.notes, { '2027-01-04': EDITED, '2027-03-01': 'Table read', '2027-05-03': '', '2027-05-24': '' }) &&
+           same(rt.boxes, [false, false, false]) && same(rt.notes, { '2027-01-04': 'Pitch day', '2027-03-01': 'Table read', '2027-05-03': '', '2027-05-24': '' }) &&
            same(m5.boxes, [true, true, true]) && same(m5.notes, ALL_ON), { roundTrip: rt, m5: m5 });
     });
 

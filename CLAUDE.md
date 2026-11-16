@@ -280,6 +280,15 @@ The **snapshot JSON schema is the compatibility contract**, and `captureSnapshot
 - **Restore unconditionally.** `if(snap.x) x = snap.x` leaves the *previous* file's values in
   place when the new file has no such key. Always `snap.x ? {...snap.x} : {}`.
 - **A missing key falls back to a default, never to whatever is in memory.**
+  - **Since 13 Nov 2026 that holds for every saved field and every list** (audit AUD2-005; it had been closed one
+    feature at a time). A field `fields.byId` does not name gets a NEW calendar's value from `savedFieldDefault()`,
+    over exactly the fields `isSweptField()` saves. An absent `fields.hiatuses` means NO all-phase hiatus, in a fresh
+    window too (it used to keep the rows on screen: the previous calendar's, or a new calendar's four winter breaks).
+    Absent `episodeDefs`, `mvExtraLanes` and `dayNoteColors` mean none; absent `viewMode` and `sidebarTab` mean the
+    waterfall and Show info. No file the app has written lacks any of these.
+  - ⛔ A new id'd field whose new-calendar value is not `''` (or, for a box, unticked) needs a line in
+    `savedFieldDefault()`. Leg `loadsparse` (its `bare` run) changes every saved field on the page, loads a file
+    that names none, compares every field with a new calendar's (N1), and goes red on a miss.
 - **Migrations are forward-only** — old file into new app. New file into old app is not supported
   and cannot be. `migrateHolidayViewKeys()` and `normalizeRegionSelection()` are the existing
   worked examples; follow their shape.
@@ -504,7 +513,7 @@ State lives in module-scope mutable objects scattered through the script, *not* 
 
 | Variable | Purpose |
 |---|---|
-| `userNotes` | note-cell overrides; `text:''` means "auto-note explicitly cleared". `monthHidden: true` on an entry (4 Nov 2026, the waterfall editor's "Show in month view" off) keeps the week's TYPED lines out of the month view (`mvWfLinesFor`); holidays and automatic notes stay. Written only as `true`, carried by `saveNoteEdit` across edits |
+| `userNotes` | note-cell overrides; `text:''` means "auto-note explicitly cleared". `monthHidden: true` on an entry (4 Nov 2026, the waterfall editor's "Show in month view" off) keeps the week's TYPED lines out of the month view (`mvWfLinesFor`); holidays and automatic notes stay. Written only as `true`, carried by `saveNoteEdit` across edits ⭐ Its text carries the week's automatic and holiday lines (the editor opens on them), and since 13 Nov 2026 those lines FOLLOW the calendar (audit AUD2-001/002/003, owner's D1 (a); `followAutoNotes`, run by `update()` and `markDirty()`): re-dated in place, taken out when gone, added when arrived, a line the user took out stays out. Rebuilt from the note as left (a session-only WeakMap on the note object, cleared on every restore), never chained. ⛔ A new path that changes what a week's automatic lines are without `update()` or `markDirty()` must call it |
 | `phaseNotes` | notes LINKED TO A PHASE (5 Nov 2026, PHASE-LINKED-NOTES-PLAN.md, rulings R1–R9; steps 1–5 of 6 built on `phase-notes`: the engine, "Stays with" in the waterfall note editor, the look, Delete / copy / paste / drag, and the month view): keyed by the LINK, `<phase>@<n>` (the phase's n-th WORKING week, `seg.weekNo`'s order) or `production@day<n>` (its n-th shoot day), never by a week. `computeSchedule` places them every run (`placePhaseNotes` → `schedule.phaseNotePlace`, ABSENT when empty), so every mover carries them with no code of its own; `effectiveNoteText` draws them after the week's own text. Their look (`color`, `size`, `style`, `height`) is ON the note and travels (`wfLinkedLook`). The month view draws them through `mvWfLinesFor` (`mvLinkedLinesOn`). `monthHidden: true` keeps one out of the month view and `sheetHidden: true` (R10(a), 10 Nov 2026) out of the waterfall (`wfLinkedLinesFor`); a note linked from the month view starts `sheetHidden`. ⛔ PERMANENT key, key shapes and field words (`sheetHidden` among them); absent while empty; no version bump. ⛔ Never re-keyed by `shiftCalendarDates` (it would move them twice). `var`, since `computeSchedule` reads it |
 | `dayNotes` / `dayNoteColors` | month-view per-day notes and legacy colors (folded in by `dayNoteList()`). `waterfall: true` on an entry (4 Nov 2026, the month editor's "Show in waterfall", off by default) adds it to its week's Notes cell as "text m/d/yy" through `effectiveNoteText`, so the screen, Excel, the waterfall PDF and the widths follow with no frozen edit. ⛔ Code that WRITES a week's own note reads `wfOwnNoteText`, never `effectiveNoteText`, or it bakes these lines into typed text. Both flags PERMANENT |
 | `noteColors`, `hiatusTexts`, `hiatusColors` | per-cell appearance overrides |
@@ -568,6 +577,8 @@ may need to raise them later. (Fixed round 7; it restores v1.0.0's output rather
 `reflectFieldsToAttributes()` exists because `outerHTML` serializes *attributes*, not live DOM property values — form fields must have their values written back to attributes before snapshotting.
 
 File handles are kept in IndexedDB (`spt-planning-cal` / `handles`) as a recents list, so a reopened saved file can write back in place after one permission click. `suppressDirty` gates dirty-tracking during load/restore; `markDirty()` schedules the rolling crash backup (debounced 3 s) and the 10-minute autosave. ⚠️ That backup is **IndexedDB**, not `localStorage` — since v1.3.1 one slot **per page load**, `idbSet(BACKUP_SLOT, …)` = `unsavedBackup:<id>`; the old single `unsavedBackup` key is still read for recovery, never written (audit SAVE-7). And a linked file is **stamped** (`savedFileStamp`) at load and after each write: if it changed on disk, autosave pauses and Save asks — overwrite, load newer, or save a copy (owner ruling R4, audit M-6). **`localStorage` is used nowhere in the app today**, so the Settings menu (HANDOFF §2b) would be introducing it, not joining it.
+
+⛔ **Recovery checks that the backup was applied** (audit AUD2-004, 13 Nov 2026). `restoreSavedState()` returns what happened (`'ok'`, `'none'`, `'newer'`, `'damaged'`, `'failed'`), and `offerBackupRecovery()` stops on anything but `'ok'`: it says the unsaved work could not be opened, KEEPS the slot, and leaves the file link, the dirty flag and this page's own backup untouched. Before, a backup that could not be applied (a newer build's after a rollback, a damaged scenario tab, a throw partway) left the blank launch calendar linked to the backup's file, and the next autosave wrote it over that file. A new path that restores from a backup or a state block must read that result too. Leg `recoverfail`.
 
 ## Exports
 

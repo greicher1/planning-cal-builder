@@ -321,7 +321,9 @@ try {
          && mid.prod === '2026-03-23' && mid.post === '2026-05-04' && mid.pre === '2026-01-05'
          && mid.by['Summer Break'] === '2026-08-24/1' && winter(mid) === WINTER
          && (mid.rows.find(r => r.name === 'Break') || {}).note === LINE
-         && out.R1.notes.join('|') === '2026-05-25:Undated note|2026-06-08:Wrap party 6/10/26'
+         // ⭐ Re-expected 13 Nov 2026 (audit AUD2-001, owner's D1 (a)): the push moves the WRAP into 6/8, the week of the
+         // pinned "Wrap party 6/10/26", so its automatic line now joins that typed note. Before, the note hid the wrap.
+         && out.R1.notes.join('|') === '2026-05-25:Undated note|2026-06-08:Principal Photography Wraps 6/12/26\nWrap party 6/10/26'
          && /hiatus-locked/.test(after.active) && after.prod === '2026-03-23' && after.post === '2026-05-04' && after.by.Break === '2026-02-16/3'
          && (after.rows.find(r => r.name === 'Break') || {}).note === LINE, out.R1);
 

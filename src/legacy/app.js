@@ -27375,6 +27375,10 @@ export function initLegacyApp() {
     // costs a second computeSchedule() then and never again for that phase.
     if(noteMovedPhases(currentSchedule)) currentSchedule = computeSchedule(state);
     rememberPlacements(currentSchedule);
+    // ⭐ THE AUTOMATIC LINES IN A TYPED NOTES CELL FOLLOW THE CALENDAR (audit AUD2-001/002/003, D1 (a); followAutoNotes).
+    // HERE, before the column-swap gate and render(): both measure and draw the notes, so they must see the rebuilt text.
+    // A restore (every one raises suppressDirty) only takes its calendar's lines as the new baseline.
+    if(followSuppressed()) followRestored(currentSchedule); else followAutoNotes(currentSchedule, false);
     // ⛔ The gate runs HERE, once per update() -- never inside computeSchedule, which
     // productionStartEndingBy calls up to 300 times in a backward search and would pay 300 gates.
     // update() is bound undebounced to the `input` event of every phase date/weeks field, so this is
@@ -30104,31 +30108,56 @@ export function initLegacyApp() {
     return `${safe} ${stamp}${ext || SAVE_EXT}`;
   }
 
+  // ⛔ WHICH ID'D CONTROLS ARE CALENDAR DATA. One test, read by the save sweep (collectFieldValues) and by
+  // applyStateSnapshot()'s defaults for a field a file does not name (audit AUD2-005, 13 Nov 2026), so what a
+  // file can hold and what a file's silence resets can never be two different lists. It was written inline in
+  // the sweep until then; the four rules and their reasons are unchanged.
+  function isSweptField(el){
+    // The toolbar tools' own controls are transient UI, not calendar data: re-seeded from the
+    // live schedule every time a popover opens. Capturing them would bake stale tool dates into
+    // saved files and -- worse -- make a popover's own re-seed after an action look like a state
+    // change, adding a phantom step to the undo history.
+    // Matched on the CLASS, not an id: there is one popover per tool now, so an id-based test
+    // silently stops matching the moment the markup is reorganised.
+    if(el.closest('.tools-menu')) return false;
+    // ⛔ Preferences are per-USER and per-MACHINE, and this sweep is what would silently bake them
+    // into every saved calendar -- and add a phantom undo step every time one changed. Matched on
+    // the CLASS for the same reason .tools-menu is: an id-based test stops matching the moment the
+    // markup is reorganised, and it would fail SILENTLY, which is how a preference ends up inside
+    // someone else's file. ⚠️ Any new control in the Preferences card is covered automatically;
+    // any preference control placed OUTSIDE that card is not.
+    if(el.closest('.prefs-card')) return false;
+    // ⛔ The Export PDF dialog (ExportPdfDialog.jsx) is transient UI over the page, and Mantine mints an id
+    // for each of its radios. A crash backup or an undo push taken while it is open must not carry them.
+    if(el.closest('.export-pdf-dlg')) return false;
+    // ...and so is the Compare window (CompareDialog.jsx): Mantine mints an id for each scenario Chip's checkbox.
+    if(el.closest('.compare-dlg')) return false;
+    return true;
+  }
+  // What a saved field holds on a NEW calendar: resetAll()'s values, as explicit constants. applyStateSnapshot()
+  // gives one to every field a file does not name (AUD2-005). ⛔ A new id'd field whose new-calendar value is
+  // not '' (or, for a box, unticked) needs a line here, or a file that does not name it opens with it blank;
+  // the `loadsparse` leg's bare file compares every field with a new calendar's (N1) and goes red on a miss.
+  function savedFieldDefault(el){
+    // Snap to Mon starts ticked; every other box (a phase's own hiatus, Simultaneous Post and its count) clear.
+    if(el.type === 'checkbox' || el.type === 'radio') return el.classList.contains('phase-snap-cb');
+    const id = el.id;
+    if(id === 'show-mode') return 'episodes';
+    if(id === 'prep-name') return PREP_DEF.label;   // a DEFAULT name: the update() after a restore shows the mode's own
+    if(id === 'simpost-offset') return '0';
+    if(el.classList.contains('phase-unit')) return 'weeks';
+    if(el.classList.contains('phiatus-weeks')) return '2';
+    if(id.indexOf('name-') === 0){ const p = PHASES.find(ph=> ph.key === id.slice(5)); if(p) return p.label; }
+    return '';
+  }
+
   function collectFieldValues(){
     // Capture values keyed by element id (for id'd fields) plus the ordered
     // list of hiatus rows (which have no ids). This is the source of truth that
     // restoreSavedState() replays after the app rebuilds its dynamic rows on load.
     const byId = {};
     document.querySelectorAll('input[id], select[id], textarea[id]').forEach(el=>{
-      // The toolbar tools' own controls are transient UI, not calendar data: re-seeded from the
-      // live schedule every time a popover opens. Capturing them would bake stale tool dates into
-      // saved files and -- worse -- make a popover's own re-seed after an action look like a state
-      // change, adding a phantom step to the undo history.
-      // Matched on the CLASS, not an id: there is one popover per tool now, so an id-based test
-      // silently stops matching the moment the markup is reorganised.
-      if(el.closest('.tools-menu')) return;
-      // ⛔ Preferences are per-USER and per-MACHINE, and this sweep is what would silently bake them
-      // into every saved calendar -- and add a phantom undo step every time one changed. Matched on
-      // the CLASS for the same reason .tools-menu is: an id-based test stops matching the moment the
-      // markup is reorganised, and it would fail SILENTLY, which is how a preference ends up inside
-      // someone else's file. ⚠️ Any new control in the Preferences card is covered automatically;
-      // any preference control placed OUTSIDE that card is not.
-      if(el.closest('.prefs-card')) return;
-      // ⛔ The Export PDF dialog (ExportPdfDialog.jsx) is transient UI over the page, and Mantine mints an id
-      // for each of its radios. A crash backup or an undo push taken while it is open must not carry them.
-      if(el.closest('.export-pdf-dlg')) return;
-      // ...and so is the Compare window (CompareDialog.jsx): Mantine mints an id for each scenario Chip's checkbox.
-      if(el.closest('.compare-dlg')) return;
+      if(!isSweptField(el)) return;   // transient and per-user controls: the four rules above
       // A count still being typed (bindCountField, audit item 2.1) is not the calendar's yet: the calendar on screen
       // is computed on the count it waits to replace, so that is what a backup, an undo step or a Save holds.
       if(countFieldWaiting.has(el.id)){ byId[el.id] = {value: countFieldWaiting.get(el.id)}; return; }
@@ -31632,6 +31661,10 @@ export function initLegacyApp() {
 
   function markDirty(){
     if(suppressDirty) return;
+    // ⭐ Every edit ends here, so the typed notes follow what it changed (followAutoNotes): an edit that only repaints
+    // (a holiday's Waterfall or Month box, Toggle all) has no update() of its own. After update() this is a no-op. A
+    // note the edit changed is remembered as left, against the lines on screen now. Redrawn only when a note changed.
+    if(followAutoNotes(currentSchedule, true)) render(currentSchedule);
     isDirty = true;
     refreshSaveStatus();
     scheduleBackup();
@@ -32113,10 +32146,12 @@ export function initLegacyApp() {
   // day marks). One Ctrl+Z restores them with the dates: userNotes is in captureSnapshot(), and each
   // gesture's trailing push banks it.
   // ⚠️ Month-view DAY notes (dayNotes) are not touched. They belong to a date, as on every shift.
+  // ⛔ INERT SINCE 13 NOV 2026 (audit Batch 1 item 1.1; AUTONOTE-FOLLOW-PLAN.md §3.4, "one mechanism, not two"): every
+  // drag step's update() now runs followAutoNotes() (below), which does this job for every mover, recomputed from the
+  // note as the user left it. Kept live, this would put back its press copy AFTER that hook and win, re-keying the notes
+  // to fresh objects the hook no longer knows. The call sites stay (reapplyAutoNoteBaseline() treats null as nothing).
   function autoNoteBaseline(){
-    const stale = {};
-    Object.keys(userNotes).forEach(k=>{ stale[k] = weekAutoTexts(currentSchedule, k); });
-    return {notes: JSON.stringify(userNotes), stale};
+    return null;
   }
   // Call right after the gesture's update(). Re-renders only when the notes differ from what update()
   // just drew, so a drag over a calendar with no edited auto-note costs nothing. Returns whether it did.
@@ -32129,6 +32164,133 @@ export function initLegacyApp() {
     if(JSON.stringify(userNotes) === drawn) return false;
     render(currentSchedule);
     return true;
+  }
+
+  // ⭐ THE AUTOMATIC LINES IN A TYPED NOTES CELL FOLLOW THE CALENDAR (November 2026 audit, Batch 1 item 1.1: AUD2-001,
+  // AUD2-002, AUD2-003; the owner's decision D1 (a), 13 Nov 2026: "yes"). AUTONOTE-FOLLOW-PLAN.md's ruled hook (one hook
+  // in update(), rebuilt from a per-note memory; ruled 19 Oct 2026, never built), widened by D1 (a).
+  // A Notes cell the user types in stores its week's automatic and holiday lines as text, because the editor opens on
+  // them. That froze them: a milestone moved INTO a typed week was hidden by the text (AUD2-001), a line whose date or
+  // switch changed stayed printed (AUD2-002), and the movers re-dated a line only when the note OPENED with it (R5's
+  // rewriteMovedAutoNotes, AUD2-003). On screen, in Excel, in both PDFs and in the month view, with no warning.
+  // Now, after every edit, each typed note is rebuilt from the note AS THE USER LEFT IT, against the automatic lines its
+  // week showed THEN and the ones it shows NOW, matched by what each line IS (its kind, or its holiday), never by text:
+  //   - a line of the user's own stays as typed, where it is;
+  //   - an automatic line the week still shows is rewritten in its place (a new date, a new name);
+  //   - one that has left the week (moved, switched off, hidden from the waterfall, its holiday removed, another
+  //     Region) is taken out;
+  //   - one that has ARRIVED since (moved in, ticked into the waterfall, switched on) is added among the week's other
+  //     automatic lines in their order, else at the top, where the editor would have put it;
+  //   - one the user took out of the note while the week showed it stays out.
+  // ⭐ ALWAYS FROM THE NOTE AS LEFT, never chained one step to the next (the plan's §2): update() runs on every keystroke
+  // of a date, and those pass through other dates (06/30 typed over 06/29 passes 6/3). A start that leaves the week and
+  // comes back lands where it was, in its line's place.
+  // The memory is session only, never saved: a WeakMap keyed by the stored note OBJECT, so a Shift that re-keys
+  // userNotes (shiftKeyedMap keeps the objects) carries it with the note. It is forgotten on every restore (Load, Undo,
+  // recovery, a scenario switch, New: each runs update() under suppressDirty), so a Load rewrites nothing and a stale
+  // line a file was saved with stays as saved until the user edits that note.
+  // ⛔ No frozen code: every reader -- effectiveNoteText, the frozen renderer and writers, frozen notesForWaterfallDate's
+  // N1 / N2 -- reads userNotes as it always did, and that text is now right. No save-format change.
+  // ⚠️ var, not let/const: update() runs during the IIFE's evaluation, before these lines (the colKeep trap).
+  var followLive = null;   // weekIso -> {s, m}: each week's automatic lines [{id, text}], waterfall and month, at the last follow
+  var followMem = null;    // stored note object -> {orig, s, m, written}: the note as left, its week's lines then, our last write
+  function followLineId(n){ return n.holiday ? 'h:' + n.hid : (n.kind ? 'k:' + n.kind : 'l:' + (n.origLabel || n.label)); }
+  function followLiveLines(schedule){
+    const sch = wholeCalendar(schedule);
+    const weeks = (sch && sch.weeks) || [], by = (sch && sch.notesByIdx) || [];
+    const out = {};
+    weeks.forEach((w, i)=>{
+      const list = by[i];
+      if(!list || !list.length) return;
+      const row = n => ({id: followLineId(n), text: autoNoteLine(n)});
+      out[isoOf(w.date)] = {s: autoNotesForView(list, 'sheet').map(row), m: autoNotesForView(list, 'month').map(row)};
+    });
+    return out;
+  }
+  // The text of a note this follows: an object's own text. A legacy bare string or a {notes:[...]} list is left alone,
+  // as R5 leaves it.
+  function followNoteText(v){
+    return (v && typeof v === 'object' && !Array.isArray(v.notes) && typeof v.text === 'string') ? v.text : null;
+  }
+  function followUsable(sch){ return !!(sch && !sch.error && sch.weeks && sch.weeks.length); }
+  // Remember every typed note not yet remembered, or changed since this hook last wrote it, against `live`.
+  // `now` (optional): the lines as they stand after the edit. A line of the same week and the same note or holiday whose
+  // text differs there is ALSO known by that text (`alt`). The case is a rename in the waterfall's editor: the box saves
+  // "Camera Rolls 6/29/26" as a new note, and update() remembers it against lines that still read "Start Principal
+  // Photography 6/29/26". Without `alt` the renamed line would read as the user's own text and stop following.
+  function followRemember(live, now){
+    if(!live) return;
+    if(!followMem) followMem = new WeakMap();
+    Object.keys(userNotes).forEach(k=>{
+      const v = userNotes[k];
+      if(followNoteText(v) === null) return;
+      const json = JSON.stringify(v), m = followMem.get(v);
+      if(m && m.written === json) return;
+      const base = live[k] || {s: [], m: []}, after = (now && now[k]) || {s: [], m: []};
+      const alias = list => list.map(x=>{
+        const y = after.s.find(z => z.id === x.id) || after.m.find(z => z.id === x.id);
+        return (y && y.text !== x.text) ? {id: x.id, text: x.text, alt: y.text} : x;
+      });
+      followMem.set(v, {orig: v.text, s: alias(base.s), m: alias(base.m), written: json});
+    });
+  }
+  // One note's text, rebuilt from its memory against its week's lines now (`cur`).
+  function followRebuild(mem, cur){
+    const wasSheet = new Set(mem.s.map(x => x.id)), used = new Set(), out = [];
+    const is = t => x => (x.text === t || x.alt === t) && !used.has(x.id);
+    const match = t => mem.s.find(is(t)) || mem.m.find(is(t));
+    String(mem.orig).split('\n').forEach(line=>{
+      const t = line.trim(), b = t ? match(t) : null;
+      if(!b){ out.push({line, id: null}); return; }   // the user's own line
+      used.add(b.id);
+      // Still in this week: shown in the waterfall now, or (a line an old month-view editor saved into the note, which
+      // frozen edit N1 never draws twice) month-only then and still in the month view.
+      const c = cur.s.find(x => x.id === b.id) || (!wasSheet.has(b.id) ? cur.m.find(x => x.id === b.id) : null);
+      if(c) out.push({line: c.text, id: b.id});
+    });
+    const at = id => out.findIndex(o => o.id === id);
+    cur.s.forEach((c, i)=>{
+      if(wasSheet.has(c.id) || at(c.id) >= 0 || out.some(o => o.line.trim() === c.text)) return;
+      let pos = -1;
+      for(let j = i - 1; j >= 0 && pos < 0; j--){ const p = at(cur.s[j].id); if(p >= 0) pos = p + 1; }
+      for(let j = i + 1; j < cur.s.length && pos < 0; j++){ const p = at(cur.s[j].id); if(p >= 0) pos = p; }
+      out.splice(pos < 0 ? 0 : pos, 0, {line: c.text, id: c.id});
+    });
+    return out.map(o => o.line).join('\n');
+  }
+  // The hook. `leftNow`: a note changed since the last follow was left against the lines on screen NOW (markDirty(),
+  // after an edit that moved nothing); otherwise against the lines of the last follow (update(), whose new schedule is
+  // not what the user was looking at). Returns whether a note changed.
+  function followAutoNotes(schedule, leftNow){
+    if(!followUsable(schedule)) return false;   // a date half typed (year 0002) changes nothing, and is not remembered
+    const cur = followLiveLines(schedule);
+    followRemember(leftNow || !followLive ? cur : followLive, cur);
+    let changed = false;
+    Object.keys(userNotes).forEach(k=>{
+      const v = userNotes[k], mem = followNoteText(v) !== null ? followMem.get(v) : null;
+      if(!mem) return;
+      const now = cur[k] || {s: [], m: []}, next = followRebuild(mem, now);
+      if(next === v.text) return;
+      changed = true;
+      // Nothing left but the week's own automatic lines: back to plain automatic, saveNoteEdit's rule.
+      if(next.trim() === now.s.map(x => x.text).join('\n') && !v.date && !v.monthHidden){ delete userNotes[k]; return; }
+      const nv = Object.assign({}, v, {text: next});
+      userNotes[k] = nv;
+      followMem.set(nv, Object.assign({}, mem, {written: JSON.stringify(nv)}));
+    });
+    followLive = cur;
+    return changed;
+  }
+  // A restore REPLACES the calendar: forget every note, and take its lines as the new baseline. update() calls this
+  // under suppressDirty / applyingUndoRedo, which every restore path raises.
+  function followRestored(schedule){
+    followMem = null;
+    if(followUsable(schedule)) followLive = followLiveLines(schedule);
+  }
+  // update() runs during the IIFE's evaluation, before suppressDirty's and applyingUndoRedo's `let` lines: reading one
+  // then throws (its dead zone), and that early update() is the boot's own, a restore.
+  function followSuppressed(){
+    try { return !!(suppressDirty || applyingUndoRedo); } catch(e){ return true; }
   }
 
   // ---------- Day overrides travel BY SHOOT-DAY NUMBER (owner ruling R2; audit M-4) ----------
@@ -32609,6 +32771,10 @@ export function initLegacyApp() {
     // currentSchedule, which is still the PRE-shift schedule: nothing recomputes it until then.
     const staleAuto = {};
     Object.keys(userNotes).forEach(k=>{ if(!isPinnedWeek(k)) staleAuto[k] = weekAutoTexts(currentSchedule, k); });
+    // ...and the follow hook's memory of every note, taken on the weeks the notes are on NOW (a note loaded and never
+    // edited has none yet). It rides on the note objects, which the re-key below keeps, so after the move each note is
+    // rebuilt from its old week's lines against its new week's (followAutoNotes). R5 below then finds nothing to do.
+    followRemember(followLive || (followUsable(currentSchedule) ? followLiveLines(currentSchedule) : null));
     // userNotes is declared const and mutated in place elsewhere, so it's cleared and repopulated
     // rather than reassigned.
     const shiftedNotes = shiftKeyedMap(userNotes, move, isPinnedWeek, mergeNoteValues);
@@ -34119,9 +34285,34 @@ export function initLegacyApp() {
     }
     const el = document.getElementById('saved-state');
     if(!el) return;
+    const blockWas = el.textContent;
     suppressDirty = true;
     el.textContent = JSON.stringify(b.state).replace(/</g, '\\u003c');
-    restoreSavedState();
+    const restored = restoreSavedState();
+    // ⛔ A BACKUP THAT COULD NOT BE APPLIED STOPS HERE (audit AUD2-004, 13 Nov 2026). restoreSavedState() used to
+    // return nothing, so everything below ran whether or not the backup was on screen. When it was not (a backup
+    // written by a newer build and read after a rollback, a damaged scenario tab, or a throw partway through the
+    // apply) the screen still held the blank launch calendar, and this function then linked the backup's FILE to
+    // it, marked it unsaved, wrote that blank calendar as this page's backup and deleted the slot it came from.
+    // The next autosave tick (no click needed where Chrome still holds write permission) wrote the blank calendar
+    // over the saved file: the unsaved work and the file both gone, with no message. Measured: 5,170 bytes over a
+    // 6.3 KB calendar.
+    // So on any failure nothing below runs: the file link is left exactly as it is, nothing is marked unsaved,
+    // this page writes no backup, and the slot is KEPT, as a Cancel keeps it. It is offered again at the next
+    // launch, which is when a backup from a newer build can be opened (after the app updates). Leg `recoverfail`
+    // holds all three causes, and a good two-tab backup as its control.
+    // ⛔ Nothing here awaits, for the reason above: a double-clicked file may be waiting on this question.
+    if(restored !== 'ok'){
+      el.textContent = blockWas;   // the block is this page's own again, not a calendar that is not on screen
+      // The atomic apply put back what was on screen; this draws it. (After a refusal nothing was touched.)
+      if(restored === 'failed') refreshAfterRestore();
+      suppressDirty = false;
+      uiAlert(restored === 'newer'
+        ? 'That unsaved work was saved by a newer version of SPTCal, so this version can’t open it. It has been kept: update the app, and it will be offered again.'
+        : 'That unsaved work couldn’t be opened — it may be damaged. Nothing was changed, and the backup has been kept.',
+        { title: 'Recover unsaved work' });
+      return;
+    }
     monthCursorRecheck = true;   // a different calendar: see update() (L-17)
     collapsedPhaseKeys.clear();  // ...so every phase card unfolds (refreshAfterRestore reflects it)
     unfoldAllHiatuses();         // ...and every all-phase hiatus card (their rows carried the old folds across)
@@ -40509,7 +40700,16 @@ export function initLegacyApp() {
     if(typeof v === 'string') userNotes[wk] = swap(v);
     else if(v && typeof v === 'object'){
       if(Array.isArray(v.notes)) v.notes = v.notes.map(n => Object.assign({}, n, {text: swap(n.text)}));
-      else if(typeof v.text === 'string') v.text = swap(v.text);
+      else if(typeof v.text === 'string'){
+        // The follow hook's memory of this note is renamed with it, so the line is still known as that holiday's or
+        // note's (followAutoNotes). Re-remembered instead, it would read as the user's own text from here on.
+        const mem = followMem && followMem.get(v);
+        v.text = swap(v.text);
+        if(mem){
+          const ren = list => list.map(x => x.text === oldLine ? {id: x.id, text: newLine} : (x.alt === oldLine ? Object.assign({}, x, {alt: newLine}) : x));
+          followMem.set(v, {orig: swap(mem.orig), s: ren(mem.s), m: ren(mem.m), written: JSON.stringify(v)});
+        }
+      }
     }
     const oldKey = mvWfNoteKey(oldLine), newKey = mvWfNoteKey(newLine);
     if(oldKey !== newKey && MV_WFNOTE_KEY.test(newKey)){
@@ -41522,22 +41722,36 @@ export function initLegacyApp() {
   });
 
   // ---------- Restore saved data when this file was produced by "Save to File" ----------
+  // ⛔ IT SAYS WHAT HAPPENED (audit AUD2-004, 13 Nov 2026). It used to return nothing on every path, so crash
+  // recovery could not tell a backup that was applied from one that was not, and went on as if it had been (see
+  // offerBackupRecovery). Returns:
+  //   'ok'       the block's calendar is on screen
+  //   'none'     no block, or nothing in it (the hosted app's block ships as `null`)
+  //   'newer'    saved by a newer build, refused whole; nothing was touched
+  //   'damaged'  the block is not JSON, or its scenarios cannot be read: refused whole; nothing was touched
+  //   'failed'   the apply threw partway and was rolled back to what was on screen, so the caller must run
+  //              refreshAfterRestore() (the boot does anyway)
   function restoreSavedState(){
     const el = document.getElementById('saved-state');
-    if(!el) return;
+    if(!el) return 'none';
     let snap;
-    try { snap = JSON.parse(el.textContent); } catch(e){ return; }
-    if(!snap || typeof snap !== 'object') return;
+    try { snap = JSON.parse(el.textContent); } catch(e){ return 'damaged'; }
+    if(!snap || typeof snap !== 'object') return 'none';
     // A shareable copy restores itself from this block at boot. If it is a newer version, or a
     // hand-edited copy that throws partway, fall back to a blank working app rather than a zombie
     // half-applied page with no autosave or unsaved-work protection (audit L-19 / M-1).
     // Crash recovery comes through here too, and a backup holds every scenario (captureFileObject).
     const u = unpackScenarioFile(snap);
-    if(u.refused) return;
+    if(u.refused) return u.refused === 'newer' ? 'newer' : 'damaged';
     snap = u.snapshot;
-    if(!snapshotVersionOk(snap)) return;
-    try { applyStateSnapshotAtomically(snap); adoptScenarios(u.scenarios); }
+    if(!snapshotVersionOk(snap)) return 'newer';
+    try { applyStateSnapshotAtomically(snap); }
+    catch(e){ console.error(e); return 'failed'; }
+    // Its own try, as it always had one: by now the calendar IS on screen, so a throw here is logged and the
+    // restore still counts. Reporting it as 'failed' would tell recovery that nothing was applied.
+    try { adoptScenarios(u.scenarios); }
     catch(e){ console.error(e); }
+    return 'ok';
   }
 
   // Everything that must run after a snapshot has been applied, to bring the visible UI back in
@@ -42326,7 +42540,14 @@ export function initLegacyApp() {
     restoredHolidayLists = (typeof snap.holidayLists === 'number') ? snap.holidayLists : 1;
     retirePlaceSnapshot(snap);
     // 1. Rebuild custom phase rows, then set their saved counter
-    if(Array.isArray(snap.episodeDefs)){
+    // ⛔ UNCONDITIONAL (audit AUD2-005, 13 Nov 2026; see "THE FILE'S OWN, OR THE DEFAULT" below). A file with no
+    // episode list has none of its own: the list is derived from its Show info by the refresh that follows
+    // (syncEpisodesFromShowInfo), from a counter of 0. This block was skipped whole, so the previous calendar's
+    // episodes -- their names, day counts and prep lengths -- and its counter stayed, and were saved into this file.
+    if(!Array.isArray(snap.episodeDefs)){ episodeDefs = []; episodeCounter = 0; }
+    else {
+      // The counter the map below mints from is the file's, never the previous calendar's.
+      if(typeof snap.episodeCounter !== 'number') episodeCounter = 0;
       // ⛔ FIELD BY FIELD, so a new per-episode key must be named here or every load, undo and crash
       // recovery drops it silently. `prepDays` (EPISODE-PREP-PLAN.md §4.3) is copied only when the file
       // has one: absent means "use the default", and a calendar that never set one round-trips exactly.
@@ -42340,6 +42561,10 @@ export function initLegacyApp() {
         ...(typeof e.barPrefix === 'string' ? {barPrefix: e.barPrefix} : {})
       }));
       if(typeof snap.episodeCounter === 'number') episodeCounter = snap.episodeCounter;
+      // Never below the highest id in use (blockCounter's rule, below), so a file whose counter is missing or
+      // stale cannot have its next episode minted with an id a restored one already carries. Every file the
+      // app has written carries a counter at or above its ids, so for those this changes nothing.
+      episodeCounter = Math.max(episodeCounter, ...episodeDefs.map(e=> parseInt(String(e.id).replace(/^ep/, ''), 10) || 0));
     }
     // ⛔ UNCONDITIONAL (audit M-2, FIX-PLAN.md 1.1, 25 Sep 2026). This block was gated on
     // `snap.customPhaseDefs.length`, so a file with NO custom phases skipped it and the previously
@@ -42382,12 +42607,21 @@ export function initLegacyApp() {
     }
 
     // 2. Rebuild hiatus rows to match the saved set (replaces the defaults)
-    if(snap.fields && Array.isArray(snap.fields.hiatuses)){
+    // ⛔ UNCONDITIONAL (audit AUD2-005, 13 Nov 2026). This was gated on the file HAVING the list, so a file
+    // without one -- written by a tool outside the app, repaired by hand or damaged (the sanitizer drops a list
+    // of the wrong type), or a scenario tab that names only some things -- kept the rows already on screen: the
+    // previous calendar's breaks, or a new calendar's four winter breaks in a fresh window. An all-phase hiatus
+    // pauses every phase, so the second show was scheduled around the first show's breaks (measured: Production
+    // wrapping 11/3/26 for 10/20/26), nothing said so, and the next Save wrote the breaks into the second file.
+    // An absent list means NO all-phase hiatus, always, as an absent customPhaseDefs means no custom phases
+    // above. Every file the app has written carries the list, so none of those opens differently.
+    {
+      const savedHiatuses = (snap.fields && Array.isArray(snap.fields.hiatuses)) ? snap.fields.hiatuses : [];
       const folds = hiatusFolds();   // session UI: the caret's folds ride across the rebuild (carryHiatusFolds)
       document.getElementById('hiatus-list').innerHTML = '';
       // h.locked is absent in saves written before the lock existed -> addHiatusRow defaults it to
       // locked, which matches how those calendars behaved (nothing shifted them).
-      snap.fields.hiatuses.forEach(h=> addHiatusRow(h.start, h.weeks, h.locked, h.name, h.numbered === true));
+      savedHiatuses.forEach(h=> addHiatusRow(h.start, h.weeks, h.locked, h.name, h.numbered === true));
       carryHiatusFolds(folds);
     }
 
@@ -42471,6 +42705,30 @@ export function initLegacyApp() {
     episodeShootOrder = Array.isArray(snap.episodeShootOrder)
       ? snap.episodeShootOrder.filter(x=> typeof x === 'string') : [];
 
+    // ⛔ THE FILE'S OWN, OR THE DEFAULT -- FOR EVERY SAVED FIELD (audit AUD2-005, 13 Nov 2026). Each block above
+    // closed this trap for the fields one feature added. This closes it for all of them, and for whatever is
+    // added next: step 3 below replays only the ids the snapshot NAMES, so a field it does not name kept the
+    // previous calendar's value. Measured: a file naming six ids (a title, the Show info counts, the region and
+    // Production's start), loaded after another show, was drawn, exported and saved with that show's Writer's Rm,
+    // Pre-Prep, Prod Prep, Post and Localization, its Simultaneous Post and its Production break.
+    // - Who reaches it: a file written by a tool outside the app, repaired by hand or damaged, and a scenario tab
+    //   that names only some fields. Every file the app has written names every one of these fields (checked on
+    //   every release fixture, v1.0.0 to v1.13.0, after the region migration above), so none of those opens
+    //   differently. Undo, redo, a scenario flip and the crash backup apply this build's own snapshots, which
+    //   name them all, so this never fires for one.
+    // - Which fields: the ones the save sweep saves (isSweptField), so what a file CAN hold is exactly what a
+    //   file's silence resets. Custom phase rows are left out: step 1 built them fresh, with a new row's values.
+    // - To what: a NEW calendar's value, as explicit constants (savedFieldDefault), never defaultValue /
+    //   defaultChecked, for the reason given above.
+    // Leg `loadsparse` changes every saved field on the page and then loads a file that names none: its N1
+    // compares every field with a new calendar's, so a field added later with the wrong default goes red there.
+    document.querySelectorAll('input[id], select[id], textarea[id]').forEach(el=>{
+      if(hasField(el.id) || !isSweptField(el) || el.closest('#custom-phase-rows')) return;
+      const dflt = savedFieldDefault(el);
+      if(el.type === 'checkbox' || el.type === 'radio') el.checked = dflt === true;
+      else el.value = dflt;
+    });
+
     // 3. Apply saved values to every id'd field
     if(snap.fields && snap.fields.byId){
       Object.keys(snap.fields.byId).forEach(id=>{
@@ -42516,9 +42774,10 @@ export function initLegacyApp() {
 
     // 4. Restore user notes and view mode. Migrate any old-format entries
     //    ({label, noteDate}) into the new single-text shape ({text}).
-    if(snap.mvExtraLanes && typeof snap.mvExtraLanes === 'object'){
-      mvExtraLanes = Object.assign({}, snap.mvExtraLanes);
-    }
+    // ⛔ UNCONDITIONAL, and `: {}` is the point (audit AUD2-005, 13 Nov 2026): this was `if(snap.x) x = ...` with
+    // no else, the one shape CLAUDE.md forbids, so a file without the key kept the previous calendar's extra month
+    // lanes and saved them as its own.
+    mvExtraLanes = (snap.mvExtraLanes && typeof snap.mvExtraLanes === 'object') ? Object.assign({}, snap.mvExtraLanes) : {};
     // Reassigned, not merged: an absent store in the snapshot means "no overrides", and a merge
     // would keep a previous file's hand-dragged widths on this one.
     colWidths  = (snap.colWidths  && typeof snap.colWidths  === 'object') ? Object.assign({}, snap.colWidths)  : {};
@@ -42548,9 +42807,8 @@ export function initLegacyApp() {
     if(snap.dayNotes && typeof snap.dayNotes === 'object'){
       Object.keys(snap.dayNotes).forEach(k=>{ dayNotes[k] = snap.dayNotes[k]; });
     }
-    if(snap.dayNoteColors && typeof snap.dayNoteColors === 'object'){
-      dayNoteColors = Object.assign({}, snap.dayNoteColors);
-    }
+    // ...and the legacy day-note colours, the same way and for the same reason (AUD2-005): absent means none.
+    dayNoteColors = (snap.dayNoteColors && typeof snap.dayNoteColors === 'object') ? Object.assign({}, snap.dayNoteColors) : {};
     // ⛔ UNCONDITIONAL, and the else branch is the point: `if(snap.x) x = snap.x` would leave the
     // PREVIOUS file's overrides in place when the newly opened one has none (CLAUDE.md, Save/restore).
     // ⚠️ Values are copied through VERBATIM -- unknown ones are not filtered out here. A round trip
@@ -42815,7 +43073,10 @@ export function initLegacyApp() {
     colKeep = (snap.colKeep && typeof snap.colKeep === 'object') ? Object.assign({}, snap.colKeep) : {};
     colKeepRestored = true;
     reflectColReuse();
-    if(typeof snap.sidebarTab === 'string') setSidebarTab(snap.sidebarTab);
+    // ⛔ UNCONDITIONAL (audit AUD2-005, 13 Nov 2026): a file with no sidebar tab opens on Show info, where a new
+    // calendar starts, never on the tab the previous calendar left up. A scenario flip passes the tab on screen
+    // in (switchScenario), and an undo step carries its own, so neither is moved by this.
+    setSidebarTab(typeof snap.sidebarTab === 'string' ? snap.sidebarTab : 'show');
     // 4d. Restore auto-phase color overrides and reflect them on the built-in swatches.
     if(snap.phaseColorOverride && typeof snap.phaseColorOverride === 'object'){
       phaseColorOverride = Object.assign({}, snap.phaseColorOverride);
@@ -42838,11 +43099,12 @@ export function initLegacyApp() {
       const nameEl = document.getElementById('name-'+key);
       if(nameField && nameEl) nameField.placeholder = ((nameEl.value.trim() || 'Phase')) + ' Hiatus';
     });
-    if(snap.viewMode === 'sheet' || snap.viewMode === 'month'){
-      viewMode = snap.viewMode;
-    } else if(snap.viewMode === 'list'){
-      viewMode = 'sheet';   // List view was removed; fall back to the waterfall.
-    }
+    // ⛔ UNCONDITIONAL (audit AUD2-005, 13 Nov 2026): a file with no view opens in the waterfall, where a new
+    // calendar starts, never in the view the previous calendar was left in. That is also where 'list' lands
+    // (List view was removed), which the sanitizer has already dropped by the time this runs. Undo and a
+    // scenario flip write the view on screen into the snapshot first (applySnapshotJSON, switchScenario), so
+    // neither is moved by this: an absent key here always means a file that did not say.
+    viewMode = (snap.viewMode === 'month') ? 'month' : 'sheet';
     {
       ['sheet','month'].forEach(m=>{
         const b = document.getElementById('view-'+m+'-btn');
