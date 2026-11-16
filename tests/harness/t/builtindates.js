@@ -88,6 +88,12 @@ window.addEventListener('load', function () { (async function () {
       check(!$('unit-production') && !$('end-production'), 'Production has no Length select and no End date');
       check(KEYS.every(function (k) { return $('unit-' + k) && $('end-' + k); }), 'all five built-ins have unit-<key> and end-<key>');
       check(!$('unit-prePrep').querySelector('option[value="days"]'), 'a built-in offers Weeks and Dates only (no Days)');
+      // ⚠️ Since 13 Nov 2026 (audit 2.14, AUD2-036, approved) a Snap to Monday that is on waits behind its card's "More
+      // options", so both cards' More options are opened first: the Length then decides alone whether Snap shows.
+      ['writersRoom', 'prePrep'].forEach(function (k) {
+        var m = $('swatch-' + k).parentElement.querySelector(':scope > .phase-more-btn');
+        if(m && m.getAttribute('aria-expanded') === 'false') m.click();
+      });
       out.boxes = {
         weeks: [shown($('weeks-writersRoom')), shown($('end-writersRoom')), shown($('snap-writersRoom'))],
         dates: [shown($('weeks-prePrep')), shown($('end-prePrep')), shown($('snap-prePrep'))]

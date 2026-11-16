@@ -417,7 +417,11 @@ export function PreviewToolbar() {
             Side Boxes, in the month view the month stepper (it left its own line under the phase map, and its Today button
             went: "get rid of the today button entirely and just make the stepper larger"). Both sit in the same grid cell,
             the view not shown kept by visibility, so the cell is one width in both views and Header, Undo and Redo never
-            move when you switch ("the menu should be locked where it is"). */}
+            move when you switch ("the menu should be locked where it is").
+            ⚠️ That holds only because the stepper adds NO width to the cell (audit 2.14, AUD2-034: legacy.css gives it
+            `container-type:inline-size`, and it shortens to "Sep 2027" where the full name does not fit). At 1300 px and
+            below Fill Gaps is its bare switch, the pair is about 142 px, and the stepper had made the cell wider in the
+            month view only: at 1280 px the first line wrapped there and not in the waterfall. */}
         <div className="tb-page">
         <div className="tb-slots">
         <div className="tb-pair">

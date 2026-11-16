@@ -220,6 +220,9 @@ try {
     await sleep(300);
     // Every hiatus card unfolded, so its boxes can be clicked.
     await ev(`(() => { document.querySelectorAll('#hiatus-list .hiatus-entry.is-collapsed .hiatus-collapse-btn').forEach(b => b.click()); return true; })()`);
+    // ...and every phase card's More options open (audit 2.14, AUD2-036, 13 Nov 2026), where a Hiatus switch that is off
+    // now waits, so R8 can click Pre Prep's.
+    await ev(`(() => { document.querySelectorAll('.phase-row > .phase-more-btn[aria-expanded="false"]').forEach(b => b.click()); return true; })()`);
     await sleep(200);
   };
   const load = async () => { await fresh(`http://localhost:${PORT}${PAGE}?state=hiatusripple`); await toPhases(); };

@@ -176,6 +176,14 @@ window.addEventListener('load', function () { (async function () {
       await anchor('post', 'ends');
       var p = postState();
       var ok = same(p, Object.assign({}, P0, { end: '2027-03-05' })) && p.start === '2026-11-02' && p.last === '3/1/27:Post wk 16';
+      // ⚠️ Since 13 Nov 2026 (audit 2.14, AUD2-036, approved) a Snap to Monday that is on waits behind its card's "More
+      // options", so both cards' More options are opened first: Ends must still take Post's Snap away, and Localization
+      // must still show its own.
+      ['post', 'localization'].forEach(function (k) {
+        var m = rowOf(k).querySelector(':scope > .phase-more-btn');
+        if (m && m.getAttribute('aria-expanded') === 'false') m.click();
+      });
+      await T.sleep(150);
       var ui = rowOf('post').classList.contains('ends-mode') && shown(box('post')) && box('post').value === '2027-03-05'
             && !shown(byId('start-post')) && !shown(byId('snap-post')) && !shown(byId('autostart-post'))
             && shown(byId('snap-localization')) && shown(byId('autostart-localization'));

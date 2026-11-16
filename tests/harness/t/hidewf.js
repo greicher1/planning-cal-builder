@@ -83,6 +83,10 @@ window.addEventListener('load', function () { (async function () {
     await phasesTab();
     var b = tickOf(key);
     if (!b) throw new Error('no Hide in waterfall tick on ' + key + '\'s card');
+    // ⚠️ Since 13 Nov 2026 (audit 2.14, AUD2-036, approved) an UNticked Hide in waterfall waits behind the card's
+    // "More options" (a ticked one stays on show), so a user opens More options first, and so does this.
+    var more = rowOf(key).querySelector(':scope > .phase-more-btn');
+    if (!b.getClientRects().length && more && more.getAttribute('aria-expanded') === 'false') { more.click(); await T.sleep(150); }
     b.scrollIntoView({ block: 'center' });
     await T.sleep(150);
     var r = b.getBoundingClientRect(), hit = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);

@@ -48,6 +48,11 @@ export const chrome = {
   // the SAME data-id / data-remove / data-action attributes the engine's delegated click handler
   // matches on, so that handler ports across untouched.
   fileMenu: noop,
+  // { items } — items are [{id, name}]: the recent calendars an empty, Untitled start lists in the preview panel
+  // (StartRecents.jsx, audit 2026-11 AUD2-030). WHEN they show is the engine's (reflectStartRecents sets the host's
+  // `hidden`); this is only what the rows say. Each row carries data-id, and Load… data-action="open", so a click is
+  // the file menu's own delegated handler.
+  startRecents: noop,
   // (which, { visible, text, fileName }) — which is 'legacy' | 'update'.
   notice: noop,
   // { undo, redo } booleans — TRUE means disabled, matching `u.disabled = !undoStack.length`.
