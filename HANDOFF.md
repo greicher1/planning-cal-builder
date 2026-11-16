@@ -4,6 +4,26 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### ✅ 16 Nov 2026: NO BOX AROUND THE NOTE EDITOR'S DAY / STAYS WITH WHEN CLICKED. Branch `note-select-box` (worktree `.claude/worktrees/note-select-box`, from `origin/main` `182cd6d`), one commit, pushed to `main` as a fast-forward on the owner's pickers *"Commit"* and *"Push and deploy"*. No version cut (README: Unreleased). Tracker card `note-editor-select-box`
+- **Owner, on a screenshot of the waterfall note editor:** *"fix this - why do these boxes show up"*. The box was a dark
+  2 px outline around the Stays with dropdown, its bottom edge through the hint ("Stays on the week of …").
+- **Cause:** v1.15.0's A2 look gave `.note-a2 .note-line select` a `:focus-visible` outline (2 px, offset 1 px). ⛔
+  **Chrome matches `:focus-visible` on a MOUSE click on a `<select>`** (measured: a real click → `:focus-visible` true),
+  so the ring drew on every click, and stayed while focus did: the Stays with `change` handler refocuses the text box,
+  but re-picking the same option or closing the list fires no `change`. The select was 30 px tall in a 31 px row and the
+  hint's `margin-top:-5px` put its top 4.5 px above the select's bottom, so the ring crossed the hint's first line.
+- **Fix (`legacy.css`, the `.note-a2` block, chrome only, both note editors):** no outline; `:hover` and `:focus` share
+  the gray-0 tint inside the select's own box; the select is `height:22px; line-height:16px`; the hint's top margin is
+  -4px. Result: the select ends 0.5 px above the hint. Don't reach for `:focus-visible` to tell keyboard from mouse on a
+  `<select>`: in Chrome it can't.
+- **Proof:** `notelook` S1 (new): each shown select focused in both editors, no outline or ring, `gap >= 0` to the Stays
+  with hint. Red on the v1.15.0 build (`dist-before/`, gap -4.5), green on the fix, leg 13/13. Real clicks in both
+  editors in the preview. `npm run check` 42/42. Also green on the fix: `phaselink` 14, `phasemonth` 21, `wfnotelines`
+  link 4 / link2 4 / day 5, `dayfirst` 14, `dayfirstin` 13, `mvkeys` (pick) 24.
+- **Gate:** chrome-only CSS, so check + targeted legs, no full gate (owner's standing rule for chrome tweaks).
+- ⚠️ **Local `main` in the main checkout is still at v1.13.0** (with another session's uncommitted HANDOFF edit), well
+  behind `origin/main`. This branch was cut from `origin/main`, not from it, and local `main` was not touched.
+
 ### 🚂 v1.15.0 — the rest of the November audit. Branch `release-v1.15` (worktree `.claude/worktrees/release-v1.15`), cut from `origin/main` `0b89371` (v1.14.0). The owner said *"combine all and push"* on 16 Nov 2026: that is the go-ahead to ship every item below, the ones not tried by hand included. NOT tagged or pushed as of this entry; the main session cuts v1.15.0, runs the one full gate and asks before the push.
 - ⛔ **This section SUPERSEDES the "NOT merged, NOT pushed", "WIP, try first", "not in gate.sh yet" and "no README /
   HANDOFF yet" lines in each item's own section below and in its branch's commits.** Every item is merged here, has a

@@ -26,6 +26,8 @@
 //   M2  a holiday: "Holiday" then "Fri 7/3/26", no button, Colour, the same foot
 //   M3  a waterfall line: "Waterfall line" then "Tue 11/3/26", Delete Note; Stays with, Colour, Show in waterfall; Save only
 //   M4  a "+": "Note"; a swatch renames Colour; Save adds the note and closes the editor
+//   S1  focused, the selects draw no outline or ring and Stays with ends above its hint, in both editors (owner, 16 Nov
+//       2026: "why do these boxes show up"); red before (a 2 px outline 1 px outside the select, through the hint)
 //   E0  no console errors
 //
 // ⛔ No dollar sign anywhere in this file (srv.js splices legs in with String.replace).
@@ -134,6 +136,26 @@ window.addEventListener('load', function () { (async function () {
       foot: foot ? { keys: txt(q('.note-pop-keys', foot)), save: save ? txt(save) : null, last: p.lastElementChild === foot,
                      saveRight: !!save && Math.abs(rect(save).r - (pr.r - 14)) <= 2 } : null
     };
+  }
+
+  // The list's selects (Day, Stays with), focused one at a time (owner, 16 Nov 2026: "why do these boxes show up"):
+  // none draws an outline or a ring, because Chrome counts a MOUSE click on a <select> as :focus-visible, and the Stays
+  // with select's own box ends above the hint tucked under its row. Focus goes back to the text box after.
+  function selFacts(p) {
+    var sels = qa('.note-list .note-line select', p).filter(shown).map(function (s) {
+      s.focus(); var cs = getComputedStyle(s);
+      return { name: txt(q('.note-row-name', s.closest('.note-line'))), focused: document.activeElement === s && s.matches(':focus'),
+               outline: cs.outlineStyle === 'none' || parseFloat(cs.outlineWidth) === 0, ring: cs.boxShadow === 'none' };
+    });
+    var lsel = q('.note-link-select', p), lhint = q('.note-link-hint', p);
+    var hintShown = !!lhint && shown(lhint) && txt(lhint) !== '';
+    var gap = hintShown && lsel ? lhint.getBoundingClientRect().top - lsel.getBoundingClientRect().bottom : null;
+    var ta = q('textarea', p); if (ta) ta.focus();
+    return { sels: sels, hint: hintShown ? txt(lhint) : '', gap: gap === null ? null : Math.round(gap * 100) / 100 };
+  }
+  function selFactsOk(f, names) {
+    return same(f.sels.map(function (s) { return s.name; }), names)
+      && f.sels.every(function (s) { return s.focused && s.outline && s.ring; }) && f.hint !== '' && f.gap !== null && f.gap >= 0;
   }
 
   // ---- Save and Load through the real controls ----
@@ -324,6 +346,16 @@ window.addEventListener('load', function () { (async function () {
              && named === 'Light blue' && !mvPop() && !!b && bg === 'rgb(0, 176, 240)',
            { look: f, named: named, closed: !mvPop(), block: !!b, bg: bg });
       byId('undo-btn').click(); await settle();
+    });
+
+    await step('S1', async function () {
+      var w = selFacts(await openEditor('2026-11-02'));
+      await closeEditor();
+      var m = selFacts(await openMv('November 2026', '2026-11-03', /kickoff/));
+      await closeMv();
+      kase('S1', 'focused, the Day and Stays with selects draw no outline or ring, and Stays with ends above its hint (waterfall editor; month editor\'s Stays with)',
+           selFactsOk(w, ['Day', 'Stays with']) && selFactsOk(m, ['Stays with']),
+           { waterfall: w, month: m });
     });
 
     var errs = (T.appHealth().errors || []);

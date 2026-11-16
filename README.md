@@ -29,6 +29,27 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+## Unreleased
+
+### The note editor's Day and Stays with no longer draw a box when clicked (16 Nov 2026)
+
+The owner, on a screenshot of the waterfall note editor: *"fix this - why do these boxes show up"*. Clicking the Day or
+Stays with dropdown drew a dark 2 px rounded box around it. The box stayed until focus moved (re-picking the same choice,
+or closing the list, does not move it), and its bottom edge ran through the "Stays on the week of …" line under Stays
+with.
+
+- **Why it happened.** v1.15.0's cleaner note editor gave the two dropdowns a keyboard-focus outline. Chrome treats a
+  mouse click on a dropdown as keyboard focus too, so the outline drew on every click. It sat 1 px outside the dropdown,
+  and Chrome drew the dropdown 30 px tall in a 31 px row, with the hint tucked 5 px up under the row.
+- **The fix (chrome only, both note editors).** No outline. A focused dropdown shows the same soft grey as on hover,
+  inside its own edges. The dropdowns are 22 px tall, and the hint sits 4 px under its row instead of 5, so the dropdown
+  ends above the hint. Nothing else in the editor moves.
+- **Verified.** `notelook` gains S1 (focus each dropdown in both editors: no outline or ring, and Stays with ends above
+  its hint). It fails on v1.15.0 (outline drawn, dropdown 4.5 px into the hint) and passes on the fix: 13/13. Tried in
+  the browser with a real click in both editors. `npm run check` 42/42. The legs that drive these dropdowns are green
+  on the fix: `phaselink` 14/14, `phasemonth` 21/21, `wfnotelines` (link 4, link2 4, day 5), `dayfirst` 14/14,
+  `dayfirstin` 13/13, `mvkeys` (pick) 24/24.
+
 ## v1.15.0 — the rest of the November audit: typed Notes cells follow the calendar, a cleaner note editor, Enter saves a note and the month view takes Delete / Copy / Paste, day-first dates everywhere, choose the months a month PDF prints, Compare shows breaks, swaps that hold, crash recovery that says when, a first-run and laptop tidy-up, and fixes for text cut off in print (16 Nov 2026)
 
 ### on a laptop: a toolbar that holds still, one notice strip at a time, tool panels that fit, a shorter Phases tab (audit item 2.14, 13–16 Nov 2026)
