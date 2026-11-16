@@ -30,7 +30,10 @@
 //   U1  ONE Undo puts the calendar back as it was, snapshot for snapshot (the drag was one step)
 //   A1  ⭐ the drag = Post ▼: the same calendar, snapshot for snapshot (bar the view it was made in)
 //   O1  out and back in ONE gesture (down 1, down 2, right 3, back up, up 1 more, home): mid-gesture at down 2 the
-//       backup shows Post 11/16, its hiatus 1/18/27 and its stores two weeks on; at up 1, 10/26 and 12/28/26
+//       backup shows Post 11/16, its hiatus 1/18/27 and its stores two weeks on; at up 1, 10/26 and 12/28/26.
+//       ⭐ Re-expected 14 Nov 2026 (audit AUD2-041, owner decision D5 b: a part-column swap holds when one of its phases
+//       moves; holdWeekSwaps): at up 1 Post and Production share 10/26 and 11/2, and the swap covers both, both sides.
+//       Before it, Post's half went to 10/26 and Production's stayed on 11/2, so the two never met and the swap was gone
 //   O2  ... released at home: the calendar exactly as it was, every store included
 //   O3  ... the stale label is on 7/6. ⭐ Written as the case for carrying FROM THE PRESS: a one-phase move re-keyed a
 //       plain band key that sits on no band, and the first row down landed this one on Summer Break's 7/13, where it
@@ -42,8 +45,9 @@
 //       Snap to Monday off (the 18 Sep 2026 ruling), Post Pause on Monday 1/11/27 (whole weeks keep its weekday), the
 //       stores a week on; one Undo restores it all
 //   P1  Production dragged one row down = Production ▼, snapshot for snapshot: its day marks by shoot-day number
-//       (not the loaded ones), its half of the swap to 11/9 while Post's stays on 11/2, the edited note shedding its
-//       standard line ("PROD-EXTRA" alone on 6/29) as the arrows' N2 does
+//       (not the loaded ones), the swap held over the two weeks Post and Production now share (11/2 and 11/9, both
+//       sides; re-expected 14 Nov 2026, AUD2-041: it was Production's half on 11/9 and Post's on 11/2, which never
+//       met), the edited note shedding its standard line ("PROD-EXTRA" alone on 6/29) as the arrows' N2 does
 //   E1  Localization held by its END, with its own hiatus 3/22/27: right 3 days moves neither the end nor the hiatus;
 //       right 4 days moves the end Friday a week (4/30/27) and the hiatus with it (3/29/27); one Undo restores both
 //   E2  ... and a row down = Localization ▼, snapshot for snapshot
@@ -208,9 +212,9 @@ window.addEventListener('load', function () { (async function () {
       o2live.start === '2026-11-16' && o2live.hiatus === '2027-01-18' && startsOf(sO2).post === '2026-11-16' && phiatusOf(sO2).post === '2027-01-18'
         && same(postStores(sO2), {spans: ['2026-12-07|post'], style: ['2026-12-07|post'], colors: ['2027-01-18|post'], swaps: ['2026-11-02|production', '2026-11-16|post']})
         && oUp.start === '2026-10-26' && oUp.hiatus === '2026-12-28'
-        && same(postStores(sOu), {spans: ['2026-11-16|post'], style: ['2026-11-16|post'], colors: ['2026-12-28|post'], swaps: ['2026-10-26|post', '2026-11-02|production']}),
+        && same(postStores(sOu), {spans: ['2026-11-16|post'], style: ['2026-11-16|post'], colors: ['2026-12-28|post'], swaps: ['2026-10-26|post', '2026-10-26|production', '2026-11-02|post', '2026-11-02|production']}),
       {down2: {live: o2live, stores: postStores(sO2)}, up1: {live: oUp, stores: postStores(sOu)}},
-      '11/16 + 1/18/27 + stores 12/7, 1/18/27, 11/16; then 10/26 + 12/28/26 + stores 11/16, 12/28/26, 10/26');
+      '11/16 + 1/18/27 + stores 12/7, 1/18/27, 11/16; then 10/26 + 12/28/26 + stores 11/16, 12/28/26, and the swap on 10/26 and 11/2');
     add('O2', '... released at home: the calendar exactly as it was, every carried store included',
       sameCal(sO, s0), sameCal(sO, s0) ? 'identical' : {starts: startsOf(sO), phiatus: phiatusOf(sO), stores: postStores(sO)}, 'identical to the loaded state');
     add('O3', '... and the stale band label "Old Break Name" is on 7/6 and Summer Break keeps its own name on 7/13',
@@ -258,14 +262,14 @@ window.addEventListener('load', function () { (async function () {
     var sPA = await take();
     await undo();
     var sPAu = await take();
-    add('P1', 'Production dragged one row down = Production ▼, snapshot for snapshot: 7/6, its marks by shoot-day number (not the loaded ones), its half of the swap to 11/9 (Post\'s stays on 11/2), "PROD-EXTRA" alone on 6/29; one Undo each',
+    add('P1', 'Production dragged one row down = Production ▼, snapshot for snapshot: 7/6, its marks by shoot-day number (not the loaded ones), the swap held on 11/2 and 11/9, the weeks it shares with Post, "PROD-EXTRA" alone on 6/29; one Undo each',
       same(startsOf(sP), withStart(st0, 'production', '2026-07-06')) && !same(sP.dayOverrides, s0.dayOverrides)
-        && same(postStores(sP).swaps, ['2026-11-02|post', '2026-11-09|production']) && same(notesOf(sP), prodNoteMoved)
+        && same(postStores(sP).swaps, ['2026-11-02|post', '2026-11-02|production', '2026-11-09|post', '2026-11-09|production']) && same(notesOf(sP), prodNoteMoved)
         && sameCal(sP, sPA) && sameCal(sPu, s0) && sameCal(sPAu, s0),
       {drag: {start: startsOf(sP).production, marks: sP.dayOverrides, swaps: postStores(sP).swaps, note: notesOf(sP)['2026-06-29']},
        arrow: sameCal(sP, sPA) ? 'identical' : {start: startsOf(sPA).production, marks: sPA.dayOverrides, swaps: postStores(sPA).swaps, note: notesOf(sPA)['2026-06-29']},
        undone: [sameCal(sPu, s0), sameCal(sPAu, s0)]},
-      'production 7/6, marks moved, swaps 11/2 post + 11/9 production, PROD-EXTRA; identical to the arrow');
+      'production 7/6, marks moved, swaps on 11/2 and 11/9 both sides, PROD-EXTRA; identical to the arrow');
 
     // ---- E1 / E2: a phase held by its end, with its own hiatus ----
     var anchorSel = row('localization').querySelector('select.phase-anchor');
