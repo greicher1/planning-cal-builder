@@ -198,6 +198,50 @@ code, no save-format change.
   in gate.sh. Kept green: prefs, hdrpreset, hdrfile, calzoom, hostile, settingswin, sharecopy2 and the backup and load
   legs (HANDOFF lists them); `npm run check` 42/42. Not merged, not pushed: it waits for the release train's full gate.
 
+### Unreleased — rare set-ups no longer print a wrong or missing line: a range in the Christmas break, Snap off beside a hiatus, a Writer's Room typed into a break, a custom phase removed under a range (14 Nov 2026)
+
+The November audit's item 3.6, four P2 findings, each needing an unusual set-up. No decision was needed for any of them.
+
+- **A calendar range that ends in a held break no longer grows after a shift (AUD2-055).** Limit the waterfall to the
+  calendar year (1/1/26 to 12/31/26) and press the toolbar's 1 wk later, then 1 wk earlier: every phase came back, but
+  the range end went 12/31/26, 1/14/27, 1/7/27, so the waterfall, Excel and both PDFs gained the week of 1/4/27. The
+  step-over pushed a date inside the locked Christmas break out of it before moving it. **Now** a range with a date on
+  a held break's week stays where it is, both dates, as the break does; a range with neither date in a held break moves
+  as before. Holding only the date in the break (the first try) let the other date keep moving, so the window narrowed a
+  week per press and, pressed far enough, turned inside out (11/2/26 - 12/31/26 read 1/18/27 - 12/31/26 after nine
+  presses and the waterfall fell back to every week). Letting that date follow its partner keeps the width but cannot
+  come back: after +1 it sits in an ordinary week, and -1 cannot tell it came from the break.
+- **A Weeks phase with Snap to Mon off beside a hiatus delivers its whole weeks (AUD2-071).** The phase's weeks were
+  counted in 7-day steps from the typed day, and each step was judged by its first day only, so a step straddling the
+  break's first or last Monday counted as all worked or all paused. Post typed Wed 12/23/26 into the Christmas break for
+  2 weeks read "→ 1/19/27" and drew three week cells, in the grid and in Excel; 12/18 x 1 ended 12/24, inside the break;
+  11/25 x 4 ended 12/22 having worked 18 of its 20 days. **Now** a phase starting off a Monday counts its days, seven a
+  week, skipping each day a hiatus covers: 12/23 x 2 works 1/4 to 1/15/27 in two cells, 12/18 x 1 ends Thu 1/7/27,
+  11/25 x 4 ends Tue 1/5/27. With no hiatus in the way nothing changes, and a Monday start is counted as before. Two
+  movers follow the same rule: Shift (and the toolbar arrows, the ripple) moves a start typed inside a held break from
+  the Monday it works from, and the hiatus ripple puts such a start on the Monday after the break, not its weekday.
+- **A Writer's Room typed to start inside a break opens on its first worked day, everywhere (AUD2-072).** Typed
+  12/21/26 x 4, the room is paused by the break and works from 1/4/27, but "Writer's Room Opens" was dated 12/21: the
+  waterfall has no Notes cell on an all-phase hiatus row, so it was missing from the waterfall, Excel and the waterfall
+  PDF, the month view put it on a hiatus day, and the header read "Writer's Room Opens: 12.21.26". **Now**, when the
+  typed start is inside a hiatus, the note is dated on the first day the room's bar is drawn (as each phase's Begins note
+  already was) and the header names that day. Any other start prints exactly what it did, so a room typed on a Saturday
+  with Snap to Mon off keeps its note on that Saturday, in the row with its first week.
+- **Removing a custom phase under a calendar range keeps the week's automatic note (AUD2-073).** A custom phase's linked
+  note in a week the range cut from the waterfall became a plain note on removal, built on what the waterfall's rows
+  said the week held: nothing, since the row was cut. So that week's "Start Principal Photography" was erased from the
+  month view and the month PDF, for good. **Now** that lookup reads the whole calendar; for a week the waterfall shows
+  the answer is the same as before.
+- **Save format:** unchanged (no key added, renamed or removed; no new id'd control). Nothing frozen was touched.
+- **Proof.**
+  - Four new legs in `gate.sh`, beside the second audit's: `rangeheld` (R1, R2 and C2 red before the fix; W1, F1 and
+    W2 red on the first try), `snapoffbreak` (S1 to S5 and X1 red before), `wropensbreak` (W1 to W6 red before; C2 red
+    on the first try) and `unlinkrange` (C2 red before); 35 checks, all green after.
+  - The nearest legs, green on the final build: listed in HANDOFF.
+  - Gates 1 to 5, 10 and 13 run by hand (336 checks): the reference waterfall PDF and workbook, the v1.0.0 restore, the
+    month print document on 11 calendars and the written month PDF on 24 runs, all unchanged.
+  - Not run: the full gate (one run for the whole release train).
+
 ### Unreleased — the emergency rollback redeploys the previous release, never the v1.2.0 legacy app (13 Nov 2026)
 
 The November audit's AUD2-006, closed by the owner's decision D7 (a) ("stay" on the current address; the rollback becomes

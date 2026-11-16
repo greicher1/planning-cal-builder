@@ -277,6 +277,79 @@
   AFSPEC list. ⚠️ Not verified: the first-render branch that skips `initLegacyApp()` (the leg's trap fires after boot,
   as the real failure did).
 
+### 🔨 14 Nov 2026: AUDIT BATCH 3, ITEM 3.6 — RARE SET-UPS NO LONGER PRINT A WRONG OR MISSING LINE (AUD2-055, -071, -072, -073; no decision needed). **COMMITTED LOCALLY on `audit-3-6` (worktree `.claude/worktrees/audit-3-6`, cut from `audit-1-1` at `87553d1`; the fix is `2ea25f0`, the docs and gate wiring `2460586`, and a review repair the commit after that), NOT MERGED, NOT PUSHED; waits for the release train's one full gate.** Built overnight on the owner's tracker approval, with nobody to ask.
+- **The review repair (same night).** A skeptical review blocked the first AUD2-055 fix: holding only the range date in
+  the break let its partner keep moving, so the window narrowed a week per press and, pressed far enough, inverted
+  (11/2/26 - 12/31/26 read 1/18/27 - 12/31/26 after nine presses, `#cal-range-end` ringed, the waterfall back to all
+  104 weeks; the Shift form the same). Now BOTH dates hold (below). It also flagged the Opens note moving for a weekend
+  snap-off room (now only a paused start moves, below). Its two other notes stand as written: a start typed inside a
+  held break comes back on the Monday after +1 / -1 (its work dates are unchanged; it could not round-trip before
+  either), and it checked `startForWeeksEndingAt` numerically (1,056 non-Monday cursors outside a break round-trip; the
+  180 inside a break do not, as said below).
+- **AUD2-055, a calendar range in a held break grows after a shift.** `shiftCalendarDates` step 2b: under the step-over,
+  when a range date the move would reach sits on a held break's week (`hf.obstacles`), NEITHER range date moves: the
+  range stays where it is, as the break does. A range with neither date in a held break moves N working weeks as
+  before, and a date a ripple's cutoff does not reach stays as before. Reference calendar, range 1/1/26-12/31/26,
+  toolbar +1 / -1: was 12/31 -> 1/14/27 -> 1/7/27 (54 rows), now 1/1/26 - 12/31/26 throughout, 53 rows.
+  ⛔ Why both, not one: the step-over maps a working week to a working week, so a date in a held week can come back
+  from +N then -N only by staying held. Holding it alone (the first fix) narrows and inverts the window; moving it by its
+  partner's distance keeps the width but returns 1/1 - 12/31 as 1/1 - 12/17 (it lands in an ordinary week, and -1 cannot
+  tell). Holding both is the only rule that keeps the width and round-trips.
+- **AUD2-071, Snap off beside a hiatus.** `extendEndForHiatus`: a start OFF A MONDAY counts days, 7 per week, skipping
+  each day a hiatus (all-phase or own) covers; end = the day after the last day counted. Identical to the old 7-day step
+  whenever no hiatus is in the way; a Monday start keeps the week walk, so every snapped phase is untouched. Three
+  followers of the same rule, so the movers agree with the new count: `phaseOpenDay` steps a day at a time for a
+  non-Monday start inside a hiatus (the {phase.open} tokens, Compare, key facts); `stepOverHeld(n, held, workStart)`
+  puts a phase START that sits inside a held break on the Monday it works from (the Shift form, the toolbar arrows, the
+  ripple, the phase arrows with Ripple on; and the Shift list's preview); `rippleNormaliseInside` puts such a start on
+  the Monday after the break, not on its weekday. `weeksStartForEnd` is unchanged: an Ends phase is always snapped, so
+  its week walk is exact. `startForWeeksEndingAt` (Build Around backwards) is unchanged: checked by hand, it is the
+  exact inverse of the new count for every cursor except one typed INSIDE a break (a snap-off or Dates successor typed
+  into a hiatus), left as it was.
+- **AUD2-072, Writer's Room typed into a break.** `computeSchedule`: when the room's start is inside a hiatus (all-phase
+  or its own), "Writer's Room Opens" is dated on the room's first DRAWN day (`drawn`, hoisted out of the phase-edge block
+  so both use it); any other start keeps `seg.start`, as always (the review repair: dated on `drawn` for every room, a
+  snap-off room typed on a Saturday opened on the next Monday, a row below its wk 1). The header's c3
+  (`computeHeaderDefaults`) and `{writersRoom.line}` both go through the new `wrHeaderOpenDay()`: the typed start's
+  Monday as always, unless the room's start is paused by a hiatus, then `phaseOpenDay`'s first worked day.
+- **AUD2-073, a custom phase removed under a range.** `sheetAutoNotesFor` reads `wholeCalendar(currentSchedule)`, so
+  `unlinkPhaseNotesOf` (and every waterfall writer) sees a cut week's automatic notes. A week the waterfall shows holds
+  the same notes in both lists, so nothing visible changes.
+- **Defaults and choices made for the owner (no one to ask):** AUD2-055 by HOLDING the range, both dates, when either
+  sits in a held break (the finding's second option, widened to the whole range so its width holds; the first option,
+  "move by the nearest working week's distance", does not round-trip, nor does moving it by its partner's distance). AUD2-071 by counting
+  CALENDAR days not in a hiatus (the finding said "weeks x 5 working days, as the Days unit does": that would move a
+  weekend snap-off start's end by a day with no hiatus anywhere; this changes nothing a hiatus does not touch). AUD2-072:
+  the note and the HEADER both move only for a paused start (least change: a snap-off Saturday room keeps its note on
+  the Saturday, and a snap-off Wednesday still prints its Monday in the header, as before). AUD2-073: the finding's first
+  option.
+- **Seen, not changed:** the ripple's readout compares TYPED starts, so a phase typed inside a break that the ripple
+  pulls reads "Pushed 1 wk" (12/23 -> 12/28) although its work moved a week earlier. Pre-existing for any start typed
+  inside a break (a snapped 12/21 -> 12/28 reads the same); not this item's.
+- **Save format** unchanged; nothing frozen touched (`render()`'s meta line, both writers, `renderMonthView` read the
+  segment and notes as before).
+- **Proof:** four new legs, wired into `gate.sh` beside `autonotefollow` (the second audit's block): `rangeheld` 10/10,
+  `snapoffbreak` 11/11, `wropensbreak` 9/9, `unlinkrange` 5/5. Red on the build before: rangeheld R1, R2, C2;
+  snapoffbreak S1-S5, X1; wropensbreak W1-W6; unlinkrange C2. Red on the first fix (the review's cases): rangeheld R2,
+  C2, W1 (nine presses: inverted), F1 (the Shift form, 9 wks: inverted), W2 (49 / 56 rows); wropensbreak C2 (1/12/26). snapoffbreak R1 and P1 were red on a mutant without
+  `workStart` and with the old `rippleNormaliseInside`. Nearest legs, all green on the final build (port 8881, one at a
+  time): autonotefollow g=a/c/e/g 24/24, autonotekinds 16, phasekeys 18, hiatusripple 19, phasearrows 26,
+  phasearrowsripple 10, shiftheld 13, calrange 18, snapoff x3, autonotephases 27, autonote 9, hidewf 19, stalebandkey 9,
+  mvdragcarry 15, phasenotes 21, phaselink 14, phasemonth 21, phaselook 10, buildaround 36, anchorside 39, rebuildticks
+  20, buildalongside 8, endsdate 17, prodends 14, snaptools 14, autonoterename 24, autonoteview 18, wfnoteeditor 14,
+  noteviews 15, wfnotecolors 14, datepick 17, phiatuspick 12, simpostdays 14, comparehiatus 8, customunits x2,
+  phaseedge 23, hdrtemplate 25 (the gate's own judge), holidayenable 8 (all on the first fix's build).
+  **Re-run on the repaired build** (one at a time, port 8881): the four new legs 35/35, autonotefollow g=a/c/e/g 24/24,
+  autonotekinds 16, phasekeys 18, hiatusripple 19, calrange 18, shiftheld 13, phasearrows 26, phasearrowsripple 10,
+  autonotephases 27, autonote 9, hidewf 19, stalebandkey 9, mvdragcarry 15, snapoff x3, autonoterename 24, autonoteview
+  18, wfnoteeditor 14, phaseedge 23, buildaround 36, anchorside 39, rebuildticks 20 (30 runs, all green; this also
+  re-runs the six the first fixer had run before their last `rippleNormaliseInside` edit). The rest of the list above
+  was not re-run after the repair, which touches only step 2b's range dates and the Opens note's date.
+  Gates 1-5, 10 and 13 run by hand on the repaired build (gate.sh's own sections, port 8881): 336 PASS, 0 FAIL: the
+  reference waterfall PDF and every Excel part unchanged, 0 clipped cells, the v1.0.0 restore and fields.byId identical,
+  the month print document on 11 calendars and the written month PDF on all 24 runs byte-identical to their baselines.
+  `npm run check` 42/42. Not run: the full gate.
+
 ### ✅ 13 Nov 2026: AUDIT BATCH 1, ITEM 1.4 — THE EMERGENCY ROLLBACK REDEPLOYS THE PREVIOUS RELEASE (AUD2-006; owner's decision **D7 (a)**, "Yes, stay", 13 Nov 2026). **COMMITTED LOCALLY on `audit-1-1`, NOT PUSHED.** Tracker card `audit-rollback-previous-release`
 - **D7 (a) in full** (PLAYBOOK §3): stay on the current web address; the rollback becomes "redeploy the previous
   release"; later, a line on the install screens for blocked installs and "Open as window", a one-page IT sheet (both
