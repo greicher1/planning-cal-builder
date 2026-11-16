@@ -48,6 +48,32 @@ Every test before step 6 stood in for the Save dialog. So:
     overwritten before it could be read, so the cause is not known. The same case passed in every run on a healthy
     machine. It is recorded, not explained (HANDOFF).
 
+## ✅ RE-CUT 14 Nov 2026 — `mvnotesize-14` and `mvnotesize-mixed` ONLY: a dated month line keeps its date at note sizes above 10 px (audit item 3.1, AUD2-045)
+
+- **The ruling.** The owner's decision D4 (a) on the November audit, then the re-cut itself by picker on 14 Nov 2026:
+  *"Accept them"*. Above 10 px a month note shows two lines cut with "…", and a holiday's or automatic note's date was
+  what the cut took. The direct writer (not frozen) now draws every line of a waterfall line ending in a date
+  (`mvlKeepsDate`), so these two cases, the only ones with a note size above 10 px, change on purpose. (Frozen edit D1 does
+  the same on screen and in the print rollback; it does not reach the writer.)
+- **What moved** (`monthbase.py` check, then every page stream inflated and compared line by line; `pdftotext -raw`
+  shows no other text change):
+
+  | case | pages | text |
+  |---|---|---|
+  | `mvnotesize-14` | 7, 8, 11, 12 (June, July, October, November 2026) | "Photography…" → "Photography / 6/29/26" (June, and July's spillover row); "Photography…" → "Photography / Wraps 10/20/26"; "Thanksgiving…" → "Thanksgiving / 11/27/26" |
+  | `mvnotesize-mixed` | 12 (November 2026) | "Thanksgiving…" → "Thanksgiving / 11/27/26" |
+
+- **Geometry:** only y positions and heights. The dated note's box grows by one line (13.5 pt at 14 px, 12 pt at 12 px)
+  and each other week row on that page gives up an equal sub-point share (0.3-0.5 pt a row), so rows shift in a ladder
+  of at most **1.5 pt** (`mvnotesize-14`) / **2.9 pt** (`mvnotesize-mixed`). No x, width, font size, colour, font
+  dictionary or font program changed; every other page and object is identical. Contact sheets (`monthbase.py sheets`)
+  were made of the moved pages.
+- **Verified** on `audit-3-1`'s build (commit `19e1438`, its dist matching `35b19de`): gate 13 before the re-cut 23 of 25
+  byte-identical, only these two differing as above; after it all 25 byte-identical, and a second export of each
+  byte-identical to the first; `monthexport` X0-X7 / E0 green on all 24 runs, rz / rw identical to reference.
+- **Every other case untouched.** The table below gives these two files' new size and hash; ⚠️ the other rows' hashes
+  were not refreshed by the 11 Nov re-cut above, so for them the files themselves are the authority.
+
 ## ✅ RE-CUT 11 Nov 2026 — TWENTY-ONE CASES: the grey tag is centred on the bar's label (frozen edit TC1)
 
 - **The ruling.** Owner, 11 Nov 2026: a screenshot of a Blocks bar, *"S2- production week 4...etc not centered
@@ -288,8 +314,8 @@ week. No frozen code changed: the bars are cut in the non-frozen `pillRunsForWee
 | `mvheader` | 15 | 93,711 | `3b27269ca9927293…` |
 | `mvheaderlegacy` | 15 | 78,664 | `040e7fa35a7c88b1…` |
 | `mvnotes` | 17 | 85,263 | `548db8b44109b249…` |
-| `mvnotesize-14` | 17 | 85,669 | `4e9044e69ccf2c69…` |
-| `mvnotesize-mixed` | 17 | 85,174 | `87f31bc80a808fb6…` |
+| `mvnotesize-14` | 17 | 85,574 | `0977456dbc414983…` |
+| `mvnotesize-mixed` | 17 | 85,146 | `df3dee2c80df1960…` |
 | `notewrap` | 16 | 82,381 | `c6859e3548abb580…` |
 | `reference` | 16 | 81,805 | `bc2f28cdedd335fd…` |
 | `shootorder` | 16 | 81,796 | `57d295b56f8d85e7…` |
@@ -316,7 +342,7 @@ Loaded with `HARNESS_STATE=<case>`, except `reference`, which is `T.buildFixture
 | `notewrap` | four long texts, made through the real UI |
 | `carry-rich` | every store populated |
 | `halfdays` | ⭐ ADDED 15 Oct 2026: 4.5-day episodes (one of 5), so Production splits per episode. Its switch days' two bars stacked; since the 16 Oct re-cut they meet half way through the square in one lane |
-| `mvnotesize-14` | ⭐ ADDED 2 Nov 2026: the month view's Note size at 14 px; notes on two lines at most, cut with "…" |
+| `mvnotesize-14` | ⭐ ADDED 2 Nov 2026: the month view's Note size at 14 px; notes on two lines at most, cut with "…" (since 14 Nov 2026 a waterfall line ending in a date prints every line) |
 | `mvnotesize-mixed` | ⭐ ADDED 2 Nov 2026: 12 px notes, 13 px bars, and notes with sizes of their own (14 and 8 px) |
 
 **Held to another case's file**, with none of their own:
