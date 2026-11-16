@@ -4,6 +4,19 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### 🩹 16 Nov 2026: AUDIT ITEM 3.1's R4 NO LONGER GOES STALE WHEN HOLIDAYS ARE SHOWN; GATES 1-3 RE-CUT FOR THANKSGIVING'S ROW (owner's picker *"Fix it, update refs"*). **Committed on `release-v1.15`, NOT PUSHED.**
+- **Cause:** frozen edit R4's `autoRowPxFor` cached its row map in a WeakMap keyed by the schedule object, but what it
+  reads (`holidayView`, `userNotes`, note sizes, linked and month lines) is not in the schedule, and `setHolidayView` /
+  Toggle all re-render the SAME schedule. Ticked on one by one, Thanksgiving + the Day After kept a 20 px row until an
+  `update()`; screen, Excel and PDF depended on edit order (`dayfirst` R2 red).
+- **Fix:** the memo lasts one synchronous pass (`{schedule, map}`, dropped by a microtask) and `markDirty()` drops it, so
+  every path that changes what a Notes cell shows (holiday ticks, Toggle all, region, renames, typed notes) is read
+  afresh. ⚠️ Learned: a memo keyed on `currentSchedule` is only safe for inputs the schedule carries.
+- **Re-cut:** `tests/baselines/2026-08-29-stage-7/` `base.pdf`, `base.xlsx`, `base.json` (+ `base.pdf.json`): ONLY sheet
+  row 46 (Thanksgiving 2026) 20 → 23 px and the positions below it; the proof is in that folder's README.
+- **Proof:** `textfit` g=tick 6/6 (new; 1/6 before), g=wf 2/2, `dayfirst` 14/14; gates 1-3 green on the new files; gate
+  10 (reference, month-lanecap, mvnotes) and gate 13 (all calendars) unchanged. `npm run check` 42/42.
+
 ### ✅ 13 Nov 2026: AUDIT BATCH 1, ITEM 1.5 — THE DATE PICKER'S "TODAY" IS THE USER'S LOCAL DAY (AUD2-007, P1, no decision needed). **COMMITTED LOCALLY, NOT PUSHED, NO FULL GATE** on branch `claude/recursing-cray-993c31` (worktree `.claude/worktrees/recursing-cray-993c31`), a fast-forward of `audit-1-1` at `fa4e5d9`, so it holds items 1.2, 1.1 and 1.5 in that order. The owner was handed the build on localhost and said *"Yes, finish it"*. Tracker card `audit-1-5`
 - **The batch now:** 1.1, 1.2 and 1.5 built (1.5 on this branch, on top of `audit-1-1`, so merging it into `audit-1-1` is
   a fast-forward). **1.3** (AUD2-013) was being built in its own session at the same time; **1.4** (AUD2-006) waits for

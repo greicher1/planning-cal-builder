@@ -7,6 +7,7 @@
 //   HARNESS_PAGE=/dist/index.html HARNESS_STATE=textfit-shared HARNESS_QUERY=g=lines ./run.sh textfit 120
 //   HARNESS_PAGE=/dist/index.html HARNESS_STATE=textfit-heavy  HARNESS_QUERY=g=wf    ./run.sh textfit 60
 //   HARNESS_PAGE=/dist/index.html HARNESS_STATE=textfit-dense  HARNESS_QUERY="g=screen&notesize=14" ./run.sh textfit 300
+//   HARNESS_PAGE=/dist/index.html                              HARNESS_QUERY=g=tick  ./run.sh textfit 120
 //
 // The three fixtures are the audit's own synthetic calendars (repro/audit-shared-month, audit-m1-dense2, audit-a3-heavy),
 // copied in as textfit-shared, textfit-dense and textfit-heavy.
@@ -34,6 +35,18 @@
 //   V1  every waterfall line ending in a date shows it whole in the month view
 // g=wf     (AUD2-044, FROZEN edit R4, proposed, not applied: red on the branch until it lands)
 //   W1  the waterfall's Notes cells holding two holiday lines (Thanksgiving week, both years) show both lines whole
+// g=tick   (R4 went stale, owner's picker 16 Nov 2026: "Fix it, update refs") R4's row height was remembered against the
+//          schedule object, and a holiday's Waterfall box re-renders that SAME schedule, so ticking Thanksgiving and the
+//          Day After on left their row at 20 px until the next edit made a new schedule: the screen, Excel and the
+//          waterfall PDF then depended on the order things were done in. buildFixture (no state), both boxes ticked
+//          through the Holidays list, nothing else touched:
+//   K1  the Thanksgiving week's row is 23 px on screen at once (declared and measured), both lines whole; the week
+//       before it is still 20 (declared: an EMPTY Notes cell's "+" measures 20.84, as it always has)
+//   K2  the workbook exported at once gives that row 17.25 pt (23 px x 0.75) and the rows either side 15
+//   K3  the waterfall PDF exported at once: the two date gaps around that week sum to 43 rows' worth of 20 px rows' 40
+//       (23 + 20 px, by the gaps of two plain rows above it), whatever the page's fit scale
+//   K4  that PDF is byte for byte the one exported after a fresh schedule (month view and back), so the order is moot
+//   K5  both boxes ticked off again: the row is 20 px at once
 // The two frozen edits are "SPTCal Audit 2026-11/work/overnight/3.1-frozen.patch"; V1 and W1 are their acceptance checks.
 // E0 no console errors, no native alert (every group)
 var T = window.__T, cases = [];
@@ -245,6 +258,95 @@ window.addEventListener('load', function () { (async function () {
       out.cells = cells; out.clipped = T.clippedCells();
       add('W1', 'the Notes cells holding two holiday lines show both whole (FROZEN edit, proposed)',
           cells.length >= 2 && cells.every(function (c) { return c.sh <= c.ch + 1; }), cells, 'scrollHeight <= clientHeight');
+    }
+
+    if (G === 'tick') {
+      await T.until(function () { return typeof window.ExcelJS !== 'undefined'; }, 'ExcelJS', 300, 100);
+      T.buildFixture();
+      await T.until(function () { return qa('#table-wrap td.sheet-phase-cell').length > 0; }, 'the waterfall', 200, 100);
+      await T.sleep(1200);
+      var TG = '2026-11-23';
+      var rowOf = function (wk) {
+        var td = q('#table-wrap td.sheet-note-cell[data-week="' + wk + '"]');
+        if (!td) return null;
+        var b = td.querySelector('.cell-body') || td;
+        var tr = td.closest('tr');
+        // h: the height the renderer declared on the row (sheetRowPx); rect: what it measures on screen.
+        return {t: (td.textContent || '').trim(), sh: b.scrollHeight, ch: b.clientHeight,
+                h: parseFloat(tr.style.height), rect: Math.round(tr.getBoundingClientRect().height * 100) / 100};
+      };
+      // The two holidays' Waterfall boxes, re-queried each time (the list redraws on every change).
+      var tgBox = function (on) {
+        var n = 0;
+        for (var guard = 0; guard < 10; guard++) {
+          var next = qa('#holiday-vis-list input.hv-cb[data-view="sheet"]').filter(function (cb) {
+            return /^(day-after-)?thanksgiving@2026$/.test(cb.dataset.hid) && cb.checked !== on;   // holidaySlug(name, date)
+          })[0];
+          if (!next) break;
+          next.click(); n++;
+        }
+        return n;
+      };
+      var before = rowOf(TG);
+      var clicked = tgBox(true);
+      await T.sleep(150);                                   // the change handler renders synchronously; no other edit
+      var at = rowOf(TG), plain = rowOf('2026-11-16');
+      out.tick = {before: before, clicked: clicked, at: at, plain: plain};
+      add('K1', 'ticked on, the Thanksgiving week\'s row is 23 px on screen at once, both lines whole',
+          clicked === 2 && before && before.h === 20 && at && at.h === 23 && /Thanksgiving[\s\S]*Day After Thanksgiving/.test(at.t)
+          && at.sh <= at.ch + 1 && plain && plain.h === 20 && Math.abs(at.rect - 23) < 0.05,
+          out.tick, 'declared 20 before, 23 after (and 23 measured), the week before 20');
+
+      // K2: the workbook, exported at once.
+      await T.sleep(400);
+      var xb = await T.captureExport('export-btn', 'the workbook');
+      var wb = new window.ExcelJS.Workbook();
+      await wb.xlsx.load(await xb.arrayBuffer());
+      var ws = wb.worksheets[0], tgRow = null;
+      ws.eachRow(function (row, r) { row.eachCell(function (c) {
+        if (typeof c.value === 'string' && /Thanksgiving/.test(c.value) && /Day After/.test(c.value)) tgRow = r;
+      }); });
+      var hOf = function (r) { var x = ws.getRow(r).height; return x === undefined ? null : x; };
+      out.xl = tgRow ? {row: tgRow, h: hOf(tgRow), above: hOf(tgRow - 1), below: hOf(tgRow + 1)} : null;
+      add('K2', 'the workbook exported at once: that row 17.25 pt, the rows either side 15',
+          !!out.xl && out.xl.h === 17.25 && out.xl.above === 15 && out.xl.below === 15, out.xl, '17.25 / 15 / 15');
+
+      // K3: the waterfall PDF, exported at once. Every date string with its Tm position.
+      var pdfAt = async function (label) {
+        var pb = await T.captureExport('export-wf-pdf-btn', label);
+        var u8 = new Uint8Array(await pb.arrayBuffer()), un = T.pdfUnmark(u8), own = un ? un.writer : u8;
+        var ops = [];
+        (await T.pdfInflated(own)).forEach(function (t) {
+          var x = 0, y = 0, tok = /1 0 0 1 ([\d.-]+) ([\d.-]+) Tm|\(((?:\\.|[^\\)])*)\)\s*Tj/g, m;
+          while ((m = tok.exec(t))) { if (m[1] !== undefined) { x = +m[1]; y = +m[2]; } else ops.push({x: x, y: y, s: m[3]}); }
+        });
+        var h = 0; for (var i = 0; i < own.length; i++) h = (h * 31 + own[i]) >>> 0;
+        return {ops: ops, len: own.length, hash: h};
+      };
+      var p1 = await pdfAt('the waterfall PDF');
+      var yOf = function (p, s) { var o = p.ops.filter(function (o) { return o.s === s; })[0]; return o ? o.y : null; };
+      var y = {'11/2/26': yOf(p1, '11/2/26'), '11/16/26': yOf(p1, '11/16/26'), '11/30/26': yOf(p1, '11/30/26')};
+      var plainSum = y['11/2/26'] - y['11/16/26'], tgSum = y['11/16/26'] - y['11/30/26'];
+      out.pdf = {y: y, plainTwoGaps: plainSum, aroundThanksgiving: tgSum, ratio: plainSum ? tgSum / plainSum : null, len: p1.len};
+      add('K3', 'the waterfall PDF exported at once: the gaps around that week are 43/40 of two plain rows (a 23 px row)',
+          plainSum > 0 && Math.abs(tgSum / plainSum - 43 / 40) < 0.004, out.pdf, 'ratio 1.075');
+
+      // K4: the same PDF after a fresh schedule (setViewMode runs update()).
+      byId('view-month-btn').click();
+      await T.until(function () { return !!q('#table-wrap .mv-monthyear'); }, 'the month view', 100, 100);
+      byId('view-sheet-btn').click();
+      await T.until(function () { return qa('#table-wrap td.sheet-phase-cell').length > 0; }, 'the waterfall', 100, 100);
+      await T.sleep(600);
+      var p2 = await pdfAt('the waterfall PDF after a fresh schedule');
+      out.pdf2 = {len: p2.len, hash: p2.hash, first: {len: p1.len, hash: p1.hash}, row: rowOf(TG)};
+      add('K4', 'that PDF is byte for byte the one exported after a fresh schedule',
+          p1.len === p2.len && p1.hash === p2.hash && out.pdf2.row && out.pdf2.row.h === 23, out.pdf2, 'identical');
+
+      // K5: ticked off again.
+      var off = tgBox(false);
+      await T.sleep(150);
+      out.untick = {clicked: off, row: rowOf(TG)};
+      add('K5', 'ticked off again, the row is 20 px at once', off === 2 && out.untick.row && out.untick.row.h === 20, out.untick, '20');
     }
 
     add('E0', 'no console errors, no native alert', T.appHealth().errors.length === 0 && window.__alerts.length === 0,

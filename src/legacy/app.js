@@ -428,12 +428,18 @@ export function initLegacyApp() {
   // Nothing is stored (it is not rowHeights, and a drag still sets one); a calendar with no such week has no such row,
   // and every row reads exactly the number it read before. sheetRowPx(schedule, r) is what every reader of a row's height
   // now asks (the renderer, exportExcel, buildWaterfallPdf, sideRowPtFn), so the three outputs keep agreeing.
-  const _autoRowPx = new WeakMap();
+  // ⚠️ Remembered for ONE synchronous pass only (release-v1.15): a render, a workbook or a PDF asks once per row, so the
+  // map is worked out once per pass. It was remembered for as long as the schedule object lived, but what it reads is
+  // not in the schedule: a holiday's Waterfall box (setHolidayView re-renders the SAME schedule), a typed note, a size.
+  // Ticked on, two holidays kept their 20 px row until the next edit made a new schedule, so the screen, Excel and the
+  // waterfall PDF depended on the order things were done in (dayfirst R2: the same calendar, two waterfall PDFs).
+  // markDirty() drops it too, so an edit made in the same synchronous run as an earlier read (read, edit, re-render the
+  // same schedule, no await between) is never answered from before the edit.
+  let _autoRowPx = null;   // {schedule, map}, dropped by a microtask and by markDirty()
   function autoRowPxFor(schedule){
     if(!schedule || !schedule.weeks) return {};
-    let m = _autoRowPx.get(schedule);
-    if(m) return m;
-    m = {};
+    if(_autoRowPx && _autoRowPx.schedule === schedule) return _autoRowPx.map;
+    let m = {};
     const notesByIdx = schedule.notesByIdx || {};
     computeYearBlocks(schedule.weeks).forEach(b=>{
       for(let r = 0; r < b.count; r++){
@@ -447,7 +453,9 @@ export function initLegacyApp() {
         if(need > ROW_DEFAULT_PX) m[r] = Math.max(m[r] || 0, need);
       }
     });
-    _autoRowPx.set(schedule, m);
+    const memo = {schedule, map: m};
+    _autoRowPx = memo;
+    Promise.resolve().then(()=>{ if(_autoRowPx === memo) _autoRowPx = null; });
     return m;
   }
   function sheetRowPx(schedule, r){ return rowHeights[r] || autoRowPxFor(schedule)[r] || ROW_DEFAULT_PX; }
@@ -33180,6 +33188,7 @@ export function initLegacyApp() {
   }
 
   function markDirty(){
+    _autoRowPx = null;   // R4's one-pass memo (autoRowPxFor): whatever this edit changed, the next row height is worked out again
     if(suppressDirty) return;
     // ⭐ Every edit ends here, so the typed notes follow what it changed (followAutoNotes): an edit that only repaints
     // (a holiday's Waterfall or Month box, Toggle all) has no update() of its own. After update() this is a no-op. A

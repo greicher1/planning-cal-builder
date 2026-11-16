@@ -29,6 +29,21 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — a week showing two holidays gets its taller row however the holidays were shown (audit item 3.1, 16 Nov 2026)
+
+Audit item 3.1's row-height fix (frozen edit R4, AUD2-044: a Notes cell holding only two or more holiday lines, such as
+Thanksgiving and the Day After, gets the 23 px row those lines need, not 20) remembered its answer against the calendar's
+schedule, and ticking a holiday's Waterfall box redraws that same schedule. So ticking those holidays on left the row at
+20 px, both lines squeezed and the second cut, until the next edit, and the screen, Excel and the waterfall PDF depended
+on the order things were done in (a DD/MM calendar switched back gave a different waterfall PDF). The answer is now worked
+out afresh on every redraw and after every edit. Owner's picker, 16 Nov 2026: *"Fix it, update refs"*.
+- **Verified:** `textfit` g=tick (new: both boxes ticked, the row is 23 px on screen at once, 17.25 pt in the workbook,
+  a 23 px row in the waterfall PDF, the same PDF as after a fresh schedule, 20 px again when ticked off) 6/6, red 1/6 on
+  the build before; `textfit` g=wf 2/2; `dayfirst` 14/14 (R2 was red). Gates 1 to 3's reference calendar now gives
+  Thanksgiving's row 23 px, and nothing else moved: baselines re-cut (`tests/baselines/2026-08-29-stage-7/README.md`).
+  Gate 10 (three calendars) and gate 13 (every calendar) unchanged.
+
+
 ### Unreleased — the date picker's "today" is your own day, in every time zone (13 Nov 2026)
 
 The November audit's AUD2-007 (Batch 1, item 1.5, P1). The pop-out date picker worked out "today" as the date in UTC
