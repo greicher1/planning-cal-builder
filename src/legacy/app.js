@@ -19646,15 +19646,20 @@ export function initLegacyApp() {
   // 31 Aug 2026 hline() precedent). '' for no style, so an unstyled calendar's markup is byte for byte what it
   // was. Size is separate (textSizeCss), because each kind's size path differs. Bold is 700 or 400: the two
   // Carlito weights embedded for the PDF writer, so the screen draws what prints.
+  // ⛔ Only a #rrggbb colour and a known alignment are written (audit, 13 Nov 2026): this lands inside a style="…"
+  // attribute, and holding it here as well as in sanitizeSnapshot means a value that slips past a restore still cannot
+  // end the attribute. The bar only ever writes those (<input type="color">, its three align buttons), so every real
+  // calendar's markup is byte for byte what it was. sideFmtCss and headerFormatCss already hold theirs the same way.
   function textStyleCss(f){
     if(!f) return '';
     let css = '';
     if(f.bold !== undefined) css += ` font-weight:${f.bold ? 700 : 400};`;
     if(f.italic) css += ' font-style:italic;';
-    if(f.color) css += ` color:${f.color};`;
-    if(f.align) css += ` text-align:${f.align};`;
+    if(isHexColor(f.color)) css += ` color:${f.color};`;
+    if(isTextAlign(f.align)) css += ` text-align:${f.align};`;
     return css;
   }
+  function isTextAlign(v){ return v === 'left' || v === 'center' || v === 'right'; }
   // A size on ONE-LINE text (dates, headings, phase labels, Sim Post), with its line box held inside the row.
   // A line is SHEET_LINE_RATIO × the size, so 12 px wants 16.2 px where a standard row leaves 15; the glyphs
   // themselves need 1.22 em (14.6 px), so capping the line-height keeps every glyph and stops the row
@@ -19756,19 +19761,20 @@ export function initLegacyApp() {
         let css = ` font-size:${px}px; line-height:${G.line}px; --mvn-h1:${G.h1}px; --mvn-h2:${G.h2}px;`;
         if(f && f.bold !== undefined) css += ` font-weight:${f.bold ? 700 : 400};`;
         if(f && f.italic) css += ' font-style:italic;';
-        if(f && f.color) css += ` color:${f.color};`;
-        if(f && f.align) css += ` text-align:${f.align};`;
+        if(f && isHexColor(f.color)) css += ` color:${f.color};`;
+        if(f && isTextAlign(f.align)) css += ` text-align:${f.align};`;
         return css;
       }
     }
     if(!f) return '';
     let css = '';
     // A bar's or band's line box is the phase bar size's (mvBarLinePx: MV_TEXT_LINE_PX.bar, 15 px, at Standard).
-    if(f.size){ const box = mvTextBox(kind, key); css += ` font-size:${f.size}px; line-height:${box === 'bar' ? mvBarLinePx() : MV_TEXT_LINE_PX[box]}px;`; }
+    // Colour, alignment and size held as textStyleCss holds them: only a number reaches the font-size.
+    if(f.size && finiteNum(f.size) !== null){ const box = mvTextBox(kind, key); css += ` font-size:${f.size}px; line-height:${box === 'bar' ? mvBarLinePx() : MV_TEXT_LINE_PX[box]}px;`; }
     if(f.bold !== undefined) css += ` font-weight:${f.bold ? 700 : 400};`;
     if(f.italic) css += ' font-style:italic;';
-    if(f.color && !MV_TEXT_NO_COLOR.includes(kind)) css += ` color:${f.color};`;
-    if(f.align) css += ` text-align:${f.align};`;
+    if(isHexColor(f.color) && !MV_TEXT_NO_COLOR.includes(kind)) css += ` color:${f.color};`;
+    if(isTextAlign(f.align)) css += ` text-align:${f.align};`;
     return css;
   }
   function mvTextStyleSnapshot(){
@@ -25829,7 +25835,7 @@ export function initLegacyApp() {
   // the renderer escapes them with escH exactly as it escapes today's manual text.
   function parseHeaderPresetText(text){
     let o;
-    try { o = JSON.parse(text); }
+    try { o = parseUntrustedJson(text); }
     catch(e){ return { ok:false, reason:'That file is not a header preset -- it is not readable as JSON.' }; }
     if(!o || typeof o !== 'object' || Array.isArray(o)){
       return { ok:false, reason:'That file is not a header preset.' };
@@ -25851,7 +25857,7 @@ export function initLegacyApp() {
     // it is normalised into v2's shape here and nothing downstream knows there were ever two shapes.
     const src = (ver >= 2) ? o : { sheet: { lines: o.lines, format: o.format } };
     const preset = { name: '', sheet: null, month: null };
-    let dropped = 0;
+    let dropped = untrustedJsonDropped(o);   // names parseUntrustedJson left out are unrecognised entries too
     HDR_PRESET_SECTIONS.forEach(sec=>{
       const sIn = src[sec];
       if(!sIn || typeof sIn !== 'object') return;
@@ -30347,13 +30353,13 @@ export function initLegacyApp() {
     const trimmed = String(text || '').replace(/^\uFEFF/, '').trimStart();
     // Data format: the file IS the snapshot.
     if(trimmed.startsWith('{')){
-      try { const o = JSON.parse(trimmed); return looksLikeCalendar(o) ? scenarioParse('data', o) : null; }
+      try { const o = parseUntrustedJson(trimmed); return looksLikeCalendar(o) ? scenarioParse('data', o) : null; }
       catch(e){ return null; }
     }
     // Legacy HTML format: lift the embedded state block out of a full copy of the app.
     const body = savedStateBlock(String(text || ''));
     if(body == null) return null;
-    try { const o = JSON.parse(body.trim()); return looksLikeCalendar(o) ? scenarioParse('html', o) : null; }
+    try { const o = parseUntrustedJson(body.trim()); return looksLikeCalendar(o) ? scenarioParse('html', o) : null; }
     catch(e){ return null; }
   }
   // {format, snapshot, scenarios} -- or, for a scenarios file this build must not open, {format, snapshot, refused}.
@@ -30548,7 +30554,7 @@ export function initLegacyApp() {
       }
     }
     if(current !== 1) return { refused: 'damaged' };
-    const snapshot = Object.assign({}, obj);
+    const snapshot = ownCopy(obj);   // own values only, as sanitizeSnapshot's copy (parseUntrustedJson)
     delete snapshot.scenarios;
     snapshot.version = SNAPSHOT_VERSION;
     const counter = (Number.isInteger(sc.counter) && sc.counter > maxN && sc.counter < 100000) ? sc.counter : maxN;
@@ -41735,7 +41741,7 @@ export function initLegacyApp() {
     const el = document.getElementById('saved-state');
     if(!el) return 'none';
     let snap;
-    try { snap = JSON.parse(el.textContent); } catch(e){ return 'damaged'; }
+    try { snap = parseUntrustedJson(el.textContent); } catch(e){ return 'damaged'; }
     if(!snap || typeof snap !== 'object') return 'none';
     // A shareable copy restores itself from this block at boot. If it is a newer version, or a
     // hand-edited copy that throws partway, fall back to a blank working app rather than a zombie
@@ -41952,6 +41958,38 @@ export function initLegacyApp() {
     const n = (typeof v === 'number') ? v : ((typeof v === 'string' && v.trim() !== '') ? Number(v) : NaN);
     return isFinite(n) ? n : null;
   }
+  // ⛔ A FILE'S JSON IS READ WITH parseUntrustedJson(), NEVER A BARE JSON.parse (audit, 13 Nov 2026). JSON.parse keeps
+  // a key named "__proto__" as an ordinary own key, but the first Object.assign (or `o[k] = v`) that copies it makes it
+  // the copy's PROTOTYPE, and every value this section refuses and deletes would then be read from there instead. So
+  // the three names an object's own machinery answers to are dropped as the text is read. The app never writes one as
+  // a key (the stores keyed by typed text refuse them: MV_UNSAFE_KEY, MV_WFNOTE_KEY), so no real calendar loses a
+  // thing. They are counted, so sanitizeSnapshot's console note still says that something was ignored.
+  // Readers: parseCalendarText (both formats), restoreSavedState (a shareable copy, crash recovery), the .spthdr reader.
+  function isProtoName(k){ return k === '__proto__' || k === 'constructor' || k === 'prototype'; }
+  var untrustedJsonDrops;   // WeakMap: parsed object -> names dropped. `var`, no initialiser: the boot may read first
+  function parseUntrustedJson(text){
+    let n = 0;
+    const o = JSON.parse(text, function(k, v){ if(isProtoName(k)){ n++; return undefined; } return v; });
+    if(n && o && typeof o === 'object'){
+      if(!untrustedJsonDrops) untrustedJsonDrops = new WeakMap();
+      untrustedJsonDrops.set(o, n);
+    }
+    return o;
+  }
+  function untrustedJsonDropped(o){
+    return (untrustedJsonDrops && o && typeof o === 'object' && untrustedJsonDrops.get(o)) || 0;
+  }
+  // An object's OWN values in a fresh plain object, never its prototype's, less the three names above. A copy that a
+  // sanitizer then deletes keys from must be made this way (sanitizeSnapshot, unpackScenarioFile), however its input
+  // was read. Carries the parse's count to the copy.
+  function ownCopy(o){
+    const out = {};
+    if(!o || typeof o !== 'object') return out;
+    Object.keys(o).forEach(k=>{ if(!isProtoName(k)) out[k] = o[k]; });
+    const n = untrustedJsonDropped(o);
+    if(n) untrustedJsonDrops.set(out, n);
+    return out;
+  }
   // A number the app would have written: finite, and within a generous range for its store.
   const numIn = (lo, hi) => v => { const n = finiteNum(v); return (n !== null && n >= lo && n <= hi) ? n : undefined; };
   // A day count or week count as the app stores it: a number, a numeric string (the block list
@@ -42082,7 +42120,10 @@ export function initLegacyApp() {
   }, true);
   function sanitizeSnapshot(snapIn){
     const bad = { n: 0 };
-    const s = Object.assign({}, snapIn);
+    // Own values only (ownCopy): every `delete s.x` below must leave x ABSENT, never expose a prototype's x. Names
+    // dropped as the file was read, or left out here, are counted with the rest.
+    const s = ownCopy(snapIn);
+    bad.n += untrustedJsonDropped(snapIn) + ((snapIn && typeof snapIn === 'object') ? Object.keys(snapIn).filter(isProtoName).length : 0);
     // A map whose keys look like store keys and whose values pass `fn` (fn returns undefined to reject).
     const cleanMap = (v, fn, keyRe) => {
       if(v === undefined) return undefined;
