@@ -13,10 +13,11 @@
 //   S3  ...and in the waterfall PDF: Prod Prep wk 1 drawn left of Pre-Prep Wk 4                    (red before)
 //   S4  1 wk -> (back to 1/6/31): still left, and the file still holds exactly the 2031 swap
 //   S5  Writer's Rm typed 12/16/30: still left                                                    (red before)
+//   (then one Undo takes S5 back, and <- 1 wk puts the first week on 12/30/30 again: see the note above S6)
 //   S6  ...swap back with Swap Column there: Pre-Prep left, and the 2031 entries are DELETED (no 2030 copy written)
 //                                                                                                  (red before)
 //   S7  ...swap again: Prod Prep left, written under 2030, the first year then                    (red before)
-//   S8  Writer's Rm back to 1/6/31 (first year 2031 again): that 2030 swap still shows
+//   S8  1 wk -> (Writer's Rm back to 1/6/31, first year 2031 again): that 2030 swap still shows
 //   S9  no swap notice through any of it, no console error, no native alert
 //
 // ⚠️ Run against the BUILD (HARNESS_PAGE=/dist/index.html).
@@ -136,6 +137,16 @@ window.addEventListener('load', function () { (async function () {
     var r3 = await rec('Writers Rm 12/16/30');
     C('S5', 'Writer\'s Rm typed 12/16/30: still left, the store unchanged', r3.left === 'prodPrep x3' && r3.store === STORE0, r3, {left: 'prodPrep x3', store: STORE0});
 
+    // ⚠️ RE-PREMISED on release-v1.15, where this item (3.9) met v1.14.0's sticky columns (audit 3.8, AUD2-057): a start
+    // typed into ONE phase is now a deliberate move, remembered (colKeep), and Writer's Rm typed 12/16/30 keeps its
+    // column with Prod Prep placed in it. S6's Swap Column on Pre-Prep then trades Pre-Prep with that whole column (Writer's
+    // Rm + Prod Prep), a different swap from the one S6-S8 are about. So S5 is taken back with one Undo (which restores
+    // the calendar without the memory), and the same premise -- the first year is 2030 while the swap is stored under
+    // 2031 -- is reached with <- 1 wk, a whole-calendar Shift that sticky columns never remember (S1's state). S8 returns
+    // with 1 wk ->. What S6-S8 claim is unchanged.
+    $('undo-btn').click(); await T.until(function () { return val('start-writersRoom') === '2031-01-06'; }, 'undo Writer\'s Rm', 60, 100);
+    $('shift-back-btn').click(); await T.until(function () { return val('start-writersRoom') === '2030-12-30'; }, '<- 1 wk again', 60, 100);
+    await settle();
     await swapColumn('prePrep', -1);
     var r4 = await rec('swap back in Single Column');
     C('S6', '...swap back with Swap Column: Pre-Prep left, and the 2031 entries are deleted (nothing written under 2030)', r4.left === 'prePrep x3' && r4.store === '', r4, {left: 'prePrep x3', store: ''});
@@ -144,9 +155,9 @@ window.addEventListener('load', function () { (async function () {
     var r5 = await rec('swap again in Single Column');
     C('S7', '...swap again: Prod Prep left, written under 2030 (the first year then)', r5.left === 'prodPrep x3' && /^2030\|prePrep>prodPrep:false 2030\|prodPrep>prePrep:true$/.test(r5.store), r5, {left: 'prodPrep x3', store: '2030 entries'});
 
-    T.set('start-writersRoom', '2031-01-06');
-    var r6 = await rec('Writers Rm back to 1/6/31');
-    C('S8', 'Writer\'s Rm back to 1/6/31 (first year 2031): the swap made under 2030 still shows', r6.left === 'prodPrep x3' && r6.first === '2031-01-06' && r6.store === r5.store, r6, {left: 'prodPrep x3', store: r5.store});
+    $('shift-fwd-btn').click(); await T.until(function () { return val('start-writersRoom') === '2031-01-06'; }, '1 wk -> again', 60, 100);
+    var r6 = await rec('1 wk -> (Writers Rm back to 1/6/31)');
+    C('S8', '1 wk -> (Writer\'s Rm back to 1/6/31, first year 2031): the swap made under 2030 still shows', r6.left === 'prodPrep x3' && r6.first === '2031-01-06' && r6.store === r5.store, r6, {left: 'prodPrep x3', store: r5.store});
 
     var notices = out.log.map(function (r) { return r.notice; }).filter(Boolean);
     C('S9', 'no swap notice through any of it, no console error, no native alert', !notices.length && T.appHealth().errors.length === 0 && window.__alerts.length === 0,

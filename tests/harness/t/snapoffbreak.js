@@ -97,6 +97,11 @@ window.addEventListener('load', function () { (async function () {
     var sw = document.getElementById('pref-hiatus-ripple'); if (sw && !sw.checked) sw.click(); await T.sleep(300);
     var side = document.querySelector('.side-tab-btn[data-tab="phases"]'); if (side && !side.classList.contains('active')) side.click(); await T.sleep(400);
     var brk = Array.prototype.filter.call(document.querySelectorAll('#hiatus-list .hiatus-entry'), function (r) { return (r.querySelector('.hiatus-start') || {}).value === '2026-12-21'; })[0];
+    // ⚠️ Re-expected on release-v1.15, where this item (3.6) met 2.14: a calendar now opens with its all-phase hiatus
+    // cards FOLDED to their head (AUD2-036, approved), so the card is opened by its caret first, as a user would, and as
+    // 2.14 did for phasesui. A folded card's Weeks box cannot take focus, and the edit never reached the ripple.
+    var caret = brk && brk.querySelector('.hiatus-collapse-btn');
+    if (brk && brk.classList.contains('is-collapsed') && caret) { caret.click(); await T.sleep(150); }
     var wk = brk && brk.querySelector('.hiatus-weeks');
     if (wk) { wk.focus(); await T.sleep(100); }
     var focused = !!wk && document.activeElement === wk;
