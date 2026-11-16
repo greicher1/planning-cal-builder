@@ -4,7 +4,7 @@
 //
 //   HARNESS_PAGE=/dist/index.html ./run.sh monthpick 300
 //
-// The dialog (src/chrome/MonthPdfDialog.jsx): Months All / This month / Some months (From .. to), opening on All. Owner-
+// The dialog (src/chrome/MonthPdfDialog.jsx): Months All / This month / Range (From .. to), opening on All. Owner-
 // approved defaults: All is the default and writes exactly the file from before; the choice is session only; the print
 // rollback is not asked and prints every month. This leg drives the dialog itself (T.pdfDialog('manual')).
 //
@@ -12,18 +12,18 @@
 // BYTE to gate 13's own baseline for this calendar (M1, below).
 //
 // CASES
-//   M0  Export PDF in the month view opens the month dialog: "Export PDF", All / This month / Some months, on All; This
-//       month names the month on screen (July 2026); All names the span; no From / To until Some months is picked
+//   M0  Export PDF in the month view opens the month dialog: "Export PDF", All / This month / Range, on All; This
+//       month names the month on screen (July 2026); All names the span; no From / To until Range is picked
 //   M1  ⭐ Export at the default writes every month, then the SPTCal mark; Enter writes the same bytes, and so does Some
 //       months spanning every month. The file is written out as monthpick.all.pdf, and the caller holds it, mark
 //       stripped, BYTE FOR BYTE to gate 13's baseline for this calendar (tests/baselines/2026-10-05-monthwriter/
 //       reference.pdf), with pdfmark.py and monthbase.py. ⚠️ Not in the page: srv.js serves every file as a string,
 //       so a PDF fetched from it arrives re-encoded as UTF-8 (measured: 81,804 bytes in, 140,327 out).
 //   M2  This month (July on screen) writes ONE page, July 2026, and that page is the all-months file's July page
-//   M3  Some months, July to September 2026, writes three pages, in order, each the all-months file's own page
+//   M3  Range, July to September 2026, writes three pages, in order, each the all-months file's own page
 //   M4  the run reads forwards: a From after the To moves the To with it (October alone), and the other way round
 //   M5  Cancel and Escape write nothing: no Save dialog, the calendar still saved, no undo step
-//   M6  session only: the next opening is back on All, and a Save while the dialog is open (Some months showing) puts
+//   M6  session only: the next opening is back on All, and a Save while the dialog is open (Range showing) puts
 //       none of its ids in fields.byId and no new key in the file
 //   M7  the print rollback (MV_PDF_MODE 'print', by its localhost switch) is not asked and prints every month
 //   M8  a calendar with one month to print writes it with no dialog
@@ -183,9 +183,9 @@ window.addEventListener('load', function () { (async function () {
               all: segText('all'), thisMonth: segText('this'), some: segText('some'), selects: !!sel('from') || !!sel('to'),
               thisDisabled: (radios().filter(function (i) { return i.value === 'this'; })[0] || {}).disabled};
     var nothing0 = await nothingWith(function () { q('.month-pdf-dlg [data-pdfdlg="cancel"]').click(); });
-    add('M0', 'Export PDF in the month view opens the month dialog on All: All (Jan 2026 – Apr 2027) / This month (July 2026) / Some months, and no From or To yet',
+    add('M0', 'Export PDF in the month view opens the month dialog on All: All (Jan 2026 – Apr 2027) / This month (July 2026) / Range, and no From or To yet',
         m0.title === 'Export PDF' && same(m0.segs, ['all', 'this', 'some']) && m0.on === 'all' && /^All Jan 2026 – Apr 2027/.test(m0.all || '') &&
-        /^This month July 2026/.test(m0.thisMonth || '') && m0.thisDisabled === false && /^Some months/.test(m0.some || '') && !m0.selects,
+        /^This month July 2026/.test(m0.thisMonth || '') && m0.thisDisabled === false && /^Range/.test(m0.some || '') && !m0.selects,
         m0, 'that dialog, on All');
 
     // ===== M1: the default is exactly the file from before ===========================================================
@@ -198,7 +198,7 @@ window.addEventListener('load', function () { (async function () {
     var span = await read((await exportWith(clickExport)).file);
     info.allPages = all && all.pages; info.allMonths = all && all.months; info.allWriterBytes = all && all.writer && all.writer.length;
     if(all) out.pdfs = {all: T.b64(all.bytes.buffer)};
-    add('M1', '⭐ Export at the default writes all 16 months (then the SPTCal mark); Enter writes the same bytes, and so does Some months spanning every month (the file goes out as monthpick.all.pdf for the byte check against gate 13\'s baseline)',
+    add('M1', '⭐ Export at the default writes all 16 months (then the SPTCal mark); Enter writes the same bytes, and so does Range spanning every month (the file goes out as monthpick.all.pdf for the byte check against gate 13\'s baseline)',
         !!all && all.marked && all.pages === 16 && same(all.months, ['January 2026', 'February 2026', 'March 2026', 'April 2026', 'May 2026', 'June 2026',
           'July 2026', 'August 2026', 'September 2026', 'October 2026', 'November 2026', 'December 2026', 'January 2027', 'February 2027', 'March 2027', 'April 2027']) &&
         !!enter && sameBytes(enter.bytes, all.bytes) && !!span && sameBytes(span.bytes, all.bytes),
@@ -214,13 +214,13 @@ window.addEventListener('load', function () { (async function () {
         !!one && one.pages === 1 && same(one.months, ['July 2026']) && within(one, all) === 0 && /^Test Show Month Calendar\.pdf/.test(one.name || ''),
         {pages: one && one.pages, months: one && one.months, notInAll: one ? within(one, all) : null, name: one && one.name}, '1 page, July 2026');
 
-    // ===== M3: Some months ============================================================================================
+    // ===== M3: Range ============================================================================================
     await open();
     await pick('some');
     var m3open = {from: sel('from') && sel('from').value, to: sel('to') && sel('to').value, options: sel('from') ? sel('from').options.length : 0};
     await choose('to', '2026-09');
     var run = await read((await exportWith(clickExport)).file);
-    add('M3', 'Some months opens From the month on screen To the last (July 2026 to April 2027, 16 months offered); July to September 2026 writes those three pages, in order, each the all-months file\'s own',
+    add('M3', 'Range opens From the month on screen To the last (July 2026 to April 2027, 16 months offered); July to September 2026 writes those three pages, in order, each the all-months file\'s own',
         m3open.from === '2026-07' && m3open.to === '2027-04' && m3open.options === 16 &&
         !!run && run.pages === 3 && same(run.months, ['July 2026', 'August 2026', 'September 2026']) && within(run, all) === 0,
         {opened: m3open, pages: run && run.pages, months: run && run.months, notInAll: run ? within(run, all) : null}, '3 pages: July, August, September 2026');
@@ -260,7 +260,7 @@ window.addEventListener('load', function () { (async function () {
     var s6 = await save();
     await nothingWith(function () { q('.month-pdf-dlg [data-pdfdlg="cancel"]').click(); });
     var ids6 = Object.keys(s6.fields.byId).sort(), keys6 = Object.keys(s6).sort();
-    add('M6', 'session only: the next opening is back on All, and a Save with Some months showing puts none of the dialog\'s ids in fields.byId and no new key in the file',
+    add('M6', 'session only: the next opening is back on All, and a Save with Range showing puts none of the dialog\'s ids in fields.byId and no new key in the file',
         reopened === 'all' && dlgIds.length >= 5 && same(ids6, ids0) && dlgIds.every(function (i) { return ids6.indexOf(i) < 0; }) && same(keys6, keys0),
         {reopenedOn: reopened, dialogIds: dlgIds.length, addedIds: ids6.filter(function (k) { return ids0.indexOf(k) < 0; }),
          addedKeys: keys6.filter(function (k) { return keys0.indexOf(k) < 0; })}, 'All; none; none');
