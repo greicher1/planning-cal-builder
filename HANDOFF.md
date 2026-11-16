@@ -56,7 +56,18 @@
   then the four re-expected and three merge-fixed legs again); `npm run check` 42/42. The new gate.sh wiring: `zsh -n`
   clean, and six specs run through gate.sh's own loop bodies (AFSPEC `swapnoop` alone 5/5 + `notelook` 12/12; V15SPEC
   `textfit` g=tick 6/6 + `laptopfit` 1280,800 11/11; RTSPEC `scenlist` 9/9; V15MJS `hoverchipreal` 8/8), a missing
-  result judged FAIL. ⛔ **Not yet: the full gate.**
+  result judged FAIL.
+- **The full gate on `e606af6` (16 Nov 2026): 5,354 PASS, 15 FAIL, all triaged; NO product code changed** (`dist` =
+  `releases/v1.15.0.html`, sha256 `f8adc94e…`). Three were intended changes the legs had not caught up with, re-expected:
+  `prove-header-template` (2.4: `fmtHeaderDate` calls `orderedDate`, which the prover's slice lacked; it now slices it
+  and `datesDayFirst`, and holds the day-first order; `bee1031`), `mvorder` O5 / O6 / M3 and `mvordersp` P5 / P6 (2.11's
+  month dialog held the Shift+Cmd+E export, and stayed open over the bar menu; the node legs now answer it at All as
+  `cspproof.mjs` does; `f297d09`), `mvnotesize` N1-13 / N1-14 on `mvnotes` and `month-dense60` (D1's 3- and 4-lane dated
+  lines; `1de920f`). ⚠️ A node leg that exports the month PDF must answer `.month-pdf-dlg` itself: `t/lib.js`'s
+  auto-answer only reaches `?test=` legs. Five were load timeouts, green alone and in the partial gate: `layouthook`
+  (full), `pilllabel` (carry-rich) W2, `autonoteview` V2, `autonotefollow` (g=a), `monthexport` (mvnotesize-mixed) X6.
+  A partial gate of exactly the failed sections (assembled from `gate.sh`'s own blocks): **383 PASS, 0 FAIL.** Gates
+  2 / 3 / 13 were not re-run: nothing that reaches a writer changed.
 
 
 ### 🩹 16 Nov 2026: AUDIT ITEM 2.14's ONE-LINE, ONE-AT-A-TIME STRIPS NOW COVER #launch-notice, #heading-notice, #backup-notice, #storage-notice (owner's picker *"Yes, same rule"*). **Committed on `release-v1.15`, NOT PUSHED.**
