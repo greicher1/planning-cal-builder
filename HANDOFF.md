@@ -244,6 +244,39 @@
   `effectiveNoteText` and the month view's blocks, which the leg does read); real (trusted) mouse and keys beyond
   `wfkeysreal`; not tried by hand in a browser.
 
+### ✅ 14 Nov 2026: AUDIT BATCH 3, ITEM 3.13 — ONE BAD SAVED PREFERENCE NO LONGER BLANKS THE APP; A BACKUP IS KEPT ONLY WHILE THERE IS UNSAVED WORK (AUD2-078, and a shareable-copy hardening fix). **COMMITTED LOCALLY on `audit-3-13` (worktree `.claude/worktrees/audit-3-13`), cut from item 3.7's WIP branch `audit-3-7` at `c5ad8d1`, so it holds 3.7 too. NOT merged, NOT pushed; waits for the release train's one full gate.**
+- **AUD2-078, as built** (`src/legacy/app.js` beside `loadPrefs`, and `normalizeHeaderPreset` / `usableHeaderPresets` /
+  `headerPresetsStore`; `src/main.jsx`; `legacy.css` `.chrome-failed*`):
+  - `loadPrefs()` runs `cleanPrefs()`: each preference this build knows (`PREF_TYPES`: version, gridlines,
+    mvNoteColor, calZoom, hiatusRipple, mvWeek, mvEpisodes, mvBlocks, the two holiday-notice flags) is held to the TYPE
+    it writes; another type is left out. Unknown keys are kept untouched; `__proto__` / `constructor` / `prototype`
+    are dropped. Stored header presets are kept only when `usableHeaderPresets` accepts them: a text id
+    (`storedHeaderPreset`), at least one section whose `lines` is an object (`normalizeHeaderPreset`), not Default's
+    id, not a repeat id. A number name reads as its digits, any other non-text name as "Unnamed preset". A good preset
+    is passed through AS STORED (no reshaping: normalize still migrates on read). The repair reaches localStorage with
+    the next `savePrefs()`.
+  - ⛔ `cleanPrefs` runs at evaluation time, before most consts exist, so it names none: the literal `'__default'`
+    stands for `HDR_PRESET_DEFAULT_ID`. A TDZ throw there would be caught and return `{}`, silently losing every preference.
+  - The chrome root is wrapped in `ChromeBoundary` (OUTSIDE MantineProvider; plain markup, the app's own `:root` tokens).
+    On a render error it shows "SPTCal could not start" and an id-less **Reset preferences** button that removes
+    `sptcal.prefs` and reloads. If the very FIRST render fails, `initLegacyApp()` is skipped (`chromeFailed`).
+- **The hardening fix, as built:** `openRecentFile` deletes this page's own backup slot right after the load marks the
+  page clean (the work was saved or let go at "Your unsaved changes will be lost"), and a `pagehide` with nothing unsaved
+  deletes it too. A dirty page still writes and keeps its slot through a close (beforeunload), as before.
+- **Defaults applied** (the findings' own; none of D1-D8 bears on this item): validate stored preferences when they are
+  read, and offer a reset instead of a blank window; keep the crash backup everywhere, and clear a page's own slot once
+  it saves (already so) or closes cleanly. **Chosen in the build:** a non-text preset name reads "Unnamed preset" (the
+  finding said `String()`, which shows "[object Object]"); a preset with no usable section, Default's id or a repeat id
+  is dropped too; Reset clears the whole `sptcal.prefs` key (presets included; the panel says so); Load over unsaved
+  work also clears the slot (the finding named save and clean close only). One documentation step of the fix is left
+  for the owner to word (see the fix session's report).
+- **Proof** (build, port 8881, one leg at a time): `prefsguard` 7/7 (all seven red before: a 101-character blank
+  window, React error #31); `sharecopyguard` 6/6 on show-a (C1, C2 red before). Kept green: the prefs, hdrpreset,
+  hdrfile and calzoom gate blocks; hostile, settingswin, sharecopy2, backupslots, backuplink, backuplinkstale,
+  launchopen, nofsa, loadfail and the rest listed in the commit; `npm run check` 42/42. Both legs are in gate.sh's
+  AFSPEC list. ⚠️ Not verified: the first-render branch that skips `initLegacyApp()` (the leg's trap fires after boot,
+  as the real failure did).
+
 ### ✅ 13 Nov 2026: AUDIT BATCH 1, ITEM 1.4 — THE EMERGENCY ROLLBACK REDEPLOYS THE PREVIOUS RELEASE (AUD2-006; owner's decision **D7 (a)**, "Yes, stay", 13 Nov 2026). **COMMITTED LOCALLY on `audit-1-1`, NOT PUSHED.** Tracker card `audit-rollback-previous-release`
 - **D7 (a) in full** (PLAYBOOK §3): stay on the current web address; the rollback becomes "redeploy the previous
   release"; later, a line on the install screens for blocked installs and "Open as window", a one-page IT sheet (both

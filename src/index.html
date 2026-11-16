@@ -515,6 +515,26 @@
   <button type="button" class="ln-x" aria-label="Dismiss">&times;</button>
 </div>
 
+<!-- Audit AUD2-076 (14 Nov 2026). Shown after a double-clicked calendar loads while a crash backup of ANOTHER
+     calendar is kept: it names the work and when it was written, and Recover brings it back. Amber like the legacy
+     strip: something about your work is not where you expected it, and nothing has failed. The x counts as a "No" to
+     the recovery question. Re-hidden in a shareable copy's clone. Buttons only: no id inside it. -->
+<div id="backup-notice" role="status" aria-live="polite" hidden>
+  <span class="ln-icon" aria-hidden="true">&#8634;</span>
+  <span class="ln-text"></span>
+  <button type="button" class="ln-go">Recover</button>
+  <button type="button" class="ln-x" aria-label="Dismiss">&times;</button>
+</div>
+
+<!-- Audit AUD2-075 (14 Nov 2026). Shown when the browser refuses SPTCal its site data (IndexedDB), so neither the
+     crash backup nor the list of loaded files is kept. Blue like the Chrome/Edge strip: both are about the browser.
+     Once per page load; a dismissal is not remembered. Re-hidden in a shareable copy's clone. -->
+<div id="storage-notice" role="status" aria-live="polite" hidden>
+  <span class="ln-icon" aria-hidden="true">&#9432;</span>
+  <span class="ln-text"></span>
+  <button type="button" class="ln-x" aria-label="Dismiss">&times;</button>
+</div>
+
 <div class="layout">
   <aside class="form-panel">
 

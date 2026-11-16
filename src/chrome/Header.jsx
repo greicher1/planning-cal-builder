@@ -31,7 +31,9 @@ export function Header() {
   const [status, setStatus] = useState({ text: '', tone: 'idle', title: '' })
   const [exp, setExp] = useState({ label: 'Export to Excel', primary: false, disabled: true, busy: false })
   const [expWf, setExpWf] = useState({ visible: true, disabled: true })
-  const [menu, setMenu] = useState({ visible: false, label: 'Untitled', items: [], open: false })
+  // `backups` (audit AUD2-056, 14 Nov 2026): the crash backups kept in this browser, [{key, name, when}], newest first,
+  // pushed by the engine's refreshKeptBackups(). Drawn as the menu's "Unsaved work" section only when there are any.
+  const [menu, setMenu] = useState({ visible: false, label: 'Untitled', items: [], backups: [], open: false })
   // The notes reset's view (owner ruling 4): its label and tooltip say which notes it clears.
   const [notesReset, setNotesReset] = useState({ view: 'sheet' })
   // Reset Columns (owner, 6 Nov 2026): the Waterfall's only; `any` says whether a column choice exists to clear.
@@ -92,7 +94,13 @@ export function Header() {
           the existing control flow keeps deciding, exactly as it reads. */}
       <Menu
           opened={menu.open}
-          onChange={(open) => { setMenu((s) => ({ ...s, open })); if (!open) setQ('') }}
+          /* 'sptcal-file-menu-open' (the 14 Nov 2026 review of audit item 3.7): the engine redraws the menu's
+             "Unsaved work" on it (refreshKeptBackups). Told on EVERY opening, however it opens: it used to listen
+             for a pointerdown on the button, so a menu opened from the keyboard (Enter, Space) showed a stale list. */
+          onChange={(open) => {
+            setMenu((s) => ({ ...s, open })); if (!open) setQ('')
+            if (open) document.dispatchEvent(new CustomEvent('sptcal-file-menu-open'))
+          }}
           withinPortal={false}
           keepMounted
           closeOnItemClick={false}
@@ -199,6 +207,42 @@ export function Header() {
                     ))
                 )}
               </div>
+              {/* Unsaved work (audit AUD2-056, 14 Nov 2026): every crash backup this browser keeps that no open
+                  window owns, recoverable here after the launch question was declined, or never asked (a
+                  double-clicked file). Below the list and outside .fm-list, so it never scrolls away and the search
+                  box never filters it. The engine's ONE delegated listener decides: data-backup-discard before
+                  .file-menu-item, data-backup on the item, exactly as data-remove / data-id work for recents. No
+                  input here, so nothing mints an id collectFieldValues could sweep. */}
+              {(menu.backups || []).length > 0 && (
+                <>
+                  <Menu.Divider className="file-menu-sep" />
+                  <Menu.Label className="fm-backups-label">Unsaved work</Menu.Label>
+                  <div className="fm-backups">
+                  {menu.backups.map((b) => (
+                    <Menu.Item
+                      key={b.key}
+                      className="file-menu-item fm-backup"
+                      data-backup={b.key}
+                      role="menuitem"
+                      title={'Recover the unsaved work from ' + b.name + ' (' + b.when + ')'}
+                      rightSection={
+                        <CloseButton
+                          component="span"
+                          size="xs"
+                          className="fm-remove"
+                          data-backup-discard={b.key}
+                          title="Discard this unsaved work"
+                          aria-label="Discard"
+                        />
+                      }
+                    >
+                      <span className="fm-name">{b.name}</span>
+                      <span className="fm-when">{b.when}</span>
+                    </Menu.Item>
+                  ))}
+                  </div>
+                </>
+              )}
             </Menu.Dropdown>
           </Box>
       </Menu>

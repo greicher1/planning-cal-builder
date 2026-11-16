@@ -2233,6 +2233,19 @@ done
 # month's (M2). On the reference calendar (T.buildFixture, live). Red on 2089aa5 at Q0 W1 W2 W3 W4 M1 M2 M4.
 # hostile runs twice (13 Nov 2026, audit item 1.3): from xss-mixed, and from xss-proto, whose start is the shareable-copy
 # path for the xss-proto* files (S0). Both runs load every xss-* file through File > Load.
+# prefsguard (audit item 3.13, AUD2-078, 14 Nov 2026): one bad saved preference never leaves the app a blank window. Three
+# loads of one page: a store holding one good header preset among damaged ones (an object name, a number name, a number
+# id, a string, null, an impostor of Default, a duplicate id, a preset with no usable header) and four wrong-typed values
+# boots with its chrome (G1), lists Default, "Unnamed preset", "12345" and the good one (G2), still applies the good one
+# (G3), and repairs the store at the next preference written, keeping a key this build does not know (G4); then a chrome
+# that fails while drawing (a test trap on React's own <option>) shows "SPTCal could not start" and an id-less Reset
+# preferences button (F1), which clears the preferences and boots the full chrome (F2). All seven red on the build
+# before (a blank window, 101 characters, React error #31).
+# sharecopyguard (audit item 3.13, a shareable-copy hardening fix, 14 Nov 2026), on show-a opened through its inline
+# saved-state block as a shareable copy opens itself: a page keeps a backup of unsaved work only while it has some. Load
+# another calendar over unsaved work (answered Load) leaves no slot (C1), and a page with nothing unsaved that closes
+# (pagehide) leaves none (C2); unsaved work is still backed up and kept through a close (K1, K2), and Save still drops it
+# (C3). C1 and C2 red on the build before.
 for AFSPEC in pwagate:-:120 pwagatelogic:-:120 settingswin:-:240 newtab:-:120 \
               interfonts:-:60 monthlayout:-:150 monthlayout:colswap-simpost-refuse:150 \
               loadcarry:-:90 hiatusblank:hiatus-blank:90 hostile:xss-mixed:240 hostile:xss-proto:240 sharecopy2:-:90 loadfail:-:1500 \
@@ -2338,7 +2351,8 @@ for AFSPEC in pwagate:-:120 pwagatelogic:-:120 settingswin:-:240 newtab:-:120 \
               phasesui:hidewf:1500 \
               epcount:blocks:300 \
               notesreset:-:400 \
-              stylebarplace:fill-intent:300; do
+              stylebarplace:fill-intent:300 \
+              prefsguard:-:200 sharecopyguard:show-a:200; do
   AFLEG="${AFSPEC%%:*}"; AFREST="${AFSPEC#*:}"; AFSTATE="${AFREST%%:*}"; AFSECS="${AFREST#*:}"
   [[ $AFSTATE == - ]] && AFSTATE=""
   HARNESS_PAGE="$PAGE" HARNESS_STATE="$AFSTATE" "$HERE/run.sh" "$AFLEG" "$AFSECS" >/dev/null 2>&1

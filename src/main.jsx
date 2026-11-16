@@ -1,5 +1,6 @@
 // Entry point. The order of operations in this file is load-bearing; read the comments before
 // reordering anything.
+import { Component } from 'react'
 import { createRoot } from 'react-dom/client'
 import { flushSync } from 'react-dom'
 import { createPortal } from 'react-dom'
@@ -193,6 +194,52 @@ function portal(node, selector) {
   return createPortal(node, host)
 }
 
+// ---- If the chrome cannot draw: say so, and offer the reset (audit AUD2-078, 14 Nov 2026) ------------------------------
+// With no error boundary, ONE component throwing while it rendered made React unmount the whole tree: every portal
+// above emptied, and the app opened as a blank window. A preset name stored as an object did exactly that, on every
+// launch, since the value stays in this computer's storage (the engine now checks the store when it reads it,
+// loadPrefs). This catches whatever is left. It sits OUTSIDE MantineProvider and draws plain markup styled by
+// legacy.css (.chrome-failed), so it still works if the failure is Mantine's own. The button carries no id
+// (collectFieldValues sweeps ids into saved calendars) and clears ONLY the preferences, then reloads: calendars live in
+// files, and unsaved work in its crash backup, which the reload offers back. The engine's unsaved-changes prompt still
+// guards the reload. `chromeFailed` lets the boot skip initLegacyApp() when the very first render failed, because the
+// engine binds to chrome elements by id that would then not exist.
+let chromeFailed = false
+class ChromeBoundary extends Component {
+  constructor(props) {
+    super(props)
+    this.state = { failed: false }
+  }
+  static getDerivedStateFromError() {
+    return { failed: true }
+  }
+  componentDidCatch(error) {
+    chromeFailed = true
+    console.error('chrome: the app could not draw its controls', error)
+  }
+  render() {
+    return this.state.failed ? <ChromeFailed /> : this.props.children
+  }
+}
+function ChromeFailed() {
+  const reset = () => {
+    try { localStorage.removeItem('sptcal.prefs') } catch (e) { /* storage blocked: the reload still tries */ }
+    location.reload()
+  }
+  return (
+    <div className="chrome-failed" role="alertdialog" aria-label="SPTCal could not start">
+      <div className="chrome-failed-box">
+        <div className="chrome-failed-title">SPTCal could not start</div>
+        <p className="chrome-failed-text">
+          A setting saved on this computer may be damaged. Reset your preferences to start SPTCal again. This clears
+          your preferences on this computer, saved header presets included. Your calendars are not changed.
+        </p>
+        <button type="button" className="chrome-failed-btn" onClick={reset}>Reset preferences</button>
+      </div>
+    </div>
+  )
+}
+
 // ---- The install gate owns a browser tab on the hosted link (PWA-ONLY-PLAN.md) -----------------
 // The classic script at the top of index.html's <head> has already decided, before anything
 // painted, whether this page is an ordinary browser tab on the hosted link. If it is, <html>
@@ -217,11 +264,13 @@ if (!document.documentElement.hasAttribute('data-app-gate')) {
   flushSync(() => {
     root.render(
       // forceColorScheme="light" — dark mode is a stated non-goal, see theme.js.
-      <MantineProvider theme={theme} forceColorScheme="light" withCssVariables>
-        <Chrome />
-      </MantineProvider>
+      <ChromeBoundary>
+        <MantineProvider theme={theme} forceColorScheme="light" withCssVariables>
+          <Chrome />
+        </MantineProvider>
+      </ChromeBoundary>
     )
   })
 
-  initLegacyApp()
+  if (!chromeFailed) initLegacyApp()
 }

@@ -2014,11 +2014,54 @@ export function initLegacyApp() {
   // its own separate bucket -- preferences do not travel between the two, and cannot be made to.
   const PREFS_KEY = 'sptcal.prefs';
   let prefs = {};
+  // ⛔ CHECKED WHEN READ, NOT TRUSTED (audit AUD2-078, 14 Nov 2026). This store outlives every build and is written by
+  // whatever ran on this origin before, so it may hold anything. It used to be checked only for being an object: a
+  // header preset whose name was an object went straight to React's <option>{name}</option>, the chrome threw while
+  // drawing, and the app opened as a blank window on EVERY launch, because the value stays. So each preference this
+  // build knows is held to the TYPE it writes, and a value of another type is left out (as if never set). A key this
+  // build does not know is kept untouched (a newer build's preference survives a rollback), and nothing is reshaped:
+  // a good preset is passed through as stored (normalizeHeaderPreset still migrates on read). The repair reaches the
+  // store with the next savePrefs(). The chrome also has an error boundary now (main.jsx) for anything this misses.
+  // ⚠️ Runs at evaluation time, before most of the IIFE's consts exist: nothing in here may name one (the TDZ would
+  // throw, the catch below would return {}, and every preference would be lost). Hence the literal key names.
+  const PREF_TYPES = {
+    version:'number', gridlines:'string', mvNoteColor:'string', calZoom:'object',
+    hiatusRipple:'boolean', mvWeek:'boolean', mvEpisodes:'boolean', mvBlocks:'boolean',
+    holidayFixNoticeSeen:'boolean', holidayFixNoticeSeen2:'boolean',
+  };
+  function cleanPrefs(o){
+    const out = {};
+    Object.keys(o).forEach(k=>{
+      if(k === '__proto__' || k === 'constructor' || k === 'prototype') return;
+      const v = o[k];
+      if(k === 'headerPresets'){
+        if(!Array.isArray(v)) return;
+        const list = usableHeaderPresets(v, '__default');   // HDR_PRESET_DEFAULT_ID, not declared yet here (see above)
+        if(list.length) out[k] = list;
+        return;
+      }
+      const t = PREF_TYPES[k];
+      if(t === 'object'){ if(!v || typeof v !== 'object' || Array.isArray(v)) return; }
+      else if(t && typeof v !== t) return;
+      out[k] = v;
+    });
+    return out;
+  }
+  // One stored header preset, or null to leave it out: an object with a text id. A name that is a number reads as its
+  // digits; any other non-text name reads "Unnamed preset" (it was "[object Object]" in the Delete question). Only a
+  // bad name makes a copy; a good entry is returned as it was stored.
+  function storedHeaderPreset(p){
+    if(!p || typeof p !== 'object' || Array.isArray(p)) return null;
+    if(typeof p.id !== 'string' || !p.id) return null;
+    if(typeof p.name === 'string') return p;
+    const name = (typeof p.name === 'number' && isFinite(p.name)) ? String(p.name) : 'Unnamed preset';
+    return Object.assign({}, p, { name });
+  }
   function loadPrefs(){
     try {
       const raw = localStorage.getItem(PREFS_KEY);
       const o = raw ? JSON.parse(raw) : null;
-      return (o && typeof o === 'object' && !Array.isArray(o)) ? o : {};
+      return (o && typeof o === 'object' && !Array.isArray(o)) ? cleanPrefs(o) : {};
     } catch(_){ return {}; }
   }
   // Returns whether it stuck, so a caller can tell the user their choice will not survive a reload
@@ -26148,18 +26191,36 @@ export function initLegacyApp() {
   // they fold into `sheet` and the month section is absent, which means "leave the month header
   // alone". Migrating on read rather than in place means a preset the user never opens is never
   // touched, and the migration cannot half-finish. Same shape migrateRegionSnapshot() models.
+  // ⛔ AND IT CHECKS WHAT IT PASSES ON (audit AUD2-078, 14 Nov 2026): loadPrefs() already left out a preset with no text
+  // id and named the rest as text (storedHeaderPreset), and this holds the same line for anything that reaches it, then
+  // keeps a section only when it is an object, so applyHeaderPreset() never reads `.lines` off a string. A preset with
+  // no section left is left out: Save and Import never write one, and it could only ever answer "no header lines".
   function normalizeHeaderPreset(p){
-    if(!p || typeof p !== 'object') return null;
+    p = storedHeaderPreset(p);
+    if(!p) return null;
+    const sec = s => (s && typeof s === 'object' && !Array.isArray(s)) ? s : null;
+    const fmt = f => (f && typeof f === 'object' && !Array.isArray(f)) ? f : {};
+    let sheet, month;
     if(p.sheet || p.month){
-      return { id:p.id, name:p.name, createdAt:p.createdAt,
-               sheet: p.sheet || null, month: p.month || null };
+      sheet = sec(p.sheet); month = sec(p.month);
+    } else {
+      sheet = sec(p.lines) ? { lines:p.lines, format:fmt(p.format) } : null; month = null;
     }
-    return { id:p.id, name:p.name, createdAt:p.createdAt,
-             sheet: p.lines ? { lines:p.lines, format:p.format || {} } : null, month: null };
+    if(sheet && !sec(sheet.lines)) sheet = null;
+    if(month && !sec(month.lines)) month = null;
+    if(!sheet && !month) return null;
+    return { id:p.id, name:p.name, createdAt:p.createdAt, sheet, month };
+  }
+  // The stored presets that can be used, AS STORED (loadPrefs keeps these and no others): each one normalizeHeaderPreset
+  // accepts, less the built-in Default's id and a second preset under an id already listed, because React keys the
+  // list by id and Apply, Rename and Delete find a preset by it.
+  function usableHeaderPresets(list, defaultId){
+    const seen = new Set([defaultId]);
+    return list.map(storedHeaderPreset).filter(p=> p && normalizeHeaderPreset(p) && !seen.has(p.id) && seen.add(p.id));
   }
   function headerPresetsStore(){
-    return (Array.isArray(prefs.headerPresets) ? prefs.headerPresets : [])
-      .map(normalizeHeaderPreset).filter(Boolean);
+    return usableHeaderPresets(Array.isArray(prefs.headerPresets) ? prefs.headerPresets : [], HDR_PRESET_DEFAULT_ID)
+      .map(normalizeHeaderPreset);
   }
   function writeHeaderPresets(list){
     // ⛔ An empty list REMOVES the key rather than storing []. Same rule the gridlines preference
@@ -30923,13 +30984,19 @@ export function initLegacyApp() {
     // removed because the copy is a working app: its own engine may need to raise these later.
     // #browser-notice (audit L-20) joined them: a copy exported from Safari must not carry it into Chrome.
     // #launch-notice (audit item 2.6) too: it names the file the SENDER double-clicked.
-    clone.querySelectorAll('#legacy-notice, #launch-notice, #update-notice, #holiday-notice, #browser-notice, #calrange-notice, #layout-notice, #heading-notice').forEach(el=>{ el.hidden = true; });
+    // #backup-notice and #storage-notice (audit AUD2-076 / -075) too: both are about THIS browser's kept backups.
+    clone.querySelectorAll('#legacy-notice, #launch-notice, #update-notice, #holiday-notice, #browser-notice, #calrange-notice, #layout-notice, #heading-notice, #backup-notice, #storage-notice').forEach(el=>{ el.hidden = true; });
     // ...and its text EMPTIED, as it ships (the 14 Nov 2026 review of item 2.6): hidden, the strip still carried that
     // file's name in the copy's markup, for anyone who opens its source. showLaunchNotice() writes it afresh when needed.
     clone.querySelectorAll('#launch-notice .ln-text').forEach(el=>{ el.textContent = ''; });
     // #heading-notice's text is EMPTIED as well (review repair, 14 Nov 2026): it names the headings the SENDER removed,
     // which the recipient's file never held. Its own engine writes the text afresh whenever it raises the strip.
     clone.querySelectorAll('#heading-notice .ln-text').forEach(el=>{ el.textContent = ''; });
+    // ...and their text EMPTIED, as they ship (the 14 Nov 2026 review of item 3.7, after audit 2.6 did the same for
+    // #launch-notice): hidden, #backup-notice still carried "Unsaved work from <file> (<when>) was kept." in the copy's
+    // markup, naming another of the SENDER's files for anyone who opens its source. #storage-notice names nothing, but
+    // is about the sender's browser, so it ships empty too. showKeptWorkNotice() / storageUnavailable() write afresh.
+    clone.querySelectorAll('#backup-notice .ln-text, #storage-notice .ln-text').forEach(el=>{ el.textContent = ''; });
     // Transient interaction classes on <body> must not be serialised. grid-cell-hover carries
     // cursor:cell and grid-selecting carries user-select:none -- baked into an exported copy either
     // would be a permanent, page-wide state in someone else's file.
@@ -31759,24 +31826,30 @@ export function initLegacyApp() {
   // app reopen, switch between, and update real files on disk. ---
   const HANDLE_DB = 'spt-planning-cal', HANDLE_STORE = 'handles';
   const RECENTS_KEY = 'recentFiles', ACTIVE_KEY = 'activeFileId', LEGACY_KEY = 'savedFile';
+  // ⚠️ A REFUSED OPEN IS SAID ONCE, never swallowed in silence (audit AUD2-075, 14 Nov 2026). Every caller below
+  // still treats a failure as "nothing stored" (by design: the app must work without it), but a browser that refuses
+  // SPTCal its site data (a managed profile blocking it, or one keeping none) used to give no sign at all, while the
+  // status line read "Unsaved changes" as if the crash backup protected the work. storageUnavailable() raises one
+  // strip. (Headless Chrome's open never settles at all, so it never reaches here: the legs see no strip.)
   function idbOpen(){
     return new Promise((resolve, reject)=>{
       const req = indexedDB.open(HANDLE_DB, 1);
       req.onupgradeneeded = ()=>{ req.result.createObjectStore(HANDLE_STORE); };
       req.onsuccess = ()=> resolve(req.result);
       req.onerror = ()=> reject(req.error);
-    });
+    }).catch(e=>{ storageUnavailable(); throw e; });
   }
   function idbGet(key){
     return idbOpen().then(db=> new Promise((res,rej)=>{ const tx=db.transaction(HANDLE_STORE,'readonly'); const r=tx.objectStore(HANDLE_STORE).get(key); r.onsuccess=()=>res(r.result); r.onerror=()=>rej(r.error); })).catch(()=>undefined);
   }
+  // Resolves true once written, false when it could not be (never rejects; most callers ignore which).
   function idbSet(key, val){
     return idbOpen().then(db=> new Promise((res,rej)=>{
       const tx=db.transaction(HANDLE_STORE,'readwrite');
       const store=tx.objectStore(HANDLE_STORE);
       if(val === undefined) store.delete(key); else store.put(val, key);
       tx.oncomplete=res; tx.onerror=()=>rej(tx.error);
-    })).catch(()=>{});
+    })).then(()=> true, ()=> false);
   }
 
   // In-memory model of the recent list; each entry: { id, handle, name, savedAt }.
@@ -32011,6 +32084,26 @@ export function initLegacyApp() {
   // because recovery reads every slot.
   const BACKUP_KEY = 'unsavedBackup';
   const BACKUP_SLOT = BACKUP_KEY + ':' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+  // ⛔ A LIVE WINDOW'S SLOT IS NEVER OFFERED (audit AUD2-074, 14 Nov 2026). Recovery used to take the newest slot any
+  // page had written, with no test of whether that page was still OPEN: a second SPTCal window offered the first
+  // one's unsaved calendar as lost work, and Recover copied it in (linked to the same file, so the two windows then
+  // fought over it) and deleted the first window's crash copy. So every page holds a Web Lock named after its own
+  // slot for as long as it lives. The browser releases it when the page closes, reloads or crashes, so a slot whose
+  // lock is HELD belongs to an open window, and keptBackups() leaves it out. No heartbeat to keep, nothing written.
+  // Where the Lock API is missing or refuses (a file:// shareable copy), every slot reads as closed: as before.
+  // An older build open in another window holds no lock, so its slot is still offered, as it always was.
+  try {
+    if(navigator.locks && typeof navigator.locks.request === 'function'){
+      navigator.locks.request(BACKUP_SLOT, ()=> new Promise(()=>{})).catch(()=>{});
+    }
+  } catch(e){ /* no Lock API here: see above */ }
+  async function liveBackupSlots(){
+    try {
+      if(!navigator.locks || typeof navigator.locks.query !== 'function') return new Set();
+      const s = await navigator.locks.query();
+      return new Set((s.held || []).map(l => l && l.name).filter(n => typeof n === 'string' && n.indexOf(BACKUP_KEY + ':') === 0));
+    } catch(e){ return new Set(); }
+  }
   let isDirty = false;         // changes since the last successful save
   let suppressDirty = true;    // ignore programmatic updates during load/restore
   let lastSavedAt = null;
@@ -32341,6 +32434,18 @@ export function initLegacyApp() {
     h = h % 12; if(h === 0) h = 12;
     return h + ':' + m + ' ' + ap;
   }
+  // When a crash backup was written, as its question and the file menu say it (audit AUD2-056, 14 Nov 2026): the time
+  // alone when it is from today, as before, and otherwise the day first, in the month view's day-menu style ("Fri 6 Nov,
+  // 3:12 PM"; the year too when it is not this one). The time alone made a backup six days old read as this morning's,
+  // and recovering it put old dates back on screen.
+  function fmtBackupWhen(at){
+    const d = new Date(at || 0), now = new Date();
+    if(d.toDateString() === now.toDateString()) return fmtTime(d);
+    const DOW = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+    const MON = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    return DOW[d.getDay()] + ' ' + d.getDate() + ' ' + MON[d.getMonth()]
+      + (d.getFullYear() !== now.getFullYear() ? ' ' + d.getFullYear() : '') + ', ' + fmtTime(d);
+  }
   // Pushes the status as DATA rather than writing it onto the node. The old version assigned
   // el.className as a WHOLE STRING, which under React wipes whatever class Mantine put there --
   // the readout would silently lose its styling the first time the status changed. `tone` is the
@@ -32402,7 +32507,9 @@ export function initLegacyApp() {
         // put the work back in its file (offerBackupRecovery). Both null with no linked file. Not state: a backup is
         // never a saved file, and a build without these fields reads the backup as it always did.
         fileId: (savedFileHandle && activeFileId) || null,
-        fileStamp: (savedFileHandle && savedFileStamp) || null });
+        fileStamp: (savedFileHandle && savedFileStamp) || null })
+        // A backup that could not be written (site data refused, the disk full) is no backup: say so (AUD2-075).
+        .then(ok=>{ if(!ok) storageUnavailable(); });
     } catch(e){ /* non-fatal */ }
   }
   // Every key in the handles store (the backup slots are found by prefix). [] when unsupported.
@@ -34893,19 +35000,64 @@ export function initLegacyApp() {
     e.returnValue = '';
     return '';
   });
+  // ⛔ A BACKUP IS KEPT ONLY WHILE THERE IS UNSAVED WORK (a shareable-copy hardening fix, 14 Nov 2026). A page closing,
+  // reloading or navigating away with nothing unsaved deletes its own slot, in case an earlier delete never landed: a
+  // slot nobody needs is never left in this browser's storage. A page closing WITH unsaved work keeps it, which is the
+  // backup's whole job (the beforeunload above has just written it). Its own slot only, as everywhere (SAVE-7).
+  window.addEventListener('pagehide', ()=>{
+    if(!isDirty) idbSet(BACKUP_SLOT, undefined);
+  });
 
-  // Offer to restore a backup if the last session ended with unsaved work.
-  async function offerBackupRecovery(){
-    // The NEWEST backup any page left behind (audit SAVE-7): the old single slot, if a v1.3.0 page
-    // wrote one, plus every per-page slot. This page's own slot cannot exist yet.
+  // ---------- Crash recovery: the backups other pages left ----------
+  // Every backup kept in this browser that no OPEN window owns, newest first, as [{key, b}]: the old single slot, if a
+  // v1.3.0 page wrote one, plus every per-page slot (audit SAVE-7). This page's own slot is left out (it is this page's
+  // work), and so is every slot whose page is still open (liveBackupSlots, AUD2-074).
+  async function keptBackups(){
+    const live = await liveBackupSlots();
     const keys = Array.from(new Set([BACKUP_KEY].concat(
-      (await idbKeys()).filter(k => typeof k === 'string' && k.indexOf(BACKUP_KEY + ':') === 0 && k !== BACKUP_SLOT))));
-    let b = null, bKey = null;
+      (await idbKeys()).filter(k => typeof k === 'string' && k.indexOf(BACKUP_KEY + ':') === 0 && k !== BACKUP_SLOT && !live.has(k)))));
+    const out = [];
     for(const k of keys){
       const v = await idbGet(k);
-      if(v && v.state && (!b || (v.at || 0) > (b.at || 0))){ b = v; bKey = k; }
+      if(v && v.state) out.push({ key: k, b: v });
     }
-    if(!b || !b.state) return;
+    return out.sort((x, y)=> (y.b.at || 0) - (x.b.at || 0));
+  }
+  // ⛔ ASKED TWICE, THEN KEPT IN THE FILE MENU (audit AUD2-056, its default, 14 Nov 2026). A Cancel keeps the backup,
+  // because an accidental No must not be irreversible, and that used to put the same question in front of EVERY later
+  // launch, for as long as the slot lived, which was for ever (nothing else retires one). Now each No is counted ON
+  // THE BACKUP (`declined`, a field of the slot's own record: a backup is never a saved file, and an older build
+  // ignores the field), and after the second No the launch stops asking. Nothing is deleted: from the first No on, the
+  // file menu lists every kept backup under "Unsaved work" (refreshKeptBackups), to recover or discard from there.
+  // Where there is no file menu (no File System Access API: Safari, Firefox) nothing else could reach the work, so
+  // there the question keeps coming, as it always did.
+  const BACKUP_ASK_LIMIT = 2;
+  const backupsAsked = new Set();   // session UI: backups this page has already asked or told about, never twice
+  function backupAskable(x){
+    return !!x && !backupsAsked.has(x.key) && !(supportsFsAccess && (x.b.declined || 0) >= BACKUP_ASK_LIMIT);
+  }
+  // One more No. Read again first: another window may have recovered (and retired) it meanwhile, and writing the old
+  // record back would bring a recovered backup back to life.
+  async function declineBackup(x){
+    if(!supportsFsAccess) return;
+    const cur = await idbGet(x.key);
+    if(cur && cur.state) await idbSet(x.key, Object.assign({}, cur, { declined: (cur.declined || 0) + 1 }));
+    refreshKeptBackups();
+  }
+  // ⛔ WHAT COUNTS AS A NO (the 14 Nov 2026 review of item 3.7). The user's own Cancel, Escape or outside click resolves
+  // the question false. A question closed because ANOTHER dialog opened over it resolves undefined (Dialogs.jsx: the
+  // app never stacks two), and that was counted as a No too: two launches whose question something else swept away and
+  // the launch never asked again, with the user having said nothing. Not counted now: the backup is kept as a Cancel
+  // keeps it, listed in the file menu, and asked again at the next launch. (The strip's x is the strip's own No, and
+  // counts: see wireKeptWorkNotice.)
+  function backupAnswerIsNo(ans){ return ans === false; }
+  function backupWhich(b){ return b.fileName ? ('"' + b.fileName + '"') : 'an unsaved calendar'; }
+  function backupQuestion(b){
+    return 'Recover unsaved work from ' + backupWhich(b) + ' (' + fmtBackupWhen(b.at) + ')?'
+      + (supportsFsAccess ? '\n\nIf you cancel, it stays in the file menu, under Unsaved work.' : '');
+  }
+  // Everything a recovery must AWAIT, gathered BEFORE any question is asked (see applyBackup).
+  async function prepareBackup(x){
     // ⛔ THE FILE THE WORK CAME FROM (owner, 4 Nov 2026: the recovered calendar came back "as an unsaved, untitled
     // duplicate"). Recovery used to restore the state and nothing else, so work done on a saved file reopened as
     // Untitled, and the next Save asked for a NEW file: a second copy of the calendar beside the real one. A backup
@@ -34918,6 +35070,7 @@ export function initLegacyApp() {
     //   since, Save asks (fileChangedOnDisk, audit M-6) rather than overwrite it with the recovered work.
     // - No entry (an older backup, a file dropped from the list, or none) recovers as before, Untitled.
     await recentsReady;
+    const b = x.b;
     const entry = (b.fileId && recentFiles.find(f => f.id === b.fileId && f.handle)) || null;
     let needsWrite = false;
     if(entry){
@@ -34925,22 +35078,40 @@ export function initLegacyApp() {
       try { needsWrite = (await entry.handle.queryPermission({ mode: 'readwrite' })) !== 'granted'; }
       catch(e){ needsWrite = true; }
     }
+    return { key: x.key, b, entry, needsWrite };
+  }
+
+  // Offer to restore a backup if the last session ended with unsaved work: the NEWEST kept backup, once at launch.
+  async function offerBackupRecovery(){
+    const kept = await keptBackups();
+    if(!kept.length) return;
+    refreshKeptBackups();   // the file menu's "Unsaved work", whatever happens below
+    const x = kept[0];
+    const p = await prepareBackup(x);
     // The app was started by a double-clicked .sptcal: the user asked for THAT calendar, so it is not
-    // buried under this question. The backup is kept -- exactly as a Cancel keeps it -- and offered
-    // on the next ordinary launch. Checked HERE, after the IndexedDB reads, because the launch
-    // consumer may fire while they are in flight. (A launch landing once the question is already up
-    // waits for it: openLaunchedFiles() -> whenNoDialog().)
+    // buried under this question. It loads first, and offerBackupAfterLaunch() then asks about its own
+    // unsaved work, or names another file's in a strip (AUD2-076). Checked HERE, after the IndexedDB
+    // reads, because the launch consumer may fire while they are in flight. (A launch landing once the
+    // question is already up waits for it: openLaunchedFiles() -> whenNoDialog().)
     if(fileLaunchSeen) return;
-    const when = new Date(b.at);
-    const which = b.fileName ? ('"' + b.fileName + '"') : 'an unsaved calendar';
-    if(!(await uiConfirm('Recover unsaved work from ' + which + ' (' + fmtTime(when) + ')?', { title: 'Recover unsaved work', confirmLabel: 'Recover' }))){
-      // Keep the backup rather than deleting it on a single "No" -- an accidental decline
-      // shouldn't be irreversible. It's cleared on the next successful Save (markClean) or
-      // explicit New (newFile), and overwritten as soon as the user makes an edit (scheduleBackup).
+    if(!backupAskable(x)) return;   // declined twice: the file menu keeps it (AUD2-056)
+    backupsAsked.add(x.key);
+    const ans = await uiConfirm(backupQuestion(x.b), { title: 'Recover unsaved work', confirmLabel: 'Recover' });
+    if(!ans){
+      // Keep the backup rather than deleting it on a "No" -- an accidental decline shouldn't be irreversible.
+      // Counted, so a second No stops the launch asking; the file menu lists it either way. Only the user's own No
+      // counts (backupAnswerIsNo): a question swept away by another dialog was never answered.
+      if(backupAnswerIsNo(ans)) declineBackup(x);
       return;
     }
+    applyBackup(p);
+  }
+  // Puts a prepared backup on screen. Returns true when it is there. ⛔ Nothing here awaits: a double-clicked file
+  // may be waiting on the question that led here (openLaunchedFiles -> whenNoDialog), and runs the moment it closes.
+  function applyBackup(p){
+    const b = p.b, bKey = p.key, entry = p.entry, needsWrite = p.needsWrite;
     const el = document.getElementById('saved-state');
-    if(!el) return;
+    if(!el) return false;
     const blockWas = el.textContent;
     suppressDirty = true;
     el.textContent = JSON.stringify(b.state).replace(/</g, '\\u003c');
@@ -34967,7 +35138,7 @@ export function initLegacyApp() {
         ? 'That unsaved work was saved by a newer version of SPTCal, so this version can’t open it. It has been kept: update the app, and it will be offered again.'
         : 'That unsaved work couldn’t be opened — it may be damaged. Nothing was changed, and the backup has been kept.',
         { title: 'Recover unsaved work' });
-      return;
+      return false;
     }
     monthCursorRecheck = true;   // a different calendar: see update() (L-17)
     collapsedPhaseKeys.clear();  // ...so every phase card unfolds (refreshAfterRestore reflects it)
@@ -34993,7 +35164,83 @@ export function initLegacyApp() {
     // from the next edit -- a crash before then would lose it), then retire the slot it came from so
     // it is not offered again.
     writeBackup();
-    if(bKey && bKey !== BACKUP_SLOT) idbSet(bKey, undefined);
+    if(keptNoticeKey === bKey) hideKeptWorkNotice();   // the strip named this work: it is on screen now
+    if(bKey && bKey !== BACKUP_SLOT) idbSet(bKey, undefined).then(()=> refreshKeptBackups());
+    return true;
+  }
+
+  // ---------- Kept backups in the file menu (audit AUD2-056 / AUD2-076, 14 Nov 2026) ----------
+  // The file menu's "Unsaved work" section lists every kept backup (keptBackups: never this page's, never an open
+  // window's), newest first, as DATA through the bridge (Header.jsx draws it; data-backup / data-backup-discard are
+  // what the menu's one delegated listener matches). Redrawn at launch, after any recover, decline or discard, and on
+  // every opening of the file menu (mouse or keyboard), so a window closed since is listed and one recovered elsewhere
+  // is gone.
+  let keptRefresh = 0;
+  async function refreshKeptBackups(){
+    const n = ++keptRefresh;
+    const kept = await keptBackups();
+    if(n !== keptRefresh) return;   // a later redraw is under way: it draws
+    chrome.fileMenu({ backups: kept.map(x => ({ key: x.key, name: x.b.fileName || 'Untitled', when: fmtBackupWhen(x.b.at) })) });
+    if(keptNoticeKey && !kept.some(x => x.key === keptNoticeKey)) hideKeptWorkNotice();
+  }
+  // Recover a kept backup on purpose (the file menu's entry, or the kept-work strip's Recover): asks only when the
+  // screen holds unsaved work it would replace, as Load… does.
+  async function recoverKeptBackup(key){
+    const live = await liveBackupSlots();
+    const v = (key && key !== BACKUP_SLOT && !live.has(key)) ? await idbGet(key) : null;
+    if(!v || !v.state){ refreshKeptBackups(); return; }   // recovered or discarded elsewhere since the menu was drawn
+    const p = await prepareBackup({ key, b: v });
+    endNudgeBurst();   // as undo(): a running burst of the phase arrows must never stay bound under a restored calendar
+    // A note being edited is part of what is on screen (openLaunchedFiles does the same).
+    if(activeNoteEditor) commitActiveNoteEditor();
+    if(activeMvNote) commitMvNoteEditor();
+    if(isDirty && !(await uiConfirm('Recover unsaved work from ' + backupWhich(v) + ' (' + fmtBackupWhen(v.at) + ')? Your unsaved changes here will be lost.',
+      { title: 'Recover unsaved work', confirmLabel: 'Recover', danger: true }))) return;
+    backupsAsked.add(key);
+    applyBackup(p);
+  }
+  async function discardKeptBackup(key){
+    const v = key && key !== BACKUP_SLOT ? await idbGet(key) : null;
+    if(!v || !v.state){ refreshKeptBackups(); return; }
+    if(!(await uiConfirm('Discard the unsaved work from ' + backupWhich(v) + ' (' + fmtBackupWhen(v.at) + ')? It can’t be brought back.',
+      { title: 'Discard unsaved work', confirmLabel: 'Discard', danger: true }))) return;
+    await idbSet(key, undefined);
+    refreshKeptBackups();
+  }
+
+  // ⛔ A DOUBLE-CLICKED FILE HEARS ABOUT THE WORK KEPT FOR IT (audit AUD2-076, its default, 14 Nov 2026). A file launch
+  // used to skip the recovery offer outright (offerBackupRecovery: "a file launch outranks the offer"), so whoever
+  // always opens calendars by double-click never heard of the work a crash had left for that very file. The file still
+  // loads first, as it always did; then, once it is on screen:
+  // - a kept backup that is THIS file's own (its recents entry is the file now on screen; for a backup written before
+  //   backups named their entry, the same file name) is asked about, with the launch question's own words;
+  // - otherwise the newest kept backup is named in a strip (#backup-notice) with Recover, which never interrupts.
+  // Never when the backup has been declined twice (the file menu keeps it), never twice in one session, and never a
+  // question over edits made since the file loaded: those get the strip, whose Recover asks first.
+  function backupIsFileOnScreen(b, handle){
+    if(b.fileId && recentFiles.some(f => f.id === b.fileId)) return b.fileId === activeFileId;
+    return !!(b.fileName && handle && b.fileName === handle.name);
+  }
+  async function offerBackupAfterLaunch(handle){
+    const kept = await keptBackups();
+    if(!kept.length) return;
+    refreshKeptBackups();
+    const own = kept.find(x => backupAskable(x) && backupIsFileOnScreen(x.b, handle)) || null;
+    if(own && !isDirty){
+      const p = await prepareBackup(own);
+      await whenNoDialog();
+      if(!isDirty && backupAskable(own)){
+        backupsAsked.add(own.key);
+        const ans = await uiConfirm(backupQuestion(own.b), { title: 'Recover unsaved work', confirmLabel: 'Recover' });
+        if(!ans){ if(backupAnswerIsNo(ans)) declineBackup(own); return; }
+        applyBackup(p);
+        return;
+      }
+    }
+    const x = own || (backupAskable(kept[0]) ? kept[0] : null);
+    if(!x || !backupAskable(x)) return;
+    backupsAsked.add(x.key);
+    showKeptWorkNotice(x);
   }
   // "Save As…" — always pick a NEW file and write the current calendar to it, then make that
   // new file the active one. This duplicates the current calendar (fork it to try a variation);
@@ -35162,6 +35409,59 @@ export function initLegacyApp() {
     if(supportsFsAccess){ el.hidden = true; return; }
     el.querySelector('.ln-text').innerHTML = 'SPTCal saves and loads in <strong>Chrome or Edge</strong>.';
     el.hidden = false;
+    el.querySelector('.ln-x').addEventListener('click', ()=>{ el.hidden = true; });
+  })();
+  // ---------- The "unsaved work was kept" strip (audit AUD2-076, 14 Nov 2026) ----------
+  // Raised by offerBackupAfterLaunch() when a double-clicked file loads while a crash backup of ANOTHER calendar is kept
+  // (or of this one, over edits made since it loaded): it names the work and when it was written, and Recover brings it
+  // back (recoverKeptBackup, which asks first over unsaved work). The x counts as a No, as a Cancel of the launch
+  // question does (AUD2-056). The amber of the legacy strip: something about the work is not what you expected, and
+  // nothing has failed. Session UI: nothing here is saved, and a shareable copy's clone re-hides it.
+  var keptNoticeKey = null;   // the backup the strip names; var, since applyBackup() and refreshKeptBackups() read it
+  function showKeptWorkNotice(x){
+    const el = document.getElementById('backup-notice');
+    if(!el) return;
+    keptNoticeKey = x.key;
+    el.querySelector('.ln-text').innerHTML = 'Unsaved work from '
+      + (x.b.fileName ? '<strong>' + escHtml(x.b.fileName) + '</strong>' : 'an untitled calendar')
+      + ' (' + escHtml(fmtBackupWhen(x.b.at)) + ') was kept.';
+    el.hidden = false;
+  }
+  function hideKeptWorkNotice(){
+    keptNoticeKey = null;
+    const el = document.getElementById('backup-notice');
+    if(el) el.hidden = true;
+  }
+  (function wireKeptWorkNotice(){
+    const el = document.getElementById('backup-notice');
+    if(!el) return;
+    el.querySelector('.ln-x').addEventListener('click', async ()=>{
+      const key = keptNoticeKey;
+      hideKeptWorkNotice();
+      const v = key ? await idbGet(key) : null;
+      if(v && v.state) declineBackup({ key, b: v });
+    });
+    el.querySelector('.ln-go').addEventListener('click', ()=>{ if(keptNoticeKey) recoverKeptBackup(keptNoticeKey); });
+  })();
+
+  // ---------- The "this browser isn't keeping the backup" strip (audit AUD2-075, 14 Nov 2026) ----------
+  // Raised the first time IndexedDB refuses SPTCal (idbOpen) or a crash backup cannot be written (writeBackup): a
+  // browser blocking site data, a profile keeping none, a full disk. Before, the app said nothing, and a crash then lost
+  // work the user believed was backed up. Once per page load, and a dismissal is not remembered: the risk it names does
+  // not go away (the Chrome/Edge strip's rule). The blue of that strip, since both are about the browser.
+  var storageNoticeRaised = false;   // var: idbOpen() may fail before this line has run
+  function storageUnavailable(){
+    if(storageNoticeRaised) return;
+    const el = document.getElementById('storage-notice');
+    if(!el) return;
+    storageNoticeRaised = true;
+    el.querySelector('.ln-text').innerHTML = '<strong>This browser isn’t keeping SPTCal’s backup</strong> of unsaved work'
+      + (supportsFsAccess ? ', or its list of loaded files' : '') + '. Save often.';
+    el.hidden = false;
+  }
+  (function wireStorageNotice(){
+    const el = document.getElementById('storage-notice');
+    if(!el) return;
     el.querySelector('.ln-x').addEventListener('click', ()=>{ el.hidden = true; });
   })();
   (function wireLegacyNotice(){
@@ -35415,6 +35715,10 @@ export function initLegacyApp() {
     // the file from this moment, and an autosave tick landing inside that await must not see the
     // loaded calendar as unsaved work -- markClean() in saveToFile() is ordered the same way.
     isDirty = false; lastSavedAt = null; refreshSaveStatus();
+    // ...and this page's crash backup goes with the work it held (a shareable-copy hardening fix, 14 Nov 2026): that
+    // work was saved, or the user let it go at "Your unsaved changes will be lost". It used to stay in the slot and come
+    // back at the next launch as "Recover unsaved work". The next edit writes a fresh one, as New's does (SAVE-7).
+    idbSet(BACKUP_SLOT, undefined);
     await persistRecents();
     refreshSaveBtn();
     renderRecents();
@@ -35558,13 +35862,15 @@ export function initLegacyApp() {
   // ⚠️ Kept as a promise because a double-clicked file can arrive BEFORE this settles (the launch
   // consumer runs almost at once; IndexedDB takes longer), and these lines would then unlink the file
   // it had just loaded and overwrite the recents list it had just joined. openLaunchedFiles() waits.
+  // ⚠️ It never REJECTS (audit AUD2-075): openLaunchedFiles() and every recovery await it, so a failure here would
+  // fail a double-clicked file too. idbGet() already reads a refused store as empty; the catch holds the rest.
   const recentsReady = supportsFsAccess ? loadRecents().then(()=>{
     activeFileId = null;   // nothing is open yet in this session
     savedFileHandle = null;
     handleNeedsPermission = false;
     renderRecents();
     refreshSaveBtn();
-  }) : Promise.resolve();
+  }).catch(e=>{ console.warn('Loaded files list unavailable:', e); }) : Promise.resolve();
 
   // ---------- Opening a calendar from the OS: double-click a .sptcal ----------
   // The manifest's file_handlers registers .sptcal with the installed app (Chrome/Edge 102+ desktop;
@@ -35613,9 +35919,11 @@ export function initLegacyApp() {
     if(isDirty && !(await uiConfirm('Load another calendar? Your unsaved changes will be lost.', { title: 'Load another calendar', confirmLabel: 'Load', danger: true }))) return;
     const ok = await openHandle(files[0], { launched: true });
     if(ok) showLaunchNotice(savedFileHandle);   // where Save will write: once per double-click (audit item 2.6)
-    if(ok && files.length > 1){
-      uiAlert('SPTCal loads one calendar at a time, so only “' + files[0].name + '” was loaded.');
-    }
+    const told = (ok && files.length > 1)
+      ? uiAlert('SPTCal loads one calendar at a time, so only “' + files[0].name + '” was loaded.') : null;
+    // Then the unsaved work a crash kept (AUD2-076). After the notice above is answered: a second dialog while one is
+    // up answers the first as cancelled, and React may not have drawn this one yet for whenNoDialog() to see.
+    if(ok){ if(told) await told; await offerBackupAfterLaunch(files[0]); }
   }
 
   if(saveBtn) saveBtn.addEventListener('click', async ()=>{
@@ -37217,9 +37525,14 @@ export function initLegacyApp() {
         if(!e.target.closest || !e.target.closest('#file-menu')) return;
         const rm = e.target.closest('[data-remove]');
         if(rm){ e.stopPropagation(); await removeRecent(rm.getAttribute('data-remove')); return; }
+        // A kept backup's x and its entry (the "Unsaved work" section, AUD2-056). Both close the menu: each asks a
+        // question first (Discard, or the unsaved-changes guard), which must not sit under an open menu.
+        const discard = e.target.closest('[data-backup-discard]');
+        if(discard){ e.stopPropagation(); closeFileMenu(); await discardKeptBackup(discard.getAttribute('data-backup-discard')); return; }
         const item = e.target.closest('.file-menu-item');
         if(!item) return;
         closeFileMenu();
+        if(item.dataset.backup){ await recoverKeptBackup(item.dataset.backup); return; }
         // Export is not a navigation: it doesn't replace what's on screen, so it deliberately
         // sits above the unsaved-changes guard below.
         if(item.dataset.action === 'share'){
@@ -37239,6 +37552,11 @@ export function initLegacyApp() {
         }
         if(entry){ try { await openRecentFile(entry); } catch(err){ console.error(err); uiAlert('Could not load that file: '+err.message); } }
       });
+      // Each opening of the file menu redraws its "Unsaved work" (refreshKeptBackups): a window closed since the last
+      // draw leaves a backup to list, and one recovered in another window must go. ⛔ On Header.jsx's own open event,
+      // never a pointerdown on the button (the 14 Nov 2026 review of item 3.7): Enter or Space on the focused button
+      // opens the menu with no pointer at all, and it then showed the list as it was at launch.
+      document.addEventListener('sptcal-file-menu-open', ()=>{ refreshKeptBackups(); });
     }
 
     // "Export shareable copy" moved out of the file menu to its own header button (owner's ask,
@@ -44074,7 +44392,7 @@ export function initLegacyApp() {
     // fit() force the up-to-date geometry.
     const mo = new MutationObserver(fit);
     // span-hint (audit N-2) sits above the toolbar, so it moves the grid exactly as a notice does.
-    ['legacy-notice','launch-notice','holiday-notice','update-notice','colswap-notice','span-hint','browser-notice','calrange-notice','layout-notice','heading-notice'].forEach(id=>{
+    ['legacy-notice','launch-notice','holiday-notice','update-notice','colswap-notice','span-hint','browser-notice','calrange-notice','layout-notice','heading-notice','backup-notice','storage-notice'].forEach(id=>{
       const el = document.getElementById(id);
       if(el) mo.observe(el, { attributes: true, attributeFilter: ['hidden'], childList: true, subtree: true, characterData: true });
     });
