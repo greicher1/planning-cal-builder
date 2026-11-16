@@ -19787,10 +19787,13 @@ export function initLegacyApp() {
       const dm = /(\d{1,2})\/(\d{1,2})\/(\d{4}|\d{2})$/.exec(name);
       if(dm && wk){
         // Given another date: inside this week, the note moves there (its date taken out, as its own is above).
-        const y = dm[3].length === 2 ? 2000 + parseInt(dm[3], 10) : parseInt(dm[3], 10);
-        const nd = new Date(Date.UTC(y, parseInt(dm[1], 10) - 1, parseInt(dm[2], 10)));
-        const off = Math.round((nd - wk) / DAY_MS);
-        if(nd.getUTCMonth() === parseInt(dm[1], 10) - 1 && off >= 0 && off <= 6){ to = isoOf(nd); name = stripTrailingDate(name, nd); }
+        // ⚠️ Read in the CALENDAR's order (release-v1.15, where audit items 2.3 and 2.4 met): this reader was written
+        // month first, so on a DD/MM calendar a line re-dated "18/7/26" read as month 18 and the note was taken out
+        // of the waterfall instead of moving. slashDateInWeek() is 2.4's one rule for "the day a/b/y names inside this
+        // week"; slashNames() keeps this reader's old no-rollover check (2/30/26 is not a day). On a month-first
+        // calendar the two together are exactly the old test: a valid m/d/y whose Monday is this week's.
+        const nd = slashDateInWeek(dm[1], dm[2], dm[3], isoOf(wk));
+        if(nd && slashNames(dm[1], dm[2], dm[3], nd)){ to = isoOf(nd); name = stripTrailingDate(name, nd); }
       }
       if(!name || /\d{1,2}\/\d{1,2}\/(\d{4}|\d{2})$/.test(name)){ gone.push(m); return; }   // taken out, or given a date outside the week
       used.add(j);
