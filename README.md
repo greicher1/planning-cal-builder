@@ -29,7 +29,9 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
-### Unreleased — on a laptop: a toolbar that holds still, one notice strip at a time, tool panels that fit, a shorter Phases tab (audit item 2.14, 13–16 Nov 2026)
+## v1.15.0 — the rest of the November audit: typed Notes cells follow the calendar, a cleaner note editor, Enter saves a note and the month view takes Delete / Copy / Paste, day-first dates everywhere, choose the months a month PDF prints, Compare shows breaks, swaps that hold, crash recovery that says when, a first-run and laptop tidy-up, and fixes for text cut off in print (16 Nov 2026)
+
+### on a laptop: a toolbar that holds still, one notice strip at a time, tool panels that fit, a shorter Phases tab (audit item 2.14, 13–16 Nov 2026)
 
 The November audit's item 2.14, "laptop clutter" (AUD2-034, AUD2-035, AUD2-036, and WIN-4 from the Windows review). No
 decision was needed; built on the audit's defaults. The owner's 10–11 Nov toolbar layout is unchanged: same order, one
@@ -72,7 +74,7 @@ gap, the month stepper in Fill Gaps' slot.
     `launchrecover`, `sharecopyguard`, `backuplive` and `nofsa` green. `npm run check` 42/42.
   - The owner tried the 16 Nov strips; the rest shipped on the owner's *"combine all and push"* (16 Nov 2026).
 
-### Unreleased — text that printed too small or was cut off: a small-type warning, dated month lines keep their date, a fourth line is kept, a two-holiday week gets its row (audit item 3.1, 14–16 Nov 2026)
+### text that printed too small or was cut off: a small-type warning, dated month lines keep their date, a fourth line is kept, a two-holiday week gets its row (audit item 3.1, 14–16 Nov 2026)
 
 The November audit's item 3.1 (AUD2-043 to AUD2-046), built to the owner's decision D4 (a): keep "No floor" (every month
 fits one sheet) and the two-line limit on larger notes, warn at export, and close the two cut-off cases with two small
@@ -117,7 +119,7 @@ frozen edits, each approved on its own measurement (owner's picker, 14 Nov 2026)
   - Green: `softlines` (both), `hdrrow`, `wfnotecolors`, `holidayrename`, `notelook`, `mvkeys` (both groups), `dayfirst`
     14/14 (its R2 was red until the 16 Nov fix). `npm run check` 42/42.
 
-### Unreleased — the month view's Export PDF asks which months: All, This month or a Range (audit item 2.11, 13–16 Nov 2026)
+### the month view's Export PDF asks which months: All, This month or a Range (audit item 2.11, 13–16 Nov 2026)
 
 The November audit's AUD2-026 (item 2.11), built to the owner's decision D8 (c). The month view's Export PDF wrote every
 month of the calendar (16 pages on the reference calendar), so a show printing this month for the crew cut pages out in
@@ -138,7 +140,7 @@ Preview.
   `mvnotes`, `pdfdialog`, `cspproof`, `prefs`, `cmdprint`, `dlgkeys`, `exportrefused`, `filekeys`, `mvhdroff` and
   `pdfmark` green; `npm run check` 42/42.
 
-### Unreleased — scenario tabs you can always reach, a double-click that no longer shuts a window, the whole "Expand?" chip clickable (audit item 3.10, 14 Nov 2026)
+### scenario tabs you can always reach, a double-click that no longer shuts a window, the whole "Expand?" chip clickable (audit item 3.10, 14 Nov 2026)
 
 The November audit's item 3.10 (AUD2-060, AUD2-061, AUD2-062). No decision needed; nothing frozen, no save-format change.
 
@@ -161,7 +163,7 @@ The November audit's item 3.10 (AUD2-060, AUD2-061, AUD2-062). No decision neede
   `centrepullback`, `phasefill`, `stickycols`, `fillspace`, `noswapbtns`, `colsreset`, `swapholds`, `stintbtn`,
   `wfkeysreal`; `npm run check` 42/42. Shipped on the owner's *"combine all and push"* (16 Nov 2026).
 
-### Unreleased — Single Column Mode keeps every year's column swaps, and a swap a new phase pauses says so (audit item 3.9, 14 Nov 2026)
+### Single Column Mode keeps every year's column swaps, and a swap a new phase pauses says so (audit item 3.9, 14 Nov 2026)
 
 The November audit's item 3.9 (AUD2-058, AUD2-059), built to the owner's decision D5 (b): keep swapping, and a swap holds.
 
@@ -185,7 +187,7 @@ The November audit's item 3.9 (AUD2-058, AUD2-059), built to the owner's decisio
   487 / 0. On this release `swapsingleshift` S6–S8 reach their first year by ← 1 wk rather than a typed Writer's Room
   start, because v1.14.0's sticky columns remember a typed start (HANDOFF). Shipped on *"combine all and push"*.
 
-### Unreleased — your unsaved work: recovery says when, stops asking after two No's, never offers another open window's work, and speaks up when the browser keeps no backup (audit item 3.7, 14 Nov 2026)
+### your unsaved work: recovery says when, stops asking after two No's, never offers another open window's work, and speaks up when the browser keeps no backup (audit item 3.7, 14 Nov 2026)
 
 The November audit's item 3.7 (AUD2-056, AUD2-074, AUD2-075, AUD2-076). No decision needed; nothing frozen, no
 snapshot key.
@@ -211,7 +213,7 @@ snapshot key.
   `backuplinkstale`, `launchopen`, `nofsa`, `showfolder`, `dlgkeys`, `undokeys`, `filekeys`, `conflict`, `loadfail`,
   `sharecopy2`, `cspproof` (zero violations); `npm run check` 42/42. Shipped on *"combine all and push"*.
 
-### Unreleased — Swap Column: a part-column swap holds when a phase moves, refusals in plain words, a plain click and Alt+arrow, no move that changes nothing (audit item 2.12, 14 Nov 2026)
+### Swap Column: a part-column swap holds when a phase moves, refusals in plain words, a plain click and Alt+arrow, no move that changes nothing (audit item 2.12, 14 Nov 2026)
 
 The November audit's item 2.12 (AUD2-027, AUD2-028, AUD2-041, AUD2-042), built to the owner's decision D5 (b): keep both
 kinds of swap, make the part-column swap hold when a phase moves, with a preview and plain-English refusals. AUD2-029
@@ -243,7 +245,7 @@ kinds of swap, make the part-column swap hold when a phase moves, with a preview
   re-expected (a one-phase move now leaves the one-week swap covering every week the two share). gate.sh's swap and
   layout sections run as one: 458 / 0. Shipped on *"combine all and push"*.
 
-### Unreleased — the note editors' new look: one list under the box, every colour in view, a Save button, "Auto-Note" (layout A2, 13–14 Nov 2026)
+### the note editors' new look: one list under the box, every colour in view, a Save button, "Auto-Note" (layout A2, 13–14 Nov 2026)
 
 The look the owner picked on 4 Nov 2026 (layout A2 of `mockups/note-editor-look.html`: *"yes A2, but its an
 "Auto-Note""*; PHASE-LINKED-NOTES-PLAN.md §4.4), built for both note editors, the waterfall's and the month view's.
@@ -266,7 +268,7 @@ The look the owner picked on 4 Nov 2026 (layout A2 of `mockups/note-editor-look.
   `holidayrename` R1, `monthnotes` N6, `wfkeys` K24, `noteviews` W1 / D1 / C1, and on this release `dayfirst` E1. About
   thirty neighbouring note, keys and month legs green; `npm run check` 42/42. Shipped on *"combine all and push"*.
 
-### Unreleased — the first five minutes: recent calendars on an empty start, Production names the missing Season, a File menu with keys, Help brought up to date (audit item 2.13, 13 Nov 2026)
+### the first five minutes: recent calendars on an empty start, Production names the missing Season, a File menu with keys, Help brought up to date (audit item 2.13, 13 Nov 2026)
 
 The November audit's item 2.13 (AUD2-030 to AUD2-033) and WIN-2 from the Windows review, on the approved defaults.
 
@@ -297,7 +299,7 @@ The November audit's item 2.13 (AUD2-030 to AUD2-033) and WIN-2 from the Windows
   `calrange`, `monthmap`, `blocks`, `sideboxes`, `cspproof`; Esc and Cmd+Y tried with real keys. `npm run check` 42/42.
   Shipped on *"combine all and push"*.
 
-### Unreleased — Compare shows the breaks and names its Baseline; every export's name carries the season, the Date Last Edited and the Version (audit item 2.10, 13 Nov 2026)
+### Compare shows the breaks and names its Baseline; every export's name carries the season, the Date Last Edited and the Version (audit item 2.10, 13 Nov 2026)
 
 The November audit's item 2.10 (AUD2-023, AUD2-024, AUD2-025), built to the owner's decision D8 (c) on the approved
 defaults.
@@ -324,7 +326,7 @@ defaults.
   2.10 meets 2.4). Green: `scenariofacts`, `comparehiatus`, `monthexport`, `monthemit`, `monthwriter`, `cmdprint`,
   `pdfdialog`, `filekeys`, `cspproof`; `npm run check` 42/42. Shipped on *"combine all and push"*.
 
-### Unreleased — on a DD/MM calendar every date reads day first, and typed and pasted dates are read day first (audit item 2.4, 13 Nov 2026)
+### on a DD/MM calendar every date reads day first, and typed and pasted dates are read day first (audit item 2.4, 13 Nov 2026)
 
 The November audit's item 2.4 (AUD2-012, AUD2-066), built to the owner's decision D3 (a), 13 Nov 2026, which **reverses
 the 20 Oct 2026 ruling "automatic notes keep 1/6/25"** for day-first calendars.
@@ -357,7 +359,7 @@ the 20 Oct 2026 ruling "automatic notes keep 1/6/25"** for day-first calendars.
   legs green; no leg re-expected. On this release `dayfirst` E1 reads the A2 heading whole, and its R2 (back to MM/DD/YY,
   the PDF byte for byte) was red until item 3.1's 16 Nov row fix. Shipped on *"combine all and push"*.
 
-### Unreleased — the date picker's "today" is your own day, in every time zone (13 Nov 2026)
+### the date picker's "today" is your own day, in every time zone (13 Nov 2026)
 
 The November audit's AUD2-007 (Batch 1, item 1.5, P1). The pop-out date picker worked out "today" as the date in UTC
 rather than on the user's own clock. So every afternoon from 16:00 Pacific (19:00 Eastern; an hour later in summer) it
@@ -381,7 +383,7 @@ field opened on NEXT month (on New Year's Eve, on next January). In Tokyo and Au
     The owner was handed this build on localhost and said "Yes, finish it".
   - Not run: the full gate (one run is planned for the whole audit batch).
 
-### Unreleased — a crafted-file hardening fix (13 Nov 2026)
+### a crafted-file hardening fix (13 Nov 2026)
 
 A crafted-file hardening fix from the November audit (Batch 1, item 1.3, finding AUD2-013). It takes a file crafted on
 purpose; no file the app writes can trigger it.
@@ -401,7 +403,7 @@ purpose; no file the app writes can trigger it.
     42/42.
   - Tried in the browser by the owner ("Finish it").
 
-### Unreleased — the Excel and Outlook keys on notes: Enter saves, Esc keeps what you typed, and a picked month note takes Delete, Copy, Cut and Paste (13 Nov 2026)
+### the Excel and Outlook keys on notes: Enter saves, Esc keeps what you typed, and a picked month note takes Delete, Copy, Cut and Paste (13 Nov 2026)
 
 The November audit's AUD2-021 and AUD2-040 (Batch 2 item 2.8), built to the owner's decision D6 (a): *"Enter saves a
 note, Shift+Enter or Alt+Enter starts a new line; a picked month note takes Delete, Copy, Cut and Paste. No new
@@ -454,7 +456,7 @@ right-click items."*
   the box back as it opened before its Esc. Nearest legs green (HANDOFF lists them); `npm run check`. Not run: the full
   gate (one run for the audit batch); not tried by hand in a browser.
 
-### Unreleased — editing a Notes cell no longer changes another note's line: the Day, a linked or month note's rename, Cut and Paste, and the drag (13 Nov 2026)
+### editing a Notes cell no longer changes another note's line: the Day, a linked or month note's rename, Cut and Paste, and the drag (13 Nov 2026)
 
 The November audit's AUD2-011, AUD2-014 and AUD2-015 (Batch 2 item 2.3), fixed with their approved defaults. A Notes
 cell can show, besides your own lines, an automatic note's line ("Start Principal Photography 6/29/26"), a holiday's, a
@@ -494,7 +496,7 @@ home, and the waterfall's editor and keys treated them as your typed text:
   `wfkeys` G17, a dragged "Start Principal Photography" now reads 7/6/26 in week 7/6 (it read 6/29/26 there). Not run:
   the full gate (one run for the audit batch); not tried by hand in a browser.
 
-### Unreleased — one bad saved preference no longer leaves a blank window; a backup is kept only while there is unsaved work (14 Nov 2026)
+### one bad saved preference no longer leaves a blank window; a backup is kept only while there is unsaved work (14 Nov 2026)
 
 The November audit's item 3.13: AUD2-078, and a shareable-copy hardening fix. Both on their audit defaults; no frozen
 code, no save-format change.
@@ -518,7 +520,7 @@ code, no save-format change.
   in gate.sh. Kept green: prefs, hdrpreset, hdrfile, calzoom, hostile, settingswin, sharecopy2 and the backup and load
   legs (HANDOFF lists them); `npm run check` 42/42.
 
-### Unreleased — rare set-ups no longer print a wrong or missing line: a range in the Christmas break, Snap off beside a hiatus, a Writer's Room typed into a break, a custom phase removed under a range (14 Nov 2026)
+### rare set-ups no longer print a wrong or missing line: a range in the Christmas break, Snap off beside a hiatus, a Writer's Room typed into a break, a custom phase removed under a range (14 Nov 2026)
 
 The November audit's item 3.6, four P2 findings, each needing an unusual set-up. No decision was needed for any of them.
 
@@ -562,7 +564,7 @@ The November audit's item 3.6, four P2 findings, each needing an unusual set-up.
     month print document on 11 calendars and the written month PDF on 24 runs, all unchanged.
   - Not run: the full gate (one run for the whole release train).
 
-### Unreleased — the emergency rollback redeploys the previous release, never the v1.2.0 legacy app (13 Nov 2026)
+### the emergency rollback redeploys the previous release, never the v1.2.0 legacy app (13 Nov 2026)
 
 The November audit's AUD2-006, closed by the owner's decision D7 (a) ("stay" on the current address; the rollback becomes
 "redeploy the previous release"). No app code changed.
@@ -585,7 +587,7 @@ The November audit's AUD2-006, closed by the owner's decision D7 (a) ("stay" on 
   install gate), `v9.9.9` (no file) and two injection attempts. Not run on GitHub: that needs a push, and the batch
   goes out together. ⚠️ Pushing a workflow file needs the GitHub token's `workflow` scope (HANDOFF).
 
-### Unreleased — a Notes cell you have typed in keeps its holiday and Start / Wrap lines in step with the calendar (13 Nov 2026)
+### a Notes cell you have typed in keeps its holiday and Start / Wrap lines in step with the calendar (13 Nov 2026)
 
 The November audit's three P0 findings, AUD2-001, AUD2-002 and AUD2-003, fixed by the owner's decision D1 (a) ("yes":
 the holiday and automatic lines in a typed cell always follow the calendar). Typing in a Notes cell froze the week's
@@ -639,7 +641,7 @@ This is AUTONOTE-FOLLOW-PLAN.md's hook, ruled on 19 Oct 2026, built and widened.
     in above "Dailies review"; the owner tried it ("Yes, finish it").
   - Not run: the full gate (one run is planned for the whole audit batch).
 
-### Unreleased — Recover can no longer blank a saved file, and a file that leaves fields out opens with its own values (13 Nov 2026)
+### Recover can no longer blank a saved file, and a file that leaves fields out opens with its own values (13 Nov 2026)
 
 Two data-safety fixes from the November audit, findings AUD2-004 and AUD2-005. Both are rare: neither can be reached
 with a file or a backup this version of the app wrote itself. Both ended with wrong data written into a saved file and
