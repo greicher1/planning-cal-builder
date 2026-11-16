@@ -271,8 +271,10 @@ window.addEventListener('load', function () { (async function () {
       await toMonth('June 2026');
       var pop = await openMv('2026-06-29', /^Start Principal Photography/);
       var ta = q('textarea', pop), sel = q('.color-swatch.selected', pop), del = q('.note-pop-delete', pop);
-      kase('A1', 'Start Principal Photography opens the Auto Note editor: "6/29/26 · Auto Note", its name alone, a placeholder saying clearing hides it, a Hide Auto-Note button (owner, 4 Nov 2026), the week\'s purple selected',
-           txt(q('.mv-note-pop-day', pop)) === '6/29/26 · Auto Note' && ta.value === 'Start Principal Photography'
+      // ⚠️ RE-EXPECTED for the editors' look A2 (owner, 4 Nov 2026: "yes A2, but its an "Auto-Note""; notelook): the heading
+      // is the name, "Auto-Note", then the day, "Mon 6/29/26". It read "6/29/26 · Auto Note".
+      kase('A1', 'Start Principal Photography opens the Auto-Note editor: "Auto-Note Mon 6/29/26", its name alone, a placeholder saying clearing hides it, a Hide Auto-Note button (owner, 4 Nov 2026), the week\'s purple selected',
+           txt(q('.mv-note-pop-day', pop)) === 'Auto-Note Mon 6/29/26' && ta.value === 'Start Principal Photography'
              && /hide/i.test(ta.placeholder) && !!del && txt(del) === 'Hide Auto-Note' && !!sel && sel.title === 'Purple',
            { heading: txt(q('.mv-note-pop-day', pop)), text: ta.value, placeholder: ta.placeholder, button: del && txt(del), selected: sel && sel.title });
       await commitMv(pop, 'First Day of Shoot');
@@ -335,7 +337,7 @@ window.addEventListener('load', function () { (async function () {
       await view('sheet');
       var c = cellText('2026-11-02');
       kase('O1', 'renaming "Post Begins" rewrites it inside the typed note that carries it, which keeps its own line',
-           head === '11/2/26 · Auto Note' && c === 'Post Starts 11/2/26\nPost kickoff 11/3/26'
+           head === 'Auto-Note Mon 11/2/26' && c === 'Post Starts 11/2/26\nPost kickoff 11/3/26'   // A2's heading (was '11/2/26 · Auto Note')
              && s.userNotes['2026-11-02'].text === 'Post Starts 11/2/26\nPost kickoff 11/3/26' && s.autoNoteNames.postStart === 'Post Starts',
            { heading: head, cell: c, userNote: s.userNotes['2026-11-02'], names: s.autoNoteNames });
     });

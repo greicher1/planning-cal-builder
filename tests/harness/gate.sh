@@ -2385,10 +2385,42 @@ done
 # then the card arrow and Shift +1 wk (re-dated in place, no old date anywhere; one Undo); g=g the guards (a copy of a
 # milestone line in another week, and a plain note, are left alone). On the build before the fix A1, A2, B1, B2, C1, C2,
 # D0, E1, E2, E4, E5 and E6 were red. (g=m mints tests/fixtures/autonotefollow.sptcal; it is not a gate run.)
+# wfnotelines (⭐ ADDED 13 Nov 2026, the second audit's Batch 2 item 2.3: AUD2-011, AUD2-014, AUD2-015, their approved
+# defaults): in a Notes cell the lines that are not the user's own -- an automatic note's, a holiday's, a month note shown
+# in the waterfall, a note linked to a phase -- keep their own day. g=day the Day picker stamps the user's line, never
+# theirs (D1 the start, D2 a month note, D4 a cell of their lines only; D3 the typed-only control); g=link a linked line
+# renamed with a line added below it keeps its link (L1), and the Day beside it goes on the user's line (L2); g=link2 the
+# line added ABOVE (L3) and the control, unrelated lines typed in its place (L4); g=month a month line re-dated inside its
+# week moves its note (M1, one Undo M2), renamed with a line added renames it (M3), the plain rename control (M4); g=cut
+# Cut and Paste leaves month, automatic and holiday lines out of what lands (C1, C2, C4; C3 the typed-only control);
+# g=drag the drag moves a month note itself (R1, one Undo R2), re-dates the start's line into its new week (R3), and
+# leaves a holiday where it is (R4, R5). On the build before the fix D1, D2, D4, L1, L2, L3, M1, M3, C1, C2, C4, R1, R3,
+# R4 and R5 were red; the controls (D3, L0, L4, M2, M4, C3, R2) green on both. The review (14 Nov 2026) added g=drag R6
+# (a block dragged over itself lands its note BESIDE a holiday that stays, which stays shown), R6b and R7 (a holiday-only
+# cell in the block: no question); R6 and R7 red on the reviewed build.
+# mvkeys (⭐ ADDED 13 Nov 2026, the second audit's Batch 2 item 2.8: AUD2-021, AUD2-040, the owner's decision D6 (a)):
+# the Excel and Outlook keys on notes. g=pick a picked month note takes Delete and Backspace (one Undo), ⌘C (its colour
+# and month style travel as SPTCal's own data), ⌘X and ⌘V onto the day last clicked (a date naming its old day moves
+# with it); Delete deletes a Waterfall line and a note that stays with a phase as their editor's Delete Note does, and
+# leaves a holiday and a bar; the browser keeps ⌘C / ⌘V with no note picked, with the editor open, with the day off
+# screen and with a field focused. g=enter both note editors: Enter saves, Shift+Enter and Alt+Enter add a line (a day
+# note holds 3), Esc keeps changed text and only closes an unchanged or emptied note, an input method's Enter and the
+# opening Enter save nothing, Tab and Ctrl/Cmd+Enter still save, and a stray key that opened an editor then Esc leaves
+# the note as it was (M9, W6). On the build before the fix P1, P3-P6, P8-P10, P12, P13 (its ⌘C half) and P15, and M1,
+# M3, M4, M5, M9, W1, W2, W3, W5 (its save) and W6 were red; the controls (P0, P11, P14, M6, M7, M8, W4) green on both.
+# The review (14 Nov 2026) added P16-P18: a holiday or automatic note among the picks stays out of ⌘C / ⌘X (only typed
+# notes travel; a pick of only those copies nothing and says so); P16, P17, P18 red on the reviewed build.
+# The second review (14 Nov 2026) added P19 (a shareable copy exported while the grid's message chip shows carries no
+# .month-sel-chip) and P20 (leaving the month view and coming back inside the chip's 4.2 s does not redraw it); both red
+# on the reviewed build.
+# mvkeysreal.mjs, after this loop, is the same with TRUSTED keys.
 for RSSPEC in "recoverfail:mode=newer:900" "recoverfail:mode=damaged:900" "recoverfail:mode=throws:900" "recoverfail:mode=scen:120" \
               "loadsparse:v=nohiatus:240" "loadsparse:v=badhiatus:240" "loadsparse:v=sixkeys:240" \
               "loadsparse:v=sixids:240" "loadsparse:v=bare:240" "loadsparse:v=scen:240" \
-              "autonotefollow:g=a:240" "autonotefollow:g=c:240" "autonotefollow:g=e:240" "autonotefollow:g=g:240"; do
+              "autonotefollow:g=a:240" "autonotefollow:g=c:240" "autonotefollow:g=e:240" "autonotefollow:g=g:240" \
+              "wfnotelines:g=day:300" "wfnotelines:g=link:300" "wfnotelines:g=link2:300" "wfnotelines:g=month:300" \
+              "wfnotelines:g=cut:300" "wfnotelines:g=drag:300" \
+              "mvkeys:g=pick:300" "mvkeys:g=enter:300"; do
   RSLEG="${RSSPEC%%:*}"; RSREST="${RSSPEC#*:}"; RSQ="${RSREST%%:*}"; RSSECS="${RSREST#*:}"
   rm -f "$HERE/$RSLEG.json"
   HARNESS_PAGE="$PAGE" HARNESS_QUERY="$RSQ" "$HERE/run.sh" "$RSLEG" "$RSSECS" >/dev/null 2>&1
@@ -2436,6 +2468,31 @@ if not cases: print('  FAIL  '+label+': no cases'); sys.exit(1)
 sys.exit(1 if bad else 0)
 PYDT
 done
+
+
+# ---- mvkeysreal: the keys of item 2.8 above (mvkeys), with TRUSTED input -----------------------------------------------
+# ⭐ ADDED 13 Nov 2026 (AUD2-021, AUD2-040, D6 (a)). wfkeysreal.mjs's month twin: CDP's Input domain, the editing commands
+# sent with ⌘C / ⌘V as a key binding sends them, and Enter sent CARRYING its text, so a key the app did not cancel
+# leaves its line break in the box. On mvkeys.sptcal: R1 a real click picks a month note, real Delete, one real ⌘Z;
+# R2 real Backspace; R3 real ⌘C, a click on another day's note, real ⌘V (amber, bold, italic arrive); R4 the same after
+# a reload, through Chrome's clipboard; R5 a click on a day's number (its day menu takes focus), real ⌘V lands there and
+# closes the menu; R6 the month editor's real Shift+Enter, Alt+Enter and Enter (one line break each, saved); R7 its real
+# Esc keeps a new note; R8 the waterfall editor's. All eight red on the build before the fix (R6 also showed Alt+Enter
+# inserting nothing natively).
+node "$HERE/mvkeysreal.mjs" --page "$PAGE" >/dev/null 2>&1
+python3 - "$HERE/mvkeysreal.json" "mvkeysreal (mvkeys)" <<'PYMR' || FAIL=1
+import json,sys
+path, label = sys.argv[1], sys.argv[2]
+try: a=json.load(open(path))
+except Exception as e:
+    print('  FAIL  '+label+' produced no result: '+str(e)); sys.exit(1)
+if a.get('EX'):
+    print('  FAIL  '+label+' threw: '+str(a['EX'])[:200]); sys.exit(1)
+cases = a.get('cases') or []
+for c in cases:
+    print(('  PASS  ' if c.get('pass') is True else '  FAIL  ')+label+' '+str(c.get('id'))+': '+str(c.get('title',''))[:110])
+sys.exit(0 if len(cases) >= 8 and all(c.get('pass') is True for c in cases) else 1)
+PYMR
 
 # ---- mvnotes' WRITTEN month PDF: the one-day custom pills wrap in the file users get (MONTH-NOTES-PLAN.md §6) ---------
 # ⭐ ADDED 20 Oct 2026. The leg's last run (the minted fixture) hands back the written PDF, mvnotes.month.pdf. Its text,

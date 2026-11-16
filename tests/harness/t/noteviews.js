@@ -103,7 +103,11 @@ window.addEventListener('load', function () { (async function () {
     var colours = pop ? qa('.note-color-row', pop) : [];
     var last = colours[colours.length - 1];
     return row ? { label: txt(q('.note-view-label', row)), on: !!cb && cb.checked, id: cb ? cb.id : null,
-                   belowColours: !!last && last.nextElementSibling === row } : null;
+                   // ⚠️ RE-EXPECTED for the editors' look A2 (owner, 4 Nov 2026; notelook): the colour rows sit in their own
+                   // row of the list (.note-colour-item), and the switch is the row right after it.
+                   belowColours: !!last && (last.nextElementSibling === row
+                     || (last.parentElement.classList.contains('note-colour-item') && last === last.parentElement.lastElementChild
+                         && last.parentElement.nextElementSibling === row)) } : null;
   }
   // ---- the month view ----------------------------------------------------------------------------------------------
   function blocks(iso, kind) { return qa('#table-wrap .mv-note-block[data-note-day="' + iso + '"]' + (kind ? '[data-note-kind="' + kind + '"]' : '')); }

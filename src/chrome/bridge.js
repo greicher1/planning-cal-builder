@@ -154,6 +154,10 @@ export const chrome = {
     orientation: opts.orientation || ((opts.fits || {})[opts.paper] || {}).recommended || '',
     gridlines: opts.gridlines,
   }),
+  // ({ months: [{ value: 'YYYY-MM', label, short }], current: 'YYYY-MM' | '' }) → Promise<{ all: true } |
+  // { from, to } | null> — the month view's Export PDF dialog (src/chrome/MonthPdfDialog.jsx; audit AUD2-026). The
+  // default, for a chrome that failed to mount, writes EVERY month, exactly as before the dialog existed.
+  monthPdfDialog: () => Promise.resolve({ all: true }),
 }
 
 export function installChrome(impl) {

@@ -81,6 +81,122 @@ purpose, and no file the app writes can carry one.
   - Tried in the browser by the owner ("Finish it").
   - Not run: the full gate (one run is planned for the whole audit batch).
 
+### Unreleased — the Excel and Outlook keys on notes: Enter saves, Esc keeps what you typed, and a picked month note takes Delete, Copy, Cut and Paste (13 Nov 2026)
+
+The November audit's AUD2-021 and AUD2-040 (Batch 2 item 2.8), built to the owner's decision D6 (a): *"Enter saves a
+note, Shift+Enter or Alt+Enter starts a new line; a picked month note takes Delete, Copy, Cut and Paste. No new
+right-click items."*
+
+- **Enter saves a note, in both note editors (AUD2-040).** Plain Enter used to add a line, and since the keys line went
+  (12 Nov 2026) nothing said that Tab or Ctrl/Cmd+Enter saved. **Now** Enter saves and closes the editor, as the app's
+  holiday, automatic-note and heading editors already did; **Shift+Enter** or **Alt+Enter** starts a new line (a month
+  day note still holds three). Tab and Ctrl/Cmd+Enter still save; an input method's Enter (choosing a word) never does;
+  Enter on the editor's Day list or a button is still theirs. The placeholders say "Shift+Enter for a new line".
+- **Esc keeps what you typed (AUD2-040).** Esc threw away whatever had been typed, a new note included, and Undo could
+  not bring it back. **Now** Esc saves a note whose text changed (the finding's "keep the typed text"); on a note left as
+  it opened, or one whose box was emptied, Esc just closes it and writes nothing, so Esc can never delete a note. The
+  key that opened the editor (typing on a picked or highlighted note adds it at the end) counts as what it opened with,
+  so a stray key and Esc still leave the note as it was; type on, and Esc keeps it all. A colour picked with no text
+  changed is still dropped by Esc. The month view's holiday and automatic-note editors keep
+  "Enter to save · Esc to cancel", as their hint says (the owner's ruling of 12 Nov 2026 left those lines).
+- **A picked month note takes the waterfall's keys (AUD2-021).** It ignored Delete and the clipboard, so a note was
+  deleted by double-click and Delete Note and copied only by typing it again. **Now**, with a note picked (one click):
+  **Delete** or **Backspace** does what its editor's Delete Note does (a day's own note, a Waterfall line, a note that
+  stays with a phase), several picked notes in one undo step; a holiday and an automatic note stay (their editors have
+  Hide), as a bar does. **⌘C / ⌘X** copy or cut the notes, as plain text for Excel or an email plus SPTCal's own data
+  with each note's colour and month style. **⌘V puts them on the day you clicked last** (a note, a bar, a "+" or the
+  day's number; with the day menu open there, the paste closes it): each a new note of that day with its colour and
+  style, and a date in it naming its old day becomes the new day's, as the month drag does. **A holiday or an automatic
+  note keeps its own day** (the waterfall's rule, item 2.3, AUD2-014): picked with typed notes it stays out of the copy
+  or cut, and a pick of nothing else copies nothing, the grid saying "Holidays and automatic notes stay on their own
+  dates" (repaired on review, 14 Nov 2026: a picked holiday went on the clipboard and the paste re-dated it into a new
+  day note, "Independence Day (Observed) 7/15/26"). Text from anywhere else
+  pastes as one note. The same data crosses views: a month note pasted into the Waterfall's Notes column brings its
+  colour, and a copied Notes cell pastes here as its typed text. **No right-click item was added** (D6 (a)). The keys
+  are the browser's again whenever an editor, a field or a dialog has focus, or the day clicked is not on screen.
+- **Help:** the note-editor keys sentence and the month view's note paragraph are rewritten for the new keys (and the
+  stale "A click that doesn't move still opens the note": a click picks it, a double-click opens it). Its holiday
+  sentence now says what is true: Delete leaves holidays and automatic notes, and a copy or cut leaves them out.
+- **Save format:** no key added, renamed or removed; no id; nothing frozen touched. The clipboard's SPTCal data gains a
+  month note's `fmt` and `day` (session data, never saved).
+- **Proof.** New leg `mvkeys` (in `gate.sh`, `g=pick` 22 checks and `g=enter` 16): on the build before the fix P1, P3,
+  P4, P5, P6, P8, P9, P10, P12, P13, P15, M1, M3, M4, M5, M9, W1, W2, W3, W5 and W6 were red; all green after; the
+  controls (P0, P11, P14, M6, M7, M8, W4) green on both. The review's repair (14 Nov 2026) added P16 (the reported cut
+  and paste with a holiday picked), P16b, P17 (a holiday alone) and P18 (an automatic note alone): P16, P17 and P18 red
+  on the reviewed build, 22/22 and 16/16 after. A second repair (14 Nov 2026) fixed two slips in that message chip:
+  a shareable copy exported in its 4.2 s carried it as a permanently visible element (the copy's strip list named
+  `.month-sel-box`, not the chip: `.month-sel-chip` added), and leaving the month view and coming back inside the
+  4.2 s redrew it (it even stayed over the waterfall): a view switch now clears it. P19 and P20 hold both, red before
+  the repair, `g=pick` 24/24 after. New `mvkeysreal.mjs` (TRUSTED keys and clipboard over CDP, `wfkeysreal.mjs`'s month twin, in
+  `gate.sh`): 0/8 before the fix, 8/8 after; it also showed a real Alt+Enter inserting nothing natively, which is why
+  the editors insert the line themselves. New fixture `tests/fixtures/mvkeys.sptcal` (synthetic, minted by `mvkeys
+  g=mint`). Re-expected: `wfnoteeditor` E4, which typed in the box and pressed Esc expecting nothing saved; it now puts
+  the box back as it opened before its Esc. Nearest legs green (HANDOFF lists them); `npm run check`. Not run: the full
+  gate (one run for the audit batch); not tried by hand in a browser.
+
+### Unreleased — editing a Notes cell no longer changes another note's line: the Day, a linked or month note's rename, Cut and Paste, and the drag (13 Nov 2026)
+
+The November audit's AUD2-011, AUD2-014 and AUD2-015 (Batch 2 item 2.3), fixed with their approved defaults. A Notes
+cell can show, besides your own lines, an automatic note's line ("Start Principal Photography 6/29/26"), a holiday's, a
+month note shown in the waterfall ("Table read 7/15/26") and a note that "Stays with" a phase. Each has its own date or
+home, and the waterfall's editor and keys treated them as your typed text:
+
+- **The Day picker re-dated the wrong line (AUD2-011).** It stamped the box's last line. With a month or linked note in
+  the cell that line was never yours: the month note was doubled in the month view, the linked note had the date frozen
+  into it and showed it in other weeks. With your line above the start note, "Start Principal Photography" printed the
+  picked day in every output. **Now** the Day goes on the last line you typed; the others keep their dates. A box of
+  their lines only stamps nothing.
+- **A rename with a line added was read as a delete (AUD2-015).** Change a linked note's words and add a line in the
+  same save, and the note lost its link (it stayed on the old week after the phase moved); a month note stayed in the
+  month view beside its edited copy. **Now** both matchers align the box by content, as the automatic lines' matcher
+  already did: a changed line pairs with the line in its place (or, where lines were added there, the one that reads as
+  an edit of it: it keeps its date, or shares a word). Unrelated lines typed in its place still delete it, as before.
+- **A month line re-dated in its own week (AUD2-015's default):** the month note **moves** to that day. A date outside
+  the week still takes the line out of the waterfall, as before.
+- **Cut and Paste, and the drag, doubled notes (AUD2-014).** They carried month, holiday and automatic lines along as
+  typed text, with their old date, so the month view and its PDF showed the event twice. **Now** (the approved
+  defaults): a Cut leaves a month note in the month view as before, and a paste leaves month, holiday and automatic
+  lines out of what it writes, saying "Holidays, automatic notes and month notes stay on their own dates" (the clipboard
+  keeps the whole cell for Excel; a copy pasted back onto the very cell it came from is unchanged). A paste of a cell
+  that is only such lines writes nothing and leaves the week as it was. A **drag** moves a month note itself to the same
+  weekday of the new week, never as a copy; a holiday stays where it is ("Holidays stay on their own dates"; a cell that
+  is only a holiday does not move); an automatic note's line lands dated in its new week, as the month view's drag has
+  always done. A block dragged over its own place lands a note on a cell whose holiday stays: the note lands **beside**
+  the holiday, which stays shown, and a holiday-only cell of the block is not asked about (repaired on review, 14 Nov
+  2026: the landing hid the holiday from the waterfall while the grid said it stayed).
+- **Save format:** no key added, renamed or removed; nothing frozen touched (notesForWaterfallDate's N1/N2 untouched).
+  The clipboard's own SPTCal data gains an `own` text (session data, never saved).
+- **Proof.** New leg `wfnotelines` (in `gate.sh`, six runs, `g=day|link|link2|month|cut|drag`): 15 checks red on the build
+  before the fix, 29/29 green after, the controls green on both. The review's repair (14 Nov 2026) added `g=drag` R6 (the
+  reported block drag), R6b and R7 (a holiday-only cell in the block): R6 and R7 red on the reviewed build, 32/32 after. The audit's own repro legs (`audit-r3a-mwf`,
+  `audit-r3a-link`) on this build: every case reads once, on its own day, in the waterfall and the month view. The
+  nearest legs green (HANDOFF lists them), `base` identical to its baseline, `npm run check` 42/42. Re-expected:
+  `wfkeys` G17, a dragged "Start Principal Photography" now reads 7/6/26 in week 7/6 (it read 6/29/26 there). Not run:
+  the full gate (one run for the audit batch); not tried by hand in a browser.
+
+### Unreleased — the emergency rollback redeploys the previous release, never the v1.2.0 legacy app (13 Nov 2026)
+
+The November audit's AUD2-006, closed by the owner's decision D7 (a) ("stay" on the current address; the rollback becomes
+"redeploy the previous release"). No app code changed.
+
+- **What it was.** The documented way to pull a bad release (the header of `.github/workflows/deploy.yml`, CLAUDE.md,
+  HANDOFF) was to switch Settings › Pages › Source to "Deploy from a branch", which serves the root `index.html`: the
+  v1.2.0 legacy app, eleven versions back. Measured by the audit: it does not know the Region, so every Production wrap
+  date moves (10/20/26 to 10/16/26 on the reference calendar); its Save writes 28 top-level keys instead of 82 and drops
+  every later setting and every scenario but one, permanently; and it has no install gate, no Content-Security-Policy
+  and no snapshot sanitizer. It has never been used.
+- **Now** "Build and deploy" takes a `release` when run by hand on `main` (Actions › Build and deploy › Run workflow,
+  release `v1.12.1`, say). The deploy job then publishes `releases/<that version>.html`, the byte-identical copy every
+  version cut keeps, as the site, with a `version.json` naming it, and builds nothing, so it works when `main` itself
+  will not build. It refuses a name that is not a version, a release that is not in the repo, a file that does not state
+  that version, and anything before v1.4.1 (no install gate). A push to `main` and a plain re-deploy work exactly as
+  before. The old Pages-source flip is written down as never to be used.
+- **Docs:** the rollback note in `deploy.yml`, CLAUDE.md's Project note and two HANDOFF passages now say the same thing.
+- **Proof:** the workflow parses (Ruby's YAML); its rollback step run locally against the real release copies publishes
+  `v1.12.1` byte for byte with `{ "version": "1.12.1" }`, and refuses `v1.2.0` (no version literal), `v1.3.1` (no
+  install gate), `v9.9.9` (no file) and two injection attempts. Not run on GitHub: that needs a push, and the batch
+  goes out together. ⚠️ Pushing a workflow file needs the GitHub token's `workflow` scope (HANDOFF).
+
 ### Unreleased — a Notes cell you have typed in keeps its holiday and Start / Wrap lines in step with the calendar (13 Nov 2026)
 
 The November audit's three P0 findings, AUD2-001, AUD2-002 and AUD2-003, fixed by the owner's decision D1 (a) ("yes":

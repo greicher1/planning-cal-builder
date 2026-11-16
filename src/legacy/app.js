@@ -415,6 +415,39 @@ export function initLegacyApp() {
              clipped: need > budgetAt(px) };
   }
 
+  // ⛔ FROZEN EDIT R4 (PROPOSED, audit AUD2-044, item 3.1; the owner's D4 = a: "a Notes cell with two holiday lines takes
+  // the height it needs"). Every row is ROW_DEFAULT_PX unless dragged, which buys a Notes cell ONE line, so a week showing
+  // two holidays (Thanksgiving and the Day After) shrank both to the floor and still cut the second through its middle,
+  // on screen, in Excel and in the waterfall PDF, though nobody typed them. A row nobody sized by hand, holding in any of
+  // its year blocks a Notes cell that is ONLY holiday lines, two or more of them (no typed text, no size picked for it, no
+  // linked or month line added), is now as tall as those lines at the shrink floor need: two lines, 23 px instead of 20.
+  // Nothing is stored (it is not rowHeights, and a drag still sets one); a calendar with no such week has no such row,
+  // and every row reads exactly the number it read before. sheetRowPx(schedule, r) is what every reader of a row's height
+  // now asks (the renderer, exportExcel, buildWaterfallPdf, sideRowPtFn), so the three outputs keep agreeing.
+  const _autoRowPx = new WeakMap();
+  function autoRowPxFor(schedule){
+    if(!schedule || !schedule.weeks) return {};
+    let m = _autoRowPx.get(schedule);
+    if(m) return m;
+    m = {};
+    const notesByIdx = schedule.notesByIdx || {};
+    computeYearBlocks(schedule.weeks).forEach(b=>{
+      for(let r = 0; r < b.count; r++){
+        const idx = b.startIdx + r, w = schedule.weeks[idx], wk = isoOf(w.date);
+        if(userNotes[wk] !== undefined || noteFontSizeFor(wk) !== undefined) continue;
+        if(wfLinkedLinesFor(wk).length || wfMonthLinesFor(wk).length) continue;
+        const notes = autoNotesForView(notesByIdx[idx] || [], 'sheet');
+        if(notes.length < 2 || !notes.every(n=> n && n.holiday)) continue;
+        const lines = String(autoNotesText(notes)).split('\n').length;
+        const need = Math.ceil(lines * 11 * NOTE_SHRINK_FLOOR * SHEET_LINE_RATIO + ROW_TEXT_PAD_PX);
+        if(need > ROW_DEFAULT_PX) m[r] = Math.max(m[r] || 0, need);
+      }
+    });
+    _autoRowPx.set(schedule, m);
+    return m;
+  }
+  function sheetRowPx(schedule, r){ return rowHeights[r] || autoRowPxFor(schedule)[r] || ROW_DEFAULT_PX; }
+
   // screen px -> Excel char units, the inverse of charsToScreenPx
   function screenPxToChars(px){
     return Math.round(((px / SHEET_ZOOM) - EXCEL_CELL_PAD) / EXCEL_MDW * 100) / 100;
@@ -15122,9 +15155,15 @@ export function initLegacyApp() {
   // layer pads 3 px each side and shares the rest out by 7, so the box a note is drawn in is 6/7 px narrower (the month
   // PDF writer's MVL_GEOMETRY comment found the same). At 10 px that has never shown; at 14 px the probe (plan step 1)
   // found a note measured as one line at 158 px that wraps to two in its real 157.14 px box, its second line hidden.
-  function mvNoteLineCountSized(t, boxW, fmt, px){
+  // ⛔ FROZEN EDIT D1 (PROPOSED, audit AUD2-045, item 3.1; the owner's D4 = a: "holiday and automatic lines keep their date
+  // at note sizes 11 to 14"): `keep` (a waterfall line ending in its date, MV_NOTE_DATED) takes up to FOUR lanes, so the
+  // date the two-line cut took stays on screen and in the print rollback, as the direct writer keeps it (mvlKeepsDate).
+  // Four, not 10 px's three: measured at 12 and 14 px in an 1100 / 1280 px window, "Independence Day (Observed) 7/3/26"
+  // and "Principal Photography Wraps 10/27/26" wrap to four. Its key carries `|k`, so it never meets a two-lane count.
+  // Without `keep` nothing here changed.
+  function mvNoteLineCountSized(t, boxW, fmt, px, keep){
     const G = MV_NOTE_SIZES[px], f = fmt || {}, w = Math.max(24, boxW - 6 / 7);
-    const key = w.toFixed(2) + '|' + t + '|n' + px + '/' + (f.bold === undefined ? '' : f.bold ? 'b' : 'r') + '/' + (f.italic ? 'i' : '');
+    const key = w.toFixed(2) + '|' + t + '|n' + px + '/' + (f.bold === undefined ? '' : f.bold ? 'b' : 'r') + '/' + (f.italic ? 'i' : '') + (keep ? '|k' : '');
     if(_mvNoteLineCache.has(key)) return _mvNoteLineCache.get(key);
     const el = mvNoteMeasurer();
     el.style.width = w + 'px';
@@ -15133,16 +15172,18 @@ export function initLegacyApp() {
     el.style.fontStyle = f.italic ? 'italic' : 'normal';
     el.style.lineHeight = G.line + 'px';
     el.textContent = t;
-    const lines = Math.min(2, Math.max(1, Math.round((el.offsetHeight - 6) / G.line)));
+    const lines = Math.min(keep ? 4 : 2, Math.max(1, Math.round((el.offsetHeight - 6) / G.line)));
     if(_mvNoteLineCache.size > 800) _mvNoteLineCache.clear();
     _mvNoteLineCache.set(key, lines);
     return lines;
   }
-  function mvNoteLineCount(text, boxW, fmt){
+  // D1: a waterfall line ending in a date (the writer's MVL_DATED, the same pattern).
+  const MV_NOTE_DATED = /\s\d{1,2}\/\d{1,2}\/\d{2}(?:\d{2})?$/;
+  function mvNoteLineCount(text, boxW, fmt, keep){
     const t = String(text == null ? '' : text);
     if(!t.trim()) return 1;
     const px = mvNoteEffPx(fmt);
-    if(px > 10 && MV_NOTE_SIZES[px]){ mvNoteMeasurer(); return mvNoteLineCountSized(t, boxW, fmt, px); }
+    if(px > 10 && MV_NOTE_SIZES[px]){ mvNoteMeasurer(); return mvNoteLineCountSized(t, boxW, fmt, px, !!keep); }
     const sig = mvMeasureSig(fmt);
     const key = Math.round(boxW) + '|' + t + (sig ? '|' + sig : '');
     if(_mvNoteLineCache.has(key)) return _mvNoteLineCache.get(key);
@@ -15560,7 +15601,9 @@ export function initLegacyApp() {
               // .mv-note-mark class, whose CSS draws ↻ (an automatic note) or ⚑ (a holiday) in that room, so the text
               // never sits under the symbol or clips. Unmarked, and in every print or PDF render, both are what they were.
               const mark = b.mark || null;
-              const span = mvNoteLineCount(n, mark ? noteBoxW - MV_NOTE_MARK_W : noteBoxW, mvTextStyleOf('wfnote', wfKey));
+              // ⛔ FROZEN EDIT D1 (PROPOSED, AUD2-045): a line ending in its date keeps it above 10 px (mvNoteLineCountSized).
+              const span = mvNoteLineCount(n, mark ? noteBoxW - MV_NOTE_MARK_W : noteBoxW, mvTextStyleOf('wfnote', wfKey),
+                                           MV_NOTE_DATED.test(String(n).trim()));
               // ⛔ FROZEN EDIT H1 (owner sign-off by picker, 30 Oct 2026, "Just that holiday": a colour picked on one
               // holiday colours that holiday alone). A holiday with its own month colour (holidayColors) is drawn in it;
               // mvDayNoteBlocks carries it in as `b.color`, and only for such a holiday, so every other line -- and every
@@ -16928,7 +16971,7 @@ export function initLegacyApp() {
 
     let bodyHtml = '';
     for(let r=0; r<maxRows; r++){
-      const rh = rowHeights[r];
+      const rh = sheetRowPx(schedule, r);   // R4 (PROPOSED): a two-holiday row's height, else ROW_DEFAULT_PX, as before
       // Written on EVERY row, not just dragged ones. Left to itself a row is only as tall as its
       // tallest cell, so heights drifted apart by a pixel here and there; and the workbook and the
       // PDF both lay the grid out as a flat rows x ROW_DEFAULT_PX, so a screen row that quietly
@@ -16954,7 +16997,7 @@ export function initLegacyApp() {
         // fmtWeekDate() is fmtShort() unless the calendar chose 1/6/2025.
         // ⛔ FROZEN EDIT F1 (owner sign-off, 21 Oct 2026, TEXT-STYLE-BAR-PLAN.md §6): a styled date appends its style ('' unstyled).
         const dts = textStyleOf('date', w.date.toISOString().slice(0,10));
-        const dcss = dts ? ((dts.size ? textSizeCss(dts.size, rowHeights[r] || ROW_DEFAULT_PX) : '') + textStyleCss(dts)).trim() : '';
+        const dcss = dts ? ((dts.size ? textSizeCss(dts.size, sheetRowPx(schedule, r)) : '') + textStyleCss(dts)).trim() : '';
         bodyHtml += `<td class="sheet-date ${isFirst?'sheet-blockstart':''}"${dcss ? ` style="${dcss}"` : ''}>${fmtWeekDate(w.date)}</td>`;
 
         if(w.cells.length && w.cells[0].type==='hiatus'){
@@ -16971,12 +17014,12 @@ export function initLegacyApp() {
           // ⛔ FROZEN EDIT F1 (owner sign-off, 21 Oct 2026, TEXT-STYLE-BAR-PLAN.md §6): a styled band is measured in its weight.
           const hts = textStyleOf('hiatus', hKey);
           const hFit = cellTextFit(hTxt, hAvail, Object.assign({
-            basePx: hSize || 11, manual: hSize !== undefined, rowPx: rowHeights[r] || ROW_DEFAULT_PX
+            basePx: hSize || 11, manual: hSize !== undefined, rowPx: sheetRowPx(schedule, r)
           }, hts && hts.bold ? { bold: true } : {}));
           const hPx = 11 * hFit.scale;
           const hFitCss = `white-space:${hFit.wrap ? 'pre-wrap' : 'pre'};`
             + (Math.abs(hPx - 11) > 0.01 ? ` font-size:${hPx.toFixed(2)}px;` : '')
-            + ` max-height:${Math.max(0, (rowHeights[r] || ROW_DEFAULT_PX) - ROW_TEXT_PAD_PX)}px;`;
+            + ` max-height:${Math.max(0, (sheetRowPx(schedule, r)) - ROW_TEXT_PAD_PX)}px;`;
           bodyHtml += `<td class="sheet-hiatus-cell" title="Double-click to rename or recolor this hiatus" data-week="${hKey}" data-default-label="${HIATUS_DEFAULT_LABEL}" data-notelines="${hFit.lines}" colspan="${mc+nCs}" style="background:${hCol}; color:${textColorFor(hCol)}; cursor:text; ${hFit.wrap?'vertical-align:top;':''} ${edgeLast?'border-right:2px solid var(--text);':''}${textStyleCss(hts)}"><div class="cell-body" style="${hFitCss}">${escHi(hTxt)}</div></td>`;
         } else {
           // Lay out the phase area: stable slots, lone phases span empty slots, and
@@ -17016,7 +17059,7 @@ export function initLegacyApp() {
             const lf = cellTextFit(cell.label || '', availChars, lts ? textFitOpts(lts) : {});
             // Never wrap here: rows are a fixed height and a wrapped label would break the band.
             const lfCss = lts
-              ? (Math.abs(11 * lf.scale - 11) > 0.01 ? textSizeCss(11 * lf.scale, rowHeights[r] || ROW_DEFAULT_PX) : '') + textStyleCss(lts)
+              ? (Math.abs(11 * lf.scale - 11) > 0.01 ? textSizeCss(11 * lf.scale, sheetRowPx(schedule, r)) : '') + textStyleCss(lts)
               : (lf.scale < 1 ? ` font-size:${(11 * lf.scale).toFixed(2)}px;` : '');
             if(cell.kind==='phase'){
               const escAttr = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');
@@ -17041,12 +17084,12 @@ export function initLegacyApp() {
               // ⛔ FROZEN EDIT F1 (owner sign-off, 21 Oct 2026, TEXT-STYLE-BAR-PLAN.md §6): measured in its weight, style appended below.
               const phts = textStyleOf('hiatus', phKey);
               const phFit = cellTextFit(cell.label || '', availChars, Object.assign({
-                basePx: phSize || 11, manual: phSize !== undefined, rowPx: rowHeights[r] || ROW_DEFAULT_PX
+                basePx: phSize || 11, manual: phSize !== undefined, rowPx: sheetRowPx(schedule, r)
               }, phts && phts.bold ? { bold: true } : {}));
               const phPx = 11 * phFit.scale;
               const phCss = `white-space:${phFit.wrap ? 'pre-wrap' : 'pre'};`
                 + (Math.abs(phPx - 11) > 0.01 ? ` font-size:${phPx.toFixed(2)}px;` : '')
-                + ` max-height:${Math.max(0, (rowHeights[r] || ROW_DEFAULT_PX) - ROW_TEXT_PAD_PX)}px;`;
+                + ` max-height:${Math.max(0, (sheetRowPx(schedule, r)) - ROW_TEXT_PAD_PX)}px;`;
               // Same span-drag hooks a phase cell gets (own/lmin/rmax/a/b/nphases), so a hiatus
               // band can be double-clicked or dragged across its column exactly like an active
               // phase (owner, 1 Sep 2026). data-week here is deliberately the PLAIN date to match
@@ -17080,7 +17123,7 @@ export function initLegacyApp() {
             // ⛔ FROZEN EDIT F1 (owner sign-off, 21 Oct 2026, TEXT-STYLE-BAR-PLAN.md §6): measured in its weight, style appended below.
             const nts = textStyleOf('note', weekDateKey);
             const fit = cellTextFit(noteText, colWidthsFor[bi].notes, Object.assign({
-              basePx: nSize || 11, manual: nSize !== undefined, rowPx: rowHeights[r] || ROW_DEFAULT_PX
+              basePx: nSize || 11, manual: nSize !== undefined, rowPx: sheetRowPx(schedule, r)
             }, nts && nts.bold ? { bold: true } : {}));
             const fitPx = 11 * fit.scale;
             // pre keeps a single line single (and lets text-overflow put an ellipsis on it);
@@ -17089,7 +17132,7 @@ export function initLegacyApp() {
               + (Math.abs(fitPx - 11) > 0.01 ? ` font-size:${fitPx.toFixed(2)}px;` : '')
               // Every row caps its text now, not just a hand-dragged one: they all start at the
               // default height, so they all get the same line budget.
-              + ` max-height:${Math.max(0, (rowHeights[r] || ROW_DEFAULT_PX) - ROW_TEXT_PAD_PX)}px;`;
+              + ` max-height:${Math.max(0, (sheetRowPx(schedule, r)) - ROW_TEXT_PAD_PX)}px;`;
             bodyHtml += `<td class="sheet-note-cell has-note" title="Double-click to edit this note" data-week="${weekDateKey}" data-notefit="${fit.scale.toFixed(4)}" data-notelines="${fit.lines}" style="background:${nc}; color:${textColorFor(nc)}; ${fit.wrap?'vertical-align:top;':''} ${isLast?'border-right:2px solid var(--text);':''}${textStyleCss(nts)}"><div class="cell-body" style="${fitCss}">${esc(noteText)}</div></td>`;
           } else {
             bodyHtml += `<td class="sheet-note-cell" title="Double-click to add a note" data-week="${weekDateKey}" ${isLast?'style="border-right:2px solid var(--text);"':''}><span class="note-add-hint">+</span></td>`;
@@ -17441,8 +17484,15 @@ export function initLegacyApp() {
     // was 6-16, and 13 and up cut the text in a standard row (plan §4.1); the bar's is 6-12 (owner ruling D1).
     // A note already saved at 14 or 16 keeps that size and the bar shows it. pendingSize / sizeTouched stay
     // in activeNoteEditor below, never touched now, so a commit writes no size.
-    const dayRow = isHiatus ? '' : `<div class="note-day-row"${typedShown ? '' : ' style="display:none"'}>
-      <label><span class="note-row-name">Day</span><select class="note-day-select">
+    // ⭐ THE LOOK IS A2 (owner, 4 Nov 2026, mockups/note-editor-look.html: "yes A2, but its an "Auto-Note""; card
+    // `note-editor-overhaul`; PHASE-LINKED-NOTES-PLAN.md §4.4). One list of rows under the text box, a name on the left and
+    // its value on the right, a hairline between: Day, Stays with (its one-line hint under it), Colour (the picked
+    // colour's name at the right, all 18 of the note palette always out, ten then eight), Show in month view, and the
+    // cell's automatic notes and holidays with their Hide (WATERFALL-NOTE-EDITOR-PLAN.md R3(a), folded in as the list's
+    // last row). Then a foot with Save. Every row keeps the class the code and the legs find it by (.note-day-row,
+    // .note-link-row, .note-color-row, .note-view-row, .wf-note-items); each is a `.note-item` of `.note-list`.
+    const dayRow = isHiatus ? '' : `<div class="note-item note-day-row"${typedShown ? '' : ' style="display:none"'}>
+      <label class="note-line"><span class="note-row-name">Day</span><select class="note-day-select">
         <option value=""${pinnedDate?'':' selected'}>${linkSingle ? 'First day (default)' : 'Mon (default)'}</option>
         ${dayOpts}
       </select></label>
@@ -17452,8 +17502,8 @@ export function initLegacyApp() {
     // The row: "Stays with [Week of 7/6/26 | Production wk 2 | ...]", a one-line hint under it, and (R2(a)) a line naming
     // the other linked notes drawn here. ⛔ The select has NO id: collectFieldValues() sweeps select[id], and this is a
     // note's own setting, never a calendar field. Shown with the Day row: for typed text (a linked note's included).
-    const linkRow = !link ? '' : `<div class="note-link-row"${typedShown ? '' : ' style="display:none"'}>
-      <label><span class="note-row-name">Stays with</span><select class="note-link-select" title="What this note stays with when phases move">
+    const linkRow = !link ? '' : `<div class="note-item note-link-row"${typedShown ? '' : ' style="display:none"'}>
+      <label class="note-line"><span class="note-row-name">Stays with</span><select class="note-link-select" title="What this note stays with when phases move">
         <option value=""${link.sel0 ? '' : ' selected'}>Week of ${escHtml(fmtShort(link.week))}</option>
         ${link.opts.map(o=> `<option value="${escHtml(o.value)}"${o.value === link.sel0 ? ' selected' : ''}>${escHtml(o.label)}</option>`).join('')}
       </select></label>
@@ -17482,37 +17532,47 @@ export function initLegacyApp() {
       ? `<button type="button" class="note-pop-delete wf-note-hide" data-i="0" title="${escHtml(hideTitle(singleItem))}">${singleItem.holiday ? 'Hide Holiday' : 'Hide Auto-Note'}</button>`
       : typedHere ? `<button type="button" class="note-pop-delete wf-note-delete" title="Deletes what was typed in this cell. Its automatic notes and holidays stay (each has its own Hide). One undo brings it back.">Delete Note</button>` : '';
     const itemsHtml = isHiatus ? '' : singleItem ? ''
-      : (cellItems.length ? `<div class="wf-note-items"><div class="wf-note-items-head">In this cell</div>${cellItems.map((n, i)=>
+      : (cellItems.length ? `<div class="note-item wf-note-items"><div class="wf-note-items-head">In this cell</div>${cellItems.map((n, i)=>
           `<div class="wf-note-item" title="${escHtml(autoNoteLine(n))}"><span class="wf-note-mark wf-note-mark-${n.holiday ? 'holiday' : 'auto'}" aria-hidden="true"></span>`
           + `<span class="wf-note-item-name">${escHtml(n.label)}</span>`
           + `<button type="button" class="wf-note-hide" data-i="${i}" title="${escHtml(hideTitle(n))}" aria-label="Hide ${escHtml(n.label)} from the Waterfall">Hide</button></div>`).join('')}</div>` : '');
     // Anchored to the cell, appended to the body -- NOT written into the cell. The grid keeps
     // exactly the shape it had before the click.
     const pop = document.createElement('div');
-    pop.className = 'note-pop';
+    // `note-a2` scopes A2's look (legacy.css): the heading editor is a .note-pop too, and keeps its own.
+    pop.className = 'note-pop note-a2';
     // A per-phase hiatus key is "<week>|<phase>", which is not a date, so take the week part and
     // fall back to the raw key if it still will not parse.
     const popWeek = parseDateUTC(splitWeekKey(weekKey).iso);
-    // The heading names a cell holding one automatic note or one holiday, by ITS date (owner, 30 Oct 2026: "why does this
-    // still show as Note in the waterfall"); anything else is the week's Note, by its Monday, as before.
-    const popTitle = singleItem
-      ? (singleItem.holiday ? 'Holiday' : 'Auto Note') + ' \u00b7 ' + fmtShort(singleItem.date)
-      : (isHiatus ? 'Hiatus' : 'Note') + ' \u00b7 ' + (popWeek ? fmtShort(popWeek) : weekKey);
-    // The keys line ("Tab or Ctrl/Cmd-Enter to save · Esc to cancel") is gone (owner, 12 Nov 2026: "Delete this text
-    // in all places"). A single automatic note or holiday keeps the line saying what saving does; any other cell's
-    // editor has no hint line at all, rather than an empty one holding its margin.
-    const popHint = singleItem ? (singleItem.holiday ? 'Renames this holiday wherever it shows'
-                                                     : 'Renames it wherever it shows \u00b7 Its date follows the schedule') : '';
-    pop.innerHTML = `<div class="note-pop-head"><div class="note-pop-title">${escHtml(popTitle)}</div>${headBtn}</div>
+    // The heading names a cell holding one automatic note or one holiday (owner, 30 Oct 2026: "why does this still show
+    // as Note in the waterfall"), by ITS day; anything else is the week's Note, by its Monday. A2 (owner, 4 Nov 2026)
+    // splits it in two: the name, in the panel's own type ("Note", "Holiday", and "Auto-Note", the owner's spelling: "yes
+    // A2, but its an "Auto-Note""), then the day in grey. The one action button stays at the top right (10 Nov 2026).
+    const popName = singleItem ? (singleItem.holiday ? 'Holiday' : 'Auto-Note') : (isHiatus ? 'Hiatus' : 'Note');
+    const popWhen = singleItem ? noteDayLabel(singleItem.date) : (popWeek ? 'Week of ' + fmtShort(popWeek) : weekKey);
+    // The keys line ("Tab or Ctrl/Cmd-Enter to save, Esc to cancel") is gone (owner, 12 Nov 2026: "Delete this text in
+    // all places"). A single automatic note or holiday keeps the line saying what saving does, right under the text box
+    // (A2's place for it); any other cell's editor has none, rather than an empty one holding its margin.
+    const popHint = singleItem ? (singleItem.holiday ? 'Renames this holiday wherever it shows.'
+                                                     : 'Renames it wherever it shows. Its date follows the schedule.') : '';
+    // Colour, the list's third row: its name, the picked colour's name at the right, then the swatches (a hiatus band's
+    // standard ten, a note's whole palette in two rows, ten then eight).
+    const colourRow = `<div class="note-item note-colour-item"><div class="note-line"><span class="note-row-name">Colour</span>`
+      + `<span class="note-colour-name">${escHtml(noteColourName(curColor))}</span></div>${swatchRows}</div>`;
+    pop.innerHTML = `<div class="note-pop-head"><div class="note-pop-heading"><span class="note-pop-title">${escHtml(popName)}</span>`
+      + ` <span class="note-pop-when">${escHtml(popWhen)}</span></div>${headBtn}</div>
       <div class="note-editor">
-      <textarea rows="2" placeholder="${isHiatus?'Hiatus label':'Note text (multi-line OK)'}">${textVal.replace(/</g,'&lt;')}</textarea>
+      <textarea rows="2" placeholder="${isHiatus?'Hiatus label':'Note text (Shift+Enter for a new line)'}">${textVal.replace(/</g,'&lt;')}</textarea>
+      ${popHint ? `<div class="note-pop-hint">${popHint}</div>` : ''}
+      <div class="note-list">
       ${dayRow}
       ${linkRow}
-      ${swatchRows}
+      ${colourRow}
       ${viewRow}
       ${itemsHtml}
       </div>
-      ${popHint ? `<div class="note-pop-hint">${popHint}</div>` : ''}`;
+      </div>
+      <div class="note-pop-foot"><button type="button" class="note-pop-save">Save</button></div>`;
     document.body.appendChild(pop);
     // Keep it beside the cell and inside the window, and keep doing so: the grid scrolls inside
     // its own pane, so a popover placed once and left alone slides away from its cell.
@@ -17536,20 +17596,38 @@ export function initLegacyApp() {
     // like anything else typed -- rather than being auto-appended at render time, so what's in
     // the box is exactly what gets saved.
     const daySel = pop.querySelector('.note-day-select');
+    // ⭐ THE LINE THE DAY IS STAMPED ON (November 2026 audit, AUD2-011, 13 Nov 2026): the LAST line the user typed, never
+    // an automatic note's, a holiday's, a month note's or (unless the cell is that one linked note, whose day this is) a
+    // linked note's. Until then it was the box's last line, whatever it was: the box lists the week's own text, then its
+    // linked notes, then its month notes, so with either in the cell the date went onto THEIR line (a month note doubled
+    // in the month view, a linked note with a date frozen into it), and with the user's line above "Start Principal
+    // Photography 6/29/26" the start itself was re-dated in every output. Their dates are their own (plan D4's reason).
+    const dayForeign = new Set(cellKnown);
+    if(!isHiatus) wfWeekAutoItems(weekKey).forEach(n=> dayForeign.add(autoNoteLine(n)));   // a month-only one a note kept too
+    if(link && !linkSingle) link.visitors.forEach(e=> split0(e.line).forEach(l=> dayForeign.add(l)));
     if(daySel){
       daySel.addEventListener('mousedown', e=>e.stopPropagation());
       daySel.addEventListener('click', e=>e.stopPropagation());
       daySel.addEventListener('change', e=>{
         e.stopPropagation();
         const iso = daySel.value;
-        const cur = textarea.value;
-        // Replace any date this control previously stamped, so switching days doesn't stack
-        // them up. Only touches a trailing date -- one typed mid-sentence is left alone.
-        // \d{1,2} on the DAY as well as the month: fmtShort no longer zero-pads, so a
-        // day-of-month under 10 gave a one-digit day and the old pattern silently failed to
-        // strip -- switching days would then stack a second date on the end.
-        const stripped = cur.replace(/\s*\d{1,2}\/\d{1,2}\/\d{2}\s*$/, '');
-        textarea.value = iso ? (stripped ? stripped + ' ' : '') + fmtShort(parseDateUTC(iso)) : stripped;
+        const ls = textarea.value.split('\n');
+        let at = -1;
+        for(let i = ls.length - 1; i >= 0 && at < 0; i--){ const t = ls[i].trim(); if(t && !dayForeign.has(t)) at = i; }
+        if(at < 0){
+          // An empty box takes the date alone, as it always did. A box holding only other notes' lines has no line of
+          // the user's to stamp: each keeps its own date.
+          if(!ls.some(l=> l.trim())) textarea.value = iso ? fmtShort(parseDateUTC(iso)) : '';
+        } else {
+          // Replace any date this control previously stamped, so switching days doesn't stack
+          // them up. Only touches a trailing date -- one typed mid-sentence is left alone.
+          // \d{1,2} on the DAY as well as the month: fmtShort no longer zero-pads, so a
+          // day-of-month under 10 gave a one-digit day and the old pattern silently failed to
+          // strip -- switching days would then stack a second date on the end.
+          const stripped = ls[at].replace(/\s*\d{1,2}\/\d{1,2}\/\d{2}\s*$/, '');
+          ls[at] = iso ? (stripped ? stripped + ' ' : '') + fmtShort(parseDateUTC(iso)) : stripped;
+          textarea.value = ls.join('\n');
+        }
         textarea.focus();
       });
     }
@@ -17565,7 +17643,8 @@ export function initLegacyApp() {
     activeNoteEditor = {td, pop, place, weekKey, textarea, autoNotes, isHiatus, pendingColor: null,
                         pendingSize: undefined, sizeTouched: false, defaultLabel: hiatusDefaultLabel,
                         hide: null,    // the note a Hide button hides (R2(b): set, then committed at once)
-                        link};         // what the Stays with row opened on (wfLinkContext), read on commit
+                        link,          // what the Stays with row opened on (wfLinkContext), read on commit
+                        escBase: textVal};   // what Esc compares the box with: it keeps a changed note (AUD2-040)
 
     // Stays with: the hint says what will happen (R1), the waiting message is R3(a)'s, and the "Also here" line R2(a)'s.
     // The Day list's empty choice reads "First day (default)" for a phase (R6(a)), "Mon (default)" for the week.
@@ -17610,10 +17689,22 @@ export function initLegacyApp() {
           td.style.background = c;
           td.style.color = textColorFor(c);
           pop.querySelectorAll('.color-swatch').forEach(s=>s.classList.toggle('selected', s===sw));
+          const nm = pop.querySelector('.note-colour-name');
+          if(nm) nm.textContent = noteColourName(c);
         }
       });
     });
-    // The switch keeps the text box's focus (as the swatches do), so Tab and Ctrl/Cmd-Enter still save. Read on commit.
+    // Save (A2's foot): what Tab, Enter or a click away already did, as a button (AUD2-040: "the note editors have no Save
+    // button"). It keeps the text box's focus until it saves, as the swatches do.
+    const saveBtn = pop.querySelector('.note-pop-save');
+    if(saveBtn){
+      saveBtn.addEventListener('mousedown', e=> e.preventDefault());
+      saveBtn.addEventListener('click', e=>{
+        e.stopPropagation();
+        if(activeNoteEditor && activeNoteEditor.pop === pop) commitActiveNoteEditor();
+      });
+    }
+    // The switch keeps the text box's focus (as the swatches do), so Enter, Tab and Ctrl/Cmd-Enter still save. Read on commit.
     const viewSw = pop.querySelector('.note-view-row');
     if(viewSw) viewSw.addEventListener('mousedown', e=>{ e.preventDefault(); });
     // The Day picker and the switch show as soon as the box holds a typed line (D4, D5), and go again if it stops.
@@ -17812,6 +17903,12 @@ export function initLegacyApp() {
           wfLookToWeek(weekKey, look);
         }
       }
+      // A Day picked with no line of the user's own left to pin (the cell's other lines keep their own dates, AUD2-011)
+      // pins nothing: the week's automatic text is not frozen with a date.
+      if(ownDate){
+        const autoLines = new Set(split0(autoNotesText(autoIn)));
+        if(!split0(own).some(l=> !autoLines.has(l))) ownDate = '';
+      }
       if(!own.trim()){
         // The week's own lines only: a month line still in the box stays, so this is not Delete's wfClearNote.
         if(wfClearOwnNote(weekKey)) renamed = true;
@@ -17904,6 +18001,25 @@ export function initLegacyApp() {
     // Until then this ran only when the count was the same (renames, line for line) or lines were only taken out
     // (hides), so a rename and an added line in one save lost the rename, and a line taken out with another typed in
     // was neither hidden nor kept (it came back after a move).
+    wfLineGaps(b, a).forEach(([left, came])=>{
+      left.forEach((bi, t)=>{
+        const nt = noteOf(b[bi]);
+        if(!nt || labels.has(nt) || gone.has(nt)) return;
+        if(t >= came.length) gone.add(nt);                               // nothing in its place: hidden
+        else rename(nt, a[came[t]], came[t], left.length !== came.length);
+      });
+    });
+    // A delete hides an automatic note from the waterfall only (ruling R4, hideAutoNoteIn), as a holiday's has always been.
+    gone.forEach(nt=>{ if(nt.holiday) hideHolidayInWaterfall(nt.hid); else hideAutoNoteIn(nt.kind, 'sheet'); });
+    if(!labels.size && !gone.size) return null;
+    return {text: a.join('\n'),
+            autoNotes: (autoNotes || []).filter(n=> !gone.has(n)).map(n=> labels.has(n) ? Object.assign({}, n, {label: labels.get(n)}) : n)};
+  }
+  // The box's lines against the cell's (both trimmed, blank ones out), aligned BY CONTENT: their longest common run is
+  // what the box kept, and between two kept lines [left, came] are the indices of the lines that left `b` and the lines
+  // that came into `a` there. A line that only MOVED is in neither (it is in both lists of lines). wfLineEdits' alignment
+  // (WATERFALL-NOTE-EDITOR-PLAN.md D2, 4 Nov 2026), shared since 13 Nov 2026 with the linked and month lines' matchers.
+  function wfLineGaps(b, a){
     const n = b.length, m = a.length;
     const had = new Set(b), has = new Set(a);
     const L = Array.from({length: n + 1}, ()=> new Array(m + 1).fill(0));
@@ -17919,20 +18035,35 @@ export function initLegacyApp() {
     while(i < n) gb.push(i++);
     while(j < m) ga.push(j++);
     gaps.push([gb, ga]);
-    gaps.forEach(([gl, gc])=>{
-      const left = gl.filter(bi=> !has.has(b[bi])), came = gc.filter(aj=> !had.has(a[aj]));
-      left.forEach((bi, t)=>{
-        const nt = noteOf(b[bi]);
-        if(!nt || labels.has(nt) || gone.has(nt)) return;
-        if(t >= came.length) gone.add(nt);                               // nothing in its place: hidden
-        else rename(nt, a[came[t]], came[t], left.length !== came.length);
+    return gaps.map(([gl, gc])=> [gl.filter(bi=> !has.has(b[bi])), gc.filter(aj=> !had.has(a[aj]))]);
+  }
+  // ⭐ WHICH LINE BECAME WHICH, for a note's lines that are not the week's own (November 2026 audit, AUD2-015): a linked
+  // note's (wfLinkedLineEdits) or a month note's (wfMonthLineEdits). Map: index in `b` -> index in `a` of the line that
+  // took its place. Where as many lines left as came, they pair in order (the rule these matchers always had, when the
+  // box kept its line count). Where the box gained or lost lines at that spot, a line pairs with the first line there
+  // that reads as an EDIT of it (wfLooksLikeEdit): so "Wardrobe fitting" changed to "Wardrobe fitting cast" with
+  // "Catering" added below it, in one save, is still its note's rename. Until now an added line anywhere in the box made
+  // the change a delete plus a typed copy: the linked note lost its link, the month note was left beside its copy.
+  // `dayOf(bi)`: the date that line carries as its own (a month note's day, a dated linked note's), or null.
+  function wfEditPairs(b, a, dayOf){
+    const out = new Map();
+    wfLineGaps(b, a).forEach(([left, came])=>{
+      if(left.length === came.length){ left.forEach((bi, t)=> out.set(bi, came[t])); return; }
+      const free = came.slice();
+      left.forEach(bi=>{
+        const k = free.findIndex(aj=> wfLooksLikeEdit(b[bi], a[aj], dayOf ? dayOf(bi) : null));
+        if(k >= 0) out.set(bi, free.splice(k, 1)[0]);
       });
     });
-    // A delete hides an automatic note from the waterfall only (ruling R4, hideAutoNoteIn), as a holiday's has always been.
-    gone.forEach(nt=>{ if(nt.holiday) hideHolidayInWaterfall(nt.hid); else hideAutoNoteIn(nt.kind, 'sheet'); });
-    if(!labels.size && !gone.size) return null;
-    return {text: a.join('\n'),
-            autoNotes: (autoNotes || []).filter(n=> !gone.has(n)).map(n=> labels.has(n) ? Object.assign({}, n, {label: labels.get(n)}) : n)};
+    return out;
+  }
+  // Does `now` read as an edit of `was`? It keeps `was`'s own date (wfLineEdits' test for a dated line), or the two
+  // share a word of three letters or more (dates and bare numbers aside). A line typed afresh shares neither.
+  function wfLooksLikeEdit(was, now, day){
+    if(day && stripHolidayDate(now, day) !== String(now || '').replace(/\s+/g, ' ').trim()) return true;
+    const words = s => (String(s || '').toLowerCase().match(/[\p{L}\p{N}'’]{3,}/gu) || []).filter(w=> !/^\d+$/.test(w));
+    const ws = new Set(words(was));
+    return words(now).some(w=> ws.has(w));
   }
 
   function closeWithoutSaving(){
@@ -17952,15 +18083,51 @@ export function initLegacyApp() {
     if(activeNoteEditor.pop && activeNoteEditor.pop.contains(e.target)) return;
     commitActiveNoteEditor();
   });
+  // ⭐ THE EXCEL AND OUTLOOK KEYS (November 2026 audit, AUD2-040; owner's decision D6 (a), 13 Nov 2026). Both note editors,
+  // this one and the month view's (openMvNoteEditor), take the same keys:
+  //   - ENTER SAVES, as Outlook's quick add and this app's own holiday, automatic-note and heading editors already did.
+  //     Until then plain Enter added a line here, and since the owner removed the keys line (12 Nov 2026) nothing on
+  //     screen said that Tab or Ctrl/Cmd+Enter saved. Only in the text box: Enter on the Day list or a button is theirs.
+  //   - SHIFT+ENTER OR ALT+ENTER STARTS A NEW LINE (Outlook's and Excel's). Inserted here (noteNewline) rather than left
+  //     to the browser, so both keys do the same thing on every platform.
+  //   - ESC KEEPS A CHANGED NOTE. Esc used to throw away whatever was typed, a NEW note included, and Undo could not bring
+  //     it back because it was never saved. Now Esc saves when the text box no longer says what it opened with and is not
+  //     empty (the finding's "keep the typed text"); unchanged, or emptied, it closes without saving as before, so Esc can
+  //     never delete a note. A colour picked alone is not text and is still dropped by Esc. ⚠️ The key that OPENED the
+  //     editor (typing on a highlighted note ADDS it at the end, plan §1 D5) counts as what it opened with (`escBase`):
+  //     a stray key and then Esc still leave the note exactly as it was. Keep typing, and Esc keeps all of it.
+  //   - Tab and Ctrl/Cmd+Enter still save. Nothing happens while an input method is composing (its Enter picks a word).
   document.addEventListener('keydown', e=>{
     if(!activeNoteEditor) return;
-    if(e.key==='Escape'){ closeWithoutSaving(); return; }
+    if(e.isComposing || e.keyCode === 229) return;
+    if(e.key==='Escape'){ if(noteTextChanged(activeNoteEditor.textarea, activeNoteEditor.escBase)) commitActiveNoteEditor(); else closeWithoutSaving(); return; }
     if(e.key==='Tab'){ e.preventDefault(); commitActiveNoteEditor(); return; }
-    // Ctrl+Enter or Cmd+Enter commits (plain Enter adds a newline in the textarea)
-    if(e.key==='Enter' && (e.ctrlKey || e.metaKey)){
-      e.preventDefault(); commitActiveNoteEditor();
-    }
+    if(e.key !== 'Enter') return;
+    if(e.ctrlKey || e.metaKey){ e.preventDefault(); commitActiveNoteEditor(); return; }
+    if(e.target !== activeNoteEditor.textarea) return;
+    e.preventDefault();
+    if(e.shiftKey || e.altKey) noteNewline(activeNoteEditor.textarea);
+    else commitActiveNoteEditor();
   });
+  // Has the note's text box changed since its editor opened (and does it still hold text)? Esc keeps such a note.
+  function noteTextChanged(textarea, initial){
+    const now = String(textarea ? textarea.value : '').trim();
+    return !!now && now !== String(initial == null ? '' : initial).trim();
+  }
+  // A line break at the caret, for Shift+Enter and Alt+Enter in a note editor: execCommand('insertText') where it works
+  // (the browser's own insertion, firing the box's input event), else the text set directly and the box told.
+  // ⚠️ It does NOT give the box an undo step for the line: a test with TRUSTED keys (the 14 Nov 2026 review of item 2.8)
+  // found ⌘Z inside the box does not take the inserted line back (Backspace does, as for any character).
+  function noteNewline(textarea){
+    const before = textarea.value;
+    let done = false;
+    if(document.activeElement === textarea){ try { done = document.execCommand('insertText', false, '\n') && textarea.value !== before; } catch(_){ done = false; } }
+    if(!done){
+      const s = textarea.selectionStart, en = textarea.selectionEnd;
+      textarea.setRangeText('\n', s, en, 'end');
+      textarea.dispatchEvent(new Event('input', { bubbles: true }));
+    }
+  }
 
   function readCfgForMeta(key){
     const start = document.getElementById('start-'+key).value;
@@ -18032,7 +18199,7 @@ export function initLegacyApp() {
     // out. Excel's own row autofit is still one click away for anyone who wants it.
     function applyRowHeight(row, r){
       // L-2: limited here too -- an old file's stored height is never rewritten, only written out valid.
-      row.height = Math.min(EXCEL_MAX_ROW_PT, Math.round((rowHeights[r] || ROW_DEFAULT_PX) * ROW_PX_TO_PT * 100) / 100);
+      row.height = Math.min(EXCEL_MAX_ROW_PT, Math.round((sheetRowPx(schedule, r)) * ROW_PX_TO_PT * 100) / 100);
     }
 
     const HEADER_FILL = 'D9D9D9';
@@ -18309,7 +18476,7 @@ export function initLegacyApp() {
           // F2: measured in its weight, as the screen's (F1).
           const hts = textStyleOf('hiatus', hKey);
           const hFit = cellTextFit(hTxt, hAvail, Object.assign({
-            basePx: hSize || 11, manual: hSize !== undefined, rowPx: rowHeights[r] || ROW_DEFAULT_PX
+            basePx: hSize || 11, manual: hSize !== undefined, rowPx: sheetRowPx(schedule, r)
           }, hts && hts.bold ? { bold: true } : {}));
           baseStyle(hCell, {font:{color:{argb:'FF'+textColorFor(hCol).replace('#','')},
                                   size: Math.round(11 * hFit.scale * 100) / 100}});
@@ -18363,7 +18530,7 @@ export function initLegacyApp() {
               const phSize = hiatusFontSizeFor(phKey);
               const phts = textStyleOf('hiatus', phKey);   // F2
               const phFit = cellTextFit(item.label || '', availChars, Object.assign({
-                basePx: phSize || 11, manual: phSize !== undefined, rowPx: rowHeights[r] || ROW_DEFAULT_PX
+                basePx: phSize || 11, manual: phSize !== undefined, rowPx: sheetRowPx(schedule, r)
               }, phts && phts.bold ? { bold: true } : {}));
               baseStyle(cell, {font:{color:{argb:'FF'+textColorFor(item.color).replace('#','')},
                                      size: Math.round(11 * phFit.scale * 100) / 100}});
@@ -18403,7 +18570,7 @@ export function initLegacyApp() {
             const nSize = noteFontSizeFor(nKey);
             const nts = textStyleOf('note', nKey);   // F2
             const fit = cellTextFit(noteText, widths.notes, Object.assign({
-              basePx: nSize || 11, manual: nSize !== undefined, rowPx: rowHeights[r] || ROW_DEFAULT_PX
+              basePx: nSize || 11, manual: nSize !== undefined, rowPx: sheetRowPx(schedule, r)
             }, nts && nts.bold ? { bold: true } : {}));
             // An un-pinned row must be tall enough for the lines the note actually uses:
             // Excel autofits a wrapped cell only when no explicit height is set, and that is
@@ -19443,13 +19610,20 @@ export function initLegacyApp() {
   // is the week's own text, returned for the usual path (wfLineEdits, saveNoteEdit). `ownBefore` is the week's own
   // text as the editor opened on it (wfOwnNoteText); the editor showed it, then the month lines (effectiveNoteText).
   //  - A month line still in the text, anywhere, is kept as it is.
-  //  - One missing, with the editor holding as many lines as it opened with, where a line now stands that is neither
-  //    the week's own as it was nor another date: a rename. The month note takes that text, its date taken out (it is
-  //    added back on the waterfall's line), on one line.
+  //  - One missing, where a line now stands in its place (wfEditPairs: in order where the box kept its count there,
+  //    else the line that reads as an edit of it) that is not the week's own as it was: a rename. The month note takes
+  //    that text, its date taken out (it is added back on the waterfall's line), on one line. ⭐ Since 13 Nov 2026
+  //    (November 2026 audit, AUD2-015) a line added elsewhere in the same save no longer turns a rename into "taken
+  //    out": until then this needed the box to hold exactly as many lines as it opened with.
+  //  - ⭐ One given ANOTHER date INSIDE THIS WEEK (AUD2-015's default, no decision needed): the month note MOVES to that
+  //    day, renamed as above if its words changed too. Until then the note stayed on its old day in the month view and
+  //    the line became a typed copy on the new one: the same event twice. A date outside the week is still "taken out".
   //  - Any other missing one was taken out: switched off for the waterfall. The note stays in the month view.
   function wfMonthLineEdits(weekKey, ownBefore, after){
     const ml = wfMonthLinesFor(weekKey);
     if(!ml.length) return after;
+    // The entries themselves, before any moves: a move takes one out of its day's list, and the indices shift.
+    ml.forEach(m=>{ m.e = dayNoteList(m.iso)[m.index]; });
     const own = String(ownBefore || '').split('\n').map(l => l.trim()).filter(Boolean);
     const before = own.concat(ml.map(m => m.line));
     const a = String(after || '').split('\n').map(l => l.trim()).filter(Boolean);
@@ -19458,27 +19632,52 @@ export function initLegacyApp() {
       const k = a.findIndex((l, i)=> !used.has(i) && l === m.line);
       if(k >= 0) used.add(k); else missing.push(m);
     });
-    const gone = [];
+    const pairs = wfEditPairs(before, a, bi=> bi >= own.length ? parseDateUTC(ml[bi - own.length].iso) : null);
+    const wk = parseDateUTC(weekKey);
+    const gone = [], moves = [];
     missing.forEach(m=>{
-      const i = before.indexOf(m.line);
-      const now = (a.length === before.length && i >= 0 && !used.has(i)) ? a[i] : null;
+      const j = pairs.get(own.length + ml.indexOf(m));
+      const now = (j !== undefined && !used.has(j)) ? a[j] : null;
       const day = parseDateUTC(m.iso);
-      const name = (now && own.indexOf(now) < 0) ? stripHolidayDate(now, day) : '';
-      if(!name || /\d{1,2}\/\d{1,2}\/(\d{4}|\d{2})$/.test(name)){ gone.push(m); return; }   // taken out, or given another date
-      used.add(i);
-      const e = dayNoteList(m.iso)[m.index];
+      let name = (now && own.indexOf(now) < 0) ? stripHolidayDate(now, day) : '';
+      let to = null;
+      const dm = /(\d{1,2})\/(\d{1,2})\/(\d{4}|\d{2})$/.exec(name);
+      if(dm && wk){
+        // Given another date: inside this week, the note moves there (its date taken out, as its own is above).
+        const y = dm[3].length === 2 ? 2000 + parseInt(dm[3], 10) : parseInt(dm[3], 10);
+        const nd = new Date(Date.UTC(y, parseInt(dm[1], 10) - 1, parseInt(dm[2], 10)));
+        const off = Math.round((nd - wk) / DAY_MS);
+        if(nd.getUTCMonth() === parseInt(dm[1], 10) - 1 && off >= 0 && off <= 6){ to = isoOf(nd); name = stripTrailingDate(name, nd); }
+      }
+      if(!name || /\d{1,2}\/\d{1,2}\/(\d{4}|\d{2})$/.test(name)){ gone.push(m); return; }   // taken out, or given a date outside the week
+      used.add(j);
+      const e = m.e;
       // Unchanged but for how the date was written: keep the note's own text, line breaks and all.
       if(e && name !== String(e.text || '').split('\n').map(l => l.trim()).filter(Boolean).join(' ')) e.text = name;
+      if(e && to && to !== m.iso) moves.push({e, from: m.iso, to});
     });
-    gone.forEach(m=>{ const e = dayNoteList(m.iso)[m.index]; if(e) delete e.waterfall; });
+    gone.forEach(m=>{ if(m.e) delete m.e.waterfall; });
+    moves.forEach(mv=> moveDayNoteEntry(mv.e, mv.from, mv.to));
     return a.filter((l, i)=> !used.has(i)).join('\n');
+  }
+  // One month note (the entry object itself) taken off day `from` and put last on day `to`, as it is: its text, colour,
+  // style, place and "Show in waterfall" go with it. The two days' lists are rewritten as arrays (dayNoteList reads an
+  // older single-note shape too, whose list is a fresh copy). False when it is not on `from`.
+  function moveDayNoteEntry(e, from, to){
+    const src = dayNoteList(from).slice(), k = src.indexOf(e);
+    if(k < 0 || !parseDateUTC(to)) return false;
+    src.splice(k, 1);
+    if(src.length) dayNotes[from] = src; else delete dayNotes[from];
+    dayNotes[to] = dayNoteList(to).concat([e]);
+    return true;
   }
   // The waterfall note editor's text, saved, for the notes LINKED TO A PHASE drawn in this week (PHASE-LINKED-NOTES-
   // PLAN.md §4.5, the choice left alone; wfMonthLineEdits' shape, line by line, since a linked note may hold several):
   //  - a linked line still in the box, anywhere, is kept;
-  //  - one missing, with the box holding as many lines as it opened with, where a line now stands that is not one of
-  //    the week's own: renamed in place. A dated note's last line has its drawn date taken out (it is drawn fresh); one
-  //    given ANOTHER date is no rename, and the line stays in the box as the week's own text;
+  //  - one missing, where a line now stands in its place (wfEditPairs; since 13 Nov 2026 whatever was added elsewhere in
+  //    the box, AUD2-015) that is not one of the week's own: renamed in place. A dated note's last line has its drawn
+  //    date taken out (it is drawn fresh); one given ANOTHER date is no rename, and the line stays in the box as the
+  //    week's own text;
   //  - any other missing line is taken out of its note, and a note left with no line is deleted.
   // Returns what is left: the week's own text, for the usual path (wfLineEdits, saveNoteEdit). `ownBefore` is the
   // week's own text as the editor opened on it; the box showed it, then these notes' lines.
@@ -19503,10 +19702,17 @@ export function initLegacyApp() {
       const k = a.findIndex((l, i)=> !used.has(i) && l === p.line);
       if(k >= 0){ used.add(k); p.now = p.stored; }
     });
+    // Which box line stands in each changed line's place: wfEditPairs, so a line added elsewhere in the same save keeps
+    // a rename a rename (November 2026 audit, AUD2-015). Until 13 Nov 2026 this needed the box to hold exactly as many
+    // lines as it opened with, and otherwise deleted the note: its text stayed as the week's own, its link gone.
+    const pairs = wfEditPairs(before, a, bi=>{
+      const p = parts[bi - own.length];
+      return (p && p.last && p.e.dated) ? parseDateUTC(p.e.dayIso) : null;
+    });
     parts.forEach((p, j)=>{
       if(p.now !== null) return;
-      const i = own.length + j;
-      const now = (a.length === before.length && !used.has(i)) ? a[i] : null;
+      const i = pairs.get(own.length + j);
+      const now = (i !== undefined && !used.has(i)) ? a[i] : null;
       if(!now || own.indexOf(now) >= 0) return;
       // A last line drops its drawn date, and on the cell's one note the date the Day picker stamped; a last line left
       // ending in ANOTHER date is no rename, and stays in the box as the week's own text.
@@ -19595,7 +19801,8 @@ export function initLegacyApp() {
   // The switch row both note editors carry under their colours (`label`: what it shows the note in). The checkbox has
   // NO id: collectFieldValues() sweeps input[id], and this is a note's own setting, never a calendar field.
   function noteViewSwitchHtml(label, on, title){
-    return `<label class="note-view-row" title="${escHtml(title)}"><span class="note-view-label">${escHtml(label)}</span>`
+    // A row of the note editors' A2 list (`note-item`, legacy.css), as Day, Stays with and Colour are.
+    return `<label class="note-item note-view-row" title="${escHtml(title)}"><span class="note-view-label">${escHtml(label)}</span>`
          + `<input type="checkbox" class="note-view-cb"${on ? ' checked' : ''}></label>`;
   }
 
@@ -20379,7 +20586,7 @@ export function initLegacyApp() {
     if(schedule && schedule.weeks && schedule.weeks.length){
       maxRows = sheetRowCount(schedule, computeYearBlocks(schedule.weeks));
     }
-    const fn = i => ((i >= 1 && i <= maxRows) ? (rowHeights[i - 1] || ROW_DEFAULT_PX) : ROW_DEFAULT_PX) * ROW_PX_TO_PT;
+    const fn = i => ((i >= 1 && i <= maxRows) ? sheetRowPx(schedule, i - 1) : ROW_DEFAULT_PX) * ROW_PX_TO_PT;
     fn.maxRows = maxRows;
     return fn;
   }
@@ -21541,6 +21748,19 @@ export function initLegacyApp() {
     const swatch = p => `<span class="color-swatch${isMvNoFill(p.color) ? ' is-nofill' : ''}${p.color.toUpperCase() === cur ? ' selected' : ''}" data-color="${p.color}" title="${p.name}"${isMvNoFill(p.color) ? '' : ` style="background:${p.color};"`}></span>`;
     return `<div class="note-color-row note-palette-row" title="Highlight color">${MV_NOTE_PALETTE.slice(1, 11).map(swatch).join('')}</div>`
       + `<div class="note-color-row note-palette-row" title="Highlight color">${[MV_NOTE_PALETTE[0]].concat(MV_NOTE_PALETTE.slice(11)).map(swatch).join('')}</div>`;
+  }
+  // The note editors' A2 look (owner, 4 Nov 2026; mockups/note-editor-look.html): the Colour row names the picked colour
+  // at its right, from the palette's own names (a hiatus band's red is the palette's "Red" too). A colour the palette
+  // does not hold (an old file's) names nothing, rather than a hex code.
+  function noteColourName(c){
+    const cur = String(c || '').toUpperCase();
+    const hit = MV_NOTE_PALETTE.find(function(p){ return p.color.toUpperCase() === cur; });
+    return hit ? hit.name : '';
+  }
+  // A day as the note editors' headings write it: "Tue 10/20/26".
+  function noteDayLabel(d){
+    const dt = (d instanceof Date) ? d : parseDateUTC(String(d || ''));
+    return dt ? ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][dt.getUTCDay()] + ' ' + fmtShort(dt) : '';
   }
   // The colour a NEW day note opens on: the one last committed from the editor (prefs.mvNoteColor, per user,
   // never in a saved calendar), or the default purple. Only a palette colour is honoured, so a hand-edited
@@ -23555,6 +23775,7 @@ export function initLegacyApp() {
       ta.value += typed;
       ta.setSelectionRange(ta.value.length, ta.value.length);
       ta.dispatchEvent(new Event('input', { bubbles: true }));
+      ed.escBase = ta.value;   // a stray key then Esc leaves the note as it was (AUD2-040, beside the editor's keys)
     }
   }, true);
   // ⌘A over a live highlight takes in the whole grid -- only while something is highlighted, so ⌘A anywhere
@@ -23713,15 +23934,14 @@ export function initLegacyApp() {
   // switch moved, so a caller outside wfNoteStep knows to run update().
   // ⭐ A month note the cell shows ("Show in waterfall", owner 4 Nov 2026, ruling R2) goes too: switched off for the
   // waterfall, kept in the month view, which is where it lives.
-  // `moving` (the note drag, wfNoteDragEnd): the note travels on as the user's own typed text, shown in BOTH views, so
-  // an automatic note it carried is switched off altogether rather than hidden from the waterfall: hidden only, the
-  // month view would show it twice, on its own day and as the moved copy (moveWfLine's rule, the month view's drag).
+  // (The note drag used to come through here too, with a `moving` flag; since 13 Nov 2026 it lifts its cells with
+  // wfLiftNote, which moves month notes as themselves and leaves holidays where they are: AUD2-014.)
   // ⭐ ...and a note LINKED TO A PHASE the cell shows (PHASE-LINKED-NOTES-PLAN.md §4.6, step 4) is deleted, with the
   // look it carried. Left in the store, it would stay in the emptied cell and follow its phase wherever it went.
-  function wfClearNote(wk, moving){
+  function wfClearNote(wk){
     wfMonthLinesOff(wk);
     wfLinkedNotesOff(wk);
-    const moved = wfClearOwnNote(wk, moving);
+    const moved = wfClearOwnNote(wk);
     delete noteColors[wk]; delete noteFontSize[wk]; delete textStyle.note[wk];
     return moved;
   }
@@ -23733,25 +23953,42 @@ export function initLegacyApp() {
   }
   // The week's OWN lines only, emptied: its automatic lines switched off by what they are, its typed text gone. The note
   // editor's path when its box is left holding only month notes' lines (or nothing).
-  function wfClearOwnNote(wk, moving){
-    const moved = wfSwitchOffLines(wk, moving);
+  function wfClearOwnNote(wk){
+    const moved = wfSwitchOffLines(wk);
     saveNoteEdit(wk, '', sheetAutoNotesFor(wk), '');   // what is left: nothing, unless a line of no kind (none today)
     return moved;
   }
   // The automatic lines a week's Notes cell shows, each taken out by what it is: an automatic note hidden from the
   // waterfall (rulings 4-6 as amended by AUTO-NOTES-PER-VIEW-PLAN.md R4: it stays in the month view while that view
   // shows it, and is switched off when it does not), a holiday hidden from the waterfall only (it stays in the month
-  // view and stays a day off). True when one was.
-  function wfSwitchOffLines(wk, moving){
+  // view and stays a day off). True when one was. `keep` (the note drag's only, wfPutNote): holiday lines that stay shown.
+  function wfSwitchOffLines(wk, keep){
+    const kept = new Set(keep || []);
     let moved = false;
     sheetAutoNotesFor(wk).forEach(n=>{
-      if(n.holiday && n.hid){ hideHolidayInWaterfall(n.hid); moved = true; }
+      if(n.holiday && n.hid){ if(kept.has(autoNoteLine(n))) return; hideHolidayInWaterfall(n.hid); moved = true; }
       else if(isKindNote(n)){
-        if(moving) switchOffAutoNote(n.kind); else hideAutoNoteIn(n.kind, 'sheet');   // a delete: the waterfall only (R4)
+        hideAutoNoteIn(n.kind, 'sheet');   // a delete: the waterfall only (R4)
         moved = true;
       }
     });
     return moved;
+  }
+  // A week's automatic notes and holidays that carry a date, in EVERY view (sheetAutoNotesFor is the waterfall's only):
+  // the lines that are theirs, wherever a typed note holds them.
+  function wfWeekAutoItems(wk){
+    const sch = currentSchedule;
+    if(!sch || !sch.notesByIdx || !sch.weeks) return [];
+    const idx = sch.weeks.findIndex(w=> isoOf(w.date) === wk);
+    return idx >= 0 ? (sch.notesByIdx[idx] || []).filter(n=> n.date && (n.holiday ? !!n.hid : isKindNote(n))) : [];
+  }
+  // `text` (the cell's, effectiveNoteText) less its month notes' lines and its holidays' and automatic notes' lines;
+  // null when it has none of them.
+  function wfNoteOwnLines(wk, text){
+    const drop = new Set(wfMonthLinesFor(wk).map(m=> m.line).concat(wfWeekAutoItems(wk).map(autoNoteLine)));
+    if(!drop.size) return null;
+    const ls = String(text || '').split('\n'), kept = ls.filter(l=> !drop.has(l.trim()));
+    return kept.length === ls.length ? null : kept.join('\n').trim();
   }
   // A note as it travels: its text as the cell shows it and (ruling Q2, "Text and its look") its highlight, size
   // and style-bar style. A note pinned to a day (the editor's Day picker) keeps its weekday, `dow`; `stamp` is the
@@ -23760,10 +23997,17 @@ export function initLegacyApp() {
   // step 4) travels in the look it is drawn in -- the week's own field where it has one, else the note's (wfLinkedLook),
   // plus the row height the note lends it -- and with that note's day and its "Show in month view". So a copy pasted
   // elsewhere, which lands as a plain note, looks as the cell did. A cell with no linked note: exactly as before.
+  // ⭐ `own` (November 2026 audit, AUD2-014, 13 Nov 2026): the cell's text WITHOUT the lines that keep their own day --
+  // its month notes' ("Show in waterfall"), its holidays' and its automatic notes'. A paste into another week writes this
+  // (wfPutNote), so none of them lands there as typed text still carrying its old date, a second copy beside the note
+  // itself in the month view and its PDF. Set only when it differs from `text`, which the clipboard keeps whole (what the
+  // cell shows, for Excel). A Cut leaves those notes in the month view (ruling R2), and a paste no longer copies them.
   function wfNoteItem(wk){
     const text = effectiveNoteText(wk, sheetAutoNotesFor(wk));
     const it = { text };
     if(!text) return it;
+    const own = wfNoteOwnLines(wk, text);
+    if(own !== null) it.own = own;
     const u = userNotes[wk];
     const d = (u && typeof u === 'object' && typeof u.date === 'string') ? parseDateUTC(u.date) : null;
     const w = parseDateUTC(wk);
@@ -23772,7 +24016,8 @@ export function initLegacyApp() {
     const ld = le && le.dated ? parseDateUTC(le.dayIso) : null;
     if((d || ld) && w){
       const day = d || ld, dow = Math.round((day - w) / DAY_MS);
-      if(dow >= 0 && dow <= 6){ it.dow = dow; if(text.endsWith(fmtShort(day))) it.stamp = fmtShort(day); }
+      // The stamp is looked for where a paste writes it: at the end of `own` when the cell has one.
+      if(dow >= 0 && dow <= 6){ it.dow = dow; if((own !== null ? own : text).endsWith(fmtShort(day))) it.stamp = fmtShort(day); }
     }
     const c = wfLinkedLook(wk, 'color', noteColors[wk] ? noteColors[wk] : undefined);
     if(c) it.color = c;
@@ -23793,7 +24038,22 @@ export function initLegacyApp() {
   // ⭐ A note pasted or dropped over automatic lines REPLACES them (AUTO-NOTE-RENAME-PLAN.md, ruling 6): they are taken
   // out as Delete takes them (wfSwitchOffLines), so none comes back beside it after a move. Not when the note IS the
   // week's automatic text (a copy pasted back where it came from), which stays automatic.
-  function wfPutNote(wk, it, look){
+  // ⭐ A note copied inside SPTCal with month, holiday or automatic lines (`own`, wfNoteItem; November 2026 audit,
+  // AUD2-014) writes only the rest: those notes keep their own day. A copy pasted back onto a cell still showing exactly
+  // that text keeps it whole (the rules below). One whose every line is such a line writes nothing, and leaves the week
+  // as it is rather than emptying it. Returns true when lines were left out, so the paste can say so.
+  // ⭐ `keep` (the note drag's only; the 14 Nov 2026 review of item 2.3): the lines of holidays that STAY in this cell
+  // because the cell is part of the dragged block (wfDragPlan's `stay`), so a block dragged over itself lands on one.
+  // They are not switched off, and the note lands beside them: what lands, then the holidays' lines, as the cell's typed
+  // text (item 1.1 keeps such a line following its holiday). Before, the landing hid the holiday the grid said stayed.
+  function wfPutNote(wk, it, look, keep){
+    const stays = (keep || []).filter(l=> String(l || '').trim());
+    let left = false;
+    if(typeof it.own === 'string' && String(it.text || '').trim() !== effectiveNoteText(wk, sheetAutoNotesFor(wk)).trim()){
+      left = true;
+      if(!it.own.trim()) return left;
+      it = Object.assign({}, it, {text: it.own});
+    }
     // ⭐ Month notes the cell shows (R2, owner 4 Nov 2026) are replaced the same way: switched off for the waterfall. A
     // copy of the cell pasted back onto itself keeps them, and writes only the week's own part as its own.
     // ⭐ So are the notes LINKED TO A PHASE it shows (PHASE-LINKED-NOTES-PLAN.md §4.6, step 4): deleted, as Delete deletes
@@ -23815,7 +24075,7 @@ export function initLegacyApp() {
       }
     }
     let auto = sheetAutoNotesFor(wk);
-    if(auto.length && String(it.text || '').trim() !== autoNotesText(auto).trim() && wfSwitchOffLines(wk)) auto = sheetAutoNotesFor(wk);
+    if(auto.length && String(it.text || '').trim() !== autoNotesText(auto).trim() && wfSwitchOffLines(wk, stays)) auto = sheetAutoNotesFor(wk);
     let text = it.text, date = '';
     const w = parseDateUTC(wk);
     if(text && it.dow !== undefined && w){
@@ -23823,6 +24083,7 @@ export function initLegacyApp() {
       date = isoOf(d);
       if(it.stamp && text.endsWith(it.stamp)) text = text.slice(0, text.length - it.stamp.length) + fmtShort(d);
     }
+    if(stays.length) text = [text].concat(stays).filter(s=> String(s || '').trim()).join('\n');
     saveNoteEdit(wk, text, auto, date);
     if(lend){
       wfLookToWeek(wk, lend);
@@ -23841,6 +24102,7 @@ export function initLegacyApp() {
       if(it.height !== undefined && String(text || '').trim()) rowHeightsByWeek[wk] = it.height;
     }
     if(!effectiveNoteText(wk, auto)){ delete noteColors[wk]; delete noteFontSize[wk]; delete textStyle.note[wk]; }
+    return left;
   }
   // A travelling note's look written on the linked note `lk` that lends a cell its look (wfPutNote's own rules: the item's
   // colour, size and style replace the note's, its "Show in month view" too, a lent row height goes with it), the week's
@@ -23897,6 +24159,9 @@ export function initLegacyApp() {
   // only reads plain text. Session UI: never saved.
   let wfNoteClip = null;
   const WF_CLIP_TYPE = 'application/x-sptcal-notes';
+  // What a paste says when it left lines out (AUD2-014: they keep their own day), and a drag when a holiday stayed.
+  const WF_KEEP_DAY_MSG = 'Holidays, automatic notes and month notes stay on their own dates';
+  const WF_KEEP_HOLIDAY_MSG = 'Holidays stay on their own dates';
   // Excel's text form: every cell's line ENDS in a line break (so an empty last week survives the trip), and a
   // cell holding a line break (or a tab) is in double quotes with its quotes doubled, so a two-line note pastes
   // back into ONE week -- here, or in Excel.
@@ -23961,6 +24226,8 @@ export function initLegacyApp() {
     if(!isPlainObj(it) || typeof it.text !== 'string') return null;
     const out = { text: stripXmlIllegal(it.text, '\n') };
     if(Number.isInteger(it.dow) && it.dow >= 0 && it.dow <= 6) out.dow = it.dow;
+    // The text a paste into another week writes (wfNoteItem's `own`, AUD2-014): the same rule as `text`.
+    if(typeof it.own === 'string') out.own = stripXmlIllegal(it.own, '\n');
     if(typeof it.stamp === 'string' && /^\d{1,2}\/\d{1,2}\/\d{2}$/.test(it.stamp)) out.stamp = it.stamp;
     if(isHexColor(it.color) || isMvNoFill(it.color)) out.color = it.color;
     const size = finiteNum(it.size);
@@ -23993,9 +24260,11 @@ export function initLegacyApp() {
       items.forEach((it, i)=>{ if(s >= 0 && s + i < seq.length) pairs.push([seq[s + i], it]); else dropped++; });
     }
     if(!pairs.length) return false;
-    wfNoteStep(()=> pairs.forEach(([w, it]) => wfPutNote(w, it, look)));
+    let leftOut = false;
+    wfNoteStep(()=> pairs.forEach(([w, it]) => { if(wfPutNote(w, it, look)) leftOut = true; }));
     wfHighlightWeeks(pairs.map(p => p[0]));
     if(dropped) flashTextSel(dropped === 1 ? '1 line did not fit after the last week' : dropped + ' lines did not fit after the last week');
+    else if(leftOut) flashTextSel(WF_KEEP_DAY_MSG);
     return true;
   }
 
@@ -24113,8 +24382,20 @@ export function initLegacyApp() {
     redrawTextSel(null);
     if(!drop || !drop.off) return;
     if(!drop.ok){ flashTextSel('Not enough weeks below for all of those notes'); return; }
-    const from = d.weeks, to = drop.to, items = from.map(wfNoteItem), parts = from.map(wfNoteParts);
-    const leaving = new Set(from);
+    // ⭐ WHAT A DRAG MOVES (November 2026 audit, AUD2-014, 13 Nov 2026; wfDragPlan): the user's own lines, and the month
+    // notes the cell shows, which move THEMSELVES to the same weekday of the new week (as the month view's drag moves
+    // one), never as a typed copy. A holiday cannot move: its line stays where it is. A cell holding nothing else does
+    // not move at all.
+    const items = d.weeks.map(wfNoteItem);
+    const moves = d.weeks.map((w, i)=> wfDragPlan(w, drop.to[i]));
+    const keep = moves.some(p=> p.stay.length);
+    const go = d.weeks.map((w, i)=> moves[i].moves || !!wfNoteParts(w));
+    const from = d.weeks.filter((w, i)=> go[i]), to = drop.to.filter((w, i)=> go[i]);
+    const src = items.filter((it, i)=> go[i]);
+    if(!from.length){ flashTextSel(WF_KEEP_HOLIDAY_MSG); return; }
+    // Every cell of the block counts as its own, a holiday-only one too: a note landing there lands BESIDE the holiday
+    // (wfPutNote's `keep`, below) and replaces nothing, so it is not asked about (14 Nov 2026 review of item 2.3).
+    const leaving = new Set(d.weeks);
     const hit = to.filter(w => !leaving.has(w) && wfNoteShows(w));
     if(hit.length){
       const ok = await uiConfirm(hit.length === 1 ? 'That week already has a note. Replace it?'
@@ -24124,19 +24405,102 @@ export function initLegacyApp() {
       // weeks still shown, and only notes still as they were when the drag began.
       if(!ok) return;
       const seq = new Set(wfNoteSeq());
-      if(!to.every(w => seq.has(w)) || from.some((w, i) => wfNoteItem(w).text !== items[i].text)) return;
+      if(!to.every(w => seq.has(w)) || from.some((w, i) => wfNoteItem(w).text !== src[i].text)) return;
     }
     wfNoteStep(()=>{
-      from.forEach(w => wfClearNote(w, true));
-      to.forEach((w, i) => parts[i] ? wfPutLinked(w, items[i], parts[i]) : wfPutNote(w, items[i], true));
+      // Read before anything changes: every cell's plan and linked notes, then lift them all, then land them all (a
+      // block dragged down by one lands on its own cells).
+      const plans = from.map((w, i)=> wfDragPlan(w, to[i])), parts = from.map(wfNoteParts);
+      // ⭐ The holidays that stay in each cell of the block (a moving cell's and a holiday-only cell's alike), by week. A
+      // block dragged over itself lands a note on such a cell: it lands beside them, and they stay shown (the 14 Nov 2026
+      // review of item 2.3: the landing used to switch them off, so the holiday vanished from the waterfall while the grid
+      // said "Holidays stay on their own dates").
+      const stayAt = new Map();
+      d.weeks.forEach((w, i)=>{ const st = wfDragPlan(w, drop.to[i]).stay; if(st.length) stayAt.set(w, st); });
+      const held = from.map((w, i)=> wfLiftNote(w, plans[i]));
+      to.forEach((w, i)=>{
+        const put = Object.assign({}, src[i], {text: plans[i].carry});
+        delete put.own; delete put.stamp;   // the pinned day's date is already moved (wfDragPlan)
+        if(parts[i]) wfPutLinked(w, put, Object.assign({}, parts[i], {own: plans[i].carry, ownDate: '', month: [], keep: stayAt.get(w)}));
+        else wfPutNote(w, put, true, stayAt.get(w));
+      });
+      // The month notes last, so no landing cell takes them for its own and switches them off.
+      held.forEach((list, i)=> list.forEach(m=>{
+        const nd = isoOf(addDays(parseDateUTC(to[i]), Math.round((parseDateUTC(m.iso) - parseDateUTC(from[i])) / DAY_MS)));
+        m.e.text = mvRetimeNote(m.e.text, m.iso, nd);
+        dayNotes[nd] = dayNoteList(nd).concat([m.e]);
+      }));
+      // A cell that was only month notes keeps its look: the landing above wrote no text, so it was dropped there.
+      to.forEach((w, i)=>{
+        const it = src[i];
+        if(parts[i] || plans[i].carry.trim() || !held[i].length) return;
+        if(it.color && it.color.toUpperCase() !== MILESTONE_COLOR.toUpperCase()) noteColors[w] = it.color;
+        if(it.size !== undefined && it.size !== 11) noteFontSize[w] = it.size;
+        if(it.style) textStyle.note[w] = Object.assign({}, it.style);
+      });
     });
-    wfHighlightWeeks(to, to[from.indexOf(d.grab)]);
+    wfHighlightWeeks(to, to[from.indexOf(d.grab)] || to[0]);
+    if(keep) flashTextSel(WF_KEEP_HOLIDAY_MSG);
+  }
+  // One dragged cell, week `wk` landing on week `toWk`, read before anything moves: {carry, stay, month, moves}.
+  //  - carry: what lands as the drop week's text. The user's own lines; the line the Day picker pinned has its date
+  //    moved to the same weekday of the drop week; an automatic note's line too (it is the user's own from now on: its
+  //    kind is switched off, wfLiftNote, moveWfLine's rule for the month view's drag), so none arrives dated outside it.
+  //  - stay: the holidays' lines, which stay in the cell (a holiday cannot move).
+  //  - month: the month notes the cell shows [{iso, e}], each moved as itself to the same weekday of the drop week.
+  //  - moves: whether the cell carries anything at all.
+  function wfDragPlan(wk, toWk){
+    const W = parseDateUTC(wk), T = parseDateUTC(toWk);
+    const shift = d => isoOf(addDays(T, Math.round((d - W) / DAY_MS)));
+    const lineOf = new Map(wfWeekAutoItems(wk).map(n=> [autoNoteLine(n), n]));
+    const u = userNotes[wk];
+    const od = (u && typeof u === 'object' && typeof u.date === 'string') ? parseDateUTC(u.date) : null;
+    const lines = wfOwnNoteText(wk, sheetAutoNotesFor(wk)).split('\n').filter(l=> l.trim());
+    let pin = -1;
+    if(od) lines.forEach((l, i)=>{ if(!lineOf.has(l.trim()) && stripTrailingDate(l, od) !== l.trim()) pin = i; });
+    const carry = [], stay = [];
+    lines.forEach((l, i)=>{
+      const t = l.trim(), n = lineOf.get(t);
+      if(n && n.holiday) stay.push(t);
+      else if(n) carry.push(mvRetimeWfLine(t, isoOf(n.date), shift(n.date)));
+      else if(i === pin) carry.push(stripTrailingDate(t, od) + ' ' + fmtShort(parseDateUTC(shift(od))));
+      else carry.push(l);
+    });
+    const month = (W && T) ? wfMonthLinesFor(wk).map(m=> ({iso: m.iso, e: dayNoteList(m.iso)[m.index]})).filter(m=> m.e) : [];
+    return {carry: carry.join('\n'), stay, month, moves: carry.length > 0 || month.length > 0};
+  }
+  // A dragged cell taken up (inside the drop's step): its month notes off their days, held for the landing; its linked
+  // notes deleted (wfPutLinked puts them down); its automatic notes switched off in both views (`moving`: the moved copy
+  // is the user's own, shown in both, so hidden from one only the other would show it twice); its typed text gone; and
+  // its look. Its holidays stay as they were (plan.stay); one the cell's text had left out is hidden from the waterfall,
+  // as before, so no week blank is left (ruling 6). Returns the held month notes.
+  function wfLiftNote(wk, plan){
+    const held = [];
+    plan.month.forEach(m=>{
+      const list = dayNoteList(m.iso).slice(), k = list.indexOf(m.e);
+      if(k < 0) return;
+      list.splice(k, 1);
+      if(list.length) dayNotes[m.iso] = list; else delete dayNotes[m.iso];
+      held.push(m);
+    });
+    wfLinkedNotesOff(wk);
+    const stay = new Set(plan.stay);
+    sheetAutoNotesFor(wk).forEach(n=>{
+      if(n.holiday && n.hid){ if(!stay.has(autoNoteLine(n))) hideHolidayInWaterfall(n.hid); }
+      else if(isKindNote(n)) switchOffAutoNote(n.kind);
+    });
+    const left = sheetAutoNotesFor(wk);
+    if(left.length === stay.size && left.every(n=> stay.has(autoNoteLine(n)))) delete userNotes[wk];
+    else saveNoteEdit(wk, plan.stay.join('\n'), left, '');
+    delete noteColors[wk]; delete noteFontSize[wk]; delete textStyle.note[wk];
+    return held;
   }
   // ⭐ A DRAGGED CELL THAT SHOWS NOTES LINKED TO A PHASE (PHASE-LINKED-NOTES-PLAN.md §4.6, step 4). Each linked note keeps
   // its phase when that phase runs in the drop week -- re-linked to that week's n, its own fields (look, day, "Show in
   // month view") with it -- and otherwise lands there as plain text, its drawn date moved to the same weekday. The rest of
-  // the cell (its own text, typed or automatic, and its month notes' lines) lands as the plain note it always did. Taken
-  // when the drag lets go, before anything changes; null for a cell with no linked note, which moves exactly as before.
+  // the cell (its own text, typed or automatic) lands as the plain note it always did. Its month notes' lines did too
+  // until 13 Nov 2026; they move as themselves now (wfNoteDragEnd passes `month: []` and the cell's carried text, AUD2-014).
+  // Taken when the drag lets go, before anything changes; null for a cell with no linked note, which moves exactly as before.
   function wfNoteParts(wk){
     const links = wfLinkedLinesFor(wk).filter(e=> phaseNotes[e.key])
       .map(e=> ({e, kp: phaseNoteKeyParts(e.key), v: phaseNoteCopy(phaseNotes[e.key])})).filter(l=> l.kp);
@@ -24195,7 +24559,7 @@ export function initLegacyApp() {
       return lines.join('\n');
     });
     put.text = [own].concat(flatLines, p.month).filter(s=> String(s || '').trim()).join('\n');
-    wfPutNote(wk, put, true);
+    wfPutNote(wk, put, true, p.keep);   // p.keep: the holidays staying in the drop cell (wfNoteDragEnd's stayAt)
     if(!stay.length) return;
     // In the drop week's column order, as the cell will draw them: the first is the one that lends it its look.
     const at = s => opts.findIndex(o=> o.phase === s.k.key.split('@')[0]);
@@ -24706,8 +25070,9 @@ export function initLegacyApp() {
   function drawMvSel(){
     mvSelBoxes.forEach(b=> b.remove());
     mvSelBoxes = [];
-    if(!mvSel.size || viewMode !== 'month') return;
-    const idx = mvSelIndex();
+    if(viewMode !== 'month') return;
+    const idx = mvSel.size ? mvSelIndex() : new Map();
+    let at = null;
     mvSel.forEach(k=>{
       (idx.get(k) || []).forEach(el=>{
         const v = visibleRect(el);
@@ -24718,8 +25083,35 @@ export function initLegacyApp() {
         b.style.width = (v.right - v.left) + 'px'; b.style.height = (v.bottom - v.top) + 'px';
         document.body.appendChild(b);
         mvSelBoxes.push(b);
+        if(!at || k === mvSelActive) at = v;
       });
     });
+    drawMvSelFlash(at);
+  }
+  // ---- The grid's one short message, in the month view (the waterfall's flashTextSel, drawn there by redrawTextSel):
+  // why a copy left a picked note out (mvNotesCopy). The same chip (.text-sel-chip), body-level and fixed like the pick's
+  // outlines (.month-sel-chip), above the active pick; with the pick gone (a cut), where that pick was. Session UI. ----
+  let mvSelFlash = null;          // {msg, at}: the text, and the last rect it was drawn over
+  let _mvSelFlashTimer = 0;
+  function flashMvSel(msg, ms){
+    if(_mvSelFlashTimer) clearTimeout(_mvSelFlashTimer);
+    mvSelFlash = msg ? { msg, at: null } : null;
+    _mvSelFlashTimer = mvSelFlash ? setTimeout(()=>{ _mvSelFlashTimer = 0; mvSelFlash = null; drawMvSel(); }, ms || 4200) : 0;
+    drawMvSel();
+  }
+  function drawMvSelFlash(at){
+    if(!mvSelFlash) return;
+    if(at) mvSelFlash.at = at;
+    const r = mvSelFlash.at;
+    if(!r) return;
+    const chip = document.createElement('div');
+    chip.className = 'text-sel-chip month-sel-chip';
+    chip.textContent = mvSelFlash.msg;
+    chip.style.left = Math.max(0, r.left) + 'px';
+    document.body.appendChild(chip);
+    mvSelBoxes.push(chip);
+    const top = r.top - chip.offsetHeight - 4;
+    chip.style.top = (top >= 2 ? top : r.bottom + 4) + 'px';
   }
   // A pick: alone, or added/removed with ⌘ or Shift.
   function pickMvText(el, add){
@@ -24789,6 +25181,15 @@ export function initLegacyApp() {
     }
     if(e.metaKey || e.ctrlKey || e.altKey) return;
     if(e.key === 'Escape'){ clearMvSel(); setStyleTarget(null); return; }
+    // Delete or Backspace deletes the picked notes (AUD2-021: mvNotesDelete, below). With none of them deletable (a
+    // holiday, an automatic note, a bar) the key is not taken.
+    if(e.key === 'Delete' || e.key === 'Backspace'){
+      if(!mvDeletablePicks().length) return;
+      e.preventDefault();
+      e.stopPropagation();
+      mvNotesDelete();
+      return;
+    }
     const typed = e.key.length === 1 ? e.key : null;
     if(e.key !== 'Enter' && !typed) return;
     if(e.key === 'Enter' && e.shiftKey) return;
@@ -24803,6 +25204,7 @@ export function initLegacyApp() {
       ta.value += typed;
       ta.setSelectionRange(ta.value.length, ta.value.length);
       ta.dispatchEvent(new Event('input', { bubbles: true }));
+      activeMvNote.escBase = ta.value;   // a stray key then Esc leaves the note as it was (AUD2-040, the waterfall's rule)
     }
   }, true);
   // Every render replaces every bar: re-place the outlines (sanctioned pattern 3, observing mutates nothing), and
@@ -24814,6 +25216,250 @@ export function initLegacyApp() {
   }).observe(document.getElementById('table-wrap'), { childList: true, subtree: true });
   window.addEventListener('scroll', ()=>{ if(mvSel.size) drawMvSel(); }, true);
   window.addEventListener('resize', ()=>{ if(mvSel.size) drawMvSel(); });
+
+  // ---- A picked month note takes Delete, ⌘C, ⌘X and ⌘V (November 2026 audit, AUD2-021; the owner's decision D6 (a)) ----
+  // The waterfall's keys (WATERFALL-KEYS-PLAN.md) never got a month twin: a picked note ignored Delete and the clipboard,
+  // so a note was deleted by double-click and Delete Note, and copied to another day only by typing it again.
+  //  - DELETE / BACKSPACE does to every picked note what its editor's Delete Note does: a day's own note leaves its day,
+  //    a Waterfall line leaves the Waterfall too, a note that stays with a phase is deleted. One undo step. A holiday and
+  //    an automatic note have no Delete Note (their editors offer Hide), so Delete leaves them, as it leaves a bar.
+  //  - ⌘C / ⌘X put the picked notes on the clipboard in the waterfall's shape (WF_CLIP_TYPE, wfClipWrite): plain text,
+  //    one note per line in Excel's form (tsvCell), and SPTCal's own data with each note's text, colour, month style
+  //    (`fmt`) and day. A note shown on several days is copied once. Cut is Copy, then Delete. The same data pastes into
+  //    the waterfall's Notes column as a typed note with its colour, and the waterfall's copies paste here.
+  //  - ⌘V PUTS THEM ON THE DAY LAST CLICKED (D6's default): a click on a note, a bar, a "+" or a day's number records the
+  //    day under it (mvPasteDay; a right-click too). Each lands as a new note of that day, after its notes, with its
+  //    colour and style and no place of its own; a date in it naming its old day becomes the new day's (mvRetimeNote,
+  //    the month drag's rule). A pasted note is the month view's only, as a note typed there starts. Text from anywhere
+  //    else is one note (3 lines; more join the third, wfLineToDayNote's rule). One undo step, and what landed is picked.
+  //  - Only while the month view shows, its note editor is closed, focus is on the page itself (a field, a dialog or an
+  //    editor owns its keys), no drag is running and no text is selected, and only with that day on screen. ⌘V is also
+  //    taken with the day menu open (a click on a day's number opens it with focus inside), and it closes the menu.
+  //    Otherwise the browser's own copy and paste run as they always have.
+  //  - ⛔ No right-click item (D6 (a), the owner's lean-menu rule). Session UI only: no id, no setting, no snapshot key.
+  let mvPasteDay = null;
+  // The day under a click on the month's weeks, or null (a click on a panel over it, the style bar, or outside them).
+  function mvDayUnder(e){
+    if(e.target && e.target.closest && e.target.closest(OVER_PANEL + ', .style-bar')) return null;
+    const body = document.querySelector('#table-wrap .mv-body');
+    const v = body && visibleRect(body);
+    if(!v || e.clientX < v.left || e.clientX >= v.right || e.clientY < v.top || e.clientY >= v.bottom) return null;
+    return dayAtPoint(e.clientX, e.clientY);
+  }
+  // Capture, beside the pick's own listener (a note's click stops there, but not before this one). A press that moved
+  // is a drag, whose ending click the note drag swallows anyway, so a dragged note's old day is never recorded.
+  document.addEventListener('click', e=>{
+    if(viewMode !== 'month' || e.button !== 0) return;
+    if(mvPress && Math.hypot(e.clientX - mvPress.x, e.clientY - mvPress.y) > MV_SEL_SLOP) return;
+    const iso = mvDayUnder(e);
+    if(iso) mvPasteDay = iso;
+  }, true);
+  document.addEventListener('contextmenu', e=>{
+    if(viewMode !== 'month') return;
+    const iso = mvDayUnder(e);
+    if(iso) mvPasteDay = iso;
+  }, true);
+  function mvDayOnScreen(iso){
+    return Array.prototype.some.call(document.querySelectorAll('#table-wrap .mv-body > .mv-week > .mv-daygrid > .mv-daycell'),
+      c=>{ const loc = cellDate(c); return !!loc && isoOf(loc.date) === iso; });
+  }
+  // What a Waterfall-owned line in the month view is, and its colour, as its editor would open it (openMvNoteEditor's
+  // order: a holiday, an automatic note, a note that stays with a phase, else a line of its week's Waterfall note).
+  function mvLineInfo(el){
+    const sch = currentSchedule, iso = el.getAttribute('data-note-day'), wk = el.getAttribute('data-note-week');
+    const said = (el.textContent || '').trim();
+    if(!sch) return null;
+    const h = mvHolidayLineInfo(sch, iso, said);
+    if(h) return {kind: 'holiday', color: holidayColors[h.hid] || noteColors[wk] || null};
+    const a = mvAutoLineInfo(sch, iso, said);
+    if(a) return {kind: 'auto', color: autoNoteColors[a.kind] || noteColors[wk] || null};
+    const l = mvLinkedLineInfo(sch, iso, said);
+    if(l){ const n = phaseNotes[l.key]; return {kind: 'linked', color: (n && n.color) || noteColors[wk] || null}; }
+    return {kind: 'wf', color: noteColors[wk] || null};
+  }
+  // The picked notes on screen, in reading order: [{key, els}] (a line shown on several days is one pick, outlined on each).
+  function mvPickedNotes(){
+    const idx = mvSelIndex();
+    return [...mvSel].filter(k=> (mvSelKind(k) === 'daynote' || mvSelKind(k) === 'wfnote') && idx.has(k))
+      .map(k=> ({key: k, els: idx.get(k)}))
+      .sort((a, b)=> (a.els[0].compareDocumentPosition(b.els[0]) & Node.DOCUMENT_POSITION_FOLLOWING) ? -1 : 1);
+  }
+  // Every outlined note Delete takes: [{el, kind, key}], kind 'day', 'wf' or 'linked'.
+  function mvDeletablePicks(){
+    const out = [];
+    mvPickedNotes().forEach(p=> p.els.forEach(el=>{
+      const kind = mvSelKind(p.key) === 'daynote' ? 'day' : (mvLineInfo(el) || {}).kind;
+      if(kind === 'day' || kind === 'wf' || kind === 'linked') out.push({el, kind, key: p.key});
+    }));
+    return out;
+  }
+  function mvNotesDelete(){
+    const del = mvDeletablePicks();
+    if(!del.length) return false;
+    pushUndoSnapshot();
+    // A day's own notes by their place in its list, the last first, so an earlier one's place still names it.
+    const days = new Map();
+    del.filter(d=> d.kind === 'day').forEach(d=>{
+      const k = mvSelKey(d.key), i = k.lastIndexOf('#');
+      const iso = k.slice(0, i), n = parseInt(k.slice(i + 1), 10);
+      if(!days.has(iso)) days.set(iso, new Set());
+      days.get(iso).add(n);
+    });
+    days.forEach((ns, iso)=>{
+      const list = dayNoteList(iso).slice();
+      [...ns].sort((a, b)=> b - a).forEach(n=>{ if(n >= 0 && n < list.length) list.splice(n, 1); });
+      if(list.length) dayNotes[iso] = list;
+      else { delete dayNotes[iso]; delete dayNoteColors[iso]; }
+    });
+    // A Waterfall line or a note that stays with a phase: its own editor's Delete Note, opened on it and closed again
+    // unseen (the box emptied, Stays with put back), so the key and the button can never disagree. The last on screen
+    // first, so two lines of one linked note go from its end; nothing renders between them, so each finds its line.
+    del.filter(d=> d.kind !== 'day').reverse().forEach(d=>{
+      if(!document.body.contains(d.el)) return;
+      openMvNoteEditor(d.el, d.el.dataset.noteWeek, d.el.dataset.noteDay, 'wf');
+      const am = activeMvNote;
+      if(am && (am.kind === 'wf' || am.kind === 'linked')){
+        am.textarea.value = '';
+        if(am.linkSel) am.linkSel.value = am.linkSel0 || '';
+        writeActiveMvNote();
+      }
+      closeMvNoteEditor();
+    });
+    clearMvSel(); setStyleTarget(null);
+    update();
+    pushUndoSnapshot();
+    markDirty();
+    return true;
+  }
+  // One picked note as it travels: {text, color?, fmt?, day}.
+  function mvNoteClipItem(p){
+    const el = p.els[0], kind = mvSelKind(p.key), key = mvSelKey(p.key);
+    let text, color, fmt;
+    if(kind === 'daynote'){
+      const e = mvPickEntry(key);
+      if(!e) return null;
+      text = String(e.text || ''); color = e.color || null; fmt = e.fmt;
+    } else {
+      text = (el.textContent || '').trim(); color = (mvLineInfo(el) || {}).color || null;
+      fmt = mvTextStyle.wfnote && mvTextStyle.wfnote[key];
+    }
+    if(!text.trim()) return null;
+    const it = {text};
+    if(color && color.toUpperCase() !== MILESTONE_COLOR.toUpperCase()) it.color = color;
+    if(isPlainObj(fmt)) it.fmt = JSON.parse(JSON.stringify(fmt));
+    const day = el.getAttribute('data-note-day');
+    if(/^\d{4}-\d\d-\d\d$/.test(day || '')) it.day = day;
+    return it;
+  }
+  // ⭐ A HOLIDAY OR AN AUTOMATIC NOTE KEEPS ITS OWN DAY (the waterfall's rule, item 2.3 / AUD2-014; the 14 Nov 2026 review
+  // of item 2.8). Picked with typed notes, it stays out of a copy or a cut: on the clipboard it was re-dated by the paste
+  // (mvRetimeNote) and landed as a typed day note, a holiday invented on another day ("Independence Day (Observed)
+  // 7/15/26"). Only typed notes travel: day notes, Waterfall lines, notes that stay with a phase. A pick of nothing else
+  // copies nothing (the browser's own copy runs, on no selection, so the clipboard keeps what it held), and the grid's
+  // short message says why, as the waterfall's paste does when it leaves such lines out.
+  const MV_KEEP_DAY_MSG = 'Holidays and automatic notes stay on their own dates';
+  function mvPickKeepsDay(p){
+    if(mvSelKind(p.key) === 'daynote') return false;
+    const k = (mvLineInfo(p.els[0]) || {}).kind;
+    return k === 'holiday' || k === 'auto';
+  }
+  function mvNotesCopy(){
+    const picks = mvPickedNotes(), keep = picks.filter(mvPickKeepsDay);
+    const items = picks.filter(p=> !keep.includes(p)).map(mvNoteClipItem).filter(Boolean);
+    if(keep.length) flashMvSel(MV_KEEP_DAY_MSG);
+    if(!items.length) return null;
+    wfNoteClip = { text: items.map(it=> tsvCell(it.text) + '\n').join(''), items };
+    return wfNoteClip;
+  }
+  // A travelling note read back from the clipboard (which anything can write), held to what a saved day note may hold.
+  // A waterfall cell's item brings its typed text only (`own`, AUD2-014's rule: holiday, automatic and month lines keep
+  // their own day).
+  function mvCleanClipItem(it){
+    if(!isPlainObj(it) || typeof it.text !== 'string') return null;
+    const out = { text: stripXmlIllegal(typeof it.own === 'string' ? it.own : it.text, '\n') };
+    if(isHexColor(it.color) || isMvNoFill(it.color)) out.color = it.color;
+    if(it.fmt !== undefined){ const f = cleanMvTextStyleEntry('daynote', null, it.fmt, { n: 0 }); if(f) out.fmt = f; }
+    if(typeof it.day === 'string' && /^\d{4}-\d\d-\d\d$/.test(it.day) && parseDateUTC(it.day)) out.day = it.day;
+    return out;
+  }
+  function mvNotesPaste(text, rich, iso){
+    const norm = wfClipNormal(text);
+    const own = (rich && typeof rich.text === 'string' && wfClipNormal(rich.text) === norm) ? rich
+              : (wfNoteClip && wfClipNormal(wfNoteClip.text) === norm ? wfNoteClip : null);
+    let items = (own && Array.isArray(own.items) && own.items.length) ? own.items.map(mvCleanClipItem) : null;
+    if(items && items.some(it=> !it)) items = null;
+    if(!items){ const ls = parseClipText(norm).filter(l=> l.trim()); items = ls.length ? [{ text: ls.join('\n') }] : []; }
+    const notes = items.map(it=>{
+      let ls = String(it.day ? mvRetimeNote(it.text, it.day, iso) : it.text).split('\n').map(l=> l.trim()).filter(Boolean);
+      if(ls.length > 3) ls = ls.slice(0, 2).concat([ls.slice(2).join(' ')]);
+      if(!ls.length) return null;
+      const e = { text: ls.join('\n'), lane: null, color: it.color || null };
+      if(e.color && e.color.toUpperCase() === MILESTONE_COLOR.toUpperCase()) e.color = null;
+      if(it.fmt) e.fmt = it.fmt;
+      return e;
+    }).filter(Boolean);
+    if(!notes.length) return false;
+    pushUndoSnapshot();
+    const list = dayNoteList(iso).slice(), at = list.length;
+    dayNotes[iso] = list.concat(notes);
+    render(currentSchedule);
+    pushUndoSnapshot();
+    markDirty();
+    // Excel picks what it pasted, and so does this.
+    const idx = mvSelIndex();
+    mvSel = new Set(notes.map((_, j)=> 'daynote:' + iso + '#' + (at + j)).filter(k=> idx.has(k)));
+    mvSelActive = [...mvSel].pop() || null;
+    if(mvSel.size && styleTarget !== 'month') setStyleTarget('month');
+    drawMvSel(); syncStyleBar();
+    return true;
+  }
+  function mvClipReady(){
+    if(viewMode !== 'month' || activeMvNote || appDialogOpen()) return false;
+    if(document.querySelector('.phase-edge-shield, .hiatus-drag-shield, .mv-drag-shield')) return false;
+    const a = document.activeElement;
+    if(a && a !== document.body) return false;
+    const s = window.getSelection && window.getSelection();
+    return !(s && !s.isCollapsed && String(s).trim());
+  }
+  // Where ⌘V goes, or null: the day last clicked, on screen, with focus on the page or in the day menu.
+  function mvPasteTarget(){
+    if(!mvPasteDay || viewMode !== 'month') return null;
+    const a = document.activeElement, inMenu = !!(a && a.closest && a.closest('.day-menu'));
+    if(inMenu ? (activeMvNote || appDialogOpen()) : !mvClipReady()) return null;
+    return mvDayOnScreen(mvPasteDay) ? mvPasteDay : null;
+  }
+  // The day menu takes focus when it opens; a paste closes it with its own key (Escape, twice for an open submenu).
+  function mvCloseDayMenu(){
+    for(let i = 0; i < 3; i++){
+      const a = document.activeElement;
+      if(!(a && a.closest && a.closest('.day-menu'))) return;
+      a.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));
+    }
+  }
+  document.addEventListener('beforecopy', e=>{ if(mvClipReady() && mvPickedNotes().length) e.preventDefault(); });
+  document.addEventListener('beforecut', e=>{ if(mvClipReady() && mvPickedNotes().length) e.preventDefault(); });
+  document.addEventListener('beforepaste', e=>{ if(mvPasteTarget()) e.preventDefault(); });
+  document.addEventListener('copy', e=>{
+    if(!mvClipReady() || !e.clipboardData) return;
+    const clip = mvNotesCopy();
+    if(clip) wfClipWrite(e, clip);
+  });
+  document.addEventListener('cut', e=>{
+    if(!mvClipReady() || !e.clipboardData) return;
+    const clip = mvNotesCopy();
+    if(!clip) return;
+    wfClipWrite(e, clip);
+    mvNotesDelete();
+  });
+  document.addEventListener('paste', e=>{
+    const iso = mvPasteTarget();
+    if(!iso || !e.clipboardData) return;
+    e.preventDefault();
+    let rich = null;
+    try { rich = JSON.parse(e.clipboardData.getData(WF_CLIP_TYPE) || 'null'); } catch(_){ rich = null; }
+    mvCloseDayMenu();
+    mvNotesPaste(e.clipboardData.getData('text/plain'), isPlainObj(rich) ? rich : null, iso);
+  });
 
   // ---- The 'month' target's look and its writes (§3.3) ----
   // Each text's own look when unstyled: its weight as bold (bars 600 and the frame's 700 light B, notes' 500 do not:
@@ -29070,6 +29716,9 @@ export function initLegacyApp() {
   });
 
   function setViewMode(mode){
+    // The month grid's message chip goes with the view (second review of item 2.8, 14 Nov 2026): it was kept for its
+    // 4.2 s, so it hung over the waterfall and came back with the month view, drawn at the old pick's rect.
+    if(mode !== viewMode && mvSelFlash) flashMvSel(null);
     if(mode !== 'month' && mvSel.size){ clearMvSel(); if(styleTarget === 'month') setStyleTarget(null); }
     viewMode = mode;
     ['sheet','month'].forEach(m=>{
@@ -30249,10 +30898,11 @@ export function initLegacyApp() {
     // .hiatus-drag-layer / .hiatus-grip / .hiatus-drag-shield added 19 Oct 2026 with the hiatus drag
     // (HIATUS-DRAG-PLAN.md): the same body-level chrome, over a hiatus band. The copy's own engine
     // makes fresh ones when it boots, so a kept set would be a second, dead one.
-    clone.querySelectorAll('.note-pop, .mv-note-pop, .day-ov-pop, .phase-color-pop, .date-pop, .select-pop, .hdr-mode-pop, .hdr-token-pop, .hde-overlay, .phase-edge-handle, .phase-edge-shield, .day-menu, .day-menu-ring, .hdrrow-ring, .paste-notes-overlay, .sb-fmt, .sb-menu, .sb-drop, .hiatus-drag-layer, .hiatus-grip, .hiatus-drag-shield, .mv-order-grip, .mv-drag-ghost, .mv-drag-shield, .wf-notes-ring, .month-sel-box, .fm-ctx, .ripple-note').forEach(el=>el.remove());
+    clone.querySelectorAll('.note-pop, .mv-note-pop, .day-ov-pop, .phase-color-pop, .date-pop, .select-pop, .hdr-mode-pop, .hdr-token-pop, .hde-overlay, .phase-edge-handle, .phase-edge-shield, .day-menu, .day-menu-ring, .hdrrow-ring, .paste-notes-overlay, .sb-fmt, .sb-menu, .sb-drop, .hiatus-drag-layer, .hiatus-grip, .hiatus-drag-shield, .mv-order-grip, .mv-drag-ghost, .mv-drag-shield, .wf-notes-ring, .month-sel-box, .month-sel-chip, .fm-ctx, .ripple-note').forEach(el=>el.remove());
+    // .month-sel-chip added 14 Nov 2026 (second review of item 2.8): the month grid's message chip (flashMvSel), body-level
+    // for 4.2 s after a copy leaves a note out, so a copy exported inside that window carried it, visible, for good.
     // A retry of the Excel library still on its way (loadExcelLib, audit item 3.11): the copy loads its own from the
     // launch tag, so a kept one would be a second fetch of the same file.
-    clone.querySelectorAll('script[data-sptcal-retry]').forEach(el=>el.remove());
     // .fm-ctx added 4 Nov 2026 with the file menu's right-click menu ("Show in folder…"): a Mantine dropdown portalled to
     // <body>, so a Share click (or Shift+Cmd+E) with it open, or still fading out, would export it hanging in the copy.
     // .month-sel-box added 27 Oct 2026 with the month view's highlight (MONTH-TEXT-STYLE-PLAN.md §3.2): body-level boxes
@@ -37588,7 +38238,7 @@ export function initLegacyApp() {
     // able to turn the page over"). Now all three agree.
     const HDR_ROW_PT = ROW_DEFAULT_PX * ROW_PX_TO_PT;
     const rowPt = [];
-    for(let r=0;r<maxRows;r++) rowPt.push((rowHeights[r] || ROW_DEFAULT_PX) * ROW_PX_TO_PT);
+    for(let r=0;r<maxRows;r++) rowPt.push((sheetRowPx(schedule, r)) * ROW_PX_TO_PT);
     const gridH = rowPt.reduce((a,b)=>a+b, HDR_ROW_PT);
 
     // --- header block ------------------------------------------------------------------------
@@ -37982,7 +38632,7 @@ export function initLegacyApp() {
           const hs = hiatusFontSizeFor(hKey);
           const hts = textStyleOf('hiatus', hKey);   // F3
           const fit = cellTextFit(hTxt, av, Object.assign({ basePx: hs||11, manual: hs!==undefined,
-                                              rowPx: rowHeights[r] || ROW_DEFAULT_PX }, hts && hts.bold ? { bold: true } : {}));
+                                              rowPx: sheetRowPx(schedule, r) }, hts && hts.bold ? { bold: true } : {}));
           cellFill(bx + dw, ry, bandW, rh, hCol);    // SM1
           page.clipPush(bx + dw, ry, bandW, rh);
           if(hts) drawStyled(fit.wrap ? wrapLines(hTxt, av, 11*fit.scale, hts.bold) : String(hTxt).split('\n'),
@@ -38033,7 +38683,7 @@ export function initLegacyApp() {
               const ps = hiatusFontSizeFor(k);
               cts = textStyleOf('hiatus', k);   // F3
               fit = cellTextFit(cell.label||'', av, Object.assign({ basePx: ps||11, manual: ps!==undefined,
-                                                      rowPx: rowHeights[r] || ROW_DEFAULT_PX }, cts && cts.bold ? { bold: true } : {}));
+                                                      rowPx: sheetRowPx(schedule, r) }, cts && cts.bold ? { bold: true } : {}));
             } else {
               // F3: a styled phase week or Sim Post fits from its size in its weight (the screen's F1).
               cts = cell.kind === 'phase' ? (cell.own !== undefined && cell.cell ? textStyleOf('phase', wIsoP + '|' + cell.cell.key) : null)
@@ -38066,7 +38716,7 @@ export function initLegacyApp() {
           const nCol = noteColorFor(wk), ns = noteFontSizeFor(wk);
           const nts = textStyleOf('note', wk);   // F3
           const fit = cellTextFit(nTxt, colWidthsFor[bi].notes,
-                                  Object.assign({ basePx: ns||11, manual: ns!==undefined, rowPx: rowHeights[r] || ROW_DEFAULT_PX },
+                                  Object.assign({ basePx: ns||11, manual: ns!==undefined, rowPx: sheetRowPx(schedule, r) },
                                                 nts && nts.bold ? { bold: true } : {}));
           // ⛔ FROZEN EDIT NF2 (owner sign-off by picker, 28 Oct 2026, with NF1): a No fill note draws no rectangle;
           // pdfRgb would read #FFFFFF00 as yellow. Its text is drawn as any note's. Every other colour is unchanged.
@@ -38816,8 +39466,21 @@ export function initLegacyApp() {
     const z = it.kind === 'note' && it.fmt && it.fmt.size;
     return (z === 11 || z === 12 || z === 13 || z === 14) ? MVL_NOTE_SIZES[z] : null;
   }
-  // The lanes a note takes: its lines, at most three at 10 px (as on screen) and at most two above it.
-  function mvlNoteLanes(it){ return Math.min(mvlNoteSize(it) ? 2 : MVL_GEOMETRY.noteMaxLanes, it.lines.length); }
+  // ⭐ A WATERFALL LINE THAT ENDS IN ITS DATE KEEPS IT (audit AUD2-045, item 3.1; the owner's D4 = a, 14 Nov 2026: "holiday
+  // and automatic lines keep their date at note sizes 11 to 14"). Above 10 px a note shows two lines, the second cut with
+  // "…" (R2, R3), and the date a holiday or automatic line ends in is what the cut took first: "Day After / Thanksgiving…"
+  // printed with no 11/27/26, while a 10 px note keeps three lines and prints whole. Such a line is now modelled as a
+  // 10 px note is, at its own size: its lines, up to three lanes, every line drawn. Read off the print document alone (a
+  // `wf` block whose text ends in a date), so the writer's slices stay self-contained and the built app's bytes stay the
+  // slice's; so a waterfall line the user stamped with a day ("Table read 3/5/27") keeps its date too. ⛔ At 10 px and
+  // below, and on every line not ending in a date, nothing here runs: every other note is modelled as before.
+  const MVL_DATED = /\s\d{1,2}\/\d{1,2}\/\d{2}(?:\d{2})?$/;
+  function mvlKeepsDate(it){
+    return !!(mvlNoteSize(it) && it.note && it.note.kind === 'wf' && MVL_DATED.test(String(it.text || '').trim()));
+  }
+  // The lanes a note takes: its lines, at most three at 10 px (as on screen) and at most two above it, unless it keeps
+  // its date (mvlKeepsDate): three.
+  function mvlNoteLanes(it){ return Math.min(mvlNoteSize(it) && !mvlKeepsDate(it) ? 2 : MVL_GEOMETRY.noteMaxLanes, it.lines.length); }
   // Such a pill's lines at the PDF's width: .mv-pill-2l's white-space:normal and word-break:break-word in the
   // bar's box, less its 8 px padding and 1 px border each side. One line means it fits and does not wrap.
   // `widthOf` measures at the bar's own type (10 px, 600: .mv-bar), not a note's.
@@ -39241,7 +39904,8 @@ export function initLegacyApp() {
     const B = it.kind === 'note' ? S.bar : S.big;
     // A note above 10 px (mvlNoteSize): at most two of its size's lines, -webkit-line-clamp:2 (E3).
     const Zn = mvlNoteSize(it);
-    if(Zn) return Math.min(2, it.lines.length) * Zn.line * S.k + 2 * (S.note.padY + B.border);
+    // One that keeps its date (mvlKeepsDate) is all its lines tall, as a 10 px note is.
+    if(Zn) return (mvlKeepsDate(it) ? it.lines.length : Math.min(2, it.lines.length)) * Zn.line * S.k + 2 * (S.note.padY + B.border);
     if(it.kind === 'note') return it.lines.length * S.note.lineH + 2 * (S.note.padY + B.border);
     // A wrapping one-day custom pill (mvlWrapsPill) is two of the bar's lines tall: -webkit-line-clamp:2.
     if(it.lines) return Math.min(2, it.lines.length) * mvlBarLine(B, S) + 2 * (B.padY + B.border);
@@ -39397,13 +40061,17 @@ export function initLegacyApp() {
                        c: ink, ls: 0, skew: skew, role: role, li: li }));
       };
       const at = function(s){ return px + N.padX + Math.max(0, shift(nal, ncw, nOf(s))); };
-      put(it.lines[0], 0, at(it.lines[0]), 'bar-text');
-      if(it.lines.length === 2) put(it.lines[1], 1, at(it.lines[1]), 'bar-text');
-      else if(it.lines.length > 2){
-        const s2 = it.lines[1], ellW = nOf('…');
-        const head = (nOf(s2) + ellW <= ncw) ? s2 : mvlLongestStart(s2, ncw - ellW, nOf);
-        put(head, 1, px + N.padX, 'bar-text');
-        put('…', 1, px + N.padX + nOf(head), 'bar-ell');
+      // A line that keeps its date (mvlKeepsDate, AUD2-045): every line, uncut, as a 10 px note draws them.
+      if(mvlKeepsDate(it)) it.lines.forEach(function(s, li){ put(s, li, at(s), 'bar-text'); });
+      else {
+        put(it.lines[0], 0, at(it.lines[0]), 'bar-text');
+        if(it.lines.length === 2) put(it.lines[1], 1, at(it.lines[1]), 'bar-text');
+        else if(it.lines.length > 2){
+          const s2 = it.lines[1], ellW = nOf('…');
+          const head = (nOf(s2) + ellW <= ncw) ? s2 : mvlLongestStart(s2, ncw - ellW, nOf);
+          put(head, 1, px + N.padX, 'bar-text');
+          put('…', 1, px + N.padX + nOf(head), 'bar-ell');
+        }
       }
     } else if(it.kind === 'note'){
       const N = P.note, wt = F.weight || N.weight, sz = F.size ? F.size * P.k : N.size;
@@ -39993,6 +40661,34 @@ export function initLegacyApp() {
     return places;
   }
 
+  // ---------- Month PDF writer: what the fit prints too small to read (audit AUD2-043, item 3.1; D4 = a) ----------
+  // mvlSmallType(layout, fonts) names every month whose fit shrank its text below MVL_SMALL_PT, as it will print: the
+  // owner's "No floor" (1 Oct 2026: every month fits one sheet, however dense) stands, and Export says so first instead
+  // of saving a page nobody can read without a word. Read off the DISPLAY LIST, as mvlUnprintable reads it, so the
+  // notice and the file cannot disagree. Counted: the text INSIDE the weeks the fit scales (notes, bars and bands, the
+  // day numbers, "Day N"), each at its printed size (px x ptPerPx), and only text that prints at MVL_SMALL_PT or more at
+  // full size, so a note the user styled small on purpose never names its month. Not counted: the grey block tag (9 px,
+  // 6.75 pt at full size: a month whose notes print at 6.6 pt is not named for it), the ½ mark, and everything above the
+  // weeks, which never shrinks. A month that fits (`fit.scale` 1) is never named. Returns, in page order,
+  //   [{ label: 'July 2026', pt: 3.3 }]   with `pt` the smallest such text, to one decimal, rounded down.
+  const MVL_SMALL_PT = 6;
+  const MVL_SMALL_ROLES = ['bar-text', 'bar-ell', 'daynum', 'shootday'];
+  function mvlSmallType(layout, fonts){
+    const pt = MVL_GEOMETRY.ptPerPx, out = [];
+    layout.months.forEach(function(m){
+      const k = m.fit && m.fit.scale !== undefined ? m.fit.scale : 1;
+      if(!(k < 1)) return;
+      let least = Infinity;
+      mvlPaintMonth(m, fonts).forEach(function(o){
+        if(o.k !== 'text' || !o.s || o.wk === undefined || MVL_SMALL_ROLES.indexOf(o.role) < 0) return;
+        const p = o.size * pt;
+        if(p < MVL_SMALL_PT && o.size / k * pt >= MVL_SMALL_PT) least = Math.min(least, p);
+      });
+      if(least < Infinity) out.push({ label: m.label, pt: Math.floor(least * 10) / 10 });
+    });
+    return out;
+  }
+
   // ---- The whole PDF: buildMonthPdf(layout) ----
   // `layout` is buildMonthLayout()'s, with `fit.rows` on every month. The four programs are decoded
   // here on first use (loadInterPdfFont caches them); only the weights some page sets text in are
@@ -40082,6 +40778,21 @@ export function initLegacyApp() {
       + lines.join('\n')
       + '\n\nThe month view on screen keeps them.',
       { title: 'Some characters won’t print', confirmLabel: 'Export anyway', cancelLabel: 'Cancel' }));
+  }
+  // The months mvlSmallType names (AUD2-043, D4 = a): said before the Save dialog, as the characters above are, so the
+  // coordinator can thin a month out first, or export it anyway. The PDF is unchanged either way (gate 13's bytes).
+  async function confirmMonthPdfSmall(months){
+    const MAX_MONTHS = 8;
+    const lines = months.slice(0, MAX_MONTHS).map(m=> '• ' + m.label + ': ' + m.pt.toFixed(1) + ' pt');
+    if(months.length > MAX_MONTHS) lines.push('… and ' + (months.length - MAX_MONTHS) + ' more');
+    const one = months.length === 1;
+    return !!(await uiConfirm(
+      'Each month prints on one sheet, so ' + (one ? 'this month is' : 'these months are') + ' shrunk to fit, and '
+      + (one ? 'its' : 'their') + ' notes and bars print smaller than 6 pt:\n\n'
+      + lines.join('\n')
+      + '\n\nWith fewer notes on ' + (one ? 'its' : 'their') + ' busiest days'
+      + (mvNoteSize ? ', or a smaller Note size,' : ',') + (one ? ' it prints' : ' they print') + ' larger.',
+      { title: one ? 'A month prints very small' : 'Some months print very small', confirmLabel: 'Export anyway', cancelLabel: 'Cancel' }));
   }
   // ---------- The SPTCal mark (owner, 2 Nov 2026: "Add hidden text too") ----------
   // Every PDF the two writers save says, invisibly, that SPTCal made it. The document's properties name it (Creator
@@ -40219,14 +40930,57 @@ export function initLegacyApp() {
     }
     return 'saved';
   }
+  // ---------- Month view: WHICH MONTHS the PDF writes (audit AUD2-026, item 2.11; owner D8 = c, 13 Nov 2026) ----------
+  // A show prints this month for the crew, or this month and next, and the month PDF wrote every month of the calendar
+  // (16 pages on the reference calendar) whatever was on screen. So Export PDF asks first, in the month twin of the
+  // waterfall's Export PDF dialog (src/chrome/MonthPdfDialog.jsx): Months All / This month / Range (From .. to),
+  // opening on All. Owner-approved defaults with the go-ahead:
+  //  - ALL IS THE DEFAULT, and Export at the default is exactly the file from before: nothing is filtered, so the model,
+  //    the fit and every byte are what they were (gate 13 holds that, through t/lib.js answering the dialog at its
+  //    defaults in every leg, as it does the waterfall's).
+  //  - SESSION ONLY: the choice is not calendar data. Nothing is saved, no snapshot key, and the dialog opens on All
+  //    every time. Its controls are inside `.export-pdf-dlg`, which collectFieldValues() skips.
+  //  - The print rollback (frozen exportMonthPdf, MV_PDF_MODE 'print') is not asked and keeps printing every month.
+  // The choice is applied by FILTERING the layout model's months before fitMonthLayout. Each month is fitted on its own
+  // (mvlFitMonth), so a chosen month's page is the same page the all-months file holds for it; the writer is untouched.
+  // The months offered are monthPrintRange()'s, the very range buildMonthLayout walks, so the two cannot disagree.
+  // With only one month to print there is nothing to choose, and the PDF is written as before, with no dialog.
+  function monthPdfKey(year, month){ return year + '-' + String(month + 1).padStart(2, '0'); }   // '2026-07', sortable
+  function monthPdfChoices(schedule){
+    const range = schedule ? monthPrintRange(schedule) : null, out = [];
+    if(!range) return out;
+    let cur = new Date(range.first.getTime()), guard = 0;
+    while(cur <= range.last && guard++ < 240){
+      const y = cur.getUTCFullYear(), m = cur.getUTCMonth(), name = HDR_MONTHS[m];
+      out.push({ value: monthPdfKey(y, m), label: name + ' ' + y, short: name.slice(0, 3) + ' ' + y });
+      cur = monthStep(cur, 1);
+    }
+    return out;
+  }
+  // Resolves {all: true}, {from, to} (two keys, from <= to, never the whole run), or null for Cancel.
+  async function askMonthPdfMonths(){
+    const months = monthPdfChoices(currentSchedule);
+    if(months.length < 2) return { all: true };
+    const keys = months.map(m=> m.value);
+    const shown = monthCursor ? monthPdfKey(monthCursor.getUTCFullYear(), monthCursor.getUTCMonth()) : '';
+    const answer = await chrome.monthPdfDialog({ months, current: keys.includes(shown) ? shown : '' });
+    if(!answer) return null;
+    let from = keys.indexOf(answer.from), to = keys.indexOf(answer.to);
+    if(answer.all || from < 0 || to < 0) return { all: true };
+    if(from > to){ const t = from; from = to; to = t; }
+    if(from === 0 && to === keys.length - 1) return { all: true };
+    return { from: keys[from], to: keys[to] };
+  }
   async function exportMonthPdfDirect(){
     if(!monthRangeForSchedule(currentSchedule)){
       await uiAlert('Add at least one phase with a start date before exporting the calendar.');
       return;
     }
+    const pick = await askMonthPdfMonths();
+    if(!pick) return;
     chrome.exportBtn({ busy: true, disabled: true });
     try {
-      let bytes, places;
+      let bytes, places, small;
       try {
         const fonts = {};
         for(const w of MVL_FONT_WEIGHTS) fonts[w] = await loadInterPdfFont(w);
@@ -40234,6 +40988,11 @@ export function initLegacyApp() {
         // one-day custom pill decides whether it wraps while the model is built, at the bars' own size. At Standard
         // ('') no month carries a size, so its model and its file are byte for byte as before.
         const model = buildMonthLayout(currentSchedule, fonts['500'], fonts['600'], fonts, mvBarSize);
+        // The months chosen in the dialog (askMonthPdfMonths): All leaves the model exactly as built.
+        if(!pick.all){
+          model.months = model.months.filter(function(m){ const k = monthPdfKey(m.year, m.month); return k >= pick.from && k <= pick.to; });
+          if(!model.months.length) throw new Error('none of the chosen months is in the calendar any more.');
+        }
         // The month header's Off (23 Oct 2026): stamped here, between the model and the fit, and only while it is
         // on, so a calendar whose header shows writes byte for byte as before. Not inside buildMonthLayout: the
         // monthlayout leg slices that function to its last statement, and mvlFrame reads the flag off the month,
@@ -40241,6 +41000,7 @@ export function initLegacyApp() {
         if(mvHeaderOff) model.months.forEach(function(m){ m.headerOff = true; });
         const layout = fitMonthLayout(model, fonts);
         places = mvlUnprintable(layout, fonts);
+        small = mvlSmallType(layout, fonts);
         bytes = await buildMonthPdf(layout);
       } catch(err){
         console.error(err);
@@ -40252,6 +41012,7 @@ export function initLegacyApp() {
         return;
       }
       if(places.length && !(await confirmMonthPdfPrintable(places))) return;
+      if(small.length && !(await confirmMonthPdfSmall(small))) return;
       // The SPTCal mark (markPdf), appended after the writer's bytes, which gate 13 still holds to its baselines.
       await saveMonthPdf(markPdf(bytes), monthPdfFileName());
     } catch(err){
@@ -40857,7 +41618,7 @@ export function initLegacyApp() {
     // waterfall-owned note kept the standard ten until 28 Oct 2026, when its writers learned No fill (X1, P1).
     const pop = document.createElement('div');
     pop.id = 'mv-note-pop';
-    pop.className = 'mv-note-pop';
+    pop.className = 'mv-note-pop note-a2';   // `note-a2`: the note editors' A2 look (legacy.css)
     // ⭐ "Show in waterfall", right below the colours (owner, 4 Nov 2026; see dayNoteWfLine). Typed notes only (R4): a
     // holiday and an automatic note keep their own settings, so their editors have none. A note typed here starts OFF
     // (the owner: "hide by default for notes entered into the month view"); a waterfall note's line is ON, and switching
@@ -40879,7 +41640,7 @@ export function initLegacyApp() {
     }
     const dayD = parseDateUTC(dayIso);
     const dayName = dayD ? ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][dayD.getUTCDay()] + ' ' + (dayD.getUTCMonth() + 1) + '/' + dayD.getUTCDate() : '';
-    const linkRow = !linkOpts.length ? '' : `<div class="note-link-row"><label><span class="note-row-name">Stays with</span><select class="note-link-select">`
+    const linkRow = !linkOpts.length ? '' : `<div class="note-item note-link-row"><label class="note-line"><span class="note-row-name">Stays with</span><select class="note-link-select">`
       + `<option value=""${linkSel0 ? '' : ' selected'}>This day (${escHtml(dayName)})</option>`
       + linkOpts.map(o=> `<option value="${escHtml(o.value)}"${o.value === linkSel0 ? ' selected' : ''}>${escHtml(o.label)}</option>`).join('')
       + `</select></label><div class="note-link-hint"></div></div>`;
@@ -40889,31 +41650,51 @@ export function initLegacyApp() {
     // (ruling 5). Since 4 Nov 2026 it hides the note from the month view only (R4); the waterfall keeps it while its
     // Waterfall box is ticked. Its date is the note's own.
     const autoStd = (isAuto && autoNote.label !== autoNote.origLabel)
-      ? ` \u00b7 Standard name: \u201c${escHtml(autoNote.origLabel)}\u201d` : '';
+      ? ` Standard name: “${escHtml(autoNote.origLabel)}”.` : '';
     // ⭐ The one action button at the top right, beside the heading (owner, 10 Nov 2026): an automatic note's Hide
     // Auto-Note, or Delete Note on a note that was typed (a month note, a waterfall line, a linked note), which deletes
     // that one note as emptying its box does. A new note (a "+") and a holiday have none.
     const canDelete = (isWf || isLinked || (kind === 'day' && editIdx !== null)) && !!String(curText || '').trim();
     const delNoteHtml = canDelete ? `<button type="button" class="note-pop-delete mv-note-delete" title="Deletes this note. One undo brings it back.">Delete Note</button>` : '';
+    // ⭐ THE LOOK IS A2 (owner, 4 Nov 2026: "yes A2, but its an "Auto-Note""; mockups/note-editor-look.html), the waterfall
+    // editor's (openNoteEditor): the heading's name and its day in grey (the old ".mv-note-pop-day" wraps both, so it still
+    // names the heading), the text box, what saving does under it (a holiday and an automatic note), then the one list --
+    // Stays with, Colour, Show in waterfall -- and a foot with Save. The holiday and Auto-Note editors keep "Enter to save
+    // · Esc to cancel" in the foot (owner, 12 Nov 2026, "No, leave it"); a typed note's has none (the same day: "Delete
+    // this text in all places"), and Esc keeps what was typed there (AUD2-040), so A2's "Esc to cancel" would be wrong.
+    const mvName = isAuto ? 'Auto-Note' : isHol ? 'Holiday' : isWf ? 'Waterfall line' : 'Note';
+    const mvWhen = noteDayLabel(isAuto ? autoNote.date : dayIso);
+    const headHtml = `<div class="note-pop-head"><div class="note-pop-heading mv-note-pop-day"><span class="note-pop-title">${escHtml(mvName)}</span>`
+      + ` <span class="note-pop-when">${escHtml(mvWhen)}</span></div>`
+      + (isAuto ? `<button type="button" class="note-pop-delete" title="Hides it from the month view and its PDF. Tick its Month box in Settings ▸ Automatic notes to bring it back.">Hide Auto-Note</button>`
+                : isHol ? '' : delNoteHtml) + `</div>`;
+    const colourRow = `<div class="note-item note-colour-item"><div class="note-line"><span class="note-row-name">Colour</span>`
+      + `<span class="note-colour-name">${escHtml(noteColourName(curColor))}</span></div>${notePaletteRowsHtml(curColor)}</div>`;
+    const footHtml = `<div class="note-pop-foot">${(isAuto || isHol) ? '<span class="note-pop-keys">Enter to save · Esc to cancel</span>' : ''}`
+      + `<button type="button" class="note-pop-save">Save</button></div>`;
     pop.innerHTML = isAuto
-      ? `<div class="note-pop-head"><div class="mv-note-pop-day">${fmtShort(autoNote.date)} \u00b7 Auto Note</div>
-      <button type="button" class="note-pop-delete" title="Hides it from the month view and its PDF. Tick its Month box in Settings \u25b8 Automatic notes to bring it back.">Hide Auto-Note</button></div>
+      ? `${headHtml}
       <textarea rows="2" placeholder="Clear to hide this auto note">${curText.replace(/</g,'&lt;')}</textarea>
-      ${notePaletteRowsHtml(curColor)}
-      <div class="mv-note-pop-hint">Renames it wherever it shows \u00b7 Its date follows the schedule \u00b7 Colour is for the month view${autoStd} \u00b7 Enter to save \u00b7 Esc to cancel</div>`
+      <div class="mv-note-pop-hint">Renames it wherever it shows. Its date follows the schedule. Colour is for the month view.${autoStd}</div>
+      <div class="note-list">${colourRow}</div>
+      ${footHtml}`
       : isHol
-      ? `<div class="mv-note-pop-day">${fmtShort(parseDateUTC(dayIso))} \u00b7 Holiday</div>
-      <textarea rows="2" placeholder="Clear to go back to \u201c${escHtml(holiday.origName)}\u201d">${curText.replace(/</g,'&lt;')}</textarea>
-      ${notePaletteRowsHtml(curColor)}
-      <div class="mv-note-pop-hint">Renames this holiday wherever it shows \u00b7 Colour is for the month view \u00b7 Enter to save \u00b7 Esc to cancel</div>`
-      : `<div class="note-pop-head"><div class="mv-note-pop-day">${fmtShort(parseDateUTC(dayIso))}</div>${delNoteHtml}</div>
-      <textarea rows="3" placeholder="Note text${(isWf || isLinked)?' (multi-line OK)':' \u2014 Enter for a new line, up to 3'}">${curText.replace(/</g,'&lt;')}</textarea>
+      ? `${headHtml}
+      <textarea rows="2" placeholder="Clear to go back to “${escHtml(holiday.origName)}”">${curText.replace(/</g,'&lt;')}</textarea>
+      <div class="mv-note-pop-hint">Renames this holiday wherever it shows. Colour is for the month view.</div>
+      <div class="note-list">${colourRow}</div>
+      ${footHtml}`
+      : `${headHtml}
+      <textarea rows="3" placeholder="Note text${(isWf || isLinked)?' (Shift+Enter for a new line)':' — Shift+Enter for a new line, up to 3'}">${curText.replace(/</g,'&lt;')}</textarea>
+      <div class="note-list">
       ${linkRow}
-      ${notePaletteRowsHtml(curColor)}
-      ${viewRow}`;
+      ${colourRow}
+      ${viewRow}
+      </div>
+      ${footHtml}`;
     // ⛔ No hint line on a typed month note (owner, 12 Nov 2026: "Delete this text in all places", of "Up to 3 lines ·
-    // Enter for a new line · Tab or Ctrl/Cmd-Enter to save · Esc to cancel" and its waterfall-line twin). The keys
-    // still work; the placeholder still says Enter makes a new line, up to 3.
+    // Enter for a new line · Tab or Ctrl/Cmd-Enter to save · Esc to cancel" and its waterfall-line twin). Since 13 Nov 2026
+    // (AUD2-040, D6 (a)) Enter saves, so the placeholder says Shift+Enter makes a new line, up to 3.
     document.body.appendChild(pop);
     const r = anchor.getBoundingClientRect();
     pop.style.top = (window.scrollY + r.bottom + 4) + 'px';
@@ -40955,16 +41736,20 @@ export function initLegacyApp() {
     // A month-view day note is capped at 3 lines (it prints as one 3-line block). Waterfall notes
     // aren't capped -- there each line is a separate milestone across the week.
     if(!isWf && !isHol && !isAuto && !isLinked){
+      // ⭐ NOTHING TYPED IS THROWN AWAY (audit AUD2-046, item 3.1): a fourth line and every one after it -- pasted, dropped,
+      // or typed through an input method -- joins the third with a space, the rule wfLineToDayNote and Paste notes already
+      // follow. Until 14 Nov 2026 they were sliced off ("BG 8:30a" of a pasted call-times list was gone) without a word.
+      // Blank lines among them add nothing; the caret keeps its place counted from the end.
       const cap3 = ()=>{
         const lines = textarea.value.split('\n');
-        if(lines.length > 3) textarea.value = lines.slice(0,3).join('\n');
+        if(lines.length <= 3) return;
+        const was = textarea.value, end = was.length - textarea.selectionEnd;
+        textarea.value = lines.slice(0, 2).concat([lines.slice(2).map(l=> l.trim()).filter(Boolean).join(' ')]).join('\n');
+        const at = Math.max(0, textarea.value.length - end);
+        try { textarea.setSelectionRange(at, at); } catch(e){}
       };
       textarea.addEventListener('input', cap3);
-      textarea.addEventListener('keydown', e=>{
-        if(e.key === 'Enter' && !e.metaKey && !e.ctrlKey && textarea.value.split('\n').length >= 3){
-          e.preventDefault(); // already at 3 lines -- don't add a 4th
-        }
-      });
+      // (A 4th line is refused by the keys listener below: Shift+Enter or Alt+Enter at 3 lines adds nothing.)
     }
     textarea.focus(); textarea.select();
     // A new day note TAKES the remembered colour unless another is picked, so it is pending from the start.
@@ -40982,6 +41767,8 @@ export function initLegacyApp() {
                     // What the editor opened with, so a waterfall note that was opened and left
                     // unchanged is not frozen into an override on the way out (audit M-13).
                     initialText: curText,
+                    // What Esc compares the box with (AUD2-040): what it opened with, plus a key that opened it.
+                    escBase: curText,
                     // The same descriptor shape relocateNoteAnchor() takes — captured now so the
                     // rebuild guard can re-find the equivalent node in a freshly-rendered grid.
                     anchorDesc: { week: weekKey, day: dayIso, kind: (isWf || isHol || isAuto || isLinked) ? 'wf' : 'day',
@@ -40994,9 +41781,17 @@ export function initLegacyApp() {
         if(!activeMvNote) return;
         activeMvNote.pendingColor = sw.dataset.color;
         pop.querySelectorAll('.color-swatch').forEach(s=>s.classList.toggle('selected', s===sw));
+        const nm = pop.querySelector('.note-colour-name');
+        if(nm) nm.textContent = noteColourName(sw.dataset.color);
       });
     });
-    // The switch keeps the text box's focus (as the swatches do), so Tab and Ctrl/Cmd-Enter still save.
+    // Save (A2's foot): what Tab, Enter or a click away already did, as a button (AUD2-040). It keeps the box's focus.
+    const saveBtn = pop.querySelector('.note-pop-save');
+    if(saveBtn){
+      saveBtn.addEventListener('mousedown', e=> e.preventDefault());
+      saveBtn.addEventListener('click', e=>{ e.stopPropagation(); if(activeMvNote) commitMvNoteEditor(); });
+    }
+    // The switch keeps the text box's focus (as the swatches do), so Enter, Tab and Ctrl/Cmd-Enter still save.
     const viewSw = pop.querySelector('.note-view-row');
     if(viewSw) viewSw.addEventListener('mousedown', e=>e.preventDefault());
     // The Stays with row's one-line hint says what saving will do (R1's wording, the waterfall editor's).
@@ -41049,9 +41844,24 @@ export function initLegacyApp() {
       });
     }
     pop.addEventListener('click', e=>e.stopPropagation());
+    // The keys (AUD2-040, the owner's D6 (a)): the waterfall editor's, explained beside its keydown listener. On a typed
+    // note (a day's own, a waterfall line, a linked note) Enter saves, Shift+Enter or Alt+Enter adds a line (a day note
+    // holds 3), and Esc keeps changed text. A holiday's and an automatic note's editors keep theirs: Enter saves (above)
+    // and Esc cancels, as their hint line says (left by the owner's ruling of 12 Nov 2026).
+    const typedNote = !isHol && !isAuto, capped = !isWf && !isHol && !isAuto && !isLinked;
     textarea.addEventListener('keydown', e=>{
-      if(e.key === 'Escape'){ e.preventDefault(); closeMvNoteEditor(); }
+      if(e.isComposing || e.keyCode === 229) return;          // an input method's Enter picks a word
+      if(e.key === 'Escape'){
+        e.preventDefault();
+        if(typedNote && activeMvNote && noteTextChanged(textarea, activeMvNote.escBase)) commitMvNoteEditor();
+        else closeMvNoteEditor();
+      }
       else if(e.key === 'Tab' || ((e.metaKey||e.ctrlKey) && e.key === 'Enter')){ e.preventDefault(); commitMvNoteEditor(); }
+      else if(typedNote && e.key === 'Enter'){
+        e.preventDefault();
+        if(!(e.shiftKey || e.altKey)) commitMvNoteEditor();
+        else if(!capped || textarea.value.split('\n').length < 3) noteNewline(textarea);
+      }
     });
   }
   document.getElementById('table-wrap').addEventListener('click', e=>{

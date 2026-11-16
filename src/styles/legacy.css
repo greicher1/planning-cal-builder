@@ -2396,6 +2396,16 @@
     display:-webkit-box; -webkit-box-orient:vertical; -webkit-line-clamp:2;
   }
   body.mv-note-sized #table-wrap .mv-bars > .mv-bar.mv-note-block[style*="--mvn-h1"][style*="span 2"]{ height:var(--mvn-h2); }
+  /* ⛔ FROZEN EDIT D1 (PROPOSED, audit AUD2-045, item 3.1, D4 = a): a waterfall line ending in its date takes up to FOUR
+     lanes above 10 px (renderMonthView, mvNoteLineCountSized), so its three- and four-line boxes (each a line more than the
+     one before: --mvn-h2 - --mvn-h1 is one line) show three and four lines. Only such a line ever spans three or four lanes
+     at a note size, so "span 3" / "span 4" can never be "span 30". */
+  body.mv-note-sized #table-wrap .mv-bars > .mv-bar.mv-note-block[style*="--mvn-h1"][style*="span 3"]{
+    height:calc(2 * var(--mvn-h2) - var(--mvn-h1)); -webkit-line-clamp:3;
+  }
+  body.mv-note-sized #table-wrap .mv-bars > .mv-bar.mv-note-block[style*="--mvn-h1"][style*="span 4"]{
+    height:calc(3 * var(--mvn-h2) - 2 * var(--mvn-h1)); -webkit-line-clamp:4;
+  }
   body.mv-note-sized:not(.mv-bar-11):not(.mv-bar-large):not(.mv-bar-13):not(.mv-bar-xl) #table-wrap .mv-pill,
   body.mv-note-sized:not(.mv-bar-11):not(.mv-bar-large):not(.mv-bar-13):not(.mv-bar-xl) #table-wrap .mv-hiatus-bar{ height:17px; }
   body.mv-note-sized:not(.mv-bar-11):not(.mv-bar-large):not(.mv-bar-13):not(.mv-bar-xl) #table-wrap .mv-pill.mv-pill-2l{ height:36px; }
@@ -2706,6 +2716,10 @@
   #print-root .mv-bars > .mv-bar.mv-note-block[style*="--mvn-h1"]{
     display:-webkit-box; -webkit-box-orient:vertical; -webkit-line-clamp:2;
   }
+  /* ⛔ FROZEN EDIT D1 (PROPOSED, AUD2-045): the print rollback's twin of the rules above: three or four lines for a line
+     that keeps its date, as the direct writer draws every line of it (mvlKeepsDate). */
+  #print-root .mv-bars > .mv-bar.mv-note-block[style*="--mvn-h1"][style*="span 3"]{ -webkit-line-clamp:3; }
+  #print-root .mv-bars > .mv-bar.mv-note-block[style*="--mvn-h1"][style*="span 4"]{ -webkit-line-clamp:4; }
   @media print{
     /* Landscape with minimal margins so the grid prints as large as the sheet allows.
        ⛔ FROZEN EDIT (owner-approved, FIX-PLAN R3 / audit L-3, 29 Sep 2026): the PAPER is pinned
@@ -3967,6 +3981,80 @@
      note palette), at the same gap; a hiatus band's single row keeps the wider one. */
   .note-pop .note-palette-row{ gap:5px; }
   .note-pop .note-palette-row + .note-palette-row{ padding-top:2px; }
+  /* ---- The note editors' look A2 (owner, 4 Nov 2026: "yes A2, but its an "Auto-Note""; mockups/note-editor-look.html,
+     card note-editor-overhaul, PHASE-LINKED-NOTES-PLAN.md §4.4) ----
+     The heading's name in the panel's own type with its day in grey, the text box, then ONE LIST: a name on the left and
+     its value on the right, a hairline between rows (Day, Stays with and its hint, Colour with every swatch out, Show in
+     month view / Show in waterfall, the waterfall's "In this cell" with its Hides), then a foot with Save. Scoped to
+     `.note-a2`, which only the two note editors carry: the heading editor is a .note-pop too and keeps its own look.
+     ⛔ CHROME ONLY. Both editors are body-level panels, never in #table-wrap or #print-root, so nothing here can change
+     what a grid cell looks like or how much text fits in it (CLAUDE.md, the freeze's line). */
+  .note-pop.note-a2, .mv-note-pop.note-a2{ width:272px; padding:14px 14px 12px; }
+  .note-a2 .note-pop-head{ align-items:center; min-height:20px; margin-bottom:8px; }
+  .note-a2 .note-pop-heading{ display:flex; align-items:baseline; gap:8px; min-width:0; overflow:hidden; white-space:nowrap;
+    margin:0; font-size:13px; font-weight:400; letter-spacing:0; text-transform:none; color:var(--mantine-color-black); }
+  .note-a2 .note-pop-heading .note-pop-title{ flex:none; margin:0; font-size:13px; font-weight:600; letter-spacing:0;
+    text-transform:none; color:var(--mantine-color-black); }
+  .note-a2 .note-pop-when{ min-width:0; overflow:hidden; text-overflow:ellipsis; font-size:11.5px; font-weight:400;
+    color:var(--text-faint); }
+  .note-a2 .note-editor{ gap:0; }
+  .note-a2 .note-editor textarea, .mv-note-pop.note-a2 textarea{
+    display:block; font-size:13px; line-height:1.4; min-height:46px; padding:7px 10px; border-radius:8px;
+    background:var(--mantine-color-gray-0); border:1px solid transparent; outline:none;
+    transition:background-color 120ms ease, border-color 120ms ease, box-shadow 120ms ease;
+  }
+  .note-a2 .note-editor textarea:focus, .mv-note-pop.note-a2 textarea:focus{
+    background:var(--mantine-color-white); border-color:var(--mantine-color-navy-2); box-shadow:0 0 0 3px var(--mantine-color-navy-0);
+  }
+  /* What saving does, under the box: a single automatic note's or holiday's line (the old hint, moved up). */
+  .note-a2 .note-pop-hint, .note-a2 .mv-note-pop-hint{ margin:6px 2px 0; font-size:11px; line-height:1.4; color:var(--text-muted); }
+  .note-a2 .note-list{ margin-top:8px; border-top:1px solid var(--mantine-color-gray-2); }
+  .note-a2 .note-item{ display:block; margin:0; padding:0; border:0; border-bottom:1px solid var(--mantine-color-gray-2); }
+  .note-a2 .note-line{ display:flex; align-items:center; gap:10px; min-height:31px; margin:0;
+    font-size:12.5px; color:var(--mantine-color-black); cursor:default; }
+  .note-a2 .note-line .note-row-name, .note-a2 .note-view-label{ flex:none; width:auto; text-align:left;
+    font-size:12.5px; font-weight:400; color:var(--mantine-color-gray-7); }
+  /* The two selects are plain words with a chevron, set to the right edge (A2's "value on the right"), so Day's and
+     Stays with's line up there. Still id-less real <select>s (save-format hygiene). */
+  .note-a2 .note-line select{
+    -webkit-appearance:none; appearance:none; flex:0 1 auto; min-width:0; max-width:178px; margin-left:auto;
+    font:inherit; font-size:12.5px; font-weight:500; color:var(--mantine-color-black);
+    text-align:right; text-align-last:right; background-color:transparent; border:0; border-radius:var(--mantine-radius-sm);
+    padding:3px 16px 3px 4px; cursor:pointer;
+    background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 16 16' xmlns='http://www.w3.org/2000/svg' fill='none' stroke='%23726F68' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4.5 6.5 8 10l3.5-3.5'/%3E%3C/svg%3E");
+    background-repeat:no-repeat; background-position:right 1px center; background-size:11px 11px;
+  }
+  .note-a2 .note-line select:hover{ background-color:var(--mantine-color-gray-0); }
+  .note-a2 .note-line select:focus-visible{ outline:2px solid var(--mantine-primary-color-filled); outline-offset:1px; }
+  .note-a2 .note-link-hint{ margin:-5px 0 8px; font-size:11px; line-height:1.35; color:var(--text-muted); }
+  .note-a2 .note-link-hint.is-wait{ color:var(--mantine-color-orange-8); }
+  .note-a2 .note-link-also{ margin:-2px 0 8px; font-size:11px; }
+  .note-a2 .note-colour-name{ margin-left:auto; font-weight:500; color:var(--mantine-color-gray-7); }
+  /* Every colour out (the owner's "color is all the chips not a dropdown"): ten to a row on one grid, so the second row's
+     eight sit under the first eight. Each row stays its own .note-color-row, one line each, as the legs read them. */
+  .note-a2 .note-color-row{ display:grid; grid-template-columns:repeat(10, 18px); gap:6px; justify-content:space-between;
+    padding:1px 1px 0; }
+  .note-a2 .note-color-row + .note-color-row{ padding-top:6px; }
+  .note-a2 .note-color-row:last-child{ padding-bottom:11px; }
+  .note-a2 .color-swatch{ width:18px; height:18px; }
+  .note-a2 .note-view-row{ display:flex; align-items:center; justify-content:space-between; gap:10px; min-height:31px;
+    margin:0; padding:0; border-top:0; font-size:12.5px; }
+  /* "In this cell" (WATERFALL-NOTE-EDITOR-PLAN.md R3(a)), the list's last row: the cell's automatic notes and holidays,
+     each with its ↻ / ⚑ and its Hide at the right. */
+  .note-a2 .wf-note-items{ margin:0; padding:6px 0 4px; }
+  .note-a2 .wf-note-items-head{ margin:0 0 2px; font-size:12.5px; font-weight:400; letter-spacing:0; text-transform:none;
+    color:var(--mantine-color-gray-7); }
+  .note-a2 .wf-note-item{ min-height:27px; font-size:12px; }
+  .note-a2 .wf-note-hide{ margin-right:-8px; }
+  .note-a2 .note-pop-foot{ display:flex; align-items:center; gap:8px; margin-top:10px; }
+  .note-a2 .note-pop-keys{ min-width:0; font-size:10.5px; line-height:1.3; color:var(--text-faint); }
+  .note-a2 .note-pop-save{
+    margin-left:auto; flex:none; height:26px; padding:0 12px; border:0; border-radius:var(--mantine-radius-sm);
+    font:inherit; font-size:12px; font-weight:600; color:var(--mantine-color-white);
+    background:var(--mantine-primary-color-filled); cursor:pointer;
+  }
+  .note-a2 .note-pop-save:hover{ background:var(--mantine-primary-color-filled-hover); }
+  .note-a2 .note-pop-save:focus-visible{ outline:2px solid var(--mantine-primary-color-filled); outline-offset:2px; }
   td.sheet-note-cell.has-note{cursor:text; text-align:center;}
   /* A shrunk single-line note sits on the row's centre line like every other cell; a wrapped
      one grows the row and reads better from the top. */
@@ -4821,6 +4909,9 @@
 .month-sel-box{ position:fixed; z-index:48; box-sizing:border-box; pointer-events:none; border-radius:3px;
   border:1.5px solid rgba(255,255,255,.95); box-shadow:0 0 0 1.5px #7030A0; background:rgba(112,48,160,.10); }
 .month-sel-box.is-active{ box-shadow:0 0 0 2.5px #7030A0; }
+/* The grid's short message in the month view (drawMvSelFlash): the waterfall's .text-sel-chip, body-level and fixed like
+   the outlines above, and over them. */
+.text-sel-chip.month-sel-chip{ position:fixed; z-index:49; }
 /* N1: a pill keeps its own text colour, so the bar's colour well greys while only pills are picked. */
 .style-bar .hf-swatch.is-disabled{ opacity:.35; pointer-events:none; }
 /* ...and its alignment control while only the month name is picked: centred between the arrows, it cannot move. */

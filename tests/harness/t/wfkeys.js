@@ -197,7 +197,10 @@ window.addEventListener('load', function () { (async function () {
     await press('ArrowDown'); await press('ArrowDown');
     await press('Enter');
     var pop = q('.note-pop');
-    check(pop && /8\/17\/26/.test(q('.note-pop-title', pop).textContent), 'K24 Enter opens the note the keys moved to (' + (pop ? q('.note-pop-title', pop).textContent : 'no editor') + ')');
+    // ⚠️ RE-EXPECTED for the editors' look A2 (owner, 4 Nov 2026; notelook): the week is in the heading's grey half
+    // ("Note" then "Week of 8/17/26"), so the whole heading is read.
+    var k24h = pop ? (q('.note-pop-heading', pop) || q('.note-pop-title', pop)).textContent : 'no editor';
+    check(pop && /8\/17\/26/.test(k24h), 'K24 Enter opens the note the keys moved to (' + k24h + ')');
     key('Escape'); await settle();
     await press('ArrowDown');
     check(hiIs(['*note:2026-08-24']), 'K25 after Escape closes the editor, the arrows go on from the same cell (' + hi().join(' ') + ')');
@@ -441,12 +444,15 @@ window.addEventListener('load', function () { (async function () {
     await undo();
     // An automatic note dragged away is REPLACED by the typed copy it travels as (ruling 6): it is switched off, and its
     // week is left with no blank (until 2 Nov 2026 it left the explicit clear, which hid what landed there next).
+    // ⚠️ RE-EXPECTED 13 Nov 2026 (November 2026 audit, AUD2-014: "a line must not arrive carrying a date outside its new
+    // week"): the copy lands dated on the same weekday of its new week, 7/6/26, as the month view's drag has always
+    // re-dated it (mvRetimeWfLine). It read "6/29/26" in week 7/6 until then.
     await click(noteTd('2026-06-29'));
     await grab(noteTd('2026-06-29'));
     await moveTo(noteTd('2026-07-06'));
     await letGo();
     var S6 = await snap();
-    check(noteText('2026-07-06') === 'Start Principal Photography 6/29/26' && noteText('2026-06-29') === '' &&
+    check(noteText('2026-07-06') === 'Start Principal Photography 7/6/26' && noteText('2026-06-29') === '' &&
           !('2026-06-29' in (S6.userNotes || {})) && (S6.autoNotesOff || {}).principalStart === true,
           'G17 an automatic note dragged away leaves its week empty: switched off, no week blank');
     await undo();

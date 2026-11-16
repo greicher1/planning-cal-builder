@@ -89,11 +89,185 @@
 - **Not verified:** the full gate (the batch's, at the end); a real shareable copy double-clicked from disk (the
   startup path was driven through `?state=`, which fills the same block).
 
+### ✅ 13 Nov 2026: AUDIT BATCH 2, ITEM 2.8 — THE EXCEL AND OUTLOOK KEYS ON NOTES: ENTER SAVES, ESC KEEPS WHAT WAS TYPED, A PICKED MONTH NOTE TAKES DELETE / ⌘C / ⌘X / ⌘V (AUD2-021, AUD2-040; the owner's decision D6 (a); built overnight on the owner's "finish all of them"). **COMMITTED LOCALLY on `audit-2-8` (cut from `audit-2-3`), NOT MERGED, NOT PUSHED; waits for the release train's one full gate.**
+- **What it was.** AUD2-040: in both note editors plain Enter added a line and Esc threw the note away (a NEW one too, with
+  no undo); since the keys line went (12 Nov) nothing said Tab or Ctrl/Cmd+Enter saved. AUD2-021: a picked month note
+  ignored Delete, Backspace, ⌘C, ⌘X and ⌘V (the waterfall's keys, WATERFALL-KEYS-PLAN.md, never got a month twin).
+- **As built** (`src/legacy/app.js`, nothing frozen, no save-format change, no id, no setting):
+  - **The editors' keys.** Waterfall: the document keydown listener after `closeWithoutSaving` (comment block "THE EXCEL
+    AND OUTLOOK KEYS"); month: the typed-note textarea listener at the end of `openMvNoteEditor`. Enter saves (only in the
+    text box: Enter on the Day list or a button is theirs); Shift+Enter or Alt+Enter inserts one line break
+    (`noteNewline`: `execCommand('insertText')`, else `setRangeText`. ⚠️ CORRECTED on review, 14 Nov 2026: this said
+    the box's own ⌘Z takes the line back; a trusted-key test showed it does NOT (Backspace does). A month day note
+    stops at 3 lines; measured with trusted keys: Chrome on macOS inserts NOTHING for a real Alt+Enter, so it must be
+    ours); Tab and Ctrl/Cmd+Enter unchanged; nothing during an IME composition (`isComposing` / keyCode 229).
+  - **Esc** (`noteTextChanged`, `escBase`): saves when the box's text differs from `escBase` and is not empty; else
+    closes as before. `escBase` is what the box opened with, PLUS the key that opened it when typing opened it (both
+    typed-open paths set it), so a stray key then Esc leaves the note as it was (`textstyle` D5 holds that). ⛔ Not
+    `activeMvNote.initialText`: `writeActiveMvNote` compares a waterfall line with THAT to decide whether to write, so it
+    must stay what the editor opened with. The month holiday and automatic-note editors keep Enter-saves / Esc-cancels
+    (their hint says so; owner's 12 Nov "No, leave it").
+  - **Month picks** (block after the pick's scroll/resize listeners, "A picked month note takes Delete, ⌘C, ⌘X and ⌘V"):
+    Delete/Backspace in the pick's keydown → `mvNotesDelete` (day notes spliced from the end of each day's list; Waterfall
+    lines and linked notes through their own editor's Delete Note, opened and closed unseen, last on screen first; one
+    undo step: `pushUndoSnapshot` / `update()` / `pushUndoSnapshot` / `markDirty`). Holidays, automatic notes and bars
+    are not deletable (`mvDeletablePicks`), so the key is not taken. ⌘C/⌘X → `mvNotesCopy` in WF_CLIP_TYPE's shape
+    (`wfClipWrite`, `tsvCell`; items `{text, color?, fmt?, day}`; also kept in the shared `wfNoteClip`). ⌘V →
+    `mvNotesPaste` onto `mvPasteDay`, the day under the last click (capture `click` with the pick's slop, and
+    `contextmenu`; `mvDayUnder` → `dayAtPoint` inside the visible `.mv-body`), only while that day is on screen
+    (`mvDayOnScreen`); a date naming the item's old day is re-dated (`mvRetimeNote`), 3 lines max, colour and `fmt`
+    cleaned (`mvCleanClipItem`, which takes a waterfall item's `own`); pasted notes are picked. ⭐ **REPAIRED on review,
+    14 Nov 2026:** a holiday or automatic note among the picks went on the clipboard (`mvNoteClipItem` took every
+    `wfnote` pick) and the paste re-dated it into a typed day note, a holiday invented on another day ("Independence Day
+    (Observed) 7/15/26" on 7/15). Now `mvNotesCopy` leaves out every pick `mvPickKeepsDay` names (`mvLineInfo` kind
+    `holiday` or `auto`), the waterfall's AUD2-014 rule; a pick of nothing else returns null (the browser's own copy of
+    no selection runs, so the clipboard keeps what it held) and either way the grid says `MV_KEEP_DAY_MSG` ("Holidays
+    and automatic notes stay on their own dates") through `flashMvSel`: the waterfall's chip (`.text-sel-chip`, plus
+    `.month-sel-chip`, fixed, z-index 49, a new chrome rule beside `.month-sel-box`), drawn by `drawMvSel` over the
+    active pick, or where it was once a cut cleared the pick, for 4.2 s. Focus must be on
+    `<body>` (`mvClipReady`), or for ⌘V inside the open day menu (`mvPasteTarget`), which the paste closes with its own
+    Escape (`mvCloseDayMenu`). beforecopy/beforecut/beforepaste mirror the waterfall's insurance.
+  - **Text:** placeholders "Note text (Shift+Enter for a new line)" (waterfall, month line) and "Note text — Shift+Enter
+    for a new line, up to 3" (month day note); the Help's editor-keys sentence and the month order paragraph (whose "A
+    click that doesn't move still opens the note" was stale since R1) are rewritten. Its holiday sentence (repair, 14 Nov)
+    now reads: holidays and automatic notes keep their own day, Delete leaves them, a copy or cut leaves them out.
+- **Defaults and choices applied** (none asked; owner asleep): D6 (a) as written; ⌘V pastes onto the day last clicked
+  (D6's default); no new right-click item. Chosen here, each an open question for the owner: (1) Esc keeps CHANGED text
+  (the orchestrator's pick of the finding's "keep it (or ask once)"); an unchanged or EMPTIED box on Esc closes without
+  saving (so Esc can never delete a note); a colour picked alone is dropped by Esc. (2) The key that opened an editor
+  counts as unchanged for Esc. (3) Delete leaves a picked holiday or automatic note (they have Hide, not Delete Note);
+  the alternative was Hide (the waterfall's Delete hides them from its view). (4) Paste re-dates a date naming the note's
+  old day (the month drag's rule) and lands as a month-only note with no place (top/under/bottom); text from elsewhere is
+  ONE note of up to 3 lines, more joined into the third. (5) A note shown on several days (one wfnote pick) is copied
+  once but Delete takes every outlined copy. (6) ⌘V also works with the day menu open (it closes it). (7) The holiday /
+  automatic-note editors keep Esc = cancel.
+- **Repair proof (14 Nov 2026, the review).** `mvkeys` `g=pick` gained P16 (the reported Cmd+X / Cmd+V with a holiday
+  picked), P16b, P17 (a holiday alone: Copy and Cut copy nothing, the message) and P18 (an automatic note alone): P16,
+  P17, P18 red on the reviewed build (`843e45b2…`), `g=pick` 22/22 and `g=enter` 16/16 after, `mvkeysreal` 8/8; with
+  item 2.3's repair on the same build `wfnotelines` ×6 32/32, `wfkeys` 84/84, `wfnoteeditor` 14/14, `npm run check` 42/42.
+- **Second repair (14 Nov 2026, review slips in the chip above).** (a) `buildSavedHtml`'s clone strip list named
+  `.month-sel-box` but not the chip, so a shareable copy exported inside the chip's 4.2 s carried it as a permanently
+  visible element: `.month-sel-chip` added to the list. (b) `mvSelFlash` survived a view switch: the chip stayed over the
+  waterfall and came back with the month view (drawn at the old pick's rect). `setViewMode` now calls
+  `flashMvSel(null)` when the view changes. `mvkeys` `g=pick` P19 (Export App With Data inside the 4.2 s: no chip in the
+  copy) and P20 (to the waterfall and back inside 4.2 s: no chip on either): both red before (P20 saw the chip on the
+  waterfall AND back in the month), green after; `g=pick` 24/24, `g=enter` 16/16, `mvkeysreal` 8/8, `mvtextstyle` LIVE
+  23/23. Merged into `note-editor-a2` the same day.
+- **Proof.** New leg `t/mvkeys.js` (`g=pick` 18, `g=enter` 16; `g=mint` writes `tests/fixtures/mvkeys.sptcal`, new,
+  synthetic) and `mvkeysreal.mjs` (8 cases, TRUSTED keys and clipboard over CDP, port 8238), both in `gate.sh` (the
+  audit-fix loop, then a block of its own). Before the fix (the build saved as `tests/harness/pre-2-8.html`, ignored):
+  red P1 P3 P4 P5 P6 P8 P9 P10 P12 P13 P15, M1 M3 M4 M5 M9 W1 W2 W3 W5 W6; mvkeysreal 0/8. After: 34/34, 8/8. Nearest legs
+  green on the FINAL build (`dist/index.html` sha256 `843e45b2…`, rebuilt byte-identical): wfkeys 84/84, wfkeysreal 6/6,
+  wfnoteeditor 14/14 (re-expected, below), textstyle 52/52, mvtextstyle LIVE 23/23, mvbarsize 13/13, wfnotelines ×6
+  29/29, autonotefollow ×4 24/24, mvnotes 30/30, noteviews 15/15, phasemonth 21/21, wfnotecolors 14/14, mvmenu 81/81,
+  wfmenu 39/39, undokeys 11/11; on the build one step earlier (before `escBase`, textstyle D5 then red) also
+  autonoterename 24/24, autonoteview 18/18, holidayrename 14/14, monthnotes 8/8, phaselink 14/14, phaselook 10/10,
+  phasenotes 21/21, phasekeys 18/18, hiatussidebar 16/16, hdrrow 40/40, regionlock 14/14, mvtextstyle RESTORE 6/6,
+  mvdragcarry 15/15, autonotekinds 16/16. `npm run check` 42/42. **Re-expected:** `wfnoteeditor` E4 typed in the box and
+  pressed Esc expecting nothing saved (and the H cases compare with the start state); it now puts the box back as it
+  opened before each Esc. Not run: the full gate; not tried by hand.
+- ⚠️ **Incident, for the session on `audit-2-8`'s neighbour `audit-2-9`:** the scratchpad folder is SHARED by the
+  overnight sessions, and another session overwrote the leg-runner script I had put there with its own (hard-wired to
+  `audit-2-9`, port 8831). One background run of mine then ran a few of my legs (textstyle, wfnoteeditor, mvtextstyle at
+  most) inside `audit-2-9/tests/harness` on port 8831 for a few minutes (≈21:25–21:31, 13 Nov) before I stopped it. Any
+  `audit-2-9` leg that "produced no result" or lost its .json in that window should be re-run. Keep scripts in a
+  uniquely named subfolder.
+
+### ✅ 13 Nov 2026: AUDIT BATCH 2, ITEM 2.3 — A NOTES CELL'S OTHER LINES KEEP THEIR OWN DAY: THE DAY PICKER, A RENAME WITH AN ADDED LINE, CUT AND PASTE, THE DRAG (AUD2-011, AUD2-014, AUD2-015; their approved defaults, built overnight on the owner's "finish all of them"). **COMMITTED LOCALLY on `audit-2-3` (cut from `audit-1-1`), NOT MERGED, NOT PUSHED; waits for the release train's one full gate.**
+- **What it was.** A waterfall Notes cell shows the user's own lines plus, possibly, automatic notes' lines, holidays',
+  month notes' ("Show in waterfall") and linked notes' ("Stays with"). The editor and keys treated them as typed text:
+  the Day picker stamped the box's LAST line (AUD2-011: a month note doubled, a linked note frozen with a date, and with
+  the user's line above it "Start Principal Photography" re-dated in every output); `wfLinkedLineEdits` and
+  `wfMonthLineEdits` read a rename as a delete whenever the box's line count changed (AUD2-015: a linked note lost its
+  link, a month note stayed beside its edited copy), and a month line re-dated by hand left the note behind; Cut/Paste
+  and the drag carried month, holiday and automatic lines as typed text with their old date (AUD2-014: the month view
+  and its PDF showed the event twice).
+- **As built** (`src/legacy/app.js`, nothing frozen, no save-format change):
+  - **Day picker** (`openNoteEditor`, `dayForeign`): stamps the LAST line not in `cellKnown`, not any automatic or
+    holiday line of the week in any view (`wfWeekAutoItems`), and not a linked line unless the cell IS that one linked
+    note (`linkSingle`, whose day the picker sets, D3). A box of only such lines stamps nothing (an empty box still takes
+    the date alone). `commitActiveNoteEditor` drops `ownDate` when the own text has no line beyond the automatic text.
+  - **Matchers:** `wfLineGaps` (wfLineEdits' LCS alignment, now shared; wfLineEdits refactored onto it, same logic) and
+    `wfEditPairs` / `wfLooksLikeEdit`: an even gap pairs in order (the old same-count rule); an uneven one pairs a changed
+    line with the first line there that reads as its edit (keeps its own date, or shares a word of 3+ letters). Used by
+    `wfLinkedLineEdits` and `wfMonthLineEdits`. Unrelated lines typed in its place still delete (the `wfnotelines` L4
+    control).
+  - **Month line re-dated inside its week** (`wfMonthLineEdits`, AUD2-015's default): the note MOVES to that day
+    (`moveDayNoteEntry`: the entry object itself, every field with it), renamed too if its words changed. A date outside
+    the week: taken out, as before.
+  - **Cut / Paste** (`wfNoteItem`'s `own`, `wfNoteOwnLines`, `wfPutNote`): AUD2-014's default. The item keeps `text` whole
+    (the clipboard, for Excel) and `own` = the text less month, holiday and automatic lines. A paste writes `own` unless
+    the target still shows exactly `text` (pasted back onto itself). All-foreign `own` writes NOTHING and leaves the
+    target as it was (it used to empty it). The paste says `WF_KEEP_DAY_MSG`. `wfCleanClipItem` keeps `own` (clipboard
+    data only, never saved). Cut itself is unchanged (R2: Copy then Delete; the month note stays in the month view).
+  - **Drag** (`wfNoteDragEnd`, `wfDragPlan`, `wfLiftNote`; `wfClearNote`'s `moving` flag is gone, the drag was its only
+    user): month notes are taken off their days, held, and put on the same weekday of the drop week AFTER the cells land
+    (so no landing cell switches them off), `waterfall` kept, text retimed (`mvRetimeNote`), the dragged cell's look kept
+    when it was month notes only. Holidays stay in the source cell (a holiday-only cell does not move; the grid says
+    `WF_KEEP_HOLIDAY_MSG`); a holiday the typed text had left out is still hidden there (no week blank, ruling 6).
+    Automatic lines are carried, switched off in both views as before, and RE-DATED to the drop week's same weekday
+    (`mvRetimeWfLine`, the month view drag's own rule). The Day-pinned typed line's date moves with it. Linked notes:
+    `wfPutLinked` as before, given the carried text and `month: []`, `ownDate: ''`.
+    ⭐ **REPAIRED on review, 14 Nov 2026: a block dragged over ITSELF hid a holiday meant to stay.** Pick 8/31 ("Prep A")
+    and 9/7 ("Crew X" + Labor Day), drag down a week: `wfLiftNote` kept Labor Day in 9/7, then `wfPutNote` landed "Prep A"
+    there and `wfSwitchOffLines` hid the holiday from the waterfall, while the grid said "Holidays stay on their own
+    dates". Now `wfNoteDragEnd` reads every block cell's `stay` (`stayAt`, a holiday-only cell's too) before the lift and
+    passes it as `wfPutNote`'s new `keep` (through `wfPutLinked`'s `p.keep` too): those holidays are not switched off
+    (`wfSwitchOffLines(wk, keep)`), and the cell's text becomes what lands, then their lines (typed, so item 1.1 keeps
+    them following the holiday; text that lands empty leaves it automatic). Every cell of the block counts as leaving
+    (`leaving = new Set(d.weeks)`), so a holiday-only cell of the block is no longer asked "Replace it?": the note lands
+    beside its holiday. Chosen here, an open question for the owner: the order (what lands, then the holiday).
+- **Defaults and choices applied** (none asked; owner asleep): the three approved defaults above (Cut leaves the month
+  note; a paste leaves month/holiday/automatic lines out; a drag moves the day note; an in-week re-date moves it).
+  Chosen here, each an open question for the owner: (1) a dragged AUTOMATIC note's line is re-dated into its new week
+  ("Start Principal Photography 7/6/26"), as the month view's drag does; the alternative was leaving it in place like a
+  holiday. (2) A holiday line in a dragged cell stays, shown; the alternative was hiding it from the waterfall as Delete
+  does. (3) An uneven-gap rename needs a shared word or the kept date; the alternative was pairing in order regardless.
+  (4) A paste/drag that left lines behind says so in the grid's one-line chip (two new sentences).
+- **Help:** the Day dropdown and the copy/drag paragraphs each gained one sentence (`src/index.html`).
+- **Repair proof (14 Nov 2026, the review).** `wfnotelines` `g=drag` gained R6 (the reported block drag: 9/7 reads
+  "Prep A / Labor Day 9/7/26", 9/14 "Crew X", Labor Day shown once in both views), R6b (one Undo) and R7 (a holiday-only
+  cell in the block: no question, "Prep A" lands beside Labor Day). R6 and R7 red on the reviewed build, the six runs
+  32/32 after; `wfkeys` 84/84, `wfnoteeditor` 14/14 (the rest is in item 2.8's repair proof, same build).
+- **Proof.** New leg `wfnotelines` (`gate.sh`, the audit-fix block, six runs `g=day|link|link2|month|cut|drag`): 15 cases
+  red on the build before the fix (D1, D2, D4, L1, L2, L3, M1, M3, C1, C2, C4, R1, R3, R4, R5), 29/29 green after; the
+  controls (D3, L0, L4, M2, M4, C3, R2) green on both. The audit's repro legs (`audit-r3a-mwf`, `audit-r3a-link`, every
+  s=) re-run on this build: each event once, on its own day, in both views. Nearest legs, all green: on the FINAL build
+  (`eeb91dc5…`) wfnotelines ×6 29/29, wfkeys 84/84, wfmenu 39/39, mvnotes 30/30, autonotekinds 16/16, autonotefollow ×4
+  24/24, phasekeys 18/18, noteviews 15/15, wfnoteeditor 14/14, phaselink 14/14, and `base` identical to its baseline
+  (noteCells, sig, widths; 0 clipped); on the build one Day-picker line earlier (`dayForeign` then lacked the
+  all-views automatic lines) phasenotes 21/21, phasemonth 21/21, phaselook 10/10, autonoterename 24/24, autonoteview
+  18/18, wfnotecolors 14/14, holidayrename 14/14, mvdragcarry 15/15, wfkeysreal 6/6, hiatusripple 19/19.
+  `npm run check` 42/42. **Re-expected:** `wfkeys` G17 (a dragged "Start Principal Photography" now reads 7/6/26 in week 7/6, not
+  6/29/26), for AUD2-014's "a line must not arrive carrying a date outside its new week".
+- **Not verified:** the full gate; Excel and the PDFs were not read for these cases by the new leg (they read
+  `effectiveNoteText` and the month view's blocks, which the leg does read); real (trusted) mouse and keys beyond
+  `wfkeysreal`; not tried by hand in a browser.
+
+### ✅ 13 Nov 2026: AUDIT BATCH 1, ITEM 1.4 — THE EMERGENCY ROLLBACK REDEPLOYS THE PREVIOUS RELEASE (AUD2-006; owner's decision **D7 (a)**, "Yes, stay", 13 Nov 2026). **COMMITTED LOCALLY on `audit-1-1`, NOT PUSHED.** Tracker card `audit-rollback-previous-release`
+- **D7 (a) in full** (PLAYBOOK §3): stay on the current web address; the rollback becomes "redeploy the previous
+  release"; later, a line on the install screens for blocked installs and "Open as window", a one-page IT sheet (both
+  Batch 2 item 2.7), and the owner's own proof run on a studio Windows PC (verdict condition 3). Only the rollback is
+  Batch 1, and it is this entry.
+- **As built** (`.github/workflows/deploy.yml`, no app code): `workflow_dispatch` takes a `release` input. Dispatched on
+  `main` with it set, the deploy job skips the build and publishes `releases/<release>.html` as `dist/index.html` with a
+  matching `dist/version.json`, after checking the name (`^v\d+\.\d+\.\d+$`, read from `env`, never interpolated into the
+  script), that the file exists, that it states that version (the build's `` `X.Y.Z` `` literal), and that it has the
+  install gate (`app-gate`, v1.4.1 on). The deploy job's `if` is `always()` plus: a push or a plain re-deploy needs
+  `needs.build.result == 'success'` (as `needs` implied before); a rollback does not, so a main that will not build
+  cannot block it. The `main`-only ref test (audit N-7) is kept for all three.
+- The rollback note in the workflow's header, CLAUDE.md's Project note and two older HANDOFF passages (§1's
+  "instant rollback", §2b-3 row 7) are corrected; the Pages-source flip is written down as never to be used.
+- **Proof:** parsed with Ruby's YAML; the rollback step's script, run locally on a copy of `releases/`: `v1.12.1`
+  publishes byte for byte with `{ "version": "1.12.1" }`; `v1.2.0`, `v1.3.1`, `v9.9.9`, `v1.12.1; echo pwned` and `../x`
+  are refused with their reasons. ⚠️ Not exercised on GitHub (needs a push). After the batch's push, a dry run is
+  possible only as a real rollback, so do not "test" it on the live site; the next real use is the test.
+- ⚠️ The push of this change needs the token's `workflow` scope (§2b-3 row 7's note, below).
+
 ### ✅ 13 Nov 2026: AUDIT BATCH 1, ITEM 1.1 — A TYPED NOTES CELL'S AUTOMATIC AND HOLIDAY LINES FOLLOW THE CALENDAR (AUD2-001, AUD2-002, AUD2-003; owner's decision **D1 (a)**, "yes", 13 Nov 2026). **COMMITTED LOCALLY, NOT PUSHED, NO FULL GATE** on branch `audit-1-1` (worktree `.claude/worktrees/audit-1-1`), cut from item 1.2's `claude/blissful-leakey-82c876` at `2eb9869`, so it holds both items. The owner tried it on localhost and said *"Yes, finish it"*. Tracker card `audit-typed-notes-follow-calendar`
-- **The batch, where it stands:** 1.1 and 1.2 built (this branch). **1.3** (AUD2-013, crafted files) and **1.5** (AUD2-007,
-  the date picker's "today") need no decision; 1.5 is now built too (the entry above). **1.4** (AUD2-006, the rollback note) waits for the
-  owner's **D7**. Then ONE full gate for the batch and one push on the owner's yes (PLAYBOOK §2). Build each next item on
-  this branch (or a branch cut from it), so the batch stays one line.
+- **The batch, where it stands:** 1.1, 1.2, 1.3, 1.4 (D7 (a), its entry is above) and 1.5 are all built. The owner chose
+  (13 Nov 2026, picker) to push the WHOLE batch once; on 16 Nov 2026 (*"combine all and push"*) every branch was merged
+  into `release-v1.15` with the rest of the audit's built items, for ONE full gate and one push on the owner's yes.
   - ⚠️ A second session, "Audit fixes: core functionality", rebuilt item 1.2 in worktree `audit-batch-1` (its commit
     `86ada17`, its own `recoverfail` leg). It was stopped on the owner's word ("tell the other chat to stop") and told
     why; its worktree and commit were left as they were. That branch is a DUPLICATE: do not merge it. Removing it
@@ -15701,8 +15875,9 @@ change — see §5d.
 to `main` — cutover 31 Aug 2026, owner-approved (§2b-3 row 7). Verified 2 Sep 2026: the live page is
 byte-identical to a local `npm run build` at `2a75929`. The root `index.html` (~10,344 lines /
 ~667 KB, one file, no build step) is **no longer what users get**; it stays in the repo as the v1.2.0
-legacy app, byte-identical to `releases/v1.2.0.html`, and is the instant rollback (Pages Source →
-"Deploy from a branch", main, `/`).
+legacy app, byte-identical to `releases/v1.2.0.html`. ⛔ *(Corrected 13 Nov 2026, audit AUD2-006, D7 (a).)* It is NOT the
+rollback any more: the rollback is "Build and deploy" dispatched on `main` with `release` = the previous version, which
+publishes that release's stored copy (header of `deploy.yml`). Serving this v1.2.0 file moved every wrap date.
 
 ### ✅ CORRECTED 2 Sep 2026 — this section used to say "v1.2.0 IS BUILT BUT NOT DEPLOYED — the live site is still v1.0.0"
 
@@ -16776,9 +16951,10 @@ Logged before building at the owner's instruction, then built and gated. State o
    `main` as well as on manual dispatch — the repo already auto-deployed before this, so
    manual-only would have silently changed the deploy model; the gate remains the "never push
    unasked" rule in `CLAUDE.md`.
-   **ROLLBACK, if ever needed:** Settings ▸ Pages ▸ Source back to "Deploy from a branch"
-   (`main`, `/`). That restores the root `index.html` — the known-good v1.2.0 legacy app —
-   instantly, with no revert, no rebuild and no waiting on CI.
+   ~~**ROLLBACK, if ever needed:** Settings ▸ Pages ▸ Source back to "Deploy from a branch"~~ ⛔ **WITHDRAWN 13 Nov 2026**
+   (audit AUD2-006, owner's D7 (a)): that served the v1.2.0 legacy app, which drops the Region and strips newer settings
+   on Save. The rollback is now "Build and deploy" dispatched on `main` with `release` = the previous version (the
+   header of `deploy.yml`).
    ⚠️ One thing that bit on the way, worth keeping: pushing anything under `.github/workflows/`
    needs the token's **`workflow`** scope. Without it the push is rejected, and the Contents API
    is blocked identically but answers **404, not 403**, which reads as a missing repo.

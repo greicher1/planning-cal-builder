@@ -8,7 +8,8 @@
 // answer is read back from the PDF it writes (the page box, the size the grid is drawn at, the grid-line
 // strokes), from the workbook Export to Excel writes afterwards, from the saved file and the preference store.
 //
-//   D1  -- it opens: Export PDF and ⌘P in the waterfall; never in the month view, whose export goes straight on.
+//   D1  -- it opens: Export PDF and ⌘P in the waterfall. Never in the month view, whose Export PDF opens its OWN
+//          dialog since 13 Nov 2026 (which months, audit AUD2-026; MonthPdfDialog.jsx, held by t/monthpick.js): D10.
 //   D2  -- what it opens on: the calendar's paper, the recommended orientation, the grid-lines preference.
 //   D3  -- the recommendation: for each paper, the orientation marked Recommended is the one the PDF comes out
 //          in, and the size it shows is within 5 points of the size the PDF draws the grid at.
@@ -372,19 +373,33 @@ window.addEventListener('load', function () { (async function () {
       !!pP && pP.w === (pP.orient === 'landscape' ? 792 : 612) && pP.h === (pP.orient === 'landscape' ? 612 : 792) && !('paperSize' in sP),
       { opened: opened, openedAgain: openedAgain, tagAgain: tagAgain, pdf: pP, paperSize: sP.paperSize });
 
-    // ===== D1 (month): no dialog in the month view ===========================================================
+    // ===== D1 (month): not THIS dialog in the month view ======================================================
+    // Since 13 Nov 2026 (audit AUD2-026) the month view's Export PDF asks which months, in its own dialog (.month-pdf-dlg,
+    // which also carries .export-pdf-dlg so the sweep skips it and t/lib.js answers it). This dialog -- paper, orientation,
+    // grid lines -- must never open there. The leg is in 'manual' mode, so it presses the month dialog's Export itself, at
+    // its default (All), which writes the month PDF as it always did.
     byId('view-month-btn').click();
     await T.until(function () { return !!document.querySelector('#table-wrap .mv-week'); }, 'the month view', 200, 100);
     await settle('the month view');
-    var sp = T.fakeSavePicker(), sawDialog = false;
-    var mo = new MutationObserver(function () { if (document.querySelector('.export-pdf-dlg')) sawDialog = true; });
+    var sp = T.fakeSavePicker(), sawDialog = false, sawMonthDlg = false;
+    var mo = new MutationObserver(function () {
+      if (document.querySelector('.export-pdf-dlg:not(.month-pdf-dlg)')) sawDialog = true;
+      if (document.querySelector('.month-pdf-dlg')) sawMonthDlg = true;
+    });
     mo.observe(document.documentElement, { childList: true, subtree: true });
     await T.sleep(800);
     byId('export-btn').click();
+    try { await T.until(function () { return !!document.querySelector('.month-pdf-dlg [data-pdfdlg="export"]'); }, 'the month dialog', 60, 100); } catch (e) {}
+    var monthSegs = Array.from(document.querySelectorAll('.month-pdf-dlg input[type="radio"]')).map(function (i) { return i.value; });
+    var monthOn = Array.from(document.querySelectorAll('.month-pdf-dlg input[type="radio"]')).filter(function (i) { return i.checked; }).map(function (i) { return i.value; });
+    var monthExport = document.querySelector('.month-pdf-dlg [data-pdfdlg="export"]');
+    if (monthExport) monthExport.click();
     try { await T.until(function () { return sp.files.length > 0; }, 'the month PDF written', 200, 100); } catch (e) {}
     mo.disconnect(); sp.restore();
-    kase('D10', 'the month view\'s Export PDF never opens the dialog and writes the month PDF straight away',
-      !sawDialog && sp.files.length === 1 && /Month Calendar\.pdf/.test(sp.files[0].name || ''), { sawDialog: sawDialog, files: sp.files.length });
+    kase('D10', 'the month view\'s Export PDF never opens this dialog: it opens the month dialog (which months, on All), whose Export writes the month PDF',
+      !sawDialog && sawMonthDlg && sameArr(monthSegs, ['all', 'this', 'some']) && sameArr(monthOn, ['all']) &&
+      sp.files.length === 1 && /Month Calendar\.pdf/.test(sp.files[0].name || ''),
+      { sawDialog: sawDialog, sawMonthDialog: sawMonthDlg, monthSegments: monthSegs, monthOpenedOn: monthOn, files: sp.files.length });
 
     var errs = (T.appHealth().errors || []);
     kase('E0', '0 console errors', errs.length === 0, { errors: errs.slice(0, 5) });
