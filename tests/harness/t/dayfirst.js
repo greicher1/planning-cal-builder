@@ -61,7 +61,10 @@ window.addEventListener('load', function () { (async function () {
     var td = q('#table-wrap td.sheet-note-cell[data-week="' + wk + '"]');
     td.scrollIntoView({block: 'center'}); await T.sleep(80);
     T.openCell(td); await T.sleep(350);
-    var pop = q('.note-pop'), t = pop ? txt(q('.note-pop-title', pop)) : null;
+    // ⚠️ Re-expected on release-v1.15, where 2.4 met the note editors' look A2: A2 splits the title into the name
+    // (.note-pop-title, "Note") and the day in grey (.note-pop-when, "Week of 6/29/26"), so the title read here is the
+    // whole heading, both spans.
+    var pop = q('.note-pop'), t = pop ? txt(q('.note-pop-heading', pop) || q('.note-pop-title', pop)) : null;
     var ds = pop && q('.note-day-select', pop);
     var days = ds ? Array.prototype.slice.call(ds.options).map(function (o) { return o.text; }) : [];
     document.dispatchEvent(new KeyboardEvent('keydown', {key: 'Escape', bubbles: true}));

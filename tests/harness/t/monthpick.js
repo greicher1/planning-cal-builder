@@ -206,13 +206,15 @@ window.addEventListener('load', function () { (async function () {
          enterSame: !!enter && !!all && sameBytes(enter.bytes, all.bytes), spanSame: !!span && !!all && sameBytes(span.bytes, all.bytes)},
         '16 pages, January 2026 to April 2027; the three files identical');
 
+    // ⚠️ Re-expected on release-v1.15, where 2.11 met 2.10: "named as before" is now the all-months file's own name,
+    // which since audit 2.10 carries the season and the Date Last Edited ("Test Show Month Calendar S2 2026-09-22.pdf").
     // ===== M2: This month =============================================================================================
     await open();
     await pick('this');
     var one = await read((await exportWith(clickExport)).file);
     add('M2', 'This month (July 2026 on screen) writes ONE page, July 2026, the very page the all-months file draws for July, named as before',
-        !!one && one.pages === 1 && same(one.months, ['July 2026']) && within(one, all) === 0 && /^Test Show Month Calendar\.pdf/.test(one.name || ''),
-        {pages: one && one.pages, months: one && one.months, notInAll: one ? within(one, all) : null, name: one && one.name}, '1 page, July 2026');
+        !!one && one.pages === 1 && same(one.months, ['July 2026']) && within(one, all) === 0 && /^Test Show Month Calendar[ .]/.test(one.name || '') && !!all && one.name === all.name,
+        {pages: one && one.pages, months: one && one.months, notInAll: one ? within(one, all) : null, name: one && one.name, allName: all && all.name}, '1 page, July 2026, named as the all-months file is');
 
     // ===== M3: Range ============================================================================================
     await open();
