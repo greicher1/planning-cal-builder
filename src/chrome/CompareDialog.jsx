@@ -59,7 +59,8 @@ const missing = (v) => v == null || v === ''
 // The all-phase hiatuses (audit 2026-11 AUD2-023): each [first Monday, last Friday, weeks] as
 // "12/21/26 – 1/1/27, 2 wks", one per line.
 const weeks = (n) => n + ' wk' + (n === 1 ? '' : 's')
-const hiatusLine = (h) => fmt(h[0]) + ' – ' + fmt(h[1]) + ', ' + weeks(h[2])
+// `df`: the calendar's date order (audit 2.4, D3 (a)), as every other date in this window and its exports.
+const hiatusLine = (h, df) => fmt(h[0], df) + ' – ' + fmt(h[1], df) + ', ' + weeks(h[2])
 const ordinal = (n) => n + (n % 100 >= 11 && n % 100 <= 13 ? 'th' : ['th', 'st', 'nd', 'rd'][n % 10] || 'th')
 // What differs, in words, as the other chips are: a count that differs ("1 more hiatus"), else each hiatus that moved
 // or changed length ("Longer by 1 wk", "Pushed 1 wk, shorter by 1 wk"), named by its place when there are several
@@ -86,7 +87,7 @@ function cell(row, value, ref, df) {
   }
   if (row.type === 'breaks') {
     const delta = hiatusDelta(value, ref)
-    return { text: show(row, value), diff: !!delta, delta, none: !value.length }
+    return { text: show(row, value, df), diff: !!delta, delta, none: !value.length }
   }
   if (row.type === 'date') {
     const n = days(ref, value)
@@ -104,7 +105,7 @@ function cell(row, value, ref, df) {
   return { text: String(value), diff: value !== ref, delta: '' }
 }
 function show(row, v, df) {
-  if (row.type === 'breaks') return v.length ? v.map(hiatusLine).join('\n') : 'None'
+  if (row.type === 'breaks') return v.length ? v.map((h) => hiatusLine(h, df)).join('\n') : 'None'
   if (row.type === 'date') return fmt(v, df)
   if (row.type === 'range') return fmt(v[0], df) + ' – ' + fmt(v[1], df)
   if (row.type === 'number') return v + (row.unit || '')
