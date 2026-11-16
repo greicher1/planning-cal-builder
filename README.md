@@ -29,7 +29,9 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
-### Unreleased — Export to Excel tries again when its Excel library hasn't loaded, and says why plainly (audit item 3.11, 14 Nov 2026)
+## v1.14.0 — the November audit's first fixes: one Undo for a hiatus change and its push, the notes resets ask first, Save explains a missing file, Excel export fetches its library again, episode and block counts apply when you leave the box, a view switch is not an unsaved change, rolling a season forward, the moving tools keep your dates, columns that stay narrow; plus everything since v1.13.0 (15 Nov 2026)
+
+### Export to Excel tries again when its Excel library hasn't loaded, and says why plainly (audit item 3.11, 14 Nov 2026)
 
 November 2026 audit, item 3.11 (AUD2-063, AUD2-064), under the owner's decision **D7 (a)**: SPTCal stays an online app
 (no service worker, no offline cache) and says so. Export to Excel needs one library that SPTCal downloads from the
@@ -55,7 +57,7 @@ and every press after said the same until SPTCal was relaunched, the network bac
   `xlsxdates` 5/5, `scenarios` 23/23, `hdrexcel` all green, `base` matches its baseline with the Excel parts identical;
   `npm run check` 42/42.
 
-### Unreleased — Rolling a season forward a year: the new year's holidays show, Shift says which breaks it left behind, and typed headings and widths move with the year (14 Nov 2026)
+### Rolling a season forward a year: the new year's holidays show, Shift says which breaks it left behind, and typed headings and widths move with the year (14 Nov 2026)
 
 The November 2026 audit, item 3.3 (AUD2-050, AUD2-051, AUD2-052; each reproduced here before the fix).
 
@@ -92,7 +94,7 @@ The November 2026 audit, item 3.3 (AUD2-050, AUD2-051, AUD2-052; each reproduced
   the new wording ("Shifted 4 working weeks earlier."). The nearest legs green (listed in HANDOFF.md), and the gate's
   base section by hand; `npm run check` 42/42. Not yet through the full gate.
 
-### Unreleased — The moving tools leave phases where you put them: open panels keep your date and new phases, Dates phases stay Mon–Fri, and Shift says what a moved hiatus did (14 Nov 2026)
+### The moving tools leave phases where you put them: open panels keep your date and new phases, Dates phases stay Mon–Fri, and Shift says what a moved hiatus did (14 Nov 2026)
 
 The November 2026 audit, item 3.2 (AUD2-049, AUD2-068, AUD2-069; each reproduced here before the fix). AUD2-047 and
 AUD2-048 were rejected by the owner and are untouched.
@@ -124,7 +126,7 @@ AUD2-048 were rejected by the owner and are untouched.
   2/26/27, not Sun 2/28/27; built forward, Fri 5/7/27, not Sun 5/9/27). The nearest legs green (listed in HANDOFF.md);
   `npm run check` 42/42. Not yet through the full gate.
 
-### Unreleased — a waterfall adjusted in the app no longer grows wider, and typed headings follow their phase (14 Nov 2026)
+### a waterfall adjusted in the app no longer grows wider, and typed headings follow their phase (14 Nov 2026)
 
 Audit item 3.8 (Nov 2026 audit, findings AUD2-057 and AUD2-077), built with the findings' defaults.
 
@@ -156,7 +158,7 @@ Audit item 3.8 (Nov 2026 audit, findings AUD2-057 and AUD2-077), built with the 
   `hiatusdrag` green; gates 1–3 by hand (the waterfall PDF and every Excel part identical to the baseline);
   `npm run check` 42/42. Not merged, not pushed: waits for the release train's one full gate.
 
-### Unreleased — the notes resets ask first, and each clears the notes its own view shows (14 Nov 2026)
+### the notes resets ask first, and each clears the notes its own view shows (14 Nov 2026)
 
 Audit item 3.5 (AUD2-054, AUD2-070), approved on the tracker. **Reset Waterfall Notes** and **Reset Month Notes** sit in
 the app header beside Export PDF, and one press cleared every note at once with no word (44 waterfall notes to 4 on
@@ -180,7 +182,7 @@ only) was deleted by Reset Waterfall Notes, where it never showed, and left behi
   `noresetall` 5/5, `dlgkeys` 16/16, `autonoterename` 24/24, `mvtextstyle` 23/23 and 6/6, `phasenotes` 21/21,
   `phasemonth` 21/21, `sharecopy2` pass; `npm run check` 42/42. No full gate yet (the release train's).
 
-### Unreleased — One Undo takes back a hiatus change and its push together (audit AUD2-038, 14 Nov 2026)
+### One Undo takes back a hiatus change and its push together (audit AUD2-038, 14 Nov 2026)
 
 Owner's decision D2 = b on the November audit: *"the edit and its push are one Undo"*. With Ripple Hiatus Periods on
 (the default), every hiatus change banked TWO undo steps: the change, then the push of the phases after it. So the
@@ -209,7 +211,7 @@ Production was still shooting, a plan that never existed. A second press was alw
   `phasearrowsripple` 10/10, `hiatussidebar` 16/16, `mvmenu` 81/81, `wfmenu` 39/39, `settingswin` 21/21, `snapbox`
   12/12, `phiatuspick` 12/12; `npm run check` 42/42. Not merged, not pushed: it waits for the release train's one gate.
 
-### Unreleased — Build Around keeps a moved phase's own break, and "ends by" no longer lands two weeks early before Christmas (13 Nov 2026)
+### Build Around keeps a moved phase's own break, and "ends by" no longer lands two weeks early before Christmas (13 Nov 2026)
 
 The November 2026 audit, item 2.2 (AUD2-009, AUD2-010; both reproduced by a second agent, and again here before the
 fix).
@@ -234,7 +236,7 @@ fix).
   C2, D1, D2, F1; buildendsby B0, B1) and green on this one; the nearest legs green (listed in HANDOFF.md); `npm run check`
   42/42. Not yet through the full gate.
 
-### Unreleased — when the linked file is gone, Save says so and offers Save As; a double-clicked calendar says where Save writes (13 Nov 2026)
+### when the linked file is gone, Save says so and offers Save As; a double-clicked calendar says where Save writes (13 Nov 2026)
 
 The November 2026 audit, item 2.6 (AUD2-039, AUD2-017; both reproduced here on the build before the fix).
 
@@ -269,7 +271,7 @@ The November 2026 audit, item 2.6 (AUD2-039, AUD2-017; both reproduced here on t
   `hostile` 13, `lastedited` 22; `cspproof` 15/15; `npm run check` 42/42. Not verified: a real double-click launch, a
   real mail app's folder, and Chrome's real permission prompt (headless Chrome has none of them; the legs stub them).
 
-### Unreleased — Switching between the Waterfall and the Month view no longer marks a file "Unsaved changes" (13 Nov 2026)
+### Switching between the Waterfall and the Month view no longer marks a file "Unsaved changes" (13 Nov 2026)
 
 The November 2026 audit, item 2.9 (AUD2-022; reproduced here before the fix). Open a saved calendar, click Month view
 (or Month and back), and the status read **Unsaved changes**: closing the window asked "Leave site?", and ten minutes
@@ -290,7 +292,7 @@ view is part of the saved calendar and the switch re-drew it through the same pa
 - **Proof:** new leg `viewclean` (7 cases: V1, V2 and A1 red on `2089aa5`, the audited build; green after), in the
   gate's audit-fix list; nearest legs green on the build (listed in HANDOFF); `npm run check` 42/42.
 
-### Unreleased — Number of Episodes and Number of Blocks apply when you leave the box (13 Nov 2026)
+### Number of Episodes and Number of Blocks apply when you leave the box (13 Nov 2026)
 
 Audit item 2.1 (AUD2-008, owner-approved). Both boxes acted on every keystroke, so typing 12 over 10 passed through
 "1": at that keystroke every episode after the first was dropped (their names, day counts, prep days and shooting order),
@@ -311,7 +313,7 @@ a block's own day count.
   `labelsetup`, `buildaround`, `mvtextstyle`, `autonotekinds`, `seasons`, and gate sections `blocks`, `wrapdate`,
   `epnames`, `episodeprep`, `scenarios`; `npm run check` 42/42. Typed with real keys in the browser on localhost.
 
-### Unreleased — Renaming an auto note keeps its popup an Auto Note popup (12 Nov 2026)
+### Renaming an auto note keeps its popup an Auto Note popup (12 Nov 2026)
 
 Owner: *"when you start editing an auto note, the regular note editor menu opens up - why?"* In the waterfall, the first
 keystroke in a cell's one automatic note (or one holiday) brought up **Day**, **Stays with** and **Show in month view**,
@@ -327,7 +329,7 @@ which is why they were hidden in the first place (WATERFALL-NOTE-EDITOR-PLAN D4)
 - **Proof:** tried in the browser on `autonoterename.sptcal` (five cases; a saved rename reopens as "Auto Note" with Hide
   Auto-Note); new case `wfnoteeditor` E4; on the build: `wfnoteeditor` 14/14, `autonoterename` 24/24, `autonoteview` 18/18, `holidayrename` 14/14, `noteviews` 15/15, `wfnotecolors` 14/14, `phaselink` 14/14, `wfkeys` 84/84; `npm run check` 42/42.
 
-### Unreleased — the note editors no longer show the keys line (12 Nov 2026)
+### the note editors no longer show the keys line (12 Nov 2026)
 
 Owner: *"Delete this text in all places"*, of "Up to 3 lines · Enter for a new line · Tab or Ctrl/Cmd‑Enter to save ·
 Esc to cancel" and "Tab or Ctrl/Cmd‑Enter to save · Esc to cancel".
@@ -344,7 +346,7 @@ Esc to cancel" and "Tab or Ctrl/Cmd‑Enter to save · Esc to cancel".
   `phasemonth` 21/21; both editors opened on localhost with no hint line. Chrome only (popovers), so no gate baseline
   can move.
 
-### Unreleased — the Shift and Build Around panels can be dragged out of the way, and stay open while you use the grid (11 Nov 2026)
+### the Shift and Build Around panels can be dragged out of the way, and stay open while you use the grid (11 Nov 2026)
 
 Owner: *"shift popup covers the waterfall which can be annoying when you're trying to reference it but its covering dates
 or portions of the calendar"*. Of the options tried (a panel docked beside the grid, a panel that opened at the side), the
@@ -367,7 +369,7 @@ it open"*.
   on screen. Thirteen legs that closed these panels with a click on the page now press the panel's ✕ (`T.closePops()` in
   `lib.js`), and `buildaround` O1 reads the title without the close.
 
-### Unreleased — Holidays list: one list, a strip per counting phase (11 Nov 2026)
+### Holidays list: one list, a strip per counting phase (11 Nov 2026)
 
 Owner: *"mock up a version that looks like the original version (tho only holidays that need an enable button get one) but
 days during production have a green strip on the left side with the word production (written sideways)"*, then option 6 of
@@ -380,7 +382,7 @@ date have an Enable box. It replaces option 5 (phase headings, then Notes only),
 frozen changes. `holidayenable` rewritten (S1–S3 on `anchorside`, D1–D2 on `customunits`, both runs in `gate.sh`).
 Verified: `holidayenable` 8/8 (anchorside) and 2/2 (customunits), `caholidays` 11/11, `mxholidays` 6/6, `settingswin` 21/21, `mvmenu` 81/81, `regionlock` 14/14, `wrapdate` PASS, `dlgkeys` 16/16, `mvnotes` 30/30, `holidayrename` 14/14, `autonoterename` 24/24, `hdrcontrols` 12/12, `holidays2031` 6/6, `npm run check` 42/42; tried in the pane on `anchorside`, `customunits` and a one-episode shoot ("Prod"). No full gate: nothing frozen, exported or saved changes.
 
-### Unreleased — Holidays list: phase headings, then Notes only (11 Nov 2026)
+### Holidays list: phase headings, then Notes only (11 Nov 2026)
 
 Owner, after the grouped list went live: *"since phases overlap maybe we do need a differnt way to arrange them since this
 menu is getting confusing … avoid visual clutter at all costs"*, then option 5 of `mockups/holiday-list-layouts.html` (their
@@ -391,7 +393,7 @@ date order, its phase as a single grey word on the date line ("1/19/26 · Writer
 cell empty (no dash). No heading repeats and no row says "also …". A weekend holiday in the shoot can move no date, so it is
 Notes only ("· Production"). Nothing saved or frozen changes. `holidayenable` G1/G2 rewritten for it. Verified: `holidayenable` 7/7, `caholidays` 11/11, `mxholidays` 6/6, `settingswin` 21/21, `mvmenu` 81/81, `regionlock` 14/14, `wrapdate` PASS, `dlgkeys` 16/16, `mvnotes` 30/30, `holidayrename` 14/14, `autonoterename` 24/24, `hdrcontrols` 12/12, `holidays2031` 6/6, `npm run check` 42/42; tried in the pane on `anchorside` and `customunits`. No full gate: nothing frozen, exported or saved changes.
 
-### Unreleased — Fill Gaps starts off on a new calendar (11 Nov 2026)
+### Fill Gaps starts off on a new calendar (11 Nov 2026)
 
 Owner: *"I think fill gaps should be disabled by default"*. A new calendar, the one the app opens on and every New, now
 starts with **Fill Gaps off**: each phase keeps one even width per year instead of widening partway through its run.
@@ -410,14 +412,14 @@ starts with **Fill Gaps off**: each phase keeps one even width per year instead 
   alone on this build: `stintbtn` 15/15, `mvhdroff` 9/9, `pilllabel` (carry-rich) 29/29, `scenariocompat` (v1.2.0,
   an old release file this change cannot reach). The Help sentence was edited after the gate (text only).
 
-### Unreleased — Holidays list: no "also …" under a hiatus (11 Nov 2026)
+### Holidays list: no "also …" under a hiatus (11 Nov 2026)
 
 Owner: *"I dont think all phase hiatuses need to say Also Post or Also Writers Rm thats not necessary"*. A holiday under an
 all-phase hiatus heading no longer names the phases around it (the hiatus pauses all of them); "also …" stays under a
 phase heading. Leg `holidayenable` G2 now asserts its absence. Verified: `holidayenable` 7/7, `npm run check` 42/42,
 tried in the pane on `anchorside`.
 
-### Unreleased — Holidays: Enable only where it moves a date, grouped by phase (11 Nov 2026)
+### Holidays: Enable only where it moves a date, grouped by phase (11 Nov 2026)
 
 Owner: *"Should the enable button even be there for holidays that do not occur during production? Maybe non-production
 holidays just have the note options"*, then *"make it more clear what phase each holiday is in"* (picked mockup C of
@@ -433,7 +435,7 @@ frozen is touched. New leg `holidayenable` (E1–E3, G1, G2, T1, O1; red on `mai
 `mxholidays`, `settingswin` and `mvmenu` (H5, V5: Christmas, inside the winter hiatus, has no Enabled now) updated.
 Verified: `holidayenable` 7/7, `caholidays` 11/11, `mxholidays` 6/6, `settingswin` 21/21, `mvmenu` 81/81, `wrapdate` PASS, `dlgkeys` 16/16, `mvnotes` 30/30 and 14/14, `holidayrename` 14/14, `autonoterename` 24/24, `regionlock` 14/14, `regioncaveat` 7/7, `holidays2031` 6/6, `hdrcontrols` 12/12, `npm run check` 42/42. No full gate: nothing frozen, exported or saved changes.
 
-### Unreleased — A phase's ▲ / ▼ step over a hiatus while Ripple Hiatus is on (11 Nov 2026)
+### A phase's ▲ / ▼ step over a hiatus while Ripple Hiatus is on (11 Nov 2026)
 
 ## v1.13.0 — notes that stay with a phase (in the Waterfall and the Month view), Delete Note and the note popups' top-right buttons, the auto header's Date Last Edited, a toolbar that never moves, Fill Gaps lets Prep use the Sim Post lane, MM/DD and DD/MM dates, a phase's ▲ / ▼ step over a hiatus with Ripple on, the header holds still between the views with Reset Bar Order, Sim Post reorders in the Month view, Shift opens on its list, layout rules 22 and 23 with Fill Gaps and sticky columns, Expand? / Pull back? on hover (a phase's own hiatus included), Build Around works like Shift, Swap Column only where a swap can happen, Ripple Hiatus in Settings, Compare from a phase's first working week (11 Nov 2026)
 
