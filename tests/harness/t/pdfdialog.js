@@ -398,7 +398,7 @@ window.addEventListener('load', function () { (async function () {
     mo.disconnect(); sp.restore();
     kase('D10', 'the month view\'s Export PDF never opens this dialog: it opens the month dialog (which months, on All), whose Export writes the month PDF',
       !sawDialog && sawMonthDlg && sameArr(monthSegs, ['all', 'this', 'some']) && sameArr(monthOn, ['all']) &&
-      sp.files.length === 1 && /Month Calendar\.pdf/.test(sp.files[0].name || ''),
+      sp.files.length === 1 && /Month Calendar .*\d{4}-\d{2}-\d{2}.*\.pdf$/.test(sp.files[0].name || ''),
       { sawDialog: sawDialog, sawMonthDialog: sawMonthDlg, monthSegments: monthSegs, monthOpenedOn: monthOn, files: sp.files.length });
 
     var errs = (T.appHealth().errors || []);

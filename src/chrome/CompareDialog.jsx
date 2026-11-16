@@ -15,6 +15,11 @@
 //     Wrap only, in words, never "+1"/"−1").
 // The exports and Copy table take the table as shown, so all three reach them too.
 //
+// Audit 2026-11, item 2.10 (decision D8 = c, defaults approved): an "All-phase hiatus" row lists each all-phase hiatus
+// with its dates and length, and says what differs ("1st hiatus longer by 1 wk", "1 more hiatus"); a phase's own
+// hiatus is not in it. The exports and Copy table head the first column "Baseline: <name>" (BASELINE), since
+// "On screen" means nothing on paper; the window itself still tags it "On screen" and measures from it (ruling D3).
+//
 // The engine works out every value (openCompareScenarios in app.js: the header's own tokens, probing tabs not
 // visited since Load) and pushes them here. This only lays them out; Export to Excel / Export PDF hand the table
 // as shown back to the engine ('sptcal-compare-export'), which writes the file.
@@ -26,6 +31,10 @@ import { Modal, Table, Text, Badge, Button, Group, Chip, Stack, Switch } from '@
 import { installChrome } from './bridge.js'
 
 const MAX_COLS = 12   // the tab on screen plus eleven (owner, 23 Oct 2026); more than fit scroll sideways
+// What the exports and Copy table call the first column (audit 2026-11 AUD2-024, approved default): "On screen" means
+// nothing on paper, and every difference is measured from this column, so a reader is told which one it is. On screen
+// the window keeps its "On screen" tag: there it is the tab on screen, and differences are measured from it (D3).
+const BASELINE = 'Baseline: '
 // Columns are as wide as what they hold, never narrower than these (owner, 23 Oct 2026: "the window needs to scale
 // larger so we dont have elipses/things cut off"). Nothing in the table wraps or truncates: a long name, a long
 // location or a pair of chips widens its column, and the window grows with the table up to the browser window.
@@ -47,11 +56,37 @@ const moved = (n) => (n > 0 ? 'Pushed ' : 'Pulled ') + amount(n)
 const lower = (s) => s.charAt(0).toLowerCase() + s.slice(1)
 const missing = (v) => v == null || v === ''
 
+// The all-phase hiatuses (audit 2026-11 AUD2-023): each [first Monday, last Friday, weeks] as
+// "12/21/26 – 1/1/27, 2 wks", one per line.
+const weeks = (n) => n + ' wk' + (n === 1 ? '' : 's')
+const hiatusLine = (h) => fmt(h[0]) + ' – ' + fmt(h[1]) + ', ' + weeks(h[2])
+const ordinal = (n) => n + (n % 100 >= 11 && n % 100 <= 13 ? 'th' : ['th', 'st', 'nd', 'rd'][n % 10] || 'th')
+// What differs, in words, as the other chips are: a count that differs ("1 more hiatus"), else each hiatus that moved
+// or changed length ("Longer by 1 wk", "Pushed 1 wk, shorter by 1 wk"), named by its place when there are several
+// ("2nd hiatus longer by 1 wk"). A date that moved is Pushed or Pulled (owner, 23 Oct 2026), never + or −.
+function hiatusDelta(v, r) {
+  const n = v.length - r.length
+  if (n) return Math.abs(n) + (n > 0 ? ' more' : ' fewer') + (Math.abs(n) === 1 ? ' hiatus' : ' hiatuses')
+  const parts = []
+  v.forEach((h, i) => {
+    const d = days(r[i][0], h[0]), w = h[2] - r[i][2], bits = []
+    if (d) bits.push(lower(moved(d)))
+    if (w) bits.push((w > 0 ? 'longer' : 'shorter') + ' by ' + weeks(Math.abs(w)))
+    if (bits.length) parts.push((v.length > 1 ? ordinal(i + 1) + ' hiatus ' : '') + bits.join(', '))
+  })
+  const s = parts.join('; ')
+  return s ? s.charAt(0).toUpperCase() + s.slice(1) : ''
+}
+
 // One cell against the one on screen: {text, diff, delta, none}. A value one of them lacks (a phase only one
 // scenario has, an unset count) is a dash, and a difference, with nothing to subtract.
 function cell(row, value, ref, df) {
   if (missing(value) || missing(ref)) {
     return { text: missing(value) ? '—' : show(row, value, df), diff: missing(value) !== missing(ref), delta: '', none: missing(value) }
+  }
+  if (row.type === 'breaks') {
+    const delta = hiatusDelta(value, ref)
+    return { text: show(row, value), diff: !!delta, delta, none: !value.length }
   }
   if (row.type === 'date') {
     const n = days(ref, value)
@@ -69,6 +104,7 @@ function cell(row, value, ref, df) {
   return { text: String(value), diff: value !== ref, delta: '' }
 }
 function show(row, v, df) {
+  if (row.type === 'breaks') return v.length ? v.map(hiatusLine).join('\n') : 'None'
   if (row.type === 'date') return fmt(v, df)
   if (row.type === 'range') return fmt(v[0], df) + ' – ' + fmt(v[1], df)
   if (row.type === 'number') return v + (row.unit || '')
@@ -157,20 +193,24 @@ export function CompareDialog() {
     })
     return { row: r, cells, same: cells.every((c) => !c.diff) }
   })
-    // A phase none of the columns has is no row at all; then, if asked, nor is a row that is the same everywhere.
-    .filter((t) => !(t.row.phase && t.cells.every((c) => c.none)))
+    // A phase none of the columns has is no row at all, nor a hiatus row none of them has (`optional`); then, if
+    // asked, nor is a row that is the same everywhere.
+    .filter((t) => !((t.row.phase || t.row.optional) && t.cells.every((c) => c.none)))
     .filter((t) => !onlyDiff || !t.same)
   const tableW = natW || (LABEL_MIN + 16 + COL_EST * cols.length)
+  // `head` is what an export prints over a column: the first one is the Baseline (BASELINE), the rest their names.
   const model = () => ({
-    cols: cols.map((s, i) => ({ name: s.name, onScreen: i === 0 })),
+    cols: cols.map((s, i) => ({ name: s.name, onScreen: i === 0, head: (i === 0 ? BASELINE : '') + s.name })),
     rows: table.map((t) => ({ label: t.row.label, same: t.same,
                               cells: t.cells.map((c) => ({ text: c.text, delta: c.delta, diff: c.diff, holidays: c.holidays })) })),
   })
   const exportAs = (kind) => document.dispatchEvent(new CustomEvent('sptcal-compare-export', { detail: { kind, model: model() } }))
+  // Copy table is a send-out too, so its first column is the Baseline, as in both exports (audit AUD2-024). A cell of
+  // several lines (the hiatuses) is one line here, or it would break the pasted table's rows.
   const copy = () => {
-    const head = [''].concat(cols.map((c) => c.name)).join('\t')
+    const head = [''].concat(cols.map((c, i) => (i === 0 ? BASELINE : '') + c.name)).join('\t')
     const note = (c) => (c.delta ? ' (' + [c.delta, c.holidays].filter(Boolean).join(', ') + ')' : '')
-    const body = table.map((t) => [t.row.label].concat(t.cells.map((c) => c.text + note(c))).join('\t'))
+    const body = table.map((t) => [t.row.label].concat(t.cells.map((c) => c.text.split('\n').join('; ') + note(c))).join('\t'))
     const text = [head].concat(body).join('\n')
     if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(() => setCopied(true), () => {})
   }
@@ -241,7 +281,8 @@ export function CompareDialog() {
                   {t.cells.map((c, i) => (
                     <Table.Td key={cols[i].id}>
                       <Stack gap={4} align="flex-start">
-                        <Text size="sm" fw={c.diff ? 600 : 400} c={t.same ? 'dimmed' : undefined} style={{ whiteSpace: 'nowrap' }}>{c.text}</Text>
+                        {/* 'pre' keeps a cell of several lines (the hiatuses) on its lines, and still never wraps one. */}
+                        <Text size="sm" fw={c.diff ? 600 : 400} c={t.same ? 'dimmed' : undefined} style={{ whiteSpace: c.text.indexOf('\n') >= 0 ? 'pre' : 'nowrap' }}>{c.text}</Text>
                         {c.delta && (
                           <Group gap={4} wrap="nowrap">
                             <DeltaChip>{c.delta}</DeltaChip>

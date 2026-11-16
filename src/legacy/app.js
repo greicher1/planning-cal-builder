@@ -31364,17 +31364,48 @@ export function initLegacyApp() {
     document.querySelectorAll('textarea').forEach(t=>{ if(!inPrefs(t)) t.textContent = t.value; });
   }
 
-  // " – <scenario>" on an export's file name with two or more scenarios, so a sent file says which option it is
-  // (ruling D6); '' with one, so every name is exactly what it always was. `var` state: see scenarioTabs.
-  function scenarioFileSuffix(){
+  // " – <scenario>" on a file's name with two or more scenarios, so a sent file says which option it is (ruling D6);
+  // '' with one. `var` state: see scenarioTabs.
+  function scenarioNameSuffix(){
     return (scenarioTabs && scenarioTabs.length > 1) ? ' \u2013 ' + currentScenario().name.replace(/[\\/:*?"<>|]/g, '-') : '';
   }
-  // The shareable copy holds the tab on screen only (ruling D6), so with two or more its name says which one.
+  // ⭐ WHAT AN EXPORT'S NAME SAYS AFTER ITS WORDS (audit 2026-11 AUD2-025; decision D8 = c, default approved 13 Nov
+  // 2026): the season, the Date Last Edited as yyyy-mm-dd, and the Version when one is set, so a revised plan never
+  // downloads under yesterday's name, and S3's and S4's never collide. "Harbor Lights Planning Calendar S3 2026-11-12
+  // v3 – Plan B.pdf". The words ("Planning Calendar", ruled 18 Sep 2026) and the scenario (D6) stay.
+  //  - The season is seasonLabel(), the header's own ("S3", "S3 & S4"); no season, nothing.
+  //  - The date is the header's Date Last Edited (lastEditedDate(): the stamp in the reader's zone, today without one),
+  //    so the name and the page it names agree. noteLastEdited() first, as a header does, so a change no render has
+  //    drawn yet still dates the name.
+  //  - The Version exactly as typed, as the header prints it (owner, 3 Nov 2026).
+  // ⚠️ Two revisions made the SAME DAY with the same Version still share a name: the approved default carries the
+  // day, not the time. Bumping the Version is what tells them apart.
+  // `opts.date` (a Date) replaces the date and `opts.noVersion` leaves the Version out: Compare's name (compareFileBase).
+  function exportNameMarks(opts){
+    opts = opts || {};
+    if(!opts.date) noteLastEdited();
+    const d = opts.date || lastEditedDate();
+    const ymd = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+    const marks = [seasonLabel(), ymd, opts.noVersion ? '' : versionLabel()]
+      .map(s => String(s || '').replace(/[\\/:*?"<>|]/g, '-').replace(/\s+/g, ' ').trim()).filter(Boolean);
+    return marks.length ? ' ' + marks.join(' ') : '';
+  }
+  // ⛔ THE NAME FROZEN CODE CALLS. Frozen exportExcel (edit S1) and exportWaterfallPdfDirect (edit S2) name their
+  // download '<title> Planning Calendar' + scenarioFileSuffix() + ext, so this is where the marks reach them: the
+  // sanctioned way to change frozen behaviour from outside (CLAUDE.md, pattern 1: change the declaration, not the call
+  // sites), and no byte of either writer's output moves, only the download's name (audit AUD2-025). Their comments
+  // still describe it as the scenario alone, as it was when they were written (22 Oct 2026). monthPdfFileName() calls
+  // it too, so all three exports read alike. ⛔ Keep the NAME: the frozen call sites say it.
+  function scenarioFileSuffix(){
+    return exportNameMarks() + scenarioNameSuffix();
+  }
+  // The shareable copy holds the tab on screen only (ruling D6), so with two or more its name says which one. Its name
+  // is a SAVE's (the title and today's date, buildSavedFileName), so it takes the scenario alone, never the marks.
   // ⚠️ buildSavedFileName('') is NOT a bare name: an empty ext falls back to .sptcal. So the base is cut off a name
   // built with a known extension.
   function savedFileBase(){ return buildSavedFileName('.html').slice(0, -'.html'.length); }
   function shareCopyFileName(){
-    return savedFileBase() + scenarioFileSuffix() + '.html';
+    return savedFileBase() + scenarioNameSuffix() + '.html';
   }
   function buildSavedFileName(ext){
     const raw = (document.getElementById('show-title').value || '').trim() || 'Show Name';
@@ -32041,6 +32072,16 @@ export function initLegacyApp() {
       // The holidays that cost this shoot a day: the production walk's own list (holidaysHit), so the holidays
       // Compare counts for a moved wrap are the days the schedule actually skipped, not a second copy of the rule.
       hols: ((sch && sch.productionInfo && sch.productionInfo.holidaysHit) || []).map(h => ({ d: isoOf(h.date), n: h.name })),
+      // ⭐ THE ALL-PHASE HIATUSES (audit 2026-11 AUD2-023, D8 = c, approved default: all-phase only, never a phase's
+      // own). Compare's "All-phase hiatus" row: without it a longer or an added break showed only as a later wrap,
+      // with nothing saying why. Each as [its first Monday, its last Friday, its weeks], in date order, read off the
+      // schedule's own list (computeSchedule's Monday-snapped rows) so it is the break the calendar draws. null when
+      // the calendar could not be worked out (a typo'd year), so Compare shows a dash rather than "None".
+      // ⛔ Compare's alone: the key facts band reads BAND_KEYS only, and a tab's facts are never written to a file.
+      breaks: (sch && Array.isArray(sch.hiatuses))
+        ? sch.hiatuses.map(h => [isoOf(h.start), isoOf(addDays(h.end, -3)), Math.round((h.end - h.start) / (7 * 864e5))])
+            .sort((a, b) => a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : a[2] - b[2])
+        : null,
     };
     const phases = [];
     getAllPhaseDefs().forEach(p => {
@@ -32188,6 +32229,9 @@ export function initLegacyApp() {
                   { key: 'span', label: 'Production span', type: 'number', unit: ' wks', phase: true });
       } else rows.push({ key: 'ph:' + p.key, label: p.label, type: 'range', phase: true });
     }));
+    // The all-phase hiatuses (audit AUD2-023), after the phases and before the calendar's length, which they explain.
+    // `optional`: no row when no column shown has one, as a phase none of them has gets none.
+    rows.push({ key: 'breaks', label: 'All-phase hiatus', type: 'breaks', optional: true });
     rows.push({ key: 'weeks', label: 'Weeks, first phase to last', type: 'number' }, { key: 'ver', label: 'Version', type: 'text' });
     return rows;
   }
@@ -32201,10 +32245,22 @@ export function initLegacyApp() {
       dayFirst: datesDayFirst(),   // the dates in the calendar on screen's order (audit item 2.4, D3 (a))
     });
   }
+  // "<title> Scenario Comparison S3 2026-11-12" (audit 2026-11 AUD2-025): the season and a Date Last Edited, as every
+  // export's name has (exportNameMarks), so a comparison of revised plans never downloads under the last one's name.
+  // The date is the NEWEST of every tab's, since a change to any of them changes the comparison (a tab never edited
+  // counts as today, as its header reads); no Version, since each tab has its own and the table has a Version row; no
+  // scenario, since it is all of them.
   function compareFileBase(){
     const raw = (document.getElementById('show-title').value || '').trim();
     const safe = raw.replace(/[\\/:*?"<>|]/g, '-').replace(/\s+/g, ' ').trim();
-    return (safe ? safe + ' ' : '') + 'Scenario Comparison';
+    noteLastEdited();
+    let newest = lastEditedDate();
+    scenarioTabs.forEach(t => {
+      if(t.id === currentScenarioId || !t.snapshot) return;
+      const d = lastEditedValid(t.snapshot.lastEdited) ? new Date(t.snapshot.lastEdited) : new Date();
+      if(d > newest) newest = d;
+    });
+    return (safe ? safe + ' ' : '') + 'Scenario Comparison' + exportNameMarks({ date: newest, noVersion: true });
   }
   function downloadBlob(blob, name){
     const url = URL.createObjectURL(blob), a = document.createElement('a');
@@ -32213,8 +32269,10 @@ export function initLegacyApp() {
     setTimeout(() => URL.revokeObjectURL(url), 4000);
   }
   // The window hands over the table exactly as shown (its columns, rows and marks); these only write it down.
-  // model: {cols: [{name, onScreen}], rows: [{label, same, cells: [{text, delta, diff, holidays}]}]}, where holidays
-  // is a moved wrap's second chip ("1 more holiday", or ''), written beside its delta in both files.
+  // model: {cols: [{name, onScreen, head}], rows: [{label, same, cells: [{text, delta, diff, holidays}]}]}, where holidays
+  // is a moved wrap's second chip ("1 more holiday", or ''), written beside its delta in both files. `head` is what
+  // each column is headed on paper: the first "Baseline: <name>" (audit 2026-11 AUD2-024; the window's own word), the
+  // others their names. A cell's text can hold several lines (the all-phase hiatuses, AUD2-023), split on "\n".
   let compareXlsxWaiting = false;   // a press waiting on the Excel library: a second press must not write a second file
   async function exportCompareExcel(model){
     // The Excel library missing: load it again and wait for it (ensureExcelLib, audit item 3.11). Before, this said
@@ -32232,6 +32290,8 @@ export function initLegacyApp() {
       pageSetup: { orientation: 'landscape', paperSize: 1, fitToPage: true, fitToWidth: 1, fitToHeight: 0 },
     });
     const ink = { argb: 'FF1E1D1B' }, grey = { argb: 'FFA5A197' }, line = { argb: 'FFE3E1DA' };
+    const headOf = c => c.head || c.name;
+    const linesOf = s => String(s == null ? '' : s).split('\n');
     ws.getCell('A1').value = 'Compare scenarios';
     ws.getCell('A1').font = { name: 'Calibri', size: 14, bold: true, color: ink };
     ws.getCell('A2').value = (document.getElementById('show-title').value || '').trim();
@@ -32239,9 +32299,7 @@ export function initLegacyApp() {
     const head = ws.getRow(3);
     model.cols.forEach((c, i) => {
       const cell = head.getCell(i + 2);
-      cell.value = c.onScreen ? { richText: [{ text: c.name, font: { name: 'Calibri', size: 11, bold: true, color: ink } },
-                                             { text: '  on screen', font: { name: 'Calibri', size: 9, color: { argb: 'FF2C3E50' } } }] }
-                              : c.name;
+      cell.value = headOf(c);
       cell.font = { name: 'Calibri', size: 11, bold: true, color: ink };
     });
     for(let k = 1; k <= model.cols.length + 1; k++) head.getCell(k).border = { bottom: { style: 'thin', color: { argb: 'FFC4C1B6' } } };
@@ -32250,28 +32308,34 @@ export function initLegacyApp() {
       const lab = row.getCell(1);
       lab.value = r.label;
       lab.font = { name: 'Calibri', size: 11, color: r.same ? grey : ink };
+      lab.alignment = { vertical: 'top' };
+      let tall = 1;
       r.cells.forEach((c, ci) => {
-        const cell = row.getCell(ci + 2);
+        const cell = row.getCell(ci + 2), n = linesOf(c.text).length;
         if(c.delta){
           cell.value = { richText: [{ text: c.text, font: { name: 'Calibri', size: 11, bold: true, color: ink } },
                                     { text: '\n' + [c.delta, c.holidays].filter(Boolean).join('   '), font: { name: 'Calibri', size: 9, color: { argb: 'FF7A5B14' } } }] };
           cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFEF6E7' } };
           cell.alignment = { wrapText: true, vertical: 'top' };
+          if(n > 1) tall = Math.max(tall, n + 1);
         } else {
           cell.value = c.text;
           cell.font = { name: 'Calibri', size: 11, bold: !!c.diff, color: r.same ? grey : ink };
-          cell.alignment = { vertical: 'top' };
+          cell.alignment = n > 1 ? { wrapText: true, vertical: 'top' } : { vertical: 'top' };
+          tall = Math.max(tall, n);
         }
       });
+      // A row of several lines is given their height (15 pt a line), so every line shows wherever the file is opened.
+      if(tall > 1) row.height = tall * 15;
       for(let k = 1; k <= model.cols.length + 1; k++) row.getCell(k).border = { bottom: { style: 'thin', color: line } };
     });
     // Each column as wide as its longest line, as the window is (owner: "so we dont have elipses/things cut off"):
     // Excel cuts a value off at a filled neighbour rather than spilling into it. In characters, with a little room
     // for the bold headings.
-    const chars = s => String(s || '').length;
+    const chars = s => Math.max(0, ...linesOf(s).map(l => l.length));
     ws.getColumn(1).width = Math.max(16, ...model.rows.map(r => chars(r.label))) + 3;
     model.cols.forEach((c, i) => {
-      const longest = Math.max(chars(c.name) + (c.onScreen ? 11 : 0),
+      const longest = Math.max(chars(headOf(c)),
         ...model.rows.map(r => { const k = r.cells[i] || {}; return Math.max(chars(k.text), chars([k.delta, k.holidays].filter(Boolean).join('   '))); }));
       ws.getColumn(i + 2).width = Math.min(60, Math.max(16, longest + 3));
     });
@@ -32283,6 +32347,11 @@ export function initLegacyApp() {
   // writer (the month legs' F0 counts it). One page wide; the type steps down
   // as columns are added, and a value too wide for its column shrinks to fit. "−" is not in the PDF's character
   // set (WinAnsi), so differences are written with a hyphen there.
+  // ⭐ THE COLUMN NAMES WRAP, AT ONE SIZE (audit 2026-11 AUD2-024): each name was shrunk to fit its column, so a long
+  // one printed at half the size of a short one, and the "On screen" tag was drawn over it at twelve columns. Now
+  // every heading is set at the table's size, word-wrapped onto as many lines as it needs (up to four), and only when
+  // some heading still cannot fit (a word wider than its column, or a fifth line) do ALL of them step down together,
+  // never below 6. The first is "Baseline: <name>" (the model's `head`), so nothing is drawn over a name.
   function buildComparePdf(model){
     return buildListPdf(function(pg){ return paintComparePdf(model, pg); });
   }
@@ -32290,8 +32359,7 @@ export function initLegacyApp() {
     const M = 30, pageW = pg.pageW, list = [];
     const C = { ink: [0x1E / 255, 0x1D / 255, 0x1B / 255], muted: [0x72 / 255, 0x6F / 255, 0x68 / 255], grey: [0xA5 / 255, 0xA1 / 255, 0x97 / 255],
                 line: [0xE3 / 255, 0xE1 / 255, 0xDA / 255], rule: [0xC4 / 255, 0xC1 / 255, 0xB6 / 255],
-                warnBg: [0xFE / 255, 0xF6 / 255, 0xE7 / 255], warnInk: [0x7A / 255, 0x5B / 255, 0x14 / 255],
-                navyBg: [0xEA / 255, 0xEE / 255, 0xF2 / 255], navy: [0x2C / 255, 0x3E / 255, 0x50 / 255] };
+                warnBg: [0xFE / 255, 0xF6 / 255, 0xE7 / 255], warnInk: [0x7A / 255, 0x5B / 255, 0x14 / 255] };
     const pdfText = s => String(s).replace(/−/g, '-');
     const width = (s, wt, size) => pg.width(pdfText(s), wt, size);
     const text = (s, x, y, wt, size, c) => list.push({ k: 'text', s: pdfText(s), x, y, wt, size, c, ls: 0 });
@@ -32299,29 +32367,50 @@ export function initLegacyApp() {
     const n = model.cols.length;
     const size = n <= 5 ? 11 : n <= 8 ? 9.5 : 8;
     const labelW = Math.min(190, Math.max(...model.rows.map(r => width(r.label, '500', size))) + 18);
-    const colW = (pageW - 2 * M - labelW) / n, pad = 6;
+    const colW = (pageW - 2 * M - labelW) / n, pad = 6, room = colW - 2 * pad;
+    // A heading on lines of at most `max` wide, broken between words; a word wider than the column (only below the
+    // floor, see headSize) is broken where it must be.
+    const wrap = (s, wt, z, max) => {
+      const out = [];
+      let cur = '';
+      String(s).split(/\s+/).filter(Boolean).forEach(w => {
+        const next = cur ? cur + ' ' + w : w;
+        if(width(next, wt, z) <= max){ cur = next; return; }
+        if(cur) out.push(cur);
+        while(w.length > 1 && width(w, wt, z) > max){
+          let k = w.length - 1;
+          while(k > 1 && width(w.slice(0, k), wt, z) > max) k--;
+          out.push(w.slice(0, k)); w = w.slice(k);
+        }
+        cur = w;
+      });
+      if(cur) out.push(cur);
+      return out.length ? out : [''];
+    };
+    const HEAD_LINES = 4;
+    const heads = model.cols.map(c => c.head || c.name);
+    const headFits = z => heads.every(h => String(h).split(/\s+/).every(w => width(w, '600', z) <= room) && wrap(h, '600', z, room).length <= HEAD_LINES);
+    let headSize = size;
+    while(headSize > 6 && !headFits(headSize)) headSize -= 0.25;
+    const headLead = headSize * 1.25;
     let y = M + 18;
     text('Compare scenarios', M, y, '600', 16, C.ink);
     y += 16;
     text((document.getElementById('show-title').value || '').trim(), M, y, '400', 10, C.muted);
     y += 22;
-    // Heading row: the names, the first tagged "On screen".
-    model.cols.forEach((c, i) => {
-      const x = M + labelW + i * colW + pad;
-      let room = colW - 2 * pad;
-      if(c.onScreen){
-        const tag = 'On screen', ts = Math.max(6, size - 2.5), tw = width(tag, '500', ts) + 8;
-        list.push({ k: 'fill', c: C.navyBg, x: x + colW - 2 * pad - tw, y: y - ts - 1, w: tw, h: ts + 5, r: 3 });
-        text(tag, x + colW - 2 * pad - tw + 4, y + 1, '500', ts, C.navy);
-        room -= tw + 4;
-      }
-      text(c.name, x, y, '600', fit(c.name, '600', size, room), C.ink);
+    // Heading row: the names, the first as the Baseline, each on its own lines, all at headSize.
+    let headRows = 1;
+    heads.forEach((h, i) => {
+      const x = M + labelW + i * colW + pad, lines = wrap(h, '600', headSize, room);
+      lines.forEach((l, j) => text(l, x, y + j * headLead, '600', headSize, C.ink));
+      headRows = Math.max(headRows, lines.length);
     });
-    y += 8;
+    y += (headRows - 1) * headLead + 8;
     list.push({ k: 'fill', c: C.rule, x: M, y, w: pageW - 2 * M, h: 1, r: 0 });
     // The rows.
     // A cell's chips: its delta, then the holiday count beside it, or under it when the two do not fit side by side.
     const chipSize = Math.max(6, size - 2);
+    const lead = size * 1.3;
     const chipsOf = (c, room) => {
       const out = [];
       let cx = 0, line = 0;
@@ -32333,18 +32422,22 @@ export function initLegacyApp() {
       });
       return out;
     };
+    const linesOf = c => String(c.text == null ? '' : c.text).split('\n');
     model.rows.forEach(r => {
       const hasDelta = r.cells.some(c => c.delta);
-      const chipLines = Math.max(1, ...r.cells.map(c => chipsOf(c, colW - 2 * pad).reduce((m, k) => Math.max(m, k.line + 1), 0)));
+      const chipLines = Math.max(1, ...r.cells.map(c => chipsOf(c, room).reduce((m, k) => Math.max(m, k.line + 1), 0)));
+      // A cell of several lines (the hiatuses) adds a line's lead for each line after its first.
+      const more = (Math.max(1, ...r.cells.map(c => linesOf(c).length)) - 1) * lead;
       // Room for the value and its chips (each line of them ends chipSize + 9 below the one before).
-      const rowH = hasDelta ? size * 1.35 + chipLines * (chipSize + 9) + 6 : size * 1.9;
+      const rowH = (hasDelta ? size * 1.35 + chipLines * (chipSize + 9) + 6 : size * 1.9) + more;
       const base = y + size * 1.35;
       text(r.label, M + pad, base, '500', fit(r.label, '500', size, labelW - 2 * pad), r.same ? C.grey : C.ink);
       r.cells.forEach((c, i) => {
-        const x = M + labelW + i * colW + pad, room = colW - 2 * pad, wt = c.diff ? '600' : '400';
-        text(c.text, x, base, wt, fit(c.text, wt, size, room), r.same ? C.grey : C.ink);
+        const x = M + labelW + i * colW + pad, wt = c.diff ? '600' : '400', lines = linesOf(c);
+        lines.forEach((l, j) => text(l, x, base + j * lead, wt, fit(l, wt, size, room), r.same ? C.grey : C.ink));
+        const last = base + (lines.length - 1) * lead;
         chipsOf(c, room).forEach(k => {
-          const top = base + 4 + k.line * (chipSize + 9);
+          const top = last + 4 + k.line * (chipSize + 9);
           list.push({ k: 'fill', c: C.warnBg, x: x + k.dx, y: top, w: k.w, h: k.ds + 5, r: 3 });
           text(k.s, x + k.dx + 4, top + k.ds + 1.5, '500', k.ds, C.warnInk);
         });
@@ -41653,12 +41746,13 @@ export function initLegacyApp() {
   // ⚠️ The waterfall PDF still downloads with no dialog: matching it would be a frozen edit
   // (exportWaterfallPdfDirect), and the owner chose the dialog here knowing the two will differ.
   const MONTH_PDF_TYPES = [{ description: 'PDF document', accept: { 'application/pdf': ['.pdf'] } }];
-  // `<title> Month Calendar.pdf`, beside the other exports' `<title> Planning Calendar.xlsx` / `.pdf`,
-  // and made the same way.
+  // `<title> Month Calendar S3 2026-11-12 v3.pdf`, beside the other exports' `<title> Planning Calendar … .xlsx` /
+  // `.pdf`, and made the same way.
   function monthPdfFileName(){
     const titleRaw = (document.getElementById('show-title').value || '').trim();
     const safe = titleRaw.replace(/[\\/:*?"<>|]/g,'-').replace(/\s+/g,' ').trim();
-    // With two or more scenarios the PDF says which one it is (SCENARIOS-PLAN.md D6); with one, exactly as before.
+    // The season, the Date Last Edited and the Version (audit AUD2-025, exportNameMarks), then, with two or more
+    // scenarios, which one it is (SCENARIOS-PLAN.md D6): scenarioFileSuffix() carries both, as for the other exports.
     return (safe ? safe + ' ' : '') + 'Month Calendar' + scenarioFileSuffix() + '.pdf';
   }
   // Where a place is, in words (mvlUnprintable's places).
