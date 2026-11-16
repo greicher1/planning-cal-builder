@@ -4,6 +4,58 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### 🚂 v1.15.0 — the rest of the November audit. Branch `release-v1.15` (worktree `.claude/worktrees/release-v1.15`), cut from `origin/main` `0b89371` (v1.14.0). The owner said *"combine all and push"* on 16 Nov 2026: that is the go-ahead to ship every item below, the ones not tried by hand included. NOT tagged or pushed as of this entry; the main session cuts v1.15.0, runs the one full gate and asks before the push.
+- ⛔ **This section SUPERSEDES the "NOT merged, NOT pushed", "WIP, try first", "not in gate.sh yet" and "no README /
+  HANDOFF yet" lines in each item's own section below and in its branch's commits.** Every item is merged here, has a
+  README changelog entry, and has its legs wired into `gate.sh`. `git log --oneline --first-parent origin/main..HEAD`
+  lists the merges.
+- **The items** (branch merged → what it does):
+  - 1.1 `audit-1-1` → a typed Notes cell's holiday and Start / Wrap lines follow the calendar (AUD2-001/002/003, D1 a).
+  - 1.2 `audit-1-1` → Recover cannot blank a saved file; a sparse file opens with its own values (AUD2-004/005).
+  - 1.5 `claude/recursing-cray-993c31` → the date picker's "today" is the local day (AUD2-007).
+  - 1.3 `claude/relaxed-chatterjee-80f293` → a crafted-file hardening fix (AUD2-013).
+  - 1.4 `audit-1-1` → the emergency rollback redeploys the previous release (AUD2-006, D7 a).
+  - 2.3 `audit-2-3` → a Notes cell's other lines keep their own day (AUD2-011/014/015).
+  - 2.8 `audit-2-8` → Enter saves, Esc keeps, a picked month note takes Delete / Copy / Cut / Paste (AUD2-021/040, D6 a).
+  - A2 `note-editor-a2` → both note editors in look A2 (owner, 4 Nov 2026; PHASE-LINKED-NOTES-PLAN §4.4).
+  - 2.11 `audit-2-11` → the month Export PDF asks All / This month / Range (AUD2-026, D8 c; "Range" owner, 16 Nov).
+  - 3.1 `audit-3-1` → small-type notice, dated month lines keep their date, a 4th line kept, two-holiday rows grow
+    (AUD2-043 to -046, D4 a; owner-approved frozen edits D1 + R4, 14 Nov; now in CLAUDE.md's freeze exceptions).
+    (1.4, 2.3, 2.8, A2 and 2.11 reached the release through `audit-3-1`'s merge, `f8e4512`.)
+  - 3.7 `audit-3-7` → recovery says when, stops after two No's, skips open windows, speaks up (AUD2-056/074/075/076).
+  - 3.13 `audit-3-13` → one bad preference no longer blanks the app (AUD2-078), and a shareable-copy hardening fix.
+  - 3.6 `audit-3-6` → four rare set-ups print the right line (AUD2-055/071/072/073).
+  - 2.4 `audit-2-4` → a DD/MM calendar writes and reads every date day first (AUD2-012/066, D3 a; reverses the 20 Oct
+    "automatic notes keep 1/6/25"; CLAUDE.md's `dateFormat` row updated).
+  - 2.12 `audit-2-12`, 3.9 `audit-3-9` → Swap Column holds and speaks plainly; Single Column Mode keeps every year's
+    swaps; a paused swap says so (AUD2-027/028/041/042, AUD2-058/059, D5 b; AUD2-029 rejected by the owner).
+  - 2.10 `audit-2-10` → Compare's All-phase hiatus row and Baseline; export names carry season, Date Last Edited,
+    Version (AUD2-023/024/025, D8 c). Its optional frozen edit (season beside the title) was NOT applied.
+  - 3.10 `audit-3-10` → scenario list, double-click-safe dialogs, the Expand? chip's centre (AUD2-060/061/062).
+  - 2.13 `audit-2-13`, 2.14 `audit-2-14` → first five minutes (recents, Season message, File menu keys, Help) and
+    laptop clutter (toolbar, one strip at a time, fitted panels, More options) (AUD2-030 to -036, WIN-2, WIN-4).
+  - (2.5's AUD2-038 shipped in v1.14.0; not repeated.)
+- **What was owed and is now done** (this release's docs pass): README entries for 2.4, 2.10, 2.11, 2.12, 2.13, 2.14,
+  3.1, 3.7, 3.9, 3.10 and A2 (the 16 Nov 2.14 and 3.1 follow-ups folded into their items' entries; the 1.3 entry cut to
+  "a crafted-file hardening fix"); CLAUDE.md: the third owner-approved freeze exception (3.1's D1 + R4), the `dateFormat`
+  row, the month PDF's dialog and the clone's strip list; `tests/baselines/2026-10-05-monthwriter/README.md`: the 3.1
+  re-cut of `mvnotesize-14` and `mvnotesize-mixed`; `gate.sh`: every leg the WIP items left out (the "v1.15.0 audit
+  items" block after `mvkeysreal`, the AFSPEC loop's new lines, `scenlist` in RTSPEC).
+- **Merge fixes made on this branch:** `910b45d` a month line re-dated in a DD/MM Notes cell moves its note (2.3 × 2.4:
+  `wfMonthLineEdits` read the date month first); `f5e34ab` Compare's hiatus row follows DD/MM (2.10 × 2.4);
+  `bd5db6a` Help's swap paragraphs keep 2.13's two corrections that the 2.14 merge's take of 3.9's text dropped
+  (`firstrun` H1); `f0ba5cc` a shareable copy drops a pending Excel-library retry again (the 3.1 merge's resolution of
+  `buildSavedHtml` lost v1.14.0's line; `excelretry` S1); `4bcd003` R4's row height no longer goes stale (gates 1-3
+  re-cut; below); `93a0e08` the four newer strips join 2.14's rule (below).
+- **Re-expected legs, and why:** `monthpick` M2 (2.11 wanted This month's file "named as before"; 2.10's names now carry
+  season and date, so it wants the all-months file's own name); `dayfirst` E1 (A2 splits the editor heading into
+  `.note-pop-title` + `.note-pop-when`, so it reads the whole heading); `swapsingleshift` S6-S8 (a typed Writer's Rm
+  start is now a remembered move under v1.14.0's sticky columns, 3.8, so the leg reaches 2030 by ← 1 wk instead);
+  `snapoffbreak` P1 (2.14 opens hiatus cards folded, and a folded card's box takes no focus: it opens the card first).
+- **Proof so far:** targeted runs of every newly wired leg green on the release build (the assembler's spec, 75 runs,
+  then the four re-expected and three merge-fixed legs again); `npm run check` 42/42. ⛔ **Not yet: the full gate.**
+
+
 ### 🩹 16 Nov 2026: AUDIT ITEM 2.14's ONE-LINE, ONE-AT-A-TIME STRIPS NOW COVER #launch-notice, #heading-notice, #backup-notice, #storage-notice (owner's picker *"Yes, same rule"*). **Committed on `release-v1.15`, NOT PUSHED.**
 - **What:** the four joined every 2.14 list: the nowrap / `.ln-open` / `.ln-more` rules and both one-at-a-time sibling
   rules in `legacy.css`, and `wireStripDetails`' IDS in `app.js`. The shareable-copy clone rules are untouched (each is
