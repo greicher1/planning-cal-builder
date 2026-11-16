@@ -134,6 +134,16 @@ try {
     await send('Input.dispatchKeyEvent', { type: 'keyDown', key: k, code, windowsVirtualKeyCode: vk, modifiers });
     await send('Input.dispatchKeyEvent', { type: 'keyUp', key: k, code, windowsVirtualKeyCode: vk, modifiers });
   };
+  // ⭐ Since audit item 2.11 (AUD2-026, 13 Nov 2026) the month view's Export PDF first asks which months to print
+  // (MonthPdfDialog.jsx: All / This month / Range) whenever the calendar has two or more. The release gate went red here
+  // waiting for a PDF the open dialog held back. Answer it at its default, All, as cspproof.mjs and t/lib.js do, so the
+  // file is the all-months one this leg has always read. (A calendar with one month to print writes with no dialog.)
+  const exportMonthPdf = async () => {
+    await key('e', 'KeyE', 69, 4 | 8);
+    await until(`!!document.querySelector('.month-pdf-dlg [data-pdfdlg="export"]') || (window.__files || []).some(f => /\\.pdf$/i.test(f.name))`,
+      'the month Export PDF dialog', 10000).catch(() => {});
+    await ev(`(() => { const b = document.querySelector('.month-pdf-dlg [data-pdfdlg="export"]'); if (b) b.click(); return 1; })()`);
+  };
   const undo = () => key('z', 'KeyZ', 90, 4);
   const redo = () => key('z', 'KeyZ', 90, 4 | 8);
   await send('Page.enable');
@@ -231,7 +241,7 @@ try {
     Array.isArray(s4.mvPhaseOrder) && s4.mvPhaseOrder.slice(0, 3).join() === 'prodPrep,writersRoom,prePrep'
       && s4.mvPhaseOrder.length === 5 && ['production', 'post'].every(k => s4.mvPhaseOrder.includes(k)), { mvPhaseOrder: s4.mvPhaseOrder });
   // O5: the month PDF, through the real Export (Shift+Cmd+E) and the stub's Save.
-  await key('e', 'KeyE', 69, 4 | 8);
+  await exportMonthPdf();
   let pdfY = null;
   try {
     await until(`window.__files.some(f => /\\.pdf$/i.test(f.name))`, 'the month PDF', 30000);
@@ -453,7 +463,7 @@ try {
   const r3 = await rowFull(1), s3d = await saved();
   const fri = (s3d.dayNotes['2026-03-13'] || []).find(e => e.text === 'Fri 13');
   const lbl = await ev(`(() => { const w = document.querySelectorAll('#table-wrap .mv-week')[1]; const t = k => { const p = w.querySelector('.mv-pill[data-ph="' + k + '"]'); return p ? p.childNodes[0].textContent : ''; }; return { wr: t('writersRoom'), pp: t('prePrep') }; })()`);
-  await key('e', 'KeyE', 69, 4 | 8);
+  await exportMonthPdf();
   let pdf3 = null;
   try {
     await until(`window.__files.some(f => /\\.pdf$/i.test(f.name))`, 'the month PDF', 30000);
