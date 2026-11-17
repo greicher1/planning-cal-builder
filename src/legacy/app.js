@@ -34617,8 +34617,97 @@ export function initLegacyApp() {
     const n = phaseDisplayName(key);
     return n === 'A phase' ? phaseLabelFor(key) : n;
   }
+  // ⭐ A NOTE WRITTEN INSIDE THE BREAK KEEPS ITS DATE (audit AUD2-016, owner decision D2 = b, 16 Nov 2026: "Notes
+  // stay"). The steps cut at the hiatus's FIRST week, which is right for the phases (R4) and for the notes after the
+  // break, but it took the notes inside the break along too: shortening or switching off Production's own 2-week break
+  // moved "Crew party", typed beside "Production Hiatus" in its first week, onto the work week before it, and
+  // lengthening moved it deeper into the break. So the notes in the weeks the edited hiatus covered BEFORE the edit are
+  // lifted out of the week-keyed note stores for the steps (every store shiftCalendarDates moves with isPinnedWeek: the
+  // text, its fill, size, row height and text style) and put back on their own weeks afterwards.
+  //   - Lifted out rather than tested by week inside each step: a re-date is two steps (out at the old place, in at the
+  //     new), and the first can move a note INTO the old break's weeks that the second must still move. Lifting holds
+  //     the notes that were in the break, by what they are, not by where a step left them.
+  //   - Put back over a note that moved onto the same week (a shortening or a removal pulls the next week's note in):
+  //     the texts join, as a shift's collision does (mergeNoteValues), the one that stayed first. Its fill, size, row
+  //     height and style win, as "the note that stayed owns it" there.
+  //   - Notes AFTER the break move as they always have, and a hiatus ADDED over a note (no "before") lifts nothing: that
+  //     note was written in a work week and goes with the work.
+  // Returns what was lifted, for rippleReturnBreakNotes, or null.
+  function rippleHoldBreakNotes(span){
+    if(!span || span === 'invalid') return null;
+    const end = addDays(span.start, span.weeks * 7);
+    const inBreak = k=>{
+      const d = parseDateUTC(splitWeekKey(k).iso);
+      if(!d) return false;
+      const m = mondayOf(d);
+      return m >= span.start && m < end;
+    };
+    const lift = map=>{
+      const out = {};
+      Object.keys(map || {}).forEach(k=>{ if(inBreak(k)){ out[k] = map[k]; delete map[k]; } });
+      return out;
+    };
+    const held = {notes: lift(userNotes), colors: lift(noteColors), sizes: lift(noteFontSize),
+                  heights: lift(rowHeightsByWeek), styles: lift(textStyle.note)};
+    return Object.keys(held).some(s=> Object.keys(held[s]).length) ? held : null;
+  }
+  function rippleReturnBreakNotes(held){
+    if(!held) return;
+    Object.keys(held.notes).forEach(k=>{
+      userNotes[k] = (k in userNotes) ? mergeNoteValues(held.notes[k], userNotes[k]) : held.notes[k];
+    });
+    // The stores are re-assigned by every shift, so these are read (and written) as they are NOW.
+    Object.assign(noteColors, held.colors);
+    Object.assign(noteFontSize, held.sizes);
+    Object.assign(rowHeightsByWeek, held.heights);
+    Object.assign(textStyle.note, held.styles);
+  }
+  // ⭐ PRODUCTION'S DAY MARKS STAY ON THEIR DATES (audit AUD2-037, owner decision D2 = b, 16 Nov 2026: the 19 Oct ruling
+  // "marks stay on their dates when a hiatus is edited" wins; "the result line says so, and warns when a mark lands under
+  // the break"). A ripple moves the marks only when it moves PRODUCTION (a break before the shoot pushes the whole shoot,
+  // and its marks go with their shoot days, as on every mover, ruling R2). A break inside the shoot leaves every Off day,
+  // worked day and half day on its date, so a mark after it now falls on another shoot day, and one the break now covers
+  // does nothing: the line says the first and names each of the second.
+  // The spans that pause Production (every all-phase hiatus in force, and Production's own), with the EDITED hiatus read
+  // as `span` (its "before") rather than as its fields say now. No `h`: every span as the fields say now.
+  function rippleShootPauses(h, span){
+    const spans = [];
+    document.querySelectorAll('#hiatus-list .hiatus-entry').forEach(row=>{
+      if(h && h.kind === 'all' && h.row === row) return;
+      const s = rippleSpan({kind: 'all', row});
+      if(s && s !== 'invalid') spans.push(s);
+    });
+    if(!(h && h.kind === 'phase' && h.key === 'production')){
+      const own = rippleSpan({kind: 'phase', key: 'production'});
+      if(own && own !== 'invalid') spans.push(own);
+    }
+    if(h && span && span !== 'invalid') spans.push(span);
+    return spans;
+  }
+  function rippleUnder(iso, spans){
+    const d = parseDateUTC(iso);
+    return !!d && spans.some(s=> d >= s.start && d < addDays(s.start, s.weeks * 7));
+  }
+  // A mark by what it does, for the line: "Off day Wed 9/16/26".
+  const RIPPLE_MARK_NAMES = {off: 'Off day', half: 'Half day', on: 'Worked day', lead: 'Worked day', onhalf: 'Worked half day'};
+  function rippleMarkName(iso){
+    const d = parseDateUTC(iso);
+    return (RIPPLE_MARK_NAMES[dayOverrides[iso]] || 'Day mark') + ' ' + ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][d.getUTCDay()] + ' ' + fmtShort(d);
+  }
+  function rippleMarksText(m){
+    if(!m) return [];
+    const bits = [];
+    if(m.stay) bits.push('Day marks stay on their dates');
+    const n = m.landed.length;
+    if(n){
+      const names = m.landed.map(rippleMarkName);
+      bits.push((n === 1 ? names[0] : names.slice(0, -1).join(', ') + ' and ' + names[n - 1])
+                + (n === 1 ? ' is' : ' are') + ' now under a hiatus');
+    }
+    return bits;
+  }
   // The line under the edited hiatus, in the owner's Pushed / Pulled wording (never + or -).
-  function rippleReadout(moves, results){
+  function rippleReadout(moves, results, marks){
     const groups = {};
     moves.forEach(m=>{ (groups[m.weeks] = groups[m.weeks] || []).push(rippleName(m.key)); });
     const ks = Object.keys(groups).map(Number).sort((a, b)=> b - a);
@@ -34630,8 +34719,9 @@ export function initLegacyApp() {
     // every cutoff, so it would show on every push and say nothing about this one.
     const last = results[results.length - 1];
     if(last && last.notesOnHiatus) bits.push(last.notesOnHiatus + ' note' + (last.notesOnHiatus === 1 ? '' : 's') + ' now under a hiatus');
-    const marks = takeShootDayMoveNote(true);
-    if(marks) bits.push(marks);
+    rippleMarksText(marks).forEach(b=> bits.push(b));
+    const moved = takeShootDayMoveNote(true);
+    if(moved) bits.push(moved);
     return bits.join(' · ');
   }
   // THE ENTRY POINT. `before` and `after` are rippleSpan() results taken before and after the user's edit. Returns
@@ -34656,20 +34746,34 @@ export function initLegacyApp() {
     }
     const editJSON = undoStateJSON();
     const startsWas = phaseStartsNow();
+    // The day marks as they are (the edit never writes one), and which of them a hiatus covered BEFORE the edit: the
+    // other hiatuses as they stand, the edited one as it was. Only a hiatus that pauses Production can cover a mark.
+    const marksWas = Object.assign({}, dayOverrides);
+    const pausesShoot = h.kind === 'all' || h.key === 'production';
+    const pausesWas = pausesShoot ? rippleShootPauses(h, before) : null;
     const results = [];
     takeShootDayMoveNote();   // a stale note from an earlier move must not be read as this one's
     // A pushed phase remembers no column (colKeepQuiet): the user edited a break, not the phase (audit AUD2-057).
     colKeepQuiet++;
+    let prodMoved = false;
     try {
-      asShootDayMove(()=>{
-        if(before && h.kind === 'all') rippleNormaliseInside(before);
-        steps.forEach(st=>{
-          // ⭐ stepHeld (HIATUS-RIPPLE-PLAN.md §12, owner 6 Nov 2026, "Build it"): count only working weeks past a locked
-          // break, as Shift does, so a phase pushed across one moves the break's length further and every gap holds.
-          const r = shiftCalendarDates(st.weeks, isoOf(st.from), {except: h, keepView: true, stepHeld: true});
-          if(r) results.push(r);
+      const held = rippleHoldBreakNotes(before);
+      try {
+        asShootDayMove(()=>{
+          if(before && h.kind === 'all') rippleNormaliseInside(before);
+          steps.forEach(st=>{
+            // ⭐ stepHeld (HIATUS-RIPPLE-PLAN.md §12, owner 6 Nov 2026, "Build it"): count only working weeks past a locked
+            // break, as Shift does, so a phase pushed across one moves the break's length further and every gap holds.
+            const r = shiftCalendarDates(st.weeks, isoOf(st.from), {except: h, keepView: true, stepHeld: true});
+            if(r) results.push(r);
+          });
         });
-      });
+      } finally { rippleReturnBreakNotes(held); }
+      // The marks follow their shoot days only when Production itself moved (see rippleShootPauses' note). Otherwise
+      // back on their dates, exactly as they were, whatever the bracket re-derived (a second unlocked break inside the
+      // shoot, pushed by this ripple, would have carried the marks after it by shoot day).
+      prodMoved = (startsWas.production || '') !== (phaseStartsNow().production || '');
+      if(!prodMoved){ dayOverrides = marksWas; takeShootDayMoveNote(); }
       // shiftCalendarDates ran update() inside the bracket, before the day marks were re-derived from their pins.
       update();
     } finally { colKeepQuiet--; }
@@ -34680,8 +34784,18 @@ export function initLegacyApp() {
       const wk = Math.round((b - a) / DAY_MS / 7);
       if(wk) moves.push({key: k, weeks: wk});
     });
+    // What the line says about the marks (D2 = b): that they stayed, when any is on or after the edit's first week, and
+    // each one a hiatus covers now and did not before. Not when Production moved: they went with it.
+    let marks = null;
+    if(pausesShoot && !prodMoved){
+      const from = [before, after].filter(Boolean).map(s=> s.start.getTime()).reduce((a, b)=> Math.min(a, b));
+      const keys = Object.keys(dayOverrides).filter(k=>{ const d = parseDateUTC(k); return !!d && d.getTime() >= from; }).sort();
+      const pausesNow = rippleShootPauses(null);
+      marks = {stay: keys.length > 0, landed: keys.filter(k=> rippleUnder(k, pausesNow) && !rippleUnder(k, pausesWas))};
+    }
     const changed = undoStateJSON() !== editJSON;
-    const text = changed ? rippleReadout(moves, results) : '';
+    // A mark the edit put under a hiatus is said even when nothing else moved (a break with nothing after it to push).
+    const text = (changed || (marks && marks.landed.length)) ? rippleReadout(moves, results, marks) : '';
     if(text) showRippleNote(h, text);
     if(changed && !opts.noUndo) bankRippleWithEdit(editJSON);
     return {changed, moves, text};
