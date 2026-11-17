@@ -31,6 +31,27 @@ way a user would notice or a future session would need to return to. See
 
 ## Unreleased
 
+### Unreleased — A very long show title is cut to fit the workbook's and the waterfall PDF's file names too (16 Nov 2026)
+
+The owner's picker, 16 Nov 2026: *"Cut long titles"* (audit WIN-5). Windows refuses a file name over 255 characters.
+W.2 (above) already cuts a show title over 150 characters, at a word, in every name the app builds outside the frozen
+exporters (Save, Save As, the shareable copy, a scenario saved alone, the month PDF, Compare). The workbook and the
+waterfall PDF name themselves inside frozen code, so a 400-character title still reached their names.
+
+- **What you see.** A show title over 150 characters is cut the same way in the workbook's and the waterfall PDF's names
+  ("<first 150 characters, back to a word> Planning Calendar 2026-11-16 – Plan B.xlsx"); the date, the Version, the
+  season and the scenario stay whole. A title of 150 characters or fewer is named exactly as before.
+- **How, with no new frozen edit.** Since audit 2.10's edits S1b / S2b the two frozen name lines hand their own safe title
+  to `exportFileName()`, which is not frozen. It now passes that title through `fileNameTitle()`, the cut every other
+  name takes. W.2's proposed S1b / S2b patch (editing the two frozen lines again) was therefore not needed and is not
+  applied.
+- **Verified.** `exportnames` 10/10 on compare-send: new X9 (a 200-character title: both names carry the 149-character
+  cut and the whole rest) is red on the build without the cut; new X10 (a title of exactly 150 characters is kept whole).
+  The workbook's and the waterfall PDF's bytes are unchanged: 0 clipped cells, the waterfall PDF and every Excel part identical to their baselines, the seam check green, and all
+  24 written month PDFs byte-identical (gate 13), with the printed month document unchanged on all 11 calendars (gate
+  10): a partial gate cut from gate.sh's own sections, 368 PASS / 0 FAIL, on the build carrying all three of today's
+  frozen edits. `npm run check` 42/42.
+
 ### Unreleased — A Windows contrast theme keeps the calendar's colours (frozen-surface edit FC1, 16 Nov 2026)
 
 The owner's picker, 16 Nov 2026: *"Keep colours (contrast)"* on audit item W.2's frozen proposal FC1 (WIN-5). With a

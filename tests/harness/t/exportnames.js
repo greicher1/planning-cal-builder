@@ -23,6 +23,10 @@
 //       <today> v2 – Scenario A.xlsx", the header's own "S3 & S4" beside the title
 //   X6  no season and no Version: "Harbor Test Planning Calendar <today> – Scenario A.xlsx"
 //   X7  Help's example names the new shape, "Show Title S1 Planning Calendar 2026-11-12 v3.xlsx"
+//   X9  ⭐ ADDED 16 Nov 2026 (WIN-5, owner's picker "Cut long titles"): a 200-character title is cut to 150 characters
+//       at a word in the workbook's and the waterfall PDF's names (exportFileName() cuts what the frozen lines hand it)
+//   X10 a title of exactly 150 characters is kept whole
+//       X9 is red on a build without the cut (the whole 200 characters in both names); X10 is green either way.
 window.__T.memoryIDB();
 window.addEventListener('load', function () { (async function () {
   var T = window.__T, cases = [], out = {};
@@ -108,6 +112,37 @@ window.addEventListener('load', function () { (async function () {
     var want3 = 'Harbor Test Planning Calendar ' + today + ' – Scenario A.xlsx';
     add('X6', 'no season and no Version: neither is in the name, and nothing is left behind for them',
       xl3 === want3, {name: xl3}, want3);
+
+    // X9 / X10 -- a very long show title (audit 2026-11 WIN-5; owner's picker 16 Nov 2026, "Cut long titles"). The
+    // workbook and the waterfall PDF are named by frozen lines that hand their safe title to exportFileName(), which
+    // cuts it as every other name is cut: to 150 characters, back to the last space when one is in the last 30, never
+    // ending in a space, dot or dash. The rule is written out again here, so the leg checks the names against the
+    // ruling, not against the app's own helper.
+    function cutTitle(t){
+      if(t.length <= 150) return t;
+      var c = t.slice(0, 150), sp = c.lastIndexOf(' ');
+      if(sp >= 120) c = c.slice(0, sp);
+      return c.replace(/[\s.,;:\u2013\u2014-]+$/, '');
+    }
+    var words = 'Harbor Test The Very Long Working Title Of The Limited Series As The Network Wrote It In The Deal Memo';
+    var long = words; while(long.length < 200) long += ' ' + words;
+    long = long.slice(0, 200).trim();
+    T.set('show-title', long); await settle();
+    var xl9 = await exportName('export-btn');
+    var pdf9 = await exportName('export-wf-pdf-btn');
+    var head9 = cutTitle(long), want9 = head9 + ' Planning Calendar ' + today + ' – Scenario A';
+    add('X9', 'a 200-character title is cut to fit a file name (150 characters, at a word) in the workbook\'s and the waterfall PDF\'s names, and the rest of each name is whole',
+      long.length === 200 && head9.length <= 150 && head9.length >= 120 && xl9 === want9 + '.xlsx' && pdf9 === want9 + '.pdf',
+      {titleLength: long.length, cutLength: head9.length, xlsx: xl9, pdf: pdf9, xlsxLength: xl9 && xl9.length},
+      want9 + '.xlsx / .pdf');
+    var exact = long.slice(0, 150).replace(/\s+$/, '');
+    while(exact.length < 150) exact += 'x';
+    T.set('show-title', exact); await settle();
+    var xl10 = await exportName('export-btn');
+    var want10 = exact + ' Planning Calendar ' + today + ' – Scenario A.xlsx';
+    add('X10', 'a title of exactly 150 characters is kept whole (no real calendar\'s name changes)',
+      exact.length === 150 && xl10 === want10, {titleLength: exact.length, name: xl10}, want10);
+    T.set('show-title', 'Harbor Test'); await settle();
 
     // X7 -- Help's example.
     var help = txt(el('help-body'));

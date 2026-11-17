@@ -33,8 +33,8 @@
 //       time, the first applied) lists an older .html calendar without a change of "Files of type"; the two specific
 //       types follow it
 //   L1  WIN-5: a 420-character show title gives a Save As name and a month PDF name that fit Windows (each under 255
-//       characters), the title cut at a word, the date and extension kept. (Excel and the waterfall PDF name their files
-//       inside frozen code: recorded in out.frozenNames, not judged here)
+//       characters), the title cut at a word, the date and extension kept. (The workbook's and the waterfall PDF's
+//       names are cut too since 16 Nov 2026, by exportFileName(), which their frozen name lines call: exportnames X9)
 //   E0  no console errors
 window.__T.memoryIDB();
 var OSQ = (/[?&]os=(\w+)/.exec(location.search) || [])[1] || 'win';

@@ -31617,8 +31617,13 @@ export function initLegacyApp() {
   // gone with them). Both run after the writer has made its bytes and set only the anchor's `download`, so no byte of
   // either output moves (gates 2 and 3). monthPdfFileName() calls it too, so the three exports read alike.
   // ⛔ Keep the NAME and the arguments: the frozen call sites say them.
+  // ⭐ A LONG TITLE IS CUT HERE (audit 2026-11 WIN-5; owner's picker 16 Nov 2026, "Cut long titles"): the title the
+  // caller made safe goes through fileNameTitle(), the cut every other name the app proposes takes (150 characters,
+  // back to a word), so the workbook and the waterfall PDF are cut too WITHOUT another frozen edit: the frozen lines
+  // already hand their title to this function. fileNameTitle() of a title the writers made safe is that same title
+  // whenever it is 150 characters or fewer (it strips nothing they left), so no real calendar's name changes.
   function exportFileName(safeTitle, words, ext){
-    return exportNameHead(safeTitle, words) + exportNameMarks() + scenarioNameSuffix() + ext;
+    return exportNameHead(fileNameTitle(safeTitle), words) + exportNameMarks() + scenarioNameSuffix() + ext;
   }
   // The shareable copy holds the tab on screen only (ruling D6), so with two or more its name says which one. Its name
   // is a SAVE's (the title and today's date, buildSavedFileName), so it takes the scenario alone, never the marks.
@@ -31634,10 +31639,10 @@ export function initLegacyApp() {
   // one in its last stretch, and never left ending in a space, a dot or a dash. The rest of each name (the date, the
   // season, the Version, the scenario, the extension) is kept whole. Characters Windows forbids become '-', as they
   // always have. A title of FILE_TITLE_MAX or fewer comes back exactly as before, so no real calendar's name changes.
-  // ⚠️ Used by the names built OUTSIDE the frozen writers: Save / Save As / autosave's picker, the shareable copy, a
-  // scenario saved alone, the month PDF and Compare. exportExcel and exportWaterfallPdfDirect build their own names
-  // inside frozen code (edits S1 / S2) and download them through the browser, which shortens an over-long download
-  // name itself; routing them here as well is a name-only frozen edit, left to the owner.
+  // ⚠️ Used by every name the app proposes: Save / Save As / autosave's picker, the shareable copy, a scenario saved
+  // alone, the month PDF and Compare, and (since 16 Nov 2026, owner's picker "Cut long titles") the workbook and the
+  // waterfall PDF, whose frozen name lines (edits S1b / S2b) hand their own safe title to exportFileName(), which cuts
+  // it there. No further frozen edit was needed for that.
   function fileNameTitle(raw){
     const FILE_TITLE_MAX = 150;   // in the function, not beside it: no temporal dead zone if a name is asked for early
     let safe = String(raw || '').replace(/[\\/:*?"<>|]/g,'-').replace(/\s+/g,' ').trim();

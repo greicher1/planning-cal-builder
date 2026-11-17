@@ -139,7 +139,10 @@ there for a specific, measured reason, and the reasons are not visible from the 
   `scenarioFileSuffix()`, which is gone). Both lines run AFTER the writer has made its bytes and set only the anchor's
   `download`, so no byte of either output moves: gates 1-3 (base) and 13 identical. `exportFileName` / `exportNameHead` /
   `exportNameMarks` are not frozen and also name the month PDF (`monthPdfFileName`) and Compare (`compareFileBase`). ⛔
-  Keep `exportFileName`'s name and argument order: the frozen lines call it. Leg `exportnames` (X1-X8).
+  Keep `exportFileName`'s name and argument order: the frozen lines call it. Leg `exportnames` (X1-X8). ⭐ Since 16 Nov
+  2026 (owner's picker *"Cut long titles"*, WIN-5) `exportFileName` also cuts a title over 150 characters through
+  `fileNameTitle()`, so the workbook's and the waterfall PDF's names are cut with NO further frozen edit (W.2's proposed
+  re-edit of S1b / S2b was not applied); a title of 150 or fewer is unchanged. Legs `exportnames` X9 / X10.
 - ⚠️ **A sixth, audit item W.1 (WIN-1), the month view ON SCREEN ONLY (owner's picker, 16 Nov 2026: *"Approve the
   fix"*; the proposal and its measurements are the audit's `work/overnight/W1-frozen.md`): a month note gets the lanes
   its text needs in the column it is DRAWN in.** "Writer's Room Opens 1/5/26" (↻) lost its second line on Windows: not

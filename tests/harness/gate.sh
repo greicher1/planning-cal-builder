@@ -2275,6 +2275,9 @@ done
 #   N2 N4 N5 and X1-X7. ⭐ exportnames RE-EXPECTED 16 Nov 2026 for the season beside the title (owner-approved frozen
 #   edits S1b / S2b, exportFileName: "Harbor Test S3 Planning Calendar 2026-10-01 v2 – Scenario A.pdf"), with X8 new
 #   (two seasons, "S3 & S4", ticked in the Season dropdown); 7 of 8 red on the v1.15.0 build (X6 has no season).
+#   ⭐ X9 / X10 ADDED 16 Nov 2026 (WIN-5, owner's picker "Cut long titles"): a 200-character title is cut to 150 at a
+#   word in the workbook's and the waterfall PDF's names (exportFileName cuts what frozen S1b / S2b hand it; X9 red
+#   without), and a 150-character title is kept whole.
 # firstrun (2.13, AUD2-030 to -033, WIN-2): recents on an empty start, Production's Season message, the File menu's
 #   keys and New, Help with nothing stale; 21 of 22 red before (H1 also caught a lost Help correction at the merge).
 # startrecents (owner, 16 Nov 2026, version 7 of mockups/start-recents.html): the recents on an empty start as two cards,
