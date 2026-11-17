@@ -16,6 +16,8 @@
 //   <out>/<name>.xleg.json   how it ran: arguments, wall time, Chrome's version and user agent, and the page's
 //                            environment (navigator.platform, devicePixelRatio, scrollbar width, document.fonts)
 // <name> defaults to the leg's name. --out defaults to this directory, as run.sh's outputs do.
+// A --query holding forced=active also emulates forced-colors (a Windows contrast theme) before the page loads, as
+// rtleg.mjs does: the forcedcolors leg (frozen edit FC1).
 //
 // ⚠️ REAL CLOCK, NOT run.sh's VIRTUAL ONE. A leg's T.sleep() and T.until() mean real milliseconds here, and --secs is
 // a real budget. Legs that wait out the app's own long timers (the 10-minute autosave) cannot run this way; see
@@ -236,6 +238,10 @@ try {
   // user's window is, unless XLEG_FOCUS=off (which shows what the unfocused page does).
   if (process.env.XLEG_FOCUS !== 'off') await send('Emulation.setFocusEmulationEnabled', { enabled: true }).catch(() => {});
   if (TZ) await send('Emulation.setTimezoneOverride', { timezoneId: TZ });
+  // forced=active in the query: a Windows contrast theme, emulated (forced-colors), as rtleg.mjs does on the Mac. The
+  // forcedcolors leg (frozen edit FC1, 16 Nov 2026) reads the same word to know which look to expect. A runner can
+  // emulate it on any OS; a real contrast theme needs a person at a Windows PC.
+  if (/(^|&)forced=active(&|$)/.test(QUERY)) await send('Emulation.setEmulatedMedia', { features: [{ name: 'forced-colors', value: 'active' }] });
   // Nothing a leg exports may land in the runner's Downloads folder (legs capture exports in the page).
   await send('Page.setDownloadBehavior', { behavior: 'deny' }).catch(() => {});
   await send('Page.addScriptToEvaluateOnNewDocument', { source: `window.__XLEG = ${JSON.stringify({ platform: process.platform, runner: 'xleg' })};` });

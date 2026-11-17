@@ -27,11 +27,13 @@ jobs:
         # The list in five parts, so no job runs for hours and the Windows-only legs report first.
         # --from / --to count the list's non-comment lines; --only matches a leg's output name.
         part:
-          # A recheck of the legs that differed between the two systems in the first full run, once with a
-          # focused page (as a user's window is) and once without. The full list in five parts is:
+          # Wave 4 (release-wave4, 16 Nov 2026): the legs its changes touch on Windows. W.1 (autonoterename at both
+          # windows, softlines, and the month PDF unchanged: monthexport, monthwriter), W.2 (oskeys os=win, the win-*
+          # legs), FC1 (forcedcolors, emulated, plus its control), ripplemarks, changessince. Both with a focused page.
+          # The full list in five parts is:
           #   win '--only ^win-' | a '--from 1 --to 85' | b '--from 86 --to 170' | c '--from 171 --to 255' | d '--from 256 --to 9999'
-          - { name: focus, focus: 'on', args: '--only "^(win-|endsdate|prodends|autonoterename|interfonts|monthexport|monthwriter)"' }
-          - { name: nofocus, focus: 'off', args: '--only "^(win-env|win-keys|endsdate|prodends)"' }
+          - { name: wave4, focus: 'on', args: '--only "^(win-|autonoterename|softlines|oskeys|ripplemarks|changessince|forcedcolors)"' }
+          - { name: monthpdf, focus: 'on', args: '--only "^(monthexport|monthwriter)"' }
     defaults:
       run:
         shell: bash

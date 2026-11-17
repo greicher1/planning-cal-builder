@@ -345,3 +345,14 @@ win-layout | - | - | 180 | 1536,864 | 1.25
 win-layout | - | - | 180 | 1280,720 | 1.5
 win-text | - | - | 240
 win-keys | - | - | 180
+
+# ---- wave 4 (release-wave4, 16 Nov 2026): this release's legs that Windows can answer ----
+# autonoterename at a 1584 window as well as the default (W.1: on Windows the 1600 window already leaves a ~1584 page,
+# so this one is narrower still; S5 sets its own absolute widths either way). forcedcolors=active is emulated by xleg
+# (FC1); the second forcedcolors line is its control.
+autonoterename | autonoterename | - | 500 | 1584,1200 | - | - | -
+oskeys | halfdays | os=win | 240 | - | - | - | -
+ripplemarks | ripplemarks | - | 500 | - | - | - | -
+changessince | changessince | - | 400 | - | - | - | -
+forcedcolors | - | forced=active | 120 | - | - | - | -
+forcedcolors | - | - | 120 | - | - | - | -
