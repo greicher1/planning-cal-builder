@@ -132,6 +132,14 @@ there for a specific, measured reason, and the reasons are not visible from the 
   `mvWfTypedLinesFor` and `mvHolidayDays` call the frozen reader directly again. ⛔ On a month-first calendar
   `slashDateInWeek()` returns exactly the old date when it is in the week and null where the old lines fell through, so
   gates 2, 3, 10 and 13 stay byte-identical. Leg `dayfirstwf` (a mutant with neither the stand-in nor D3 is red there).
+- ⚠️ **A fifth, audit item 2.10's frozen edit (owner's picker, 16 Nov 2026: *"Work on it now"*; the audit's
+  `work/overnight/2.10-frozen.md`): the season beside the title in every export's FILE NAME.** Frozen edits S1b / S2b are
+  the name line in `exportExcel` and `exportWaterfallPdfDirect`: `exportFileName(<their own safe title>, 'Planning
+  Calendar', ext)`, "Harbor Lights S3 Planning Calendar 2026-11-12 v3 – Plan B.xlsx" (it was '<title> Planning Calendar' +
+  `scenarioFileSuffix()`, which is gone). Both lines run AFTER the writer has made its bytes and set only the anchor's
+  `download`, so no byte of either output moves: gates 1-3 (base) and 13 identical. `exportFileName` / `exportNameHead` /
+  `exportNameMarks` are not frozen and also name the month PDF (`monthPdfFileName`) and Compare (`compareFileBase`). ⛔
+  Keep `exportFileName`'s name and argument order: the frozen lines call it. Leg `exportnames` (X1-X8).
 
 **Why, concretely.** These three cost weeks and are each invisible without measurement:
 

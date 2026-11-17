@@ -4,6 +4,28 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### 🧊 16 Nov 2026: THE SEASON SITS BESIDE THE TITLE IN EXPORT NAMES (audit 2.10's frozen edit). Branch `frozen-2-10-name` (worktree `.claude/worktrees/frozen-2-10-name`, from `origin/main` `ad48e11`). One commit. ⛔ NOT merged, NOT pushed; waits for the release train's one full gate
+- **Owner's approval:** the picker *"Work on it now"* (16 Nov 2026) on the question "2.10's unapplied frozen edit: put the
+  season right after the show title in export names … It edits the file-name line in the two frozen exporters". The
+  proposal was the audit's `work/overnight/2.10-frozen.patch` / `.md`, written against `audit-2-10`'s old base; this is
+  that intent re-made on v1.15.0, not the patch applied.
+- **As built.** Frozen edits S1b (`exportExcel`) and S2b (`exportWaterfallPdfDirect`), ONE line each:
+  `exportFileName(<their own safeTitle / safe>, 'Planning Calendar', ext)`. Non-frozen: `exportNameHead(safeTitle, words)`
+  ("<title> <season> <words>"), `exportNameMarks()` without the season (date, Version), `exportFileName()` = head + marks
+  + `scenarioNameSuffix()` + ext; `monthPdfFileName()` and `compareFileBase()` use them; `scenarioFileSuffix()` deleted
+  (nothing called it any more). Shareable copy / Save untouched (a save's name, `buildSavedFileName`, never had the
+  season). Help's two examples: "Show Title S1 Planning Calendar 2026-11-12 v3.xlsx". CLAUDE.md: a fourth bullet in the
+  freeze's owner-approved exceptions.
+- **Proof.** `exportnames` 8/8 (X1-X5, X7 re-expected; X8 new: two seasons, "S3 & S4", ticked in the Season dropdown),
+  7/8 red on the v1.15.0 build. The base section of `gate.sh` run by hand: gates 1-3 PASS (clipped 0, waterfall PDF
+  identical to baseline, Excel parts identical). The monthexport + gate 13 section by hand (24 calendars + real time):
+  256 PASS / 0 FAIL, every written month PDF byte-identical to its baseline. Re-expected for the order (red on v1.15.0
+  only at the name check, green now): `monthpick` 10/10 (M2's name prefix), `scenarios` 23/23 (S16/S17), `monthexport`
+  9/9 (`wantName`, X2/X7; now requires the season when `#season-num` has one). `pdfdialog` 15/15, `firstrun` 22/22,
+  `npm run check` 42/42. Not run: the full gate (the release train's), Windows, a real download dialog by hand.
+- ⚠️ A leg that matches an export's name by prefix must now expect the season BEFORE "Planning Calendar" / "Month
+  Calendar". `filekeys`, `cmdprint`, `pdfdialog` and `cspproof` match `/Month Calendar .*\d{4}-…\.pdf$/` and are unaffected.
+
 ### 🔨 16 Nov 2026: FROZEN EDIT D3 — ON DD/MM THE FROZEN MONTH READER READS A TYPED NOTE'S DATE DAY FIRST ITSELF. Branch `frozen-2-4-typed` (worktree `.claude/worktrees/frozen-2-4-typed`, from `origin/main` `ad48e11`). Committed on the branch. ⛔ **NOT merged, NOT pushed; waits for the release train's one full gate.** No version cut (README: Unreleased)
 - **Owner's approval:** picker, 16 Nov 2026, *"Work on it now"*, on the question "2.4's unapplied frozen edit: on a
   day-first (DD/MM) calendar, a date typed inside a waterfall Notes cell is read day first too … It edits
