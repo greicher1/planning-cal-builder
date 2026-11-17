@@ -4,6 +4,22 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### 📋 17 Nov 2026: A CROWDED MONTH SHRINKS ON SCREEN EXACTLY AS ITS PDF DOES. RULED, NOT BUILT. Branch `month-shrink` (worktree `.claude/worktrees/month-shrink`, from `origin/main` `aa16ffe`; `node_modules` is a symlink, unlink it before `git worktree remove`): the plan only, one local commit, nothing pushed. Tracker card `month-view-shrink-like-pdf`. ⭐ Read [`MONTH-SHRINK-PLAN.md`](MONTH-SHRINK-PLAN.md): it is the whole design
+- **Owner, 17 Nov 2026**, with a PDF and a screenshot of one crowded month: *"1st image is pdf export, 2nd image is live
+  viewer...the live viewer still looks different and is changing the height and stretching the whole calendar"*. That is
+  the month page's "Full size, taller page" (16 Nov, `b8f4ccf`) working as built; the owner now wants the opposite.
+- **Rulings (pickers, 17 Nov 2026):** *"Shrink like the PDF"* (the card stays one page at every month; a crowded
+  month's bars and text shrink by the PDF's own factor and notes wrap where the PDF wraps them; replaces "Full size,
+  taller page") and *"Approve with that gate"* (one frozen edit: on screen, in a shrunk month, a note's lines are
+  counted at the smaller size; gate: gates 10 and 13 byte-identical and the screen's weeks equal the PDF's rows on the
+  shrunk test months).
+- **The design in one line:** ask the writer itself (`mvlFitMonth` on the visible month's print html) for the factor
+  and the rows, hold the factor in session state, re-render once so frozen edit SK1 counts notes at that size, and
+  scale the week's sizes in screen-only CSS (the `monthwriter` leg's `scaledCss` is the worked list).
+- ⛔ The owner's two images are a real show's calendar: nothing from them goes into the repo. The fixtures with a
+  shrunk month are `monthscale`, `month-dense60` and `month-lanecap` (August 2026 in each).
+- **Re-premise when built:** `monthpage` T ("stays full size in a taller card") and G0's "at least"; F0's allow-list.
+
 ### 🚂 v1.16.0 — wave 4. Branch `release-wave4` (worktree `.claude/worktrees/release-wave4`), cut from `origin/main` `7e1d8b4`; `origin/main` `8af4298` merged in at `91619e1`. The owner said *"Yes, prep it"* (16 Nov 2026): merge the newest live changes, write the owed docs and test wiring, cut v1.16.0. Tagged v1.16.0 and pushed to `main` on 17 Nov 2026 (owner's picker *"Push v1.16.0 now"*), after two full gates and the merges of `d44a52e` and `b8f4ccf`.
 - ⛔ **This section SUPERSEDES the "WIP", "NOT merged, NOT pushed", "the owner tries it first", "not in gate.sh yet" and
   "no README / HANDOFF yet" lines in each wave-4 item's own section below and in its branch's commits** (`ripple-marks`,
