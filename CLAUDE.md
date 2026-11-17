@@ -99,11 +99,33 @@ there for a specific, measured reason, and the reasons are not visible from the 
   - It edits no frozen rule. Its tints exclude the day marks and `:hover`.
   - The `softlines` leg holds every box to 0.01 px with and without it. Keep it paint only, or that leg goes red.
   - Making the PDFs follow is a separate frozen edit the owner has not ruled on.
-- ⚠️ **A second, the note symbol (2 Nov 2026, owner's picker, AUTO-NOTE-RENAME-PLAN.md): ↻ before an automatic note, ⚑
-  before a holiday, in the month view ON SCREEN ONLY.** Frozen edit NS1 in `renderMonthView` reads `b.mark`, which
-  `mvDayNotePlan` sets only while `printingCursor` is null, so the print rollback and the month-PDF writer never see it
-  (gates 10 and 13 byte-identical). A marked note is measured `MV_NOTE_MARK_W` narrower and its CSS padding grows by the
-  same, so it cannot clip; one the symbol would push past three lines goes without it (`mvNoteMarkFits`).
+- ⚠️ **A second, "The Month Page", on screen only (owner, 16 Nov 2026): the month view is drawn as the month PDF's
+  page.** *"essentially the live viewer should look just like what it will look like in the pdf export"*.
+  - `#table-wrap` is a one-track grid in the month view, `calc(11in - 16mm + 32px)` = 1027.53 px, the writer's page
+    (`MVL_GEOMETRY`), at every window and zoom. A smaller window scrolls; spare room sits on the right.
+  - A screen-only block in `legacy.css` ("THE MONTH PAGE", in the app shell's `@media screen` block, every selector
+    `#table-wrap .month-view`): the card is at least a Letter landscape page tall (788.03 px), the weeks share it by the
+    writer's rule (`mvlShareRows`, carried out by flexbox), and bars and notes are the height they PRINT (a Standard
+    bar 19 px, a 10 px note 13 px a line plus 6). `fitMonthPage()` in `app.js` reads the frozen month after each
+    render and writes `--mvp-f1..6` / `--mvp-m1..6` on `#table-wrap`'s own style; it writes nothing inside it.
+  - It edits no frozen rule and no frozen function. ⛔ Its size rules carry a DOUBLED id (`#table-wrap#table-wrap`) to
+    out-rank the frozen one-id rules; never "simplify" that. ⛔ Not beside the Soft Lines block: the build merges
+    neighbouring `@media screen` blocks, and the `softlines` leg deletes that one.
+  - A month the PDF shrinks stays full size, in a taller card (owner's picker). Soft Lines stays (owner's picker), so
+    line colour and weight are the one intended difference from the PDF.
+  - ⚠️ Frozen `mvNoteBoxWidth()` reads the live day column, now the page's 141.07 px at every window, so the PRINT
+    rollback sizes notes for the page it prints on and its document no longer depends on the window. Gate 10 was
+    re-cut for it (owner's picker, 17 Nov 2026). Gate 13, the written PDF, did not move.
+  - ⛔ `fitMonthPage`'s MutationObserver must stay the FIRST one made on `#table-wrap` (near the top of `app.js`):
+    observers are told of a render in the order they were made, and a dozen later ones measure the month. That same
+    observer renders a month a second time when it was drawn with no day cell on screen to measure (from the
+    waterfall, or at load), and only once Inter is in (`mvFontsIn()`, `mvAfterFonts()`): note line counts are cached
+    by box width, so one taken in the fallback face poisons every later render.
+  - The `monthpage` leg holds it: every week's height on screen is the written PDF's row within 0.1 px.
+- ⚠️ **WITHDRAWN 16 Nov 2026 (owner's picker, "Remove the symbols"): the note symbol** (↻ before an automatic note, ⚑
+  before a holiday, on screen only, since 2 Nov 2026). `mvDayNotePlan` no longer sets `mark`, so frozen edit NS1 in
+  `renderMonthView`, `MV_NOTE_MARK_W` and the `.mv-note-mark` CSS are inert and left in place; `mvNoteMarkFits` is
+  deleted. A marked note was measured 10 px narrower, so it could take one more line on screen than it prints.
 - ⚠️ **A third, audit item 3.1's two frozen edits (owner's picker, 14 Nov 2026: *"Month notes keep date"*, *"Two-holiday
   rows grow"*; the proposal and its measurements are the audit's `work/overnight/3.1-frozen.md`).**
   - **D1, the month view on screen and the print rollback only (AUD2-045):** at note sizes 11-14 a waterfall line ending in
@@ -160,6 +182,12 @@ there for a specific, measured reason, and the reasons are not visible from the 
   - **Hunk group 2, frozen edit W1 in NS1** (`renderMonthView`): a MARKED line's lanes come from `mvNoteMarkSpan()`,
     measured at `mvNoteBoxWidth() - MV_NOTE_MARK_W - MV_NOTE_BAR_INSET` (6/7 px) at an exact width (`mvNoteMarkLinesAt`,
     keyed to 1/100 px); `mvNoteMarkFits` measures the same way. An unmarked line is unchanged.
+  - ⚠️ **Since 17 Nov 2026 (the month page, `b8f4ccf`, merged into v1.16.0) hunk group 2 is INERT:** no line is marked,
+    `mvNoteMarkFits` is gone, and `mvNoteMarkSpan` / `mvNoteMarkLinesAt` stay only because frozen edit W1 names the
+    first. The day column is now the page's at every window, so hunk group 1 re-renders only a month drawn from the
+    estimate (from the waterfall, or at load), which the page fit's own first observer re-renders too: such a month is
+    drawn three times, not twice. Harmless (the same month, measured in the same column), and kept so W.1's Windows
+    case keeps its own guard.
   - ⛔ Screen only: marks are set only while `printingCursor` is null, the print rollback draws into `#print-root` and
     the writer into no DOM, so gates 10 and 13 are byte-identical (all 11 and all 24). Unmarked 10 px notes keep the
     6/7 px and whole-pixel gaps: fixing them is a print-path frozen edit the owner has not been asked for. Legs
@@ -483,7 +511,7 @@ The DEPLOYED FILE has no build step: it is one `<style>` block, static markup, a
 
 ⛔ **Two fonts are embedded and they must never be confused.** **Carlito** is the grid and export typeface, and it is embedded (base64 of a zlib'd TrueType subset, ~94 KB) because it feeds the **frozen width model** — `EXCEL_MDW`, `measureTextPx`, every column width in the workbook and both PDFs — so its measurement must never drift; `tools/subset-font.py` regenerates it. **Inter** is the CHROME typeface and is embedded only in the build (`src/styles/inter.css`, one variable woff2, regenerated by `tools/fetch-inter.py`). Touching Carlito changes the exports; touching Inter cannot. ⚠️ Since 1 Oct 2026 the build also carries four static Inter programs for the direct month-PDF writer (font-inter-*, beside Carlito), made from that same WOFF2 by tools/subset-inter.py. Re-run it after fetch-inter.py, or npm run check fails. Since 2 Oct 2026 the writer ships (MONTH-PDF-WRITER-PLAN step 5), so touching Inter changes the month PDF too. Everything else (icons, PWA manifest) is inlined as `data:` URIs — except that the **deployed** file still fetches Inter and IBM Plex Mono from Google Fonts. The build fetches nothing: the link and both preconnects are gone, IBM Plex Mono was dropped, and Inter travels inside the file, so an emailed copy measures text identically offline.
 
-There is a runner now, and fixtures. `tests/harness/` holds a headless-Chrome harness: `run.sh` drives one test, `gate.sh` runs the whole acceptance gate and diffs it against `tests/baselines/2026-08-29-stage-7/` and, for the month PDF, `tests/baselines/2026-09-22-monthprint/` (the print path, now the rollback) and `tests/baselines/2026-10-05-monthwriter/` (the written PDF users get, byte for byte: gate 13, whose re-cut rule is in its README). As of 30 Sep 2026 it runs about 734 checks in about 15 minutes (it was ~3 minutes for ~300 checks on 22 Sep 2026, when `run.sh` began polling for Chrome's dump instead of waiting out a wall-clock timer; it was ~50 before that). ⚠️ Two full gates at once stall each other's Chrome, so sessions serialize them. `tests/fixtures/` holds real saved calendars for the restore path. See PROJECT-CONTEXT §11 and UI-CONVENTIONS §10.
+There is a runner now, and fixtures. `tests/harness/` holds a headless-Chrome harness: `run.sh` drives one test, `gate.sh` runs the whole acceptance gate and diffs it against `tests/baselines/2026-08-29-stage-7/` and, for the month PDF, `tests/baselines/2026-09-22-monthprint/` (the print path, now the rollback) and `tests/baselines/2026-10-05-monthwriter/` (the written PDF users get, byte for byte: gate 13, whose re-cut rule is in its README). As of 17 Nov 2026 it runs about 5,465 checks in about 55 minutes (734 checks in about 15 minutes on 30 Sep 2026; ~300 in ~3 minutes on 22 Sep 2026, when `run.sh` began polling for Chrome's dump instead of waiting out a wall-clock timer). Run it in the background, and check `pgrep -f gate.sh` first. ⚠️ Two full gates at once stall each other's Chrome, so sessions serialize them. `tests/fixtures/` holds real saved calendars for the restore path. See PROJECT-CONTEXT §11 and UI-CONVENTIONS §10.
 
 ⚠️ **The two entry points default to DIFFERENT pages, and that has already cost a wrong diagnosis.** `gate.sh` defaults to `/dist/index.html` — the build. `run.sh` defaults to `HARNESS_PAGE=/index.html` — the **deployed** app. So "re-run that leg standalone to see if it is really broken" silently tests a different program, and it passes while the build fails. Always pass `HARNESS_PAGE=/dist/index.html` when you mean the build.
 

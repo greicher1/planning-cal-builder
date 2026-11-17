@@ -119,7 +119,16 @@ window.addEventListener('load', function () { (async function () {
     var cmpStart = src.indexOf('  function buildComparePdf(model){'), cmpEnd = src.indexOf('    return list;\n  }', cmpStart);
     var cmpSrc = (cmpStart >= 0 && cmpEnd > cmpStart) ? src.slice(cmpStart, cmpEnd + '    return list;\n  }'.length) : '';
     var eAt = rest.indexOf(exportSrc), rest2 = rest.slice(0, eAt) + rest.slice(eAt + exportSrc.length);
-    var outside = code(cmpSrc ? rest2.replace(cmpSrc, '') : rest2);
+    // ⭐ SINCE 16 NOV 2026 THE WRITER HAS A THIRD READER, the month page on screen (monthPageNumbers, which fitMonthPage
+    // runs after each month render): the screen shares the page out among the weeks by the writer's own rule, so it reads
+    // the writer's constants through ONE name, mvlFitNumbers (38 px of chrome, 19 px a line, the 57 px floor), instead of
+    // keeping a copy that could drift from the PDF. It builds and paints nothing. That function is cut out of `outside`
+    // like the export and the Compare PDF, and held to that one name.
+    var mpEndMark = "m: r.min.toFixed(3) + 'px' }));\n  }";
+    var mpStart = src.indexOf('  function monthPageNumbers(tw){'), mpEnd = src.indexOf(mpEndMark, mpStart);
+    var mpSrc = (mpStart >= 0 && mpEnd > mpStart) ? src.slice(mpStart, mpEnd + mpEndMark.length) : '';
+    var outside0 = cmpSrc ? rest2.replace(cmpSrc, '') : rest2;
+    var outside = code(mpSrc ? outside0.replace(mpSrc, '') : outside0);
     var NAMES = [], dm, dre = /^  (?:async )?(?:function|const|let) (\w+)/gm;
     while((dm = dre.exec(writerSrc))) NAMES.push(dm[1]);
     var has = function (n, s) { return new RegExp('\\b' + n + '\\b').test(s); };
@@ -128,11 +137,13 @@ window.addEventListener('load', function () { (async function () {
     var PUBLIC = ['MVL_FONT_WEIGHTS', 'buildMonthLayout', 'buildMonthPdf', 'fitMonthLayout', 'loadInterPdfFont', 'mvlSmallType', 'mvlUnprintable'];
     var usedByExport = NAMES.filter(function (n) { return has(n, code(exportSrc)); }).sort();
     var usedByCompare = NAMES.filter(function (n) { return has(n, code(cmpSrc)); }).sort();
+    var usedByMonthPage = NAMES.filter(function (n) { return has(n, code(mpSrc)); }).sort();
     var counts = ['loadInterPdfFont(', 'buildMonthLayout(', 'buildMonthPdf(', 'fitMonthLayout(', 'mvlUnprintable(', 'mvlSmallType('].map(function (s) { return code(src).split(s).length - 1; });
     add('F0', 'only the month export (exportMonthPdfDirect) calls the writer, and only through its public entry points',
-        usedOut.length === 0 && NAMES.length > 30 && same(usedByExport, PUBLIC) && same(counts, [4, 2, 2, 2, 2, 2]) && cmpSrc && same(usedByCompare, ['buildListPdf']),
-        {usedOutside: usedOut, usedByExport: usedByExport, usedByCompare: usedByCompare, namesDeclared: NAMES.length, entryPointOccurrences: counts},
-        {usedOutside: [], usedByExport: PUBLIC, usedByCompare: ['buildListPdf'], entryPointOccurrences: [4, 2, 2, 2, 2, 2]});
+        usedOut.length === 0 && NAMES.length > 30 && same(usedByExport, PUBLIC) && same(counts, [4, 2, 2, 2, 2, 2]) && cmpSrc && same(usedByCompare, ['buildListPdf']) &&
+          !!mpSrc && same(usedByMonthPage, ['mvlFitNumbers']),
+        {usedOutside: usedOut, usedByExport: usedByExport, usedByCompare: usedByCompare, usedByMonthPage: usedByMonthPage, namesDeclared: NAMES.length, entryPointOccurrences: counts},
+        {usedOutside: [], usedByExport: PUBLIC, usedByCompare: ['buildListPdf'], usedByMonthPage: ['mvlFitNumbers'], entryPointOccurrences: [4, 2, 2, 2, 2, 2]});
 
     var G = F.G, P = F.P, fonts = {};
     for(var fw of ['400', '500', '600', '700']) fonts[fw] = await F.loadInterPdfFont(fw);

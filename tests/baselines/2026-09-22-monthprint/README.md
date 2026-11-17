@@ -43,6 +43,40 @@ Each case is two files: **`<case>.html`** is `#print-root`'s innerHTML at the mo
 **`<case>.json`** is what `monthcmp.py` derived from it plus the sheet count and page box of the PDF
 Chrome actually printed (`/MediaBox [0 0 792 612]`, landscape Letter, every case).
 
+## ✅ RE-CUT 17 Nov 2026 — ALL ELEVEN CASES: a note is measured at the PAGE's day column, at every window (the month page)
+
+Owner, 16 Nov 2026: the month view on screen is the month PDF's page (*"maintains consistent proportions despite the
+window width or height ... as close as how it will appear when exported to pdf"*). The on-screen day column is now
+the page's 141.07 px at every window, and frozen `mvNoteBoxWidth()` reads that live column, so this path now sizes
+each note's lanes for the page it prints on. Until now it sized them for the WINDOW (this leg's 1600 x 1200: a
+day column of about 165 px), which is why MANTINE-SEAM §5.3 says the print path's pages change with the window.
+Owner, 17 Nov 2026, by picker, on the measured difference below: *"Re-cut all eleven"*. No frozen code changed.
+
+**One note, on every case, and nothing else.** "Writer's Room Opens 1/5/26" (5 Jan 2026) is given two lanes instead
+of one (`grid-row:2` → `grid-row:2 / span 2`), which is what it needs in a 138.22 px box; the "+" slot under it goes
+(one element fewer in every document), and that week's fit moves `91/g23` → `95/g19`. Every other week of every
+month is identical, and every case still prints one sheet per month.
+
+| case | elements | sheets |
+|---|---|---|
+| `reference`, `blocksoff` | 3872 → 3871 | 16 → 16 |
+| `dayoverrides`, `mvheader`, `dayoverrides-onhalf` | 3658 → 3657 | 15 → 15 |
+| `mvheaderlegacy` | 4393 → 4392 | 15 → 15 |
+| `blocks` | 3861 → 3860 | 16 → 16 |
+| `month-lanecap` | 4316 → 4315 | 16 → 16 |
+| `hiatus-blanklabel` | 3863 → 3862 | 16 → 16 |
+| `halfdays` | 3897 → 3896 | 16 → 16 |
+| `mvnotes` | 4116 → 4115 | 17 → 17 |
+
+⭐ **The document no longer depends on the window.** `reference` and `mvnotes`, run at 1100 x 760 and at 1920 x 1080,
+are identical to these cuts (`monthcmp.py gate`, 6 of 6 each). Before, the same two runs differed from the 1600 x 1200
+baseline wherever a note sat near a line break.
+
+**Not moved:** gate 13 (the written month PDF, what Export PDF produces) is byte-identical; it never read the window.
+
+Cut with `monthcmp.py cut` from `monthprint` runs (port 8866) on build `2860e81a721b14d4…`, branch `month-page-fit`,
+Google Chrome 157.0.8103.79.
+
 ## ✅ RE-CUT 30 Oct 2026 — SEVEN CASES: a holiday's day takes the weekend's grey (frozen edit HT1)
 
 Owner, 30 Oct 2026, by picker: *"Weekend tint"*, *"Screen and both PDFs"*, *"Approve with that gate"*.

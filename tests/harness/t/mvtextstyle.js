@@ -342,17 +342,24 @@ window.addEventListener('load', function () { (async function () {
         !!S.episode && S.episode.c === S.episode.ring && S.episode.c === ink0.episode && !!S.phase && S.phase.c === S.phase.ring && !!S.simpost && S.simpost.c === S.simpost.ring
           && mixed.ep === ink0.episode && mixed.wf === 'rgb(255, 0, 255)' && mixed.stored === false, {ep: S.episode, ph: S.phase, sp: S.simpost, ink0: ink0, mixed: mixed}, 'ring = ink = unstyled ink');
       // Rows compared week by week; a week where a note's lane count changed is named, not failed (§6 item 2).
-      var grew = [], noteMoved = [];
+      // ⚠️ RE-PREMISED 16 Nov 2026 (the month page). The month is the PDF's page now: its weeks SHARE a fixed height, as
+      // they do in the PDF. So in a month where a note is re-laid (the 6 px note in July: two lines to one), that week
+      // needs less and every week of that month takes a new share. Held there instead: the weeks still add up to the
+      // same page, to 0.05 px. Until then a week was as tall as its content, and only the re-laid week could move.
+      var grew = [], noteMoved = [], shared = [];
       Object.keys(shape0).forEach(function (m) {
         var a = shape0[m], b2 = shape1[m];
         if(!eq(a.frame, b2.frame)) grew.push(m + ' frame');
+        var relaid = a.rows.some(function (h, i) { return a.notes[i] !== b2.notes[i]; });
+        var sum = function (r) { return r.reduce(function (x, y) { return x + y; }, 0); };
+        if(relaid && Math.abs(sum(a.rows) - sum(b2.rows)) > 0.05) grew.push(m + ' weeks in all ' + sum(a.rows).toFixed(2) + ' -> ' + sum(b2.rows).toFixed(2));
         a.rows.forEach(function (h, i) {
           if(a.notes[i] !== b2.notes[i]){ noteMoved.push(m + ' week ' + (i + 1) + ': ' + a.notes[i] + ' -> ' + b2.notes[i]); return; }
-          if(Math.abs(h - b2.rows[i]) > 0.01) grew.push(m + ' week ' + (i + 1) + ' ' + h + ' -> ' + b2.rows[i]);
+          if(Math.abs(h - b2.rows[i]) > 0.01){ if(relaid) shared.push(m + ' week ' + (i + 1) + ' ' + h + ' -> ' + b2.rows[i]); else grew.push(m + ' week ' + (i + 1) + ' ' + h + ' -> ' + b2.rows[i]); }
         });
       });
-      add('S3', 'R3: no week row, month bar or weekday row changed height in any month styled (April, July, November, December), except a week whose note changed its line count (named: the 6 px note in July)',
-        grew.length === 0 && noteMoved.length === 1 && /2026-07-15/.test(noteMoved[0]), {grew: grew, noteLines: noteMoved}, 'none grown; one note re-laid');
+      add('S3', 'R3: no week row, month bar or weekday row changed height in any month styled (April, July, November, December), except in the month whose note changed its line count (the 6 px note in July), where the weeks re-share the same page',
+        grew.length === 0 && noteMoved.length === 1 && /2026-07-15/.test(noteMoved[0]), {grew: grew, noteLines: noteMoved, reshared: shared}, 'none grown; one note re-laid; its month the same height in all');
       // M1's line counters: each note's lanes are exactly the lines it lays out in its own style (to 3), so none is cut
       // short and none holds an empty line. Read in July, where both day notes and the waterfall line are.
       await goTo('July 2026');

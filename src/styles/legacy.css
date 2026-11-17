@@ -519,9 +519,9 @@
        toolbar and the text style bar scrolled away with it, and zoomed in they went sideways too. Now the panel
        is a column: the toolbar rows at their natural height, #table-wrap taking the rest as the one scroll box.
        The panel keeps overflow:auto only so a tool popover running past its bottom stays reachable.
-       ⛔ Only #table-wrap's OWN box: nothing inside it, and no .mv-* rule, is touched. Its width is the width
-       #table-wrap always had at 100%, so the month renders exactly as before; zoomed, the grid below pins its
-       content to that same width (what `width: calc(100% * z)` did when the panel scrolled). */
+       ⛔ Only #table-wrap's OWN box: nothing inside it, and no .mv-* rule, is touched by these two rules. (Until
+       16 Nov 2026 the month took this box's width; it is the PDF page's width now, see "THE MONTH PAGE'S WIDTH"
+       below.) */
     /* ⛔ NO `.preview-panel > *` RULE HERE. One shipped for a day (`{flex:none}`), and a :has() rule with a
        universal subject made Chrome restyle far more on every view switch: month -> waterfall went from ~110 ms
        to ~260 ms (owner, 26 Oct 2026: "theres now a slight lag"; measured by deleting rules one at a time). It
@@ -533,14 +533,128 @@
        the empty-state sentence's height; otherwise it would push them to the window's foot. There is no calendar
        then, so nothing in it can be measured differently. #table-wrap's own box only, as above. */
     body:has(#view-month-btn.active) .preview-panel.has-start-recents > #table-wrap{ flex:0 0 auto; }
-    /* Zoomed: #table-wrap is the zoomed box AND the scroller, so its screen width is the panel's, and 100% of its
-       content box is that width in its own (zoomed) px. One track of 100% x the zoom puts .month-view back on the
-       width it has at 100%, so the day columns keep their CSS width and every note its lines. --cal-zoom is
-       written on #table-wrap by applyCalZoom() (app.js, "CALENDAR ZOOM"), only while the month is zoomed. Rows
-       at the top: a stretched row would hand a short (zoomed-out) month the box's spare height. */
-    body.cal-zoomed:has(#view-month-btn.active) #table-wrap{
-      display:grid; grid-template-columns:calc(100% * var(--cal-zoom, 1)); align-content:start; justify-content:start;
+    /* ⭐ THE MONTH PAGE'S WIDTH (owner, 16 Nov 2026: "the viewport for the month view calendar needs to work like the
+       waterfall calendar where it maintains consistent proportions despite the window width or height. It should
+       reflect whatever is as close as how it will appear when exported to pdf"). Until then .month-view took the
+       panel's width, so the window decided its shape: 743 px wide at a 1100 px window, 2064 px at 2560, day columns
+       100 to 289 px, and the same note on three lines, two or one. The month PDF's day column is always 141.075 px.
+       Now #table-wrap lays the month out in ONE TRACK OF THE PDF PAGE'S WIDTH, at every window size and every zoom:
+         Letter landscape 11in, less two 8mm margins            995.528 px, the printable width (MVL_GEOMETRY.contentW)
+         less the print page's 2px padding and the 2px frame     987.528 = MVL_GEOMETRY.weekW, a week's width
+         plus .mv-body's 1px borders, .month-view's 18px padding and its 1px border, each side
+                                                                 = 11in - 16mm + 32px = 1027.528 px
+       so a day column on screen is the day column in the PDF, and frozen mvNoteBoxWidth(), which measures the live
+       column, wraps every note for the page it prints on (the print rollback's pages no longer change with the
+       window either). A narrower window scrolls sideways and a wider one leaves the room on the right, as the
+       waterfall does (owner's picker, "Scroll, like waterfall"). The zoom is CSS zoom on this same box (app.js,
+       "CALENDAR ZOOM"), and it scales a fixed track with nothing to undo, where the old `100% x the zoom` track had
+       to be put back on the panel's width. Rows at the top: a stretched row would hand a short month the box's
+       spare height.
+       ⛔ Only #table-wrap's OWN box, and only while it holds a month (:has(> .month-view), a child test on one
+       element): the empty state and an error message keep the panel's width. The page's HEIGHT is "THE MONTH PAGE",
+       next. */
+    /* ⚠️ grid-auto-rows:max-content is load-bearing. The card has a min-height (the page's, below), and a grid item
+       with a min-height that is not `auto` gives its row THAT as its minimum, not its content: in a box shorter than
+       the page the row stayed 788 px and a month taller than the page (one the PDF shrinks to fit) ran out of its
+       own card (measured on monthscale, August 2026: a 1191 px body in a 788 px card). */
+    body:has(#view-month-btn.active) .preview-panel > #table-wrap:has(> .month-view){
+      display:grid; grid-template-columns:calc(11in - 16mm + 32px); grid-auto-rows:max-content;
+      align-content:start; justify-content:start;
     }
+    /* ⭐ THE MONTH PAGE: the month view ON SCREEN has the month PDF's page shape (owner, 16 Nov 2026).
+       Owner: "It should reflect whatever is as close as how it will appear when exported to pdf", and by picker "Full
+       page shape": the width fixed to the PDF's AND the weeks stretched to fill a Letter landscape page, as the PDF
+       does. The month view's own rules are FROZEN and are not edited: these override them on screen only, by owner
+       instruction, as the Soft Lines block (further down this file) does.
+       ⛔ EVERY SELECTOR STARTS #table-wrap .month-view (or names it after <body>'s size classes), in this screen-only
+       block. #print-root is a different subtree of <body>, so no rule here can match the print path's document, and
+       the direct month-PDF writer reads renderMonthView's HTML, never this stylesheet. Gate 13 byte-identical is
+       the proof.
+       ⛔ NOT BESIDE THE SOFT LINES BLOCK, where it was first written: the build merges neighbouring `@media screen`
+       blocks, and the softlines leg switches Soft Lines off by deleting the block it is in, so it switched the page
+       off too (L1: the month 788 px with the look, 722 px without).
+       THE WIDTH is #table-wrap's one track ("THE MONTH PAGE'S WIDTH", just above).
+       THE HEIGHT is this block. The card is at least the page tall, and the weeks share what the header leaves by the
+       PDF's own rule (mvlShareRows, which is exportMonthPdf's fill as flexbox carries it out), carried out here by
+       flexbox again:
+         - .month-view's min-height puts the weeks' room on the PDF's:  8.5in - 16mm, the printable height (755.528 px)
+           less the print page's 2px padding twice, less 3px for the lines that print 2px wide and draw 1px here (the
+           month bar's and the weekday row's top borders, and the frame's bottom one), plus 1.5px for the month bar's
+           arrows, which print does not draw and which make the bar 27px of content here against its text's 25.5px
+           (hidden by Soft Lines with `visibility`, so their boxes still size it), plus the card's own 18px padding and
+           1px border twice  = 8.5in - 16mm + 32.5px = 788.028 px. Measured on mvnotes: the weeks' room is 630.53 px
+           here and in the written PDF;
+         - each week is `flex: <grow> 0 <basis>` with a min-height, three numbers the engine works out from that
+           week's bars after every render and hands over as custom properties on #table-wrap (app.js, "THE MONTH
+           PAGE", fitMonthPage): basis = what its bars need (the PDF's `need`), grow = how far that is below the
+           four-line height (or the four-line height itself when no week is below it), min = 0, or the bottom of a
+           line the user added to that week. With no numbers yet (the first instant, or an engine that failed) every
+           week grows equally from its own height, which is still page-shaped.
+         - A week can be shorter than the four lines every week is drawn with (a six-week month, or a light week in
+           a crowded one): the PDF has no empty lines. The WEEK then clips what is below it (overflow-y:clip, so
+           nothing sideways is cut and no scroll box is made), or an empty "+" line would lie over the next week's day
+           numbers and take their clicks. A bar is never clipped: no week goes under what its bars need.
+       A month the PDF has to SHRINK to fit (more in its weeks than a sheet holds) is not shrunk here: its weeks keep
+       what they need and the card is taller than the page. That is the one place the two differ, on purpose: on
+       screen it is edited at full size.
+       - The bars layer grows with its week and NEVER SHRINKS (flex:1 0 auto), and that is load-bearing: its lines are
+         `minmax(17px, auto)`, which reach their own height only out of free room, so a layer held shorter than its
+         lines squeezed them, and the engine, which reads those heights, then handed the squeezed week back as its
+         basis and kept it squeezed (measured on notewrap, October 2026: a ten-line note's week 125 px, 195 px in the
+         PDF). align-content:start keeps the lines at the top and at their own height in a taller week; `normal`
+         would stretch them.
+       - The layer is position:static here, so the row-expand strip and a full day's "+" (absolute, inside it) sit
+         on the WEEK's bottom edge, the week being position:relative, whichever of the two is taller. Its z-index
+         still holds: it is a flex item. Nothing reads an offsetParent in the month view.
+       - .mv-daygrid is position:absolute, so it is not a flex item and fills the week as before.
+       ⚠️ Gate 10 (the print rollback) moves where a note's line count differs between the old window-wide column and
+       the page's: frozen mvNoteBoxWidth() measures the live column. Gate 13 (the PDF users get) cannot: the writer
+       re-wraps every note in its own box. */
+    #table-wrap .month-view{ display:flex; flex-direction:column; min-height:calc(8.5in - 16mm + 32.5px); }
+    #table-wrap .month-view > .mv-tools, #table-wrap .month-view > .mv-header,
+    #table-wrap .month-view > .mv-monthbar, #table-wrap .month-view > .mv-dowrow{ flex:none; }
+    #table-wrap .month-view > .mv-body{ flex:1 0 auto; display:flex; flex-direction:column; }
+    #table-wrap .month-view > .mv-body > .mv-week{ flex:1 0 auto; display:flex; flex-direction:column; overflow-y:clip; }
+    #table-wrap .month-view > .mv-body > .mv-week > .mv-bars{ flex:1 0 auto; align-content:start; position:static; }
+    #table-wrap .month-view > .mv-body > .mv-week:nth-child(1){ flex:var(--mvp-f1, 1 0 auto); min-height:var(--mvp-m1, auto); }
+    #table-wrap .month-view > .mv-body > .mv-week:nth-child(2){ flex:var(--mvp-f2, 1 0 auto); min-height:var(--mvp-m2, auto); }
+    #table-wrap .month-view > .mv-body > .mv-week:nth-child(3){ flex:var(--mvp-f3, 1 0 auto); min-height:var(--mvp-m3, auto); }
+    #table-wrap .month-view > .mv-body > .mv-week:nth-child(4){ flex:var(--mvp-f4, 1 0 auto); min-height:var(--mvp-m4, auto); }
+    #table-wrap .month-view > .mv-body > .mv-week:nth-child(5){ flex:var(--mvp-f5, 1 0 auto); min-height:var(--mvp-m5, auto); }
+    #table-wrap .month-view > .mv-body > .mv-week:nth-child(6){ flex:var(--mvp-f6, 1 0 auto); min-height:var(--mvp-m6, auto); }
+
+    /* ⭐ THE BARS AND THE NOTES AT THE HEIGHT THEY PRINT (owner, 16 Nov 2026: "phase bar size and note size should
+       also reflect the export exactly. essentially the live viewer should look just like what it will look like in
+       the pdf export"). Until then the screen kept its own convention: every line a fixed 17 px, a pill, a band and
+       a one-line note cut to it, a note over several lines stretched to fill them. Print, and the writer that is
+       held to print's layout (mvlBarHeight, mvlLaneTracks), size a line by what is in it and draw each bar at its
+       own height at the top of its lines:
+         a pill or a band    its line + 2 x (1px padding + 1px border): 19 px at Standard (20 / 22 / 23 / 25 at the
+                             other bar sizes, which the screen already drew at those heights); a band with no label
+                             too (the 1 Oct 2026 "Full height" ruling); a wrapping one-day pill two lines, 34 px
+         a 10 px note        13 px a line + 6: 19 / 32 / 45 px for one, two and three lines, and every further line
+                             of a longer note, whose lines then grow as they do in the PDF
+         a sized note        its own one- and two-line boxes (--mvn-h1 / --mvn-h2), as the screen already drew it
+       So here, as #print-root does it: lanes `minmax(17px, auto)`, every bar `align-self:start`.
+       - Standard's pills and bands take a FIXED 19 px (34 px wrapping), never a text-sized box, for Phase bar size's
+         reason: Chrome snaps the 1 px borders at a zoom and a text-sized bar comes out a fraction off.
+       - A note is text-sized, because its lines are its own. At 100% that is exact; at a zoom a note can come out a
+         fraction of a pixel taller, which moves nothing but that fraction.
+       - A "+" slot adds no height (contain:size) and fills its lane (align-self:stretch), so an empty line is 17 px
+         and a line with a bar in it is the bar's. Print has no slots at all.
+       ⛔ THE DOUBLED ID IS THE POINT. These must out-rank the screen's earlier one-id rules for the same boxes
+       (`body.mv-bar-* #table-wrap ...{ contain:size }`, `body.mv-note-sized:not(...) #table-wrap .mv-pill
+       { height:17px }`), whatever classes those carry and wherever they sit in the file. Those rules are frozen and
+       are not edited; a size's own fixed heights (22 px and the rest) are not out-ranked, only left alone: the
+       Standard rules below name the four size classes they do not apply at. */
+    #table-wrap#table-wrap .month-view .mv-bars{ grid-auto-rows:minmax(17px, auto); }
+    #table-wrap#table-wrap .month-view .mv-bar{ align-self:start; }
+    #table-wrap#table-wrap .month-view .mv-note-block{ contain:none; }
+    #table-wrap#table-wrap .month-view .mv-note-add{ contain:size; align-self:stretch; }
+    #table-wrap#table-wrap .month-view .mv-note-add.mv-note-add-full{ contain:none; }
+    body:not(.mv-bar-11):not(.mv-bar-large):not(.mv-bar-13):not(.mv-bar-xl) #table-wrap#table-wrap .month-view .mv-pill,
+    body:not(.mv-bar-11):not(.mv-bar-large):not(.mv-bar-13):not(.mv-bar-xl) #table-wrap#table-wrap .month-view .mv-hiatus-bar{ height:19px; }
+    body:not(.mv-bar-11):not(.mv-bar-large):not(.mv-bar-13):not(.mv-bar-xl) #table-wrap#table-wrap .month-view .mv-pill.mv-pill-2l{ height:34px; }
   }
   /* (A stacked twin of the zoomed month's rule lived here, for 960 px and below, until the app stopped stacking on
      16 Nov 2026.) */

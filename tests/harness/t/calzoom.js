@@ -37,6 +37,8 @@ window.addEventListener('load', function () { (async function () {
   function pct(){ var e = q('.cal-zoom .cal-zoom-pct'); return e ? e.textContent.trim() : null; }
   function view(){ return $('view-month-btn').classList.contains('active') ? 'month' : 'sheet'; }
   function prefs(){ try { return JSON.parse(localStorage.getItem('sptcal.prefs') || '{}'); } catch(e){ return {}; } }
+  // What is on #table-wrap's own style apart from the month page's fit (--mvp-f1..6 / --mvp-m1..6): the zoom's share.
+  function zoomLeft(){ return (document.getElementById('table-wrap').getAttribute('style') || '').replace(/--mvp-[fm]\d\s*:[^;]*;?/g, '').trim(); }
   // The control speaks through this event; the buttons are also pressed for real below.
   async function zoomTo(z){
     document.dispatchEvent(new CustomEvent('sptcal-zoom', {detail: {zoom: z}}));
@@ -96,8 +98,10 @@ window.addEventListener('load', function () { (async function () {
     // The month view scrolls in #table-wrap since 26 Oct 2026 (it was .preview-panel), so that is the box that
     // must end above them.
     check(clearOfStrip($('table-wrap')), 'Z5 the bottom strip: the month view\'s scroll box ends 8px above the control and the help button (' + out.strip + ')');
-    check(!$('table-wrap').hasAttribute('style') && !document.body.classList.contains('cal-zoomed') && !prefs().calZoom,
-          'Z4 at 100% nothing is written: no style on #table-wrap, no body class, no preference');
+    // ⚠️ Since 16 Nov 2026 the month view keeps its PAGE FIT on #table-wrap's own style (--mvp-f1..6 / --mvp-m1..6,
+    // fitMonthPage in app.js), so "no style at all" is no longer the rule there. What the ZOOM leaves is still nothing.
+    check(zoomLeft() === '' && !document.body.classList.contains('cal-zoomed') && !prefs().calZoom,
+          'Z4 at 100% the zoom writes nothing: no zoom on #table-wrap (only the month page\'s own fit), no body class, no preference (' + zoomLeft() + ')');
 
     // ---- M: the month view (the fixture opens in it) ----
     // The month is measured by .month-view, the frozen render's root: #table-wrap is the scroll box since 26 Oct 2026
@@ -147,8 +151,8 @@ window.addEventListener('load', function () { (async function () {
     check(out.mvRerender[1.5] && out.mvRerender[2] && out.mvRerender[0.5],
           'M4 paging a month while zoomed to 150%, 200% and 50% leaves every note lane as at 100% (' + JSON.stringify(out.mvRerender) + ')');
     await zoomTo(1);
-    check(lanes() === lanes0 && !$('table-wrap').hasAttribute('style'),
-          'M5 back at 100% the month is re-rendered: every note lane as it was, and nothing left on #table-wrap');
+    check(lanes() === lanes0 && zoomLeft() === '',
+          'M5 back at 100% the month is re-rendered: every note lane as it was, and nothing of the zoom left on #table-wrap (' + zoomLeft() + ')');
     await zoomTo(1.25);
 
     // ---- W: the waterfall ----

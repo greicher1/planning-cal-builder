@@ -22,7 +22,17 @@
 //   N1-<px>  after a pick of 11, 12, 13, 14 px: the dropdown and the class follow, the file is dirty, Undo on; in every
 //        month every note is at the size (font and whole-px line), exactly its one- or two-line height, clamped at
 //        two lines, given exactly min(2, its natural lines) lanes (the element itself, unclamped, in a second pass);
-//        every lane without a sized note exactly 17 px or its bar's height; every bar, 10 px note and "+" as before.
+//        every lane exactly as tall as what PRINTS in it: 17 px with nothing but a "+", its bar's height (19 px at
+//        Standard), or its one-lane note's height; every bar its printed height, every 10 px note 13 px a line plus 6,
+//        every "+" exactly its lanes.
+//        ⚠️ RE-PREMISED 16 Nov 2026 (the month page: "phase bar size and note size should also reflect the export
+//        exactly"). Until then the screen held a Standard bar and its lane to 17 px and stretched every 10 px note
+//        over its lanes; the PDF never did.
+//        ⚠️ A KNIFE EDGE IS NOT A MISS. A note's lanes come from a hidden measurer, and the note is then laid out in
+//        its own box; the two boxes can differ by 1/64 px (Chrome shares a row's last sixty-fourths among the
+//        columns). A note whose widest line is within 0.1 px of its box may therefore take one more lane than its
+//        text needs: on mvnotes at 13 px, "Good Friday 3/26/27" is 128.234 px in a 128.219 px box. Counted as
+//        `edge`, never as `measure`.
 //        ⭐ Since frozen edit D1 (audit 3.1, AUD2-045) a WATERFALL line ending in its date takes up to FOUR: its three-
 //        and four-line boxes, clamped at 3 and 4, min(4, its natural lines) lanes
 //   N2   R4: in a 10 px calendar, a day note picked with a click and set to 14 px in the text style bar is the ONLY
@@ -54,7 +64,7 @@ window.addEventListener('load', function () { (async function () {
   var $ = function (id) { return document.getElementById(id); };
   // The plan's §2 table (notes) and §1a table (bars), stated here, never read from the app.
   var NOTE = { 11: { line: 14, h1: 20, h2: 34 }, 12: { line: 16, h1: 22, h2: 38 }, 13: { line: 17, h1: 23, h2: 40 }, 14: { line: 18, h1: 24, h2: 42 } };
-  var BAR = { '': { px: 10, tag: 9, h: 17, h2: 36 }, '11': { px: 11, tag: 10, h: 20, h2: 36 }, large: { px: 12, tag: 11, h: 22, h2: 40 },
+  var BAR = { '': { px: 10, tag: 9, h: 19, h2: 34 }, '11': { px: 11, tag: 10, h: 20, h2: 36 }, large: { px: 12, tag: 11, h: 22, h2: 40 },
               '13': { px: 13, tag: 12, h: 23, h2: 42 }, xl: { px: 14, tag: 12, h: 25, h2: 46 } };
   var WARN = 'warn: SPTCal: 1 value(s) in this calendar were not in a form the app writes, and were ignored.';
 
@@ -138,6 +148,16 @@ window.addEventListener('load', function () { (async function () {
     s.display = keep[0]; s.height = keep[1]; s.webkitLineClamp = keep[2];
     return Math.round((h - 6) / line);
   }
+  // How far the note's text, set on ONE line, is from filling its box exactly (px; negative = wider than the box).
+  function edgeSlack(b) {
+    var cs = getComputedStyle(b), sp = document.createElement('span');
+    sp.style.cssText = 'position:absolute; left:-9999px; top:0; white-space:nowrap;';
+    sp.style.font = cs.font; sp.style.letterSpacing = cs.letterSpacing;
+    sp.textContent = b.textContent; document.body.appendChild(sp);
+    var w = sp.getBoundingClientRect().width; sp.remove();
+    var box = b.getBoundingClientRect().width / zz(b) - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight) - parseFloat(cs.borderLeftWidth) - parseFloat(cs.borderRightWidth);
+    return box - w;
+  }
   // The month on screen: per week, Chrome's lane tracks and every bar in the grid (the absolutely placed "+" of a full
   // day is not in a lane, so it is left out). With `withLines`, each sized note's natural lines in a SECOND pass, once
   // every box has been read: unclamping one re-lays the week, and a box read after that is not the box the user sees.
@@ -160,7 +180,7 @@ window.addEventListener('load', function () { (async function () {
                  clamp: String(cs.webkitLineClamp), display: cs.display,
                  text: (b.textContent || '').replace(/\s+/g, ' ').trim().slice(0, 40) };
       });
-      if (withLines) items.forEach(function (o) { if (o.sized) o.natural = naturalLines(o.el, o.lineH); });
+      if (withLines) items.forEach(function (o) { if (o.sized) { o.natural = naturalLines(o.el, o.lineH); o.slack = edgeSlack(o.el); } });
       items.forEach(function (o) { delete o.el; });
       return { wi: wi, tracks: tracks, items: items };
     });
@@ -188,7 +208,8 @@ window.addEventListener('load', function () { (async function () {
         var cover = w.items.filter(function (it) { return it.lane <= L && L < it.lane + it.span; });
         if (cover.some(function (it) { return it.span > 1 && (it.sized || it.twoLine); })) continue;   // shared out by the grid; judged by fit
         var bars = cover.filter(function (it) { return it.kind === 'pill' || it.kind === 'band'; });
-        var notes1 = cover.filter(function (it) { return it.sized; });
+        // A lane is as tall as what prints in it (16 Nov 2026): a one-lane note of any size sets it, as a sized one did.
+        var notes1 = cover.filter(function (it) { return it.sized || (it.kind === 'note' && it.span === 1); });
         var want = bars.length ? B.h : 17;
         notes1.forEach(function (it) { want = Math.max(want, it.h); });
         if (notes1.length) R.counts.noteLanes++; else if (bars.length) R.counts.barLanes++; else R.counts.plainLanes++;
@@ -218,7 +239,11 @@ window.addEventListener('load', function () { (async function () {
           // Chrome 156 reports a clamped -webkit-box as flow-root; the clamp is what matters.
           if (it.clamp !== String(Math.max(2, it.span)) || (it.display !== '-webkit-box' && it.display !== 'flow-root')) miss('clamp', where + ': ' + it.clamp + ' ' + it.display);
           if (it.natural != null) {
-            if (it.span !== Math.min(most, Math.max(1, it.natural))) miss('measure', where + ': ' + it.span + ' lanes, ' + it.natural + ' lines');
+            if (it.span !== Math.min(most, Math.max(1, it.natural))) {
+              // The knife edge (the header): one lane more than its text needs, the text within 0.1 px of its box.
+              if (it.span === it.natural + 1 && it.natural === 1 && Math.abs(it.slack) < 0.1) R.counts.edge = (R.counts.edge || 0) + 1;
+              else miss('measure', where + ': ' + it.span + ' lanes, ' + it.natural + ' lines, slack ' + r2(it.slack));
+            }
             if (it.natural > most) R.counts.cut++;
           }
         } else if (it.kind === 'pill' || it.kind === 'band') {
@@ -226,6 +251,10 @@ window.addEventListener('load', function () { (async function () {
           if (Math.abs(it.h - wb) > 0.02) miss('barH', where + ': ' + it.h + ' vs ' + wb);
           if (it.font !== B.px && it.font >= 10) miss('barFont', where + ': ' + it.font + ' vs ' + B.px);
           if (it.tagFont != null && it.tagFont !== B.tag) miss('tagFont', where + ': ' + it.tagFont + ' vs ' + B.tag);
+        } else if (it.kind === 'note') {
+          // A 10 px note is the height it prints (16 Nov 2026): 13 px a line plus 6, from the top of its first lane.
+          var nl = (it.h - 6) / 13;
+          if (it.h > lanes + 0.02 || nl < 0.99 || Math.abs(nl - Math.round(nl)) > 0.01) miss('fill-note', where + ' lane' + (it.lane + 1) + ': ' + it.h + ' in ' + r2(lanes));
         } else if (Math.abs(it.h - lanes) > 0.02) miss('fill-' + it.kind, where + ' lane' + (it.lane + 1) + ': ' + it.h + ' vs ' + r2(lanes));
       });
     }); });

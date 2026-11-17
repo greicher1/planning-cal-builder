@@ -29,7 +29,7 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
-## v1.16.0 — wave 4: day marks and a break's own notes stay put when a hiatus ripples, Changes since last save, keys named for your computer, a month note no longer cut off on Windows, a contrast theme keeps the calendar's colours, long titles fit a file name, the season beside the title in export names; plus everything since v1.15.0: a toolbar that keeps its size, folds, and stays on one line while the window is resized, a click outside closes Shift, the recents as cards, every phase switch on show again (16 Nov 2026)
+## v1.16.0 — wave 4: day marks and a break's own notes stay put when a hiatus ripples, Changes since last save, keys named for your computer, a month note no longer cut off on Windows, a contrast theme keeps the calendar's colours, long titles fit a file name, the season beside the title in export names; plus everything since v1.15.0: the month view on screen is the month PDF's page, a toolbar that keeps its size, folds, and stays on one line while the window is resized, a click outside closes Shift, the recents as cards, every phase switch on show again (16 Nov 2026)
 
 ### A very long show title is cut to fit the workbook's and the waterfall PDF's file names too (16 Nov 2026)
 
@@ -108,6 +108,10 @@ counts were remembered by the whole pixel. A note whose wrap point fell in that 
   `mvkeys` g=pick 24/24 and g=enter 16/16. `npm run check` 42/42. On real Windows (GitHub's Windows runner, run 44028047067,
   from the test branch `windows-test-wave4`): `autonoterename` at the default window and at 1584 x 1200, and `softlines`,
   green; all 48 month-PDF runs (`monthexport`, `monthwriter`) green, so the PDFs did not move there either.
+- ⚠️ **Since the month page (below, 17 Nov 2026, merged into this release) most of this no longer applies.** No note
+  carries ↻ or ⚑ (the owner removed them), so frozen edit W1 never runs, and the day column is the page's 141.07 px at
+  every window, so it cannot move between measuring and drawing. What remains is the observer, which still draws a
+  month reached from the Waterfall once more in its own column; the month page draws it again too, which is harmless.
 
 ### Keys are named for your computer, Load lists older .html calendars, and a long title fits a file name (audit item W.2, 16 Nov 2026)
 
@@ -254,6 +258,60 @@ code itself.
   of 18 (a known flake); the four runs that had them are 9/9 re-run alone. Also `dayfirst` 14/14, `dayfirstin` 13/13,
   `wfnotelines` (all six groups) 32/32, `autonotefollow` (all four) 24/24, `softlines` 6/6 on both its calendars,
   `npm run check` 42/42.
+
+### The month view on screen is the month PDF's page (17 Nov 2026)
+
+The owner: *"I think the viewport for the month view calendar needs to work like the waterfall calendar where it
+maintains consistent proportions despite the window width or height. It should reflect whatever is as close as how
+it will appear when exported to pdf"*, then, with the first build on screen: *"phase bar size and note size should
+also reflect the export exactly. essentially the live viewer should look just like what it will look like in the pdf
+export"*. Five pickers settled the rest.
+
+- **One fixed size.** The month is drawn 1027.5 px wide, the PDF page's width, at every window: a day column is 141 px,
+  as in the PDF. Before, the month took the panel's width (743 px at a 1100 px window, 2064 px at 2560), so a day column
+  ran from 100 to 289 px and the same note wrapped to one, two or three lines depending on the window.
+- **A smaller window scrolls** (picker "Scroll, like waterfall"); a larger one leaves the spare room on the right. Below
+  about a 1440 px window the page scrolls sideways at 100%.
+- **The page's height** (picker "Full page shape"). The month is at least a Letter landscape page tall, and the weeks
+  share the height by the PDF writer's own rule, so each week is the height it prints.
+- **Bars and notes at the height they print.** A Standard phase bar or hiatus band is 19 px (the screen squeezed it to
+  17), a note is 13 px a line plus 6, and neither stretches over empty lines any more.
+- **A crowded month stays full size** (picker "Full size, taller page"). The PDF shrinks a month that will not fit its
+  page; on screen it keeps its size in a taller card, and the export still warns.
+- **Soft Lines stays** (picker "Leave colours apart"): soft grey 1 px lines on screen, black 2 px in the PDF.
+- **The note symbols are gone** (picker "Remove the symbols"): no ↻ before an automatic note or ⚑ before a holiday.
+  The PDF never had them, and a marked note was measured 10 px narrower, so it could take one more line on screen.
+- **The zoom** scales the page and nothing else.
+- **How.** Screen only: `#table-wrap`'s own grid track, a block of CSS in the app shell's `@media screen` block ("THE
+  MONTH PAGE"), and `fitMonthPage()`, which reads the month after each render and writes each week's share on
+  `#table-wrap`'s own style. No frozen function and no frozen rule is edited; the note symbol's frozen edit NS1 is
+  left in place, inert.
+- **Things that draw over the month still land on it.** The fit runs before anything else that measures a freshly
+  drawn month (its observer is the first one made on the calendar's container): the first full gate caught the
+  waterfall menu's "Show this day in the month view" ring 8 px taller than its day, drawn before the weeks took their
+  page heights.
+- **A month's first drawing is measured for the page too.** Coming from the waterfall, or at load, there is no day
+  cell on screen for the frozen measurer to read, and its fallback guessed from the window. Such a month is now
+  rendered a second time, in the same task, once its days are there and its typeface has loaded (a count taken in
+  the fallback face was being cached and found again by every later render).
+- **The print fallback changed, for the better.** The rollback print path sizes each note from the live day column,
+  which is now the page's at every window, so its document no longer depends on the window. Its baseline (gate 10) was
+  re-cut on the owner's picker, *"Re-cut all eleven"*: on every test calendar one note gets room for two lines instead
+  of one, and nothing else moves. The PDF that Export PDF writes (gate 13) is unchanged, byte for byte.
+- **Still different, and why.** A note whose text is within about 0.1 px of its box's width can wrap one line more or
+  less on screen than in the PDF: Chrome measures text on screen and the PDF writer reads the font's own tables, and
+  the two differ by hundredths of a pixel. Seen on two notes in the test calendars. No width change closes it.
+- **Verified.** New leg `monthpage`, on five calendars, a small window and no calendar: on every month that fits a
+  page, every week's height on screen is the written PDF's row within 0.1 px; the card is the page in every month;
+  printed bar and note heights; no symbol; the zoom; a line added to a week stays inside it. Red on the build before
+  at seven of its ten cases, and its first-drawing case red without the second render. `calzoom`, `mvbarsize`, `mvnotesize`, `autonoterename`, `mvkeys`, `mvtextstyle` S3, the writer
+  guard F0 in `monthemit` / `monthwriter` (the screen fit may read `mvlFitNumbers`, and nothing else) and the gate's
+  two-window check on notewrap were re-premised to the new rules (each says what it held before). Two full gates were run. The
+  first (5,418 passed, 41 failed) found the two bugs above and the tests to re-premise. The second, on the corrected
+  build, 5,464 passed and 1 failed: `scenariocompat` on the v1.2.0 release (an old build opening a scenarios file, no
+  file of which is touched here), which passed in the first gate and 3 of 3 times alone afterwards. The waterfall PDF
+  and the written month PDF are byte-identical to their baselines, the workbook's parts unchanged, gate 10 green
+  against its re-cut. `npm run check` 42/42. Not run: a third gate for an unbroken pass.
 
 ### The toolbar no longer drops to a second line for a moment while the window is resized (17 Nov 2026)
 
