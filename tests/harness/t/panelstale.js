@@ -1,6 +1,9 @@
 // panelstale -- a tool panel left open while the calendar changes under it (audit AUD2-049, the Nov 2026 audit's item
 // 3.2, 14 Nov 2026). Since 11 Nov 2026 the Shift and Build Around panels stay open while the grid and the sidebar are
 // used, and every new schedule re-reads the calendar into them (refreshMenuFromCalendar, from the #table-wrap observer).
+// ⚠️ Since 16 Nov 2026 only a DRAGGED panel stays open through a click outside it (owner: "should hide when you click
+// anywhere outside of them EXCEPT when a user has dragged them to any custom spot"). The B steps click the sidebar's
+// Add phase with Shift open, so they drag it aside first (dragAside), as someone keeping it up while they work would.
 //
 //   HARNESS_PAGE=/dist/index.html ./run.sh panelstale 400
 //
@@ -45,6 +48,17 @@ window.addEventListener('load', function () { (async function () {
   async function openShift(){ T.closePops(); await T.sleep(150); $('pop-shift-btn').click();
     await T.until(function () { return T.shiftRow('production').getBoundingClientRect().height > 0; }, 'Shift', 60, 100); await T.sleep(200); }
   async function undo(){ T.closePops(); await T.sleep(150); $('undo-btn').click(); await settled(); }
+  // A drag by the title row (pointer events on the row, which the engine listens on), so the panel is the user's to
+  // close: a click outside then leaves it open.
+  async function dragAside(menu){
+    var head = menu.querySelector('.tools-head'), r = head.getBoundingClientRect();
+    var x0 = r.left + 60, y0 = r.top + r.height / 2;
+    function ev(type, x, y){ head.dispatchEvent(new PointerEvent(type, {bubbles: true, cancelable: true, button: 0, buttons: type === 'pointerup' ? 0 : 1, pointerId: 7, clientX: x, clientY: y})); }
+    ev('pointerdown', x0, y0); await T.sleep(30);
+    ev('pointermove', x0 - 40, y0 + 40); await T.sleep(30);
+    ev('pointerup', x0 - 40, y0 + 40); await T.sleep(80);
+    head.click();   // the click a real drag ends in, on the row it was captured by
+  }
   try {
     await T.appReady();
     T.buildFixture();
@@ -107,8 +121,8 @@ window.addEventListener('load', function () { (async function () {
     add('DU', 'Undo x2 brings the fixture back', sig() === base, {prod: val('start-production'), loc: val('weeks-localization')}, 'the base grid');
 
     // ---- B: Shift ticks a phase that appears while every phase is ticked ----
-    await openShift();
-    var b0 = {count: shiftCount(), list: shiftList()};
+    await openShift(); await dragAside($('pop-shift'));
+    var b0 = {count: shiftCount(), list: shiftList(), floating: $('pop-shift').classList.contains('is-floating')};
     $('add-phase-btn').click(); await T.until(function () { return !!$('start-custom1'); }, 'custom row', 60, 100);
     T.set('name-custom1', 'VFX'); T.set('start-custom1', '2026-09-07'); T.set('weeks-custom1', '4'); await settled();
     var b1 = {count: shiftCount(), list: shiftList(), open: $('pop-shift').classList.contains('open')};
@@ -125,14 +139,14 @@ window.addEventListener('load', function () { (async function () {
     T.closePops();
     await undo();
     // A hand-picked set keeps a new phase out.
-    await openShift();
+    await openShift(); await dragAside($('pop-shift'));
     await T.shiftPress('writersRoom', 'box');
     var b4a = {count: shiftCount()};
     $('add-phase-btn').click(); await T.until(function () { return !!$('start-custom2'); }, 'custom row 2', 60, 100);
     T.set('name-custom2', 'Music'); T.set('start-custom2', '2026-10-05'); T.set('weeks-custom2', '4'); await settled();
-    var b4 = {count: shiftCount(), list: shiftList()};
+    var b4 = {count: shiftCount(), list: shiftList(), open: $('pop-shift').classList.contains('open')};
     add('B4', 'with Writer\'s Rm unticked (6 of 7), Music added while it is open comes in unticked ("6 of 8 move")',
-      b4a.count === '6 of 7 move' && b4.count === '6 of 8 move' && b4.list.indexOf('custom2-') >= 0 && b4.list.indexOf('writersRoom-') >= 0, {before: b4a, after: b4}, '6 of 8 move, custom2 unticked');
+      b4a.count === '6 of 7 move' && b4.open && b4.count === '6 of 8 move' && b4.list.indexOf('custom2-') >= 0 && b4.list.indexOf('writersRoom-') >= 0, {before: b4a, after: b4}, '6 of 8 move, custom2 unticked');
     T.closePops();
     add('E0', 'no console errors', T.appHealth().errors.length === 0, {errors: T.appHealth().errors, modal: T.modalText()}, 'none');
   } catch (err) { add('EX', 'the leg threw', false, String(err && err.stack || err).slice(0, 800), 'no exception'); }

@@ -31,6 +31,27 @@ way a user would notice or a future session would need to return to. See
 
 ## Unreleased
 
+### A click outside closes the Shift or Build Around panel, unless you dragged it somewhere (16 Nov 2026)
+
+The owner: *"universal rule at any window size...shift tool and build around menus should hide when you click anywhere
+outside of them EXCEPT when a user has dragged them to any custom spot."* Since 11 Nov neither panel closed on a click
+outside, so a panel left where it opened stayed over the calendar until its ✕.
+
+- **What you see.** Left where it opened, either panel closes on a click anywhere outside it: the grid, the sidebar,
+  Undo, the view switch. The click still does what it does there (a grid click selects the cell). Dragged by its grey
+  title bar to a spot of your own, it stays open while you work, as before, until its ✕, its button, Esc or the other
+  tool. The same at every window size.
+- **What does not count as outside:** the panel itself, its tool's own buttons (Shift, Build Around, ← 1 wk, 1 wk →),
+  the date picker it opens, and a press that started inside it (dragging down its list and letting go over the grid).
+  A panel the app floats by itself on a short window has not been dragged, so it closes like any other.
+- **How it works.** Chrome only: one capture click listener in the engine beside `closeAllPops()`. "Dragged" is the
+  drop spot the panel already remembers until it closes, so nothing new is stored and nothing is saved. Help's
+  paragraph on the two tools now says how they close and how to keep one open.
+- **Verified.** Tried in the browser with real clicks at 1024 px, 820 px and a 1100 x 560 window, both panels.
+  `paneldrag` 12/12 with three new cases (N1-N3); N1 fails on `releases/v1.15.0.html`. `panelstale` now drags Shift
+  aside before it clicks the sidebar (16/16). Every other leg that opens these panels is green (38 runs; HANDOFF lists
+  them). `npm run check` 42/42.
+
 ### The recent calendars on an empty start are two cards (16 Nov 2026)
 
 The owner, on a screenshot of the list v1.15.0 put under the empty preview: *"this recent calendars UI is ugly. Mockup
