@@ -18263,7 +18263,11 @@ export function initLegacyApp() {
           // \d{1,2} on the DAY as well as the month: fmtShort no longer zero-pads, so a
           // day-of-month under 10 gave a one-digit day and the old pattern silently failed to
           // strip -- switching days would then stack a second date on the end.
-          const stripped = ls[at].replace(/\s*\d{1,2}\/\d{1,2}\/\d{2}\s*$/, '');
+          // ...and a date TYPED at the end in another form that names a day of this week (7/29, 7-29, 7-29-26;
+          // typedDateInWeek, 17 Nov 2026) is replaced the same way, rather than kept beside the new one.
+          const typedAt = typedDateInWeek(ls[at], weekKey);
+          const stripped = typedAt ? ls[at].trim().slice(0, typedAt.at).trim()
+                                   : ls[at].replace(/\s*\d{1,2}\/\d{1,2}\/\d{2}\s*$/, '');
           ls[at] = iso ? (stripped ? stripped + ' ' : '') + fmtShort(parseDateUTC(iso)) : stripped;
           textarea.value = ls.join('\n');
         }
@@ -18541,8 +18545,8 @@ export function initLegacyApp() {
             // The date comes off the line it was stamped or typed on: the last line ending in that day, which is the
             // last line unless a visiting linked note's line came after the user's own (they all become this note).
             let at = typed.length - 1;
-            for(let i = typed.length - 1; i >= 0; i--) if(stripTrailingDate(typed[i], day) !== typed[i]){ at = i; break; }
-            typed[at] = stripTrailingDate(typed[at], day);
+            for(let i = typed.length - 1; i >= 0; i--) if(stripTypedDate(typed[i], day) !== typed[i]){ at = i; break; }
+            typed[at] = stripTypedDate(typed[at], day);
             if(!typed[at]) typed.splice(at, 1);
           }
           if(typed.length){
@@ -20162,11 +20166,39 @@ export function initLegacyApp() {
     const ls = split0(text);
     for(let i = ls.length - 1; i >= 0; i--){
       if(foreign && foreign.has(ls[i])) continue;
-      const m = /(\d{1,2})\/(\d{1,2})\/(\d{4}|\d{2})$/.exec(ls[i]);
-      const d = m ? slashDateInWeek(m[1], m[2], m[3], weekKey) : null;
-      return d ? isoOf(d) : '';
+      const t = typedDateInWeek(ls[i], weekKey);
+      return t ? isoOf(t.day) : '';
     }
     return '';
+  }
+  // ⭐ A DATE TYPED AT THE END OF A LINE, in the forms people type one (owner, 17 Nov 2026: "what if you hand type 7/29/25
+  // as 7/29 or 7-29-25 or 7-29. All should be recognized"): month and day joined by "/" or "-", with or without a year
+  // of two or four digits (7/29, 7-29, 7/29/26, 7-29-2026), in the calendar's order (29/7 on a day-first calendar, and
+  // month first there too when only that reading is a day of the week, slashDateInWeek's fallback). Returns {at, day}:
+  // where the date starts in the line and the day of the week of `weekIso` it names; else null. Only a day of THAT week
+  // counts, which is what keeps "Scenes 12-14" or "Deliver 9/30" words on any other week; a date with a year names its
+  // day only in that year. No rollover (2/30 is no day). Read by the waterfall note editor only: the Day list's stamp,
+  // and the Day a note that stays with a phase takes (wfTypedDayIso, stripTypedDate).
+  function typedDateInWeek(line, weekIso){
+    const m = /(^|\s)(\d{1,2})([\/-])(\d{1,2})(?:\3(\d{4}|\d{2}))?$/.exec(String(line || '').trim());
+    const wk = m ? parseDateUTC(weekIso) : null;
+    if(!wk) return null;
+    const year = m[5] === undefined ? null : (m[5].length === 2 ? 2000 + +m[5] : +m[5]);
+    const names = (d, dayFirst) => (year === null || year === d.getUTCFullYear())
+      && +(dayFirst ? m[4] : m[2]) === d.getUTCMonth() + 1 && +(dayFirst ? m[2] : m[4]) === d.getUTCDate();
+    for(let i = 0; i < 7; i++){
+      const d = addDays(wk, i);
+      if(names(d, datesDayFirst()) || (datesDayFirst() && names(d, false))) return {at: m.index + m[1].length, day: d};
+    }
+    return null;
+  }
+  // stripTrailingDate, plus every form typedDateInWeek reads: a line with a date typed at its end that names `day` taken
+  // off its end. For the Day of a note that stays with a phase, whose date is drawn fresh after it (never kept in its
+  // text).
+  function stripTypedDate(line, day){
+    const t = day ? typedDateInWeek(line, isoOf(mondayOf(day))) : null;
+    if(t && t.day.getTime() === day.getTime()) return String(line).trim().slice(0, t.at).trim();
+    return stripTrailingDate(line, day);
   }
   function split0(t){ return String(t || '').split('\n').map(l=> l.trim()).filter(Boolean); }
   // A custom phase removed (PHASE-LINKED-NOTES-PLAN.md §4.7, R3(a)): each of its linked notes becomes a plain note of the
@@ -20416,7 +20448,7 @@ export function initLegacyApp() {
       const mine = single && single.key === p.e.key;
       let name = now;
       if(p.last && drawnDay) name = stripTrailingDate(name, drawnDay);
-      if(p.last && mine && stamp) name = stripTrailingDate(name, stamp);
+      if(p.last && mine && stamp) name = stripTypedDate(name, stamp);   // 7/29, 7-29, 7-29-26 too (17 Nov 2026)
       if(!name || (p.last && (drawnDay || (mine && stamp)) && /\d{1,2}\/\d{1,2}\/(\d{4}|\d{2})$/.test(name))) return;
       used.add(i); p.now = name;
     });
