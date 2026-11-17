@@ -32,6 +32,12 @@
 //       panel; step 5 (960): Waterfall and Month show icons only, each named by its hover hint; unfolded, neither has one
 //   F7  the month stepper in the More panel steps the month (1366, month view)
 //   F8  unfolded (1728): Side Boxes' menu still drops under its own button, and a second click closes it
+//   F9  a window being DRAGGED never paints the line on two lines (owner, 16 Nov 2026: "There's a CSS wrap glitch as i
+//       change the size of the window", "at width 1258 px and several other 1 pixel gaps"): narrowed one pixel at a
+//       time from 1330 to 1236 px, then widened in 9 px jumps and narrowed in 31 px jumps, with every painted frame
+//       logged; no frame has More / Undo below the view toggle, every settled width is one line inside the row, and the
+//       sweep did cross a width where the gap is solved (between 10 and 14 px), where the fit used to arrive a frame
+//       late; in the waterfall and the month view. ⛔ F0 cannot see this: it reads each width after it has settled.
 //   Z   no page error or console error in any case
 import fs from 'node:fs';
 import path from 'node:path';
@@ -280,6 +286,34 @@ try {
   await clickSel('#tb-side-boxes-btn'); await sleep(200);
   const gone = await ev("!document.querySelector('.sb-menu')");
   kase('F8', "unfolded (1728): Side Boxes' menu drops under its own button, and a second click closes it", under && gone, { under, gone });
+
+  // ---- F9: no frame of a resize paints the line on two lines ----
+  // The toolbar's gap is solved so the line exactly fills the row. While the answer was applied a task after the resize,
+  // each frame of a narrowing window was painted with the new width and the old gap: one pixel too long, so
+  // .preview-tools wrapped for that frame and the calendar jumped 44 px. The logger reads the line in every animation
+  // frame, which is what that frame paints (the fit's timer is a task, and no task runs between the read and the paint).
+  const FRAMES = `(()=>{ window.__tbFrames = { n: 0, wrapped: [] };
+    const row=document.querySelector('.view-toggle-row'), tools=row.querySelector('.preview-tools'), tg=row.querySelector('.view-toggle');
+    const tick=()=>{ const f=window.__tbFrames; f.n++;
+      if(tools.getBoundingClientRect().top - tg.getBoundingClientRect().top > 10 && f.wrapped[f.wrapped.length-1] !== innerWidth) f.wrapped.push(innerWidth);
+      requestAnimationFrame(tick); };
+    requestAnimationFrame(tick); return true; })()`;
+  const size = (w, h) => send('Emulation.setDeviceMetricsOverride', { width: w, height: h, deviceScaleFactor: 1, mobile: false });
+  for (const view of [undefined, 'month']) {
+    await load(1330, 900, view);
+    await ev(FRAMES);
+    const settled = [];
+    const at = async w => { await size(w, 900); await sleep(40); settled.push({ w, ...(await ev(LINE)) }); };
+    for (let w = 1329; w >= 1236; w--) await at(w);
+    for (let w = 1236; w <= 1330; w += 9) await at(w);
+    for (let w = 1330; w >= 1236; w -= 31) await at(w);
+    const fr = await ev('window.__tbFrames');
+    const solved = settled.filter(s => s.gap > 10.05 && s.gap < 13.95).length;
+    const bad = settled.filter(s => !s.oneLine || !s.inside);
+    kase('F9' + (view ? 'm' : ''), `${view || 'waterfall'}: dragged from 1330 to 1236 px a pixel at a time, then back in jumps, no painted frame has More / Undo on a second line, and every settled width is one line inside the row`,
+      fr.n > 100 && fr.wrapped.length === 0 && !bad.length && solved > 10,
+      { frames: fr.n, wrappedAt: fr.wrapped.slice(0, 60), settledBad: bad.slice(0, 5).map(s => s.w), widths: settled.length, solvedWidths: solved });
+  }
 
   kase('Z', 'no page error or console error in any case', !out.errors.length, { errors: out.errors.slice(0, 5) });
   ws.close();

@@ -4,6 +4,38 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### ✅ 17 Nov 2026: THE TOOLBAR NO LONGER DROPS TO A SECOND LINE FOR A FRAME WHILE THE WINDOW IS RESIZED. Branch `toolbar-resize-fit` (worktree `.claude/worktrees/toolbar-resize-fit`, from `origin/main` `8af4298`; `node_modules` is a symlink, unlink it before `git worktree remove`), one commit, pushed to `main` as a fast-forward on the owner's pickers *"Commit"* and *"Push and deploy"* after trying it on localhost. No version cut (README: Unreleased). Tracker card `toolbar-resize-wrap`
+- **Owner, trying the month page build (branch `month-page-fit`):** *"There's a CSS wrap glitch as i change the size of
+  the window"*, then *"at width 1258 px and several other 1 pixel gaps"*. After the fix, on localhost: *"Yes, gone"*.
+- **What it was.** `useToolbarFit` (`PreviewToolbar.jsx`, from `ui-scaling`, `6bf3607`) solves the toolbar's gap so the
+  first line exactly fills the row, and it applied the answer in a zero timer after the resize. Each frame of a
+  narrowing window was therefore painted with the NEW width and the OLD gap: a pixel too long, so `.preview-tools`
+  (More, Undo / Redo) wrapped, the row went 113 to 157 px and the calendar jumped 44 px, then the timer put it back.
+  At every pixel of the two bands where the gap is solved, 1317 to 1293 and 1271 to 1247 px (levels 2 and 3).
+  ⛔ Nothing stays wrapped once the window is still, so F0 and `stylebarplace`, which read settled widths, never saw it.
+- **Fix (chrome only, nothing frozen, no id changed):**
+  - A window `resize` is fitted IN THE EVENT (`now()`), which fires before that frame is laid out. The observers and
+    the fonts keep the timer (`later()`): it exists so a ResizeObserver callback never changes the row's height, which
+    Chrome reports as a loop error that legs count.
+  - The gap is rounded DOWN to a whole 1/64 px with one 1/64 kept in hand (`LU`), written with six decimals and only
+    when it changes; the row is measured with `getBoundingClientRect`, not `clientWidth`. It was `toFixed(2)`, which
+    rounds up half the time and left as little as 1/64 px spare, and `clientWidth` rounds to a whole px (so at a
+    browser zoom it can round up).
+- **Leg:** `toolbarfit.mjs` F9 / F9m. A per-frame logger (a `requestAnimationFrame` loop reading whether
+  `.preview-tools` sits below the view toggle; the fit's timer is a task, so the read is what that frame paints), the
+  window narrowed 1330 to 1236 px one pixel at a time, then widened in 9 px jumps and narrowed in 31 px jumps. It
+  also requires that the sweep crossed widths with a solved gap (over 10, under 14 px), so it cannot pass by missing
+  the bands. RED on the pre-fix code (wrapped frames at 52 widths), green now.
+- **Verified:** `toolbarfit.mjs` 14/14, `stylebarplace` 15/15, `monthmap` (mvnotes) 20/20, `sharecopy2` pass,
+  `npm run check` 42/42. A scratch probe (on the `month-page-fit` build, which carries the same edit) swept 1800 to
+  960 px in both views a pixel at a time, and the month view in 7 and 43 px jumps: no wrapped frame, fold levels at
+  the same widths as before. Not run: the full gate (chrome only).
+- ⚠️ **Not covered:** a row width that changes WITHOUT a window resize (a notice strip, side boxes added) still goes
+  through the timer, so one frame can paint before the fit.
+- ⚠️ **`month-page-fit` carries the same edit to `PreviewToolbar.jsx`, uncommitted** (the bug was found and first fixed
+  there). Once this branch is on `main`, drop that copy there (`git checkout -- src/chrome/PreviewToolbar.jsx`) before
+  merging `origin/main` into it.
+
 ### ✅ 16 Nov 2026: "MORE OPTIONS" IS GONE: EVERY PHASE CARD SHOWS ALL ITS SWITCHES AGAIN (undoes half of audit 2.14's AUD2-036). Branch `no-more-options` (worktree `.claude/worktrees/more-options-toggle`, from `origin/main` `7e1d8b4`; `node_modules` is a symlink, unlink it before `git worktree remove`): committed locally, NOT pushed (the push is the owner's picker). No version cut (README: Unreleased). Tracker card `remove-phase-more-options`; `more-options-toggle` is rejected (superseded).
 - **How it went:** the owner first asked for the line to read "More Options" with a right-pointing arrow and open IN
   PLACE to "Hide Options" (mockup `mockups/more-options-toggle.html`, untracked in the main checkout; arrow "Before

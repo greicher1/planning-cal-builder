@@ -31,6 +31,34 @@ way a user would notice or a future session would need to return to. See
 
 ## Unreleased
 
+### The toolbar no longer drops to a second line for a moment while the window is resized (17 Nov 2026)
+
+The owner, resizing the window: *"There's a CSS wrap glitch as i change the size of the window"*, then *"at width 1258 px
+and several other 1 pixel gaps"*.
+
+- **What it was.** The toolbar spaces its buttons so the first line exactly fills the row (16 Nov 2026), and it applied
+  the new spacing one frame after the window changed size. So while a window was dragged narrower, each frame was drawn
+  at the new width with the old spacing: the line was a pixel too long, More and Undo / Redo dropped to a second line,
+  and the calendar under them jumped 44 px, then went back. It happened at every pixel of the two bands of window width
+  where the spacing is solved rather than capped: 1247 to 1271 px and 1293 to 1317 px. Nothing stayed wrapped once the
+  window was still.
+- **Fix.** A window resize is fitted inside the resize event itself, which fires before that frame is laid out and
+  drawn (`useToolbarFit`, `PreviewToolbar.jsx`). The observers and the font load keep their zero timer, which exists
+  so a ResizeObserver callback never changes the row's height.
+- **The spacing is rounded down.** It was written with two decimals, rounded to nearest, which rounds up half the time
+  and left the line as little as 1/64 px to spare (measured at 1258 px). It is now rounded down to a whole 1/64 px
+  (Chrome's layout unit) with one 1/64 kept in hand, and the row is measured in fractions rather than whole pixels, so
+  a browser zoom cannot round it up either. The fold levels change at the same window widths as before.
+- **Verified.** New case F9 in `toolbarfit.mjs` (waterfall and month view): a real window narrowed from 1330 to 1236 px
+  one pixel at a time, then widened in 9 px jumps and narrowed in 31 px jumps, with every painted frame logged. On the
+  code before the fix it is red, with wrapped frames at 52 widths, 1258 among them; now no frame wraps and every
+  settled width is one line. `toolbarfit.mjs` 14/14, `stylebarplace` 15/15, `monthmap` 20/20, `sharecopy2` pass,
+  `npm run check` 42/42. A scratch probe also swept 1800 to 960 px in both views, a pixel at a time and in 7 and 43 px
+  jumps, with no wrapped frame. The owner tried it on localhost: *"Yes, gone"*. Chrome only
+  (the toolbar): no grid, workbook, PDF or save-path code; no id changed. Not run: the full gate.
+- **Not covered:** a change in the toolbar's width that is not a window resize (a notice strip appearing, side boxes
+  added) still goes through the timer, so one frame can be drawn before the re-fit. That is a single event, not a drag.
+
 ### Every phase card shows all its switches again: "More options" is gone (16 Nov 2026)
 
 v1.15.0 (audit item 2.14, AUD2-036) hid each phase card's rarely used switches (Snap to Monday, Number weeks, Hide in
