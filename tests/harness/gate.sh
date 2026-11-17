@@ -2585,13 +2585,32 @@ PYMR
 #   T1-T8 (1280,800) and T4-T8 (1366,768), T9-T10 before the 16 Nov change. phasesmore (2.14, AUD2-036): hiatus cards
 #   open folded; and, since the owner removed 2.14's More options on 16 Nov 2026 ("get rid of the entire hiding menu"),
 #   every phase card shows every switch, on or off, with no More options line (M1, M5, M8; red on v1.15.0 at those).
+# ⭐ v1.16.0 (wave 4, wired at the release, 16 Nov 2026), the last six specs:
+# ripplemarks (audit 2.5's AUD2-016 + AUD2-037, the owner's D2 = b, on the synthetic ripplemarks.sptcal): with Ripple
+#   Hiatus on (the leg puts the users' default back over lib.js's off), editing a break leaves Production's day marks on
+#   their dates, the line under the hiatus says so and names each mark the edit puts under a break, a note typed inside
+#   the break stays on its date, and ONE Cmd+Z restores; a break before the shoot still carries the marks with their
+#   shoot days (C1, ruling R2). Red on 7e1d8b4 at 14 of 35 (every inside-the-break note case and every line case).
+# changessince (AUD2-103, idea I.3): File > "Changes since last save..." on changessince.sptcal loaded through the real
+#   Load (so no HARNESS_STATE: N0 is the window before anything is loaded): three edits listed in Compare's values and
+#   the owner's Pushed / Pulled words, Copy, Save moves the baseline, a value typed back lists nothing, a settings-only
+#   edit is one line, two scenarios each against their own saved values, and the file gains no key. Red before: no item.
+# oskeys (W.2: WIN-3, WIN-5, on halfdays), once per platform, faked before boot by os=: Help, the Undo / Redo hints, the
+#   Ripple Hiatus hint, Paste notes and the refused paste name Ctrl on Windows and Linux and the Mac glyphs on a Mac; New
+#   offers no key off a Mac (WIN-2); Load's first type takes .sptcal and .html; a 420-character title gives names under
+#   255. Red on 7e1d8b4: os=win at H1 H2 T1 T2 N1 O1 L1, os=mac at H1 H2 T1 N1 O1 L1.
+# autonoterename at 1584,1200 (W.1, WIN-1): Windows' page width, where S2 reproduced the Windows cut on this Mac before
+#   the fix; S5 holds the Windows column widths at either window. (The 1600 run is in the AFSPEC loop.)
 for V15SPEC in "textfit:textfit-shared:g=small::300" "textfit:textfit-dense:g=date&notesize=12::300" \
                "textfit:textfit-dense:g=date&notesize=14::300" "textfit:textfit-shared:g=lines::120" \
                "textfit:textfit-heavy:g=wf::60" "textfit:textfit-dense:g=screen&notesize=14::300" \
                "textfit:textfit-dense:g=screen&notesize=14:1280,800:300" \
                "textfit:textfit-dense:g=screen&notesize=12:1100,800:300" "textfit::g=tick::120" \
                "laptopfit:laptopstrips::1280,800:300" "laptopfit:laptopstrips::1366,768:300" \
-               "laptopfit:laptopstrips::1280,943:300" "phasesmore::::300" "phasesmore:::1280,943:300"; do
+               "laptopfit:laptopstrips::1280,943:300" "phasesmore::::300" "phasesmore:::1280,943:300" \
+               "ripplemarks:ripplemarks:::500" "changessince::::400" \
+               "oskeys:halfdays:os=win::240" "oskeys:halfdays:os=mac::240" "oskeys:halfdays:os=linux::240" \
+               "autonoterename:autonoterename::1584,1200:500"; do
   V15LEG="${V15SPEC%%:*}"; V15R="${V15SPEC#*:}"
   V15STATE="${V15R%%:*}"; V15R="${V15R#*:}"
   V15Q="${V15R%%:*}"; V15R="${V15R#*:}"
