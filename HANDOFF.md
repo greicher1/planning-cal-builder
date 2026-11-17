@@ -4,30 +4,71 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### 🚂 16 Nov 2026: RELEASE CANDIDATE `release-wave4` (worktree `.claude/worktrees/release-wave4`, from `origin/main` `7e1d8b4`). Wave 4 merged, three owner-approved frozen edits applied. Committed locally, NOT pushed, NO version cut, the full gate NOT run.
-- **Merged (`--no-ff`, in order):** `ripple-marks` (AUD2-016/037), `idea-changes-since-save` (I.3), `audit-w-2` (W.2:
-  keys named for the computer, Load lists .html, long titles cut in names outside the frozen writers),
-  `frozen-2-4-typed` (D3), `frozen-2-10-name` (the season beside the title), `audit-w-1` (W.1's acceptance case S5).
-  Conflicts: Help's Ripple Hiatus paragraph (ripple-marks' text + W.2's `data-keys="Mod+Z"`); `app.js` around Compare's
-  name comment and `monthPdfFileName` (both kept: W.2's `fileNameTitle()` feeding 2.10's `exportFileName()`;
-  `scenarioFileSuffix()` is gone and nothing calls it); CLAUDE.md (D3 and 2.10 were both "a fourth": 2.10 is "a fifth");
-  README / HANDOFF (every entry kept, newest first).
-- **Frozen edits, each its own commit:** W.1 (`dd93554`, the sixth exception; its ResizeObserver moved from
-  `#table-wrap` to the month's first day cell, see the W.1 entry below), FC1 (`ca6b240`, the seventh; new leg
-  `forcedcolors`, in gate.sh, with `rtleg.mjs` emulating forced-colors on `?forced=active`), and the long-title cut
-  (`c89d0af`), which needed NO frozen edit: the frozen name lines already call `exportFileName()`, which now cuts.
-- **Verified on the final build:** a partial gate from gate.sh's own sections (base, waterfall PDF, seams, workbook,
-  gate 10, monthexport + gate 13, the real-time legs) 368 PASS / 0 FAIL, every baseline byte-identical. One at a time:
-  ripplemarks 35/35, changessince 15/15, oskeys 10/10 for os=win / mac / linux, dayfirstwf 11/11, exportnames 10/10,
-  autonoterename 25/25 at 1600 and at 1584 x 1200, rippleundo 29/29, undokeys 11/11, pdfdialog 15/15, monthpick 10/10,
-  firstrun 22/22, laptopfit 1280 x 800 11/11, hiatusripple.mjs 19/19, cspproof.mjs 15/15, softlines 6/6 x 2, mvnotes,
-  mvnotesize, mvkeys green; `npm run check` 42/42. Load average ran 70-97 (other sessions): flakes seen and green alone
-  (autonoterename F2 once, monthexport X4-X6 timing).
-- ⚠️ **Still to do before a push:** the release's ONE full gate; README entries for ripple-marks, Changes since last save
-  and W.2 (their WIP commits deferred them until the owner tries them); gate.sh wiring for `ripplemarks`,
-  `changessince` and `oskeys` (not wired by their branches); the version cut. Windows: `windows-test-wave4` (worktree
-  `.claude/worktrees/windows-test-wave4`) is committed locally for the Windows runners, NOT pushed (the owner approves
-  that push).
+### 🚂 v1.16.0 — wave 4. Branch `release-wave4` (worktree `.claude/worktrees/release-wave4`), cut from `origin/main` `7e1d8b4`; `origin/main` `8af4298` merged in at `91619e1`. The owner said *"Yes, prep it"* (16 Nov 2026): merge the newest live changes, write the owed docs and test wiring, cut v1.16.0. NOT tagged or pushed as of this entry; the main session runs the one full gate and asks before the push.
+- ⛔ **This section SUPERSEDES the "WIP", "NOT merged, NOT pushed", "the owner tries it first", "not in gate.sh yet" and
+  "no README / HANDOFF yet" lines in each wave-4 item's own section below and in its branch's commits** (`ripple-marks`,
+  `idea-changes-since-save`, `audit-w-2`, `audit-w-1`, `frozen-2-4-typed`, `frozen-2-10-name`; and the W.1 section's
+  "Windows check (needs a test-branch push)", now done). Every item is merged here, has a README entry under v1.16.0 and
+  has its legs in `gate.sh`. `git log --oneline --first-parent 7e1d8b4..HEAD` lists the merges.
+- **The items** (branch → what it does):
+  - 2.5 `ripple-marks` → Ripple Hiatus leaves Production's day marks on their dates unless Production itself moves,
+    says so on the line under the hiatus and names a mark newly under a break; a note inside the edited break keeps its
+    date; still one Undo (AUD2-016, AUD2-037, D2 = b).
+  - I.3 `idea-changes-since-save` → File ▸ *Changes since last save…*: copyable lines of what moved since the last
+    Save / Load, per scenario; the starting point in memory only (`savedBaseline`), never in a file (AUD2-103).
+  - W.2 `audit-w-2` → keys named for the computer: Ctrl on Windows and Linux, ⌘ on a Mac (`src/chrome/keys.js`,
+    Help's `data-keys` / `data-os`; WIN-3); Load's first type takes `.sptcal` and `.html`; a title over 150 characters
+    cut at a word in every name outside the frozen writers (`fileNameTitle()`; WIN-5).
+  - 2.4 `frozen-2-4-typed` → frozen edit D3: on DD/MM `notesForWaterfallDate` reads a typed line's date day first
+    itself; v1.15.0's stand-in `wfLinesOnDay` is gone. No visible change (leg `dayfirstwf`, a mutant proves it).
+  - 2.10 `frozen-2-10-name` → frozen edits S1b / S2b: the season beside the title in every export's name.
+  - W.1 `audit-w-1` (its acceptance case, `autonoterename` S5) + the fix `dd93554` on this branch → a month note gets
+    the lanes its text needs in the column it is drawn in (screen only: a re-render observer + frozen edit W1 in NS1).
+  - FC1 `ca6b240` on this branch → a Windows contrast theme keeps the calendar's colours (`forced-color-adjust:none` on
+    `#table-wrap` and the swatches that show its colours; leg `forcedcolors`).
+  - Long titles `c89d0af` on this branch → the workbook's and the waterfall PDF's names are cut too, through
+    `exportFileName()`, which the frozen name lines already call: NO further frozen edit (W.2's S1b / S2b re-edit unused).
+  - Live since v1.15.0 and in this version with no merge of their own (each has its README entry under v1.16.0):
+    `8f170f9` no box around the note editor's Day / Stays with; `ad48e11` the recents as two cards; `4be2d02` a click
+    outside closes Shift / Build Around unless dragged; `6bf3607` UI scaling (the toolbar keeps its laptop size and folds,
+    the app never stacks); `8af4298` More options removed (merged here at `91619e1`, conflicts in README / HANDOFF only).
+- **The owner's approvals** (16 Nov 2026, pickers unless quoted): W.1 *"Approve the fix"* (the frozen look); FC1 *"Keep
+  colours (contrast)"*; long titles *"Cut long titles"*; 2.10's name *"Work on it now"*; 2.4's typed dates (D3) *"Work on
+  it now"*; the Ripple marks under the decision D2 = b (*"marks stay on their dates when a hiatus is edited ... the result
+  line says so, and warns when a mark lands under the break. Notes stay; one Undo"*); Changes since last save *"work on
+  it now"*; then *"Yes, prep it"* for this cut. CLAUDE.md lists the four frozen exceptions: D3 the fourth, 2.10's name
+  the fifth, W.1 the sixth, FC1 the seventh.
+- **W.1's one adaptation** (found by the hand-run gate): the patch's `ResizeObserver` watched `#table-wrap`, which sits
+  at the same DOM depth (4) as `.view-toggle-row`, which the app shell's grid fit observes, and Chrome logged
+  "ResizeObserver loop completed with undelivered notifications" now and then (`monthexport` E0 red in 3 of 4 reference
+  runs and 3 of 16 by hand). It watches the month's first `.mv-daycell` instead (depth 9, re-attached after each render):
+  0 of 13. Rule kept in CLAUDE.md: keep the target deeper than every observer that can resize the grid.
+- **Merge conflicts on the way:** Help's Ripple Hiatus paragraph (ripple-marks' text + W.2's `data-keys="Mod+Z"`);
+  `app.js` around Compare's name comment and `monthPdfFileName` (both kept: W.2's `fileNameTitle()` feeding 2.10's
+  `exportFileName()`; `scenarioFileSuffix()` is gone and nothing calls it); CLAUDE.md (D3 and 2.10 were both "a fourth":
+  2.10 is "a fifth"); README / HANDOFF (every entry kept, newest first).
+- **Windows, confirmed** (GitHub's runners, run `44028047067`, branch `windows-test` at `aa1ac33` = this branch at
+  `ca3ad99` + the Windows legs; all four jobs success): everything wave 4 touched is green on windows-latest (the `wave4`
+  part: `autonoterename` at the default window and at 1584 x 1200, `softlines` x2, `oskeys` os=win, the 12 `win-*`
+  lines, `ripplemarks`, `changessince`, `forcedcolors` forced and control), and the month PDFs 48/48 (`monthexport`,
+  `monthwriter`: W.1 and FC1 moved no PDF there either). The one red, `win-keys` K5 (Ctrl+N), is pre-existing since
+  14 Nov: Chrome keeps Ctrl+N for a new window, the WIN-2 behaviour Help now explains. (The run predates the `8af4298`
+  merge, which is sidebar chrome.)
+- **Proof on this branch before the cut:** a partial gate from gate.sh's own sections (base, waterfall PDF, seams,
+  workbook, gate 10, monthexport + gate 13, the real-time legs) 368 PASS / 0 FAIL, every baseline byte-identical (at
+  `ca3ad99`). After the `8af4298` merge, one at a time on port 8897: `ripplemarks` 35/35, `changessince` 15/15 (with and
+  without the fixture as state), `oskeys` 10/10 for os=win / mac / linux, `dayfirstwf` 11/11, `exportnames` 10/10,
+  `autonoterename` 25/25 at 1600 and at 1584 x 1200, `forcedcolors` 7/7 forced and 7/7 control, and the legs the live
+  commit touched: `phasesmore` 6/6 at 1600 and 1280 x 943, `hidewf` 19/19, `undokeys` 11/11, `endsdate` 17/17,
+  `builtindates` live 17/17 and restore 15/15, `hiatusfold` 11/11, `phasesui` 8/8, `hiatusripple.mjs` 19/19.
+  `npm run check` 42/42.
+- **Wired into `gate.sh`** (the v1.15.0 query-capable V15SPEC loop, with a comment paragraph): `ripplemarks`
+  (ripplemarks, 500), `changessince` (no state: N0 is the window before anything is loaded; 400), `oskeys` on halfdays at
+  os=win, os=mac and os=linux (240), and `autonoterename` at 1584 x 1200 (500; its 1600 run is in AFSPEC).
+  `dayfirstwf`, `exportnames` and `forcedcolors` were wired by their branches. `zsh -n` clean; three of the new specs
+  (ripplemarks, oskeys os=linux, autonoterename 1584) run through the loop's own body by hand, 70/70, and a missing
+  result judged FAIL.
+- **Not verified here:** the full gate (the main session's); a real download dialog on Windows for a long title.
 
 ### ✅ 16 Nov 2026: AUDIT ITEM W.1 (WIN-1) — A MARKED MONTH NOTE CUT OFF ON WINDOWS: FIX APPLIED ON `release-wave4` (owner's picker "Approve the fix"). Branch `audit-w-1` (worktree `.claude/worktrees/audit-w-1`, from `origin/main` `ad48e11`). **One WIP commit: the acceptance case `autonoterename` S5, RED on this branch until the owner signs off the frozen-look patch.** Not merged, not pushed. Built unattended on the owner's "work on it now".
 - **APPLIED (16 Nov 2026, owner's picker *"Approve the fix"*) on `release-wave4`**, the patch's code as written, with ONE
@@ -110,7 +151,7 @@
 - **Not verified:** the month PDF's placement of a day-first typed line on a DD/MM calendar was not read out of a PDF
   (both month PDFs draw what `renderMonthView` draws, which is what the leg reads on screen; `dayfirstin` K1 exports one).
 
-### ✅ 16 Nov 2026: "MORE OPTIONS" IS GONE: EVERY PHASE CARD SHOWS ALL ITS SWITCHES AGAIN (undoes half of audit 2.14's AUD2-036). Branch `no-more-options` (worktree `.claude/worktrees/more-options-toggle`, from `origin/main` `7e1d8b4`; `node_modules` is a symlink, unlink it before `git worktree remove`): committed locally, NOT pushed (the push is the owner's picker). No version cut (README: Unreleased). Tracker card `remove-phase-more-options`; `more-options-toggle` is rejected (superseded).
+### ✅ 16 Nov 2026: "MORE OPTIONS" IS GONE: EVERY PHASE CARD SHOWS ALL ITS SWITCHES AGAIN (undoes half of audit 2.14's AUD2-036). Branch `no-more-options` (worktree `.claude/worktrees/more-options-toggle`, from `origin/main` `7e1d8b4`; `node_modules` is a symlink, unlink it before `git worktree remove`): since pushed: it is `8af4298` on `origin/main`, and ships in v1.16.0 (the wave-4 release merged it at `91619e1`). Tracker card `remove-phase-more-options`; `more-options-toggle` is rejected (superseded).
 - **How it went:** the owner first asked for the line to read "More Options" with a right-pointing arrow and open IN
   PLACE to "Hide Options" (mockup `mockups/more-options-toggle.html`, untracked in the main checkout; arrow "Before
   the words"). That was built and tried on localhost (flex-ordered open card, a measured `--more-hold` to keep the line
@@ -132,7 +173,7 @@
 - ⚠️ **Local `main` in the main checkout is BEHIND `origin/main`** (at `5f1b67a`, v1.13.0, with uncommitted HANDOFF edits
   and two untracked files from another session): this branch was cut from `origin/main`, not from it.
 
-### ✅ 16 Nov 2026: UI SCALING AT EVERY WINDOW SIZE (toolbar folds, sidebar never stacks). FINISHED on branch `ui-scaling` (worktree `.claude/worktrees/ui-scaling`, from `origin/main` `ad48e11`): committed locally, NOT merged, NOT pushed (the push is the owner's picker). Tracker card `ui-scaling-screen-sizes`; takes over audit 3.12 (AUD2-065), dropped from wave 4 on the owner's picker. Owner tried it on localhost and said *"Looks good, finish it"*.
+### ✅ 16 Nov 2026: UI SCALING AT EVERY WINDOW SIZE (toolbar folds, sidebar never stacks). FINISHED on branch `ui-scaling` (worktree `.claude/worktrees/ui-scaling`, from `origin/main` `ad48e11`): since pushed (`6bf3607`, merged on `origin/main` at `7e1d8b4`), and ships in v1.16.0. Tracker card `ui-scaling-screen-sizes`; takes over audit 3.12 (AUD2-065), dropped from wave 4 on the owner's picker. Owner tried it on localhost and said *"Looks good, finish it"*.
 - **Owner:** the toolbar "only looks right on a normal sized laptop screen"; on a big monitor it "should stay the same
   size and just have extra space on the sides rather than adding a bunch of space between the buttons"; on smaller
   screens it doesn't scale down right; the sidebar "should always stay on the left, I never want the UI to start

@@ -34,7 +34,7 @@ way a user would notice or a future session would need to return to. See
 ### Unreleased — A very long show title is cut to fit the workbook's and the waterfall PDF's file names too (16 Nov 2026)
 
 The owner's picker, 16 Nov 2026: *"Cut long titles"* (audit WIN-5). Windows refuses a file name over 255 characters.
-Audit item W.2 (merged in this release; its own entry waits on the owner's try of it) already cuts a show title over
+Audit item W.2 (its own entry below) already cuts a show title over
 150 characters, at a word, in every name the app builds outside the frozen exporters (Save, Save As, the shareable
 copy, a scenario saved alone, the month PDF, Compare). The workbook and the waterfall PDF name themselves inside frozen
 code, so a 400-character title still reached their names.
@@ -105,8 +105,99 @@ counts were remembered by the whole pixel. A note whose wrap point fell in that 
   hand (the printed month document identical to its baseline, one sheet per month, all 11 calendars) and gate 13 by
   hand (all 24 written month PDFs byte-identical): the PDFs did not move. `softlines` 6/6 on dayoverrides and halfmarks.
   The nearest month legs: `mvnotes` 30/30 and on mvnotes 14/14, `mvnotesize` on mvnotes and month-dense60 12/12 each,
-  `mvkeys` g=pick 24/24 and g=enter 16/16. `npm run check` 42/42. Not yet seen on real Windows: the test branch
-  `windows-test-wave4` is prepared for it.
+  `mvkeys` g=pick 24/24 and g=enter 16/16. `npm run check` 42/42. On real Windows (GitHub's Windows runner, run 44028047067,
+  from the test branch `windows-test-wave4`): `autonoterename` at the default window and at 1584 x 1200, and `softlines`,
+  green; all 48 month-PDF runs (`monthexport`, `monthwriter`) green, so the PDFs did not move there either.
+
+### Unreleased — Keys are named for your computer, Load lists older .html calendars, and a long title fits a file name (audit item W.2, 16 Nov 2026)
+
+The November audit's Windows review, item W.2 (WIN-3, WIN-5). On Windows the app named a Mac's keys: Undo's hint read
+"Undo (⌘Z)", Redo's "Redo (⌘⇧Z)", the Ripple Hiatus hint said ⌘Z, and Help named every shortcut with ⌘ under one line
+asking Windows users to read Ctrl. Windows' Load dialog listed only `.sptcal` files, so an older `.html` calendar looked
+missing; and a 420-character show title made a Save As name of 438 characters, past the 255 Windows allows.
+
+- **Keys.** On Windows and Linux every key the app names reads Ctrl: "Undo (Ctrl+Z)", "Redo (Ctrl+Shift+Z)", Ctrl-click,
+  "Ctrl+Enter to add" under Paste notes, "press Ctrl+V instead" when the clipboard is refused, and Help throughout. The
+  "On Windows, use Ctrl where these say ⌘" line and the "⌘S or Ctrl+S" pairs are gone. Off a Mac, Help offers New no
+  key (Chrome keeps Ctrl+N for a new window) and points to New in the File menu; its paragraph about the Mac menu bar
+  shows on a Mac only. On a Mac two hints change words: Redo reads ⇧⌘Z (Apple's order, as Help writes it; it was ⌘⇧Z)
+  and Paste notes says ⌘-Enter (it was ⌘/Ctrl-Enter). The keys that work did not change.
+- **Load… lists `.html` calendars.** Its first file type takes `.sptcal` and `.html` together, so Windows' dialog, which
+  applies one type at a time, shows an older calendar with no change of "Files of type"; the two single types follow.
+- **A long title fits a file name.** A show title over 150 characters is cut back to a word in every name the app builds:
+  Save, Save As, the shareable copy, a scenario saved alone, the month PDF and Compare; the workbook and the waterfall
+  PDF follow (the long-titles entry above). The date and the extension stay; a title of 150 characters or fewer is
+  named as before.
+- **How.** One helper, `src/chrome/keys.js`, reads the platform once and names the keys; Help's keys carry their spec
+  (`data-keys`) and are rewritten at launch, and its two platform lines show by `data-os`. No save-format change: no
+  snapshot key, no id. The contrast-theme half of W.2 was split out for the owner's sign-off (FC1, its own entry above);
+  a "ResizeObserver loop" console error the audit saw on Windows did not reproduce here and is not touched.
+- **Verified.** New leg `oskeys` on halfdays, once per platform, the platform faked before the app starts: 10/10 for
+  Windows, Mac and Linux. On the build before, Windows was red at H1, H2, T1, T2, N1, O1 and L1, and Mac at H1, H2, T1,
+  N1, O1 and L1. Re-expected: `firstrun` H1 (Help's New line is one of two, by platform) and `showfolder` P (Load offers
+  three types). Green: `firstrun` 22/22, `filekeys` 16/16, `showfolder` 7/7, `wfmenu` 39/39, `mvmenu` 81/81, `dlgkeys`
+  16/16, `undokeys` 11/11, `nofsa` 7/7, `mvkeys` 24/24. On real Windows (GitHub's Windows runner, run 44028047067)
+  `oskeys` and every `win-*` leg were green but `win-keys` K5, red since 14 Nov: Chrome keeps Ctrl+N for a new window,
+  which Help now says. `npm run check` 42/42.
+
+### Unreleased — File ▸ Changes since last save… lists what moved, ready to paste into an email (audit AUD2-103, idea I.3, 16 Nov 2026)
+
+The owner: *"work on it now"* (16 Nov 2026). A studio coordinator sending this week's calendar had to work out by eye
+what had moved since last week's file, and type it into the email.
+
+- **What you see.** File ▸ **Changes since last save…** (under Load…) opens a small window: since when ("Since you
+  loaded “Show.sptcal” at 9:40 AM", or "Since you saved …"; with two or more scenarios, "In “Plan B”, since …"), the
+  changes as plain lines, and **Copy** and **Done**. Copy puts the lines on the clipboard, one per line. They use
+  Compare's own values and the Pushed / Pulled wording:
+  - Title now “Test Show Revised” (was “Test Show”)
+  - Production: first shoot day pushed 2 wks, wrap pushed 3 wks (now 9/28/26 – 2/10/27)
+  - Hiatus 10/19/26 – 10/23/26 added (1 wk)
+  - Post now ends 4/16/27 (pushed 1 wk)
+
+  and Episodes, Blocks, Shoot days, Location and Version as "now X (was Y)", a phase added or removed, a hiatus moved or
+  resized. An edit none of those names (a note, a colour, a setting) is the one line "Notes, formatting or settings
+  changed", written only when no other line is. A value typed back the way it was lists nothing.
+- **Since when.** Save, Save As and Load set the starting point, one for each scenario tab; a tab not yet shown is read
+  the first time it comes on screen. Autosave does not move it, so the list stays "since I opened last week's file". New
+  and a crash recovery clear it, and the window then says there is no saved version to compare with.
+- **How.** The starting point is kept in memory only (`savedBaseline`), never in the file: no snapshot key, no id, the
+  save format unchanged. Nothing frozen was touched, and no export prints the list.
+- **Verified.** New leg `changessince` 15/15, on the synthetic `changessince.sptcal` loaded through the real Load: the
+  three edits above listed exactly and in that order, Copy, Save moving the starting point, a value typed back, a
+  date-format change as the one settings line, a phase whose end alone moved, the saved file gaining no key, and two
+  scenarios each measured from its own saved values (red before: there was no such item). Nearest legs green:
+  `startrecents`, `firstrun`, `filekeys`, `lastedited`, `scenarios`, `scenariofacts`, `comparehiatus`, `recoverfail`
+  (scen), `nofsa`, `backuplink`, `conflict`. Green on real Windows too (run 44028047067). `npm run check` 42/42.
+
+### Unreleased — Ripple Hiatus leaves day marks and a break's own notes on their dates, and says so (audit item 2.5: AUD2-016, AUD2-037, 16 Nov 2026)
+
+The owner's decision D2 = b, 16 Nov 2026: *"marks stay on their dates when a hiatus is edited ... the result line says
+so, and warns when a mark lands under the break. Notes stay; one Undo"*. With Ripple Hiatus Periods on (the default), a
+hiatus edit pushes or pulls every phase after it, and two things went wrong. A ripple from a break inside the shoot left
+Production's Off, worked and half days on their dates while the notes after the break moved, and the line under the
+hiatus named only the phases, so a mark that now fell on another shoot day, or under the break, went unmentioned
+(AUD2-037). And a note typed inside the break moved with everything after it: onto the work week before the break when
+the break was shortened or switched off, deeper in when it was lengthened, out of it when it was re-dated (AUD2-016).
+
+- **Day marks.** Production's Off, worked and half days stay on their dates, and the line under the hiatus says "Day
+  marks stay on their dates" whenever a mark is on or after the edit, and names each mark a hiatus now covers that it did
+  not before ("Off day Fri 9/4/26 is now under a hiatus"), even when nothing else moved. When the edit moves Production
+  itself (a break before the shoot), the marks still go with their shoot days (ruling R2) and the line does not say they
+  stay.
+- **Notes.** A note written inside the edited break stays on its date; one the edit pulls onto the same week joins under
+  it, as a shift's notes do. Notes after the break move as before.
+- **One Undo** still takes back the change and its push (AUD2-038). Help's Ripple Hiatus Periods paragraph says all of
+  this.
+- **How.** `rippleAfterHiatusEdit` puts the marks back on their dates after the shoot-day bracket whenever Production's
+  start did not move (so a second unlocked break the same ripple pushes cannot carry them either), and lifts the notes in
+  the weeks the break covered before the edit out of the week-keyed note stores for the steps, putting them back on their
+  own weeks after (`rippleHoldBreakNotes` / `rippleReturnBreakNotes`). No frozen code, no save-format change, no new id.
+- **Verified.** New leg `ripplemarks` 35/35 on the synthetic `ripplemarks.sptcal`: the Summer break's Weeks, Starts and
+  removal; Production's own hiatus shortened, switched off, lengthened, and typed 1 then 10; a break before the shoot;
+  each with ONE Undo back to the calendar exactly as it was. Red at 14 of the 35 on the build before (every
+  note-inside-the-break case and every line case). Green: `hiatusripple.mjs` 19/19, `rippleundo` 29/29,
+  `phasearrowsripple` 10/10, `hiatusdrag.mjs` 14/14, `mvdragcarry` 15/15, `overrides` 20/20, `snaptools` 14/14,
+  `halfworked` 24/24, `hiatussidebar` 16/16; green on real Windows too (run 44028047067). `npm run check` 42/42.
 
 ### Unreleased — The season sits beside the title in every export's name (16 Nov 2026)
 
