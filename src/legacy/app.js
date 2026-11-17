@@ -18097,8 +18097,11 @@ export function initLegacyApp() {
         ).join('')}</div>`
       : notePaletteRowsHtml(curColor);
     // Day picker: the waterfall's unit is a week, so a note typed here needs a day before the
-    // month view can place it. Default is "Mon (default)" -- the same fallback the month view
-    // uses -- so this is opt-in rather than another required field.
+    // month view can place it. It is opt-in rather than another required field: its empty choice reads "No date"
+    // (owner, 17 Nov 2026: "the default, for Day should be "No date" rather than Mon (default)"), and a note left on
+    // it still sits on its week's Monday in the month view (a linked one on its phase's first day that week, R6(a)),
+    // the same fallback as before. Only the words changed: until then it read "Mon (default)", or "First day
+    // (default)" on a note that stays with a phase.
     const existing = userNotes[weekKey];
     // ⭐ STAYS WITH (PHASE-LINKED-NOTES-PLAN.md §4.4, rulings R1, R2(a), R3(a); step 2): what this week's note can stay
     // with. A cell whose one note is linked opens on that note's home and its day (`dow`, or a shoot day).
@@ -18129,7 +18132,7 @@ export function initLegacyApp() {
     // .note-link-row, .note-color-row, .note-view-row, .wf-note-items); each is a `.note-item` of `.note-list`.
     const dayRow = isHiatus ? '' : `<div class="note-item note-day-row"${typedShown ? '' : ' style="display:none"'}>
       <label class="note-line"><span class="note-row-name">Day</span><select class="note-day-select">
-        <option value=""${pinnedDate?'':' selected'}>${linkSingle ? 'First day (default)' : 'Mon (default)'}</option>
+        <option value=""${pinnedDate?'':' selected'}>No date</option>
         ${dayOpts}
       </select></label>
     </div>`;
@@ -18280,10 +18283,11 @@ export function initLegacyApp() {
                         pendingSize: undefined, sizeTouched: false, defaultLabel: hiatusDefaultLabel,
                         hide: null,    // the note a Hide button hides (R2(b): set, then committed at once)
                         link,          // what the Stays with row opened on (wfLinkContext), read on commit
+                        dayForeign,    // the lines that are not the user's own (above), for a date typed by hand
                         escBase: textVal};   // what Esc compares the box with: it keeps a changed note (AUD2-040)
 
     // Stays with: the hint says what will happen (R1), the waiting message is R3(a)'s, and the "Also here" line R2(a)'s.
-    // The Day list's empty choice reads "First day (default)" for a phase (R6(a)), "Mon (default)" for the week.
+    // The Day list's empty choice reads "No date" whatever the row says (17 Nov 2026); it no longer changes with it.
     const linkSel = pop.querySelector('.note-link-select');
     const reflectLinkRow = ()=>{
       if(!linkSel || !link) return;
@@ -18304,8 +18308,6 @@ export function initLegacyApp() {
                          + (v === link.sel0 ? '. Leave the choice alone and it keeps its link.'
                                             : '. Saving with this choice gives it this one instead.');
       } else { also.hidden = true; also.textContent = ''; }
-      const dflt = daySel && daySel.querySelector('option[value=""]');
-      if(dflt) dflt.textContent = v ? 'First day (default)' : 'Mon (default)';
     };
     if(linkSel){
       linkSel.addEventListener('mousedown', e=> e.stopPropagation());
@@ -18477,6 +18479,16 @@ export function initLegacyApp() {
     } else {
       const daySel = pop.querySelector('.note-day-select');
       const chosenDate = daySel ? (daySel.value || '') : '';
+      // ⭐ THE DAY OF A NOTE THAT STAYS WITH A PHASE (owner, 17 Nov 2026: "When you do select a date and ALSO have stays
+      // with set to a week of a phase ... when you shift the phase/calendar the date should auto-change to the same day
+      // of the week but in whatever new week its in"). A date PICKED from the Day list already did: it is saved as the
+      // note's weekday (`dow`) and drawn fresh wherever the phase lands. A date TYPED at the end of the note did not: it
+      // stayed in the note's text, so after a shift the note sat in its new week still reading the old date. Now a
+      // date typed at the end of the last line the user typed, on a day of this week (the rule a typed note is placed
+      // in the month view by, slashDateInWeek), is that day, as if picked; it wins over the list, which it differs from
+      // only when the user retyped the date the list stamped. Read only for a note that stays with a phase (both
+      // branches below): a plain week note keeps its typed date as text, as it always has.
+      const linkDay = wfTypedDayIso(textarea.value, weekKey, activeNoteEditor.dayForeign) || chosenDate;
       // A holiday's or an automatic note's line changed here renames it, and one taken out deletes it (see
       // wfLineEdits), so the cell keeps following them. An emptied cell is Delete's (wfClearNote): each line goes by
       // what it is, and no week blank is left (AUTO-NOTE-RENAME-PLAN.md, rulings 3, 4 and 6).
@@ -18514,7 +18526,7 @@ export function initLegacyApp() {
       const visitorKeys = (link ? link.visitors : []).map(e=> e.key).filter(k=> phaseNotes[k]);
       let own, ownDate = chosenDate, lookNote = null;   // lookNote: the linked note a colour picked here goes on
       if(choice === sel0){
-        own = wfLinkedLineEdits(weekKey, ownBefore, afterMonth, sel0 ? {key: sel0, dayIso: chosenDate} : null);
+        own = wfLinkedLineEdits(weekKey, ownBefore, afterMonth, sel0 ? {key: sel0, dayIso: linkDay} : null);
         if(sel0) ownDate = '';                            // the Day picker was the linked note's
         lookNote = sel0 || visitorKeys.find(k=> phaseNotes[k]) || null;
       } else {
@@ -18524,10 +18536,14 @@ export function initLegacyApp() {
         visitorKeys.forEach(k=>{ delete phaseNotes[k]; });
         if(choice){
           const typed = lines.filter(l=> !autoSet.has(l));
-          const day = chosenDate ? parseDateUTC(chosenDate) : null;
+          const day = linkDay ? parseDateUTC(linkDay) : null;
           if(day && typed.length){
-            typed[typed.length - 1] = stripTrailingDate(typed[typed.length - 1], day);
-            if(!typed[typed.length - 1]) typed.pop();
+            // The date comes off the line it was stamped or typed on: the last line ending in that day, which is the
+            // last line unless a visiting linked note's line came after the user's own (they all become this note).
+            let at = typed.length - 1;
+            for(let i = typed.length - 1; i >= 0; i--) if(stripTrailingDate(typed[i], day) !== typed[i]){ at = i; break; }
+            typed[at] = stripTrailingDate(typed[at], day);
+            if(!typed[at]) typed.splice(at, 1);
           }
           if(typed.length){
             const prev = phaseNotes[choice];
@@ -20136,6 +20152,21 @@ export function initLegacyApp() {
     if(!m || !day) return String(line || '').trim();
     const same = slashNames(m[1], m[2], m[3], day);
     return (same ? line.slice(0, m.index) : line).trim();
+  }
+  // The day a date typed at the end of a note names, as the Day list would hold it (an ISO), else '' (owner, 17 Nov
+  // 2026; commitActiveNoteEditor's linkDay). Read on the LAST line of the box that is the user's own -- `foreign` holds
+  // the lines that are not (automatic notes, holidays, month notes, visiting linked notes), the Day list's own rule --
+  // and only when the date falls in this week (slashDateInWeek, in the calendar's order). A date in the middle of a
+  // line, or on another week's day ("Deliver by 9/30/26"), is the note's words, never its day.
+  function wfTypedDayIso(text, weekKey, foreign){
+    const ls = split0(text);
+    for(let i = ls.length - 1; i >= 0; i--){
+      if(foreign && foreign.has(ls[i])) continue;
+      const m = /(\d{1,2})\/(\d{1,2})\/(\d{4}|\d{2})$/.exec(ls[i]);
+      const d = m ? slashDateInWeek(m[1], m[2], m[3], weekKey) : null;
+      return d ? isoOf(d) : '';
+    }
+    return '';
   }
   function split0(t){ return String(t || '').split('\n').map(l=> l.trim()).filter(Boolean); }
   // A custom phase removed (PHASE-LINKED-NOTES-PLAN.md §4.7, R3(a)): each of its linked notes becomes a plain note of the
