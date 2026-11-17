@@ -18078,8 +18078,11 @@ export function initLegacyApp() {
     // keystroke showed them, because the test was only "is this line, word for word, one the cell already holds". The
     // same exception as wfLineEdits' rename(): a line ending in ANOTHER date is a note, not a rename, and shows them. An
     // emptied box stays hidden too, so clearing the text to retype it does not flash the rows.
+    // The line is read as it will be SAVED (wfStandardLineDate, 17 Nov 2026): "6-30" at its end is the date 6/30/26 the
+    // save writes, so it makes a note here exactly as "6/30/26" does, and the note's own day in a short form ("6-29")
+    // is its own date, a rename.
     const renameOfSingle = ls => !!singleItem && ls.length <= 1
-      && (!ls.length || !/\d{1,2}\/\d{1,2}\/(\d{4}|\d{2})$/.test(stripHolidayDate(ls[0], singleItem.date)));
+      && (!ls.length || !/\d{1,2}\/\d{1,2}\/(\d{4}|\d{2})$/.test(stripHolidayDate(wfStandardLineDate(ls[0], weekKey), singleItem.date)));
     const typedIn = text => {
       const ls = String(text || '').split('\n').map(l=> l.trim()).filter(Boolean);
       if(renameOfSingle(ls)) return false;
@@ -18244,11 +18247,24 @@ export function initLegacyApp() {
     const dayForeign = new Set(cellKnown);
     if(!isHiatus) wfWeekAutoItems(weekKey).forEach(n=> dayForeign.add(autoNoteLine(n)));   // a month-only one a note kept too
     if(link && !linkSingle) link.visitors.forEach(e=> split0(e.line).forEach(l=> dayForeign.add(l)));
+    // ⭐ THE DAY LIST FOLLOWS A DATE TYPED AT THE END of the note (owner, 17 Nov 2026: "what if you hand type 7/29/25 as
+    // 7/29 or 7-29-25 or 7-29. All should be recognized", then "Yes, plain notes too"). Typing "Table read 7-29" shows
+    // "Wed 7/29/26" in Day, as if picked; the save then writes the date as the list does (7/29/26) and gives the note
+    // that day (commitActiveNoteEditor). Only while the Day row is shown (typedIn), so a rename of an automatic note never
+    // moves it. Typed away again, the list goes back to what it held before the typing set it (`dayBeforeTyped`), so a
+    // date typed and then deleted pins nothing. A pick from the list is the user's own and ends that.
+    let dayBeforeTyped = null;
+    if(daySel) textarea.addEventListener('input', ()=>{
+      const iso = typedIn(textarea.value) ? wfTypedDayIso(textarea.value, weekKey, dayForeign) : '';
+      if(iso){ if(dayBeforeTyped === null) dayBeforeTyped = daySel.value; daySel.value = iso; }
+      else if(dayBeforeTyped !== null){ daySel.value = dayBeforeTyped; dayBeforeTyped = null; }
+    });
     if(daySel){
       daySel.addEventListener('mousedown', e=>e.stopPropagation());
       daySel.addEventListener('click', e=>e.stopPropagation());
       daySel.addEventListener('change', e=>{
         e.stopPropagation();
+        dayBeforeTyped = null;
         const iso = daySel.value;
         const ls = textarea.value.split('\n');
         let at = -1;
@@ -18482,7 +18498,19 @@ export function initLegacyApp() {
       }
     } else {
       const daySel = pop.querySelector('.note-day-select');
-      const chosenDate = daySel ? (daySel.value || '') : '';
+      // ⭐ A DATE TYPED AT THE END of the user's last line, on a day of this week, in any form typedDateInWeek reads (7/29,
+      // 7-29, 7-29-26, 7/29/2026; owner, 17 Nov 2026, "Yes, plain notes too"), is saved as the Day list writes one: the
+      // text gets the standard form (fmtShort, 7/29/26, d/m/yy on a day-first calendar), and the note gets that day,
+      // exactly as if picked from the list. So the Month view places a plain note on it (frozen notesForWaterfallDate
+      // reads only the standard form), and the shift tools keep it on its date, as they keep a picked one. The Day list
+      // already shows it (the input listener in openNoteEditor); this reads the box again so a save that no keystroke
+      // reached agrees. The day is taken only while the Day row is shown: a rename of an automatic note is written in
+      // the standard form and stays a rename (renameOfSingle reads the line the same way).
+      const typedIso = wfTypedDayIso(textarea.value, weekKey, activeNoteEditor.dayForeign);
+      if(typedIso) textarea.value = wfStandardTypedDate(textarea.value, weekKey, activeNoteEditor.dayForeign);
+      const dayRow = daySel && daySel.closest('.note-day-row');
+      const chosenDate = (typedIso && dayRow && dayRow.style.display !== 'none') ? typedIso
+                       : (daySel ? (daySel.value || '') : '');
       // ⭐ THE DAY OF A NOTE THAT STAYS WITH A PHASE (owner, 17 Nov 2026: "When you do select a date and ALSO have stays
       // with set to a week of a phase ... when you shift the phase/calendar the date should auto-change to the same day
       // of the week but in whatever new week its in"). A date PICKED from the Day list already did: it is saved as the
@@ -18490,9 +18518,9 @@ export function initLegacyApp() {
       // stayed in the note's text, so after a shift the note sat in its new week still reading the old date. Now a
       // date typed at the end of the last line the user typed, on a day of this week (the rule a typed note is placed
       // in the month view by, slashDateInWeek), is that day, as if picked; it wins over the list, which it differs from
-      // only when the user retyped the date the list stamped. Read only for a note that stays with a phase (both
-      // branches below): a plain week note keeps its typed date as text, as it always has.
-      const linkDay = wfTypedDayIso(textarea.value, weekKey, activeNoteEditor.dayForeign) || chosenDate;
+      // only when the user retyped the date the list stamped. (A plain week note takes it too since the owner's "Yes,
+      // plain notes too", as chosenDate above, and keeps it in its text in the standard form.)
+      const linkDay = typedIso || chosenDate;
       // A holiday's or an automatic note's line changed here renames it, and one taken out deletes it (see
       // wfLineEdits), so the cell keeps following them. An emptied cell is Delete's (wfClearNote): each line goes by
       // what it is, and no week blank is left (AUTO-NOTE-RENAME-PLAN.md, rulings 3, 4 and 6).
@@ -20191,6 +20219,26 @@ export function initLegacyApp() {
       if(names(d, datesDayFirst()) || (datesDayFirst() && names(d, false))) return {at: m.index + m[1].length, day: d};
     }
     return null;
+  }
+  // A line with a date typed at its end, in any form typedDateInWeek reads, rewritten in the standard form the Day list
+  // stamps (fmtShort: 7-29 -> 7/29/26); any other line as it is (trimmed).
+  function wfStandardLineDate(line, weekIso){
+    const s = String(line || '').trim(), t = typedDateInWeek(s, weekIso);
+    if(!t) return s;
+    const head = s.slice(0, t.at).trim();
+    return (head ? head + ' ' : '') + fmtShort(t.day);
+  }
+  // The box's text with the date typed at the end of the user's last line (wfTypedDayIso's line: the last that is not in
+  // `foreign`) in the standard form. Every other line, and the box's line breaks, as they were.
+  function wfStandardTypedDate(text, weekIso, foreign){
+    const ls = String(text || '').split('\n');
+    for(let i = ls.length - 1; i >= 0; i--){
+      const t = ls[i].trim();
+      if(!t || (foreign && foreign.has(t))) continue;
+      ls[i] = wfStandardLineDate(t, weekIso);
+      break;
+    }
+    return ls.join('\n');
   }
   // stripTrailingDate, plus every form typedDateInWeek reads: a line with a date typed at its end that names `day` taken
   // off its end. For the Day of a note that stays with a phase, whose date is drawn fresh after it (never kept in its
