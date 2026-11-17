@@ -15661,16 +15661,23 @@ export function initLegacyApp() {
         // week) was drawn on no day at all, in the month view or either month PDF. Now such a line is
         // placed like an undated one, below. The \d{1,2} fix above would otherwise have made every such
         // line dated the 1st-9th vanish too (measured: "Delivery 7/7/26" sat on Mon 6/29 before it).
+        // ⛔ FROZEN EDIT D3, owner-approved (picker, 16 Nov 2026, "Work on it now"; November 2026 audit item 2.4,
+        // AUD2-066, the owner's decision D3 (a), 13 Nov 2026: "typed or pasted dates are read day first too"). The
+        // line's date is read by slashDateInWeek(), in the calendar's order: month first, exactly as the three lines
+        // it replaces read it, unless the Dates setting is DD/MM, where it is read day first, and a date that reads
+        // inside the week only month first (a line typed before the switch, or by an older build) still places the
+        // line. On DD/MM "Table read 17/7/26" sat on its week's Monday, and so did every holiday and automatic line a
+        // typed note carries once those are written day first. On a month-first calendar slashDateInWeek() returns
+        // exactly the date the old lines built when it is in the week, and null where they fell through to the pin
+        // or Monday, so a month-first calendar draws byte for byte as before (gates 10 and 13). It replaces v1.15.0's
+        // stand-in (wfLinesOnDay, sanctioned pattern 2), which handed this function a rewritten copy of the note.
         String(n.text || '').split('\n').filter(Boolean).forEach(line=>{
           if(wfOnly.has(line.trim())) return;   // ⛔ FROZEN EDIT N2 (above)
           const m = line.match(/(\d{1,2})\/(\d{1,2})\/(\d{2})\s*$/);
-          if(m){
-            const yr = 2000 + parseInt(m[3],10);
-            const lineDate = new Date(Date.UTC(yr, parseInt(m[1],10)-1, parseInt(m[2],10)));
-            if(isoOf(mondayOf(lineDate)) === weekIso){
-              if(isoOf(lineDate) === iso) out.push(line);
-              return;
-            }
+          const lineDate = m ? slashDateInWeek(m[1], m[2], m[3], weekIso) : null;   // ⛔ FROZEN EDIT D3 (above)
+          if(lineDate){
+            if(isoOf(lineDate) === iso) out.push(line);
+            return;
           }
           // No date in the text: fall back to the note's pinned day, else the week's Monday.
           const belongsHere = n.date ? (n.date === iso) : (date.getUTCDay() === 1);
@@ -15726,8 +15733,8 @@ export function initLegacyApp() {
     (schedule.monthOnlyHolidays || []).forEach(h=>{ if(holidayVisibleIn(h.hid, 'month')) add(h.date, h.name); });
     const days = new Set();
     Object.keys(lines).forEach(iso=>{
-      // wfLinesOnDay: notesForWaterfallDate() as the month view draws it, a typed line read in the calendar's order.
-      const drawn = wfLinesOnDay(schedule, parseDateUTC(iso));
+      // A typed line read in the calendar's order (frozen edit D3), so a day-first holiday line in a typed note tints its day.
+      const drawn = notesForWaterfallDate(schedule, parseDateUTC(iso));
       if(lines[iso].some(t=> drawn.indexOf(t) !== -1)) days.add(iso);
     });
     return days;
@@ -20381,48 +20388,11 @@ export function initLegacyApp() {
     const ll = mvLinkedLinesOn(schedule, isoOf(d));
     return ll.length ? lines.concat(ll.map(x=> x.text)) : lines;
   }
-  // ⭐ THE MONTH VIEW READS A TYPED LINE'S DATE IN THE CALENDAR'S ORDER (November 2026 audit, Batch 2 item 2.4: AUD2-066;
-  // the owner's decision D3 (a), 13 Nov 2026: "typed or pasted dates are read day first too"). Frozen
-  // notesForWaterfallDate() places each line of a week's typed note on its trailing date when that date falls inside
-  // the week, read MONTH first (\d{1,2}/\d{1,2}/\d{2}, its own inline reader), else on the note's pinned day or the
-  // week's Monday. On a day-first calendar "Table read 17/7/26" therefore sat on Monday 13 July, and so did every
-  // automatic and holiday line a typed note carries once those are written day first.
-  // ZERO FROZEN EDITS (CLAUDE.md's sanctioned pattern 2: the effect is driven from outside, the frozen code asked for the
-  // verdict): its fallback IS the pinned day, so on a day-first calendar the week's note is handed to it, for the call
-  // only, in the list shape userNoteList() has always read ({notes: [{text, date}]}), one entry per line, and a line
-  // whose date reads inside the week only DAY first (slashDateInWeek) carries that day as its own pin. The frozen reader
-  // finds the month-first reading outside the week (the two readings are four weeks or more apart) and places the line
-  // on its pin: the day it names. Every other line keeps the note's own pin, in its order, and the set of lines
-  // (overrideLines, N1, N2, the custom holidays' once-only test) is the same, so nothing else it decides can change.
-  //   - ⛔ A month-first calendar, or a week with no such line, calls it exactly as before, byte for byte.
-  //   - Synchronous, and the stored note is put back in `finally`: nothing can observe the stand-in.
-  //   - Every reader of what the month view draws comes through here: mvWfTypedLinesFor (mvDayNotePlan, so the frozen
-  //     renderer and both month PDFs) and mvHolidayDays (the holiday tint). wfLineOwnDay and wfShowDay read with
-  //     slashDateInWeek too, so the editors agree.
-  //   - The frozen edit this stands in for (reading the date with slashDateInWeek inside notesForWaterfallDate) is
-  //     written up for the owner in the audit's work folder; taking it would make this function a plain call.
-  function wfLinesOnDay(schedule, d){
-    if(!datesDayFirst()) return notesForWaterfallDate(schedule, d);
-    const weekIso = isoOf(mondayOf(d)), v = userNotes[weekIso];
-    if(v === undefined) return notesForWaterfallDate(schedule, d);
-    const list = userNoteList(weekIso), lines = [];
-    let moved = false;
-    list.forEach(n=>{
-      String(n.text || '').split('\n').filter(Boolean).forEach(line=>{
-        const m = line.match(/(\d{1,2})\/(\d{1,2})\/(\d{2})\s*$/);
-        const monthFirst = m && isoOf(mondayOf(slashDate(m[1], m[2], m[3], true))) === weekIso;
-        const own = (m && !monthFirst) ? slashDateInWeek(m[1], m[2], m[3], weekIso) : null;
-        if(own) moved = true;
-        lines.push(own ? {text: line, date: isoOf(own)} : (n.date ? {text: line, date: n.date} : {text: line}));
-      });
-    });
-    if(!moved) return notesForWaterfallDate(schedule, d);
-    userNotes[weekIso] = {notes: lines};
-    try { return notesForWaterfallDate(schedule, d); }
-    finally { userNotes[weekIso] = v; }
-  }
+  // A typed line's trailing date is read in the calendar's order by frozen notesForWaterfallDate() itself (frozen edit
+  // D3, owner-approved 16 Nov 2026; November 2026 audit item 2.4, D3 (a)). v1.15.0's stand-in for it, wfLinesOnDay, is
+  // gone: every reader of what the month view draws calls the frozen reader directly again.
   function mvWfTypedLinesFor(schedule, d){
-    const lines = wfLinesOnDay(schedule, d);
+    const lines = notesForWaterfallDate(schedule, d);
     if(!lines.length) return lines;
     const u = userNotes[isoOf(mondayOf(d))];
     if(!(u && typeof u === 'object' && u.monthHidden === true)) return lines;
@@ -42724,7 +42694,8 @@ export function initLegacyApp() {
   // A waterfall line's own day: its trailing date when that falls in its week, the rule notesForWaterfallDate()
   // places it by; else null (it sits on the note's pinned day, or the week's Monday).
   // ⭐ Read in the calendar's order since 13 Nov 2026 (audit item 2.4, D3 (a)): slashDateInWeek, which the month view's
-  // own reader (wfLinesOnDay) shares, so the two cannot disagree. A month-first calendar reads exactly as before.
+  // own reader (frozen notesForWaterfallDate, edit D3) shares, so the two cannot disagree. A month-first calendar reads
+  // exactly as before.
   function wfLineOwnDay(lineText, weekKey){
     const m = String(lineText || '').match(/(\d{1,2})\/(\d{1,2})\/(\d{2})\s*$/);
     if(!m) return null;

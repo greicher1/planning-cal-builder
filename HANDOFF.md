@@ -4,6 +4,32 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### 🔨 16 Nov 2026: FROZEN EDIT D3 — ON DD/MM THE FROZEN MONTH READER READS A TYPED NOTE'S DATE DAY FIRST ITSELF. Branch `frozen-2-4-typed` (worktree `.claude/worktrees/frozen-2-4-typed`, from `origin/main` `ad48e11`). Committed on the branch. ⛔ **NOT merged, NOT pushed; waits for the release train's one full gate.** No version cut (README: Unreleased)
+- **Owner's approval:** picker, 16 Nov 2026, *"Work on it now"*, on the question "2.4's unapplied frozen edit: on a
+  day-first (DD/MM) calendar, a date typed inside a waterfall Notes cell is read day first too … It edits
+  notesForWaterfallDate". The proposal: the audit's `work/overnight/2.4-frozen.md` + `.patch` (written against
+  `audit-2-4`'s old base; re-applied here by hand on v1.15.0).
+- **As built (`src/legacy/app.js`):** frozen edit D3 in `notesForWaterfallDate`'s typed-line loop: `const lineDate = m ?
+  slashDateInWeek(m[1], m[2], m[3], weekIso) : null` replaces the three lines that built the date month first.
+  `wfLinesOnDay` (v1.15.0's stand-in, sanctioned pattern 2: it swapped `userNotes[week]` for a per-line pinned copy for
+  one call) is deleted; `mvWfTypedLinesFor` and `mvHolidayDays` call `notesForWaterfallDate` directly, as before 2.4.
+  CLAUDE.md's freeze section has the fourth owner-approved exception, and its `dateFormat` row no longer says the frozen
+  reader reads month first.
+- 📖 **No user-visible change, and no red-before on v1.15.0.** The stand-in already gave every result D3 gives (it is
+  equivalent line for line: the two readings of a date are never in the same week unless they are the same day), so the
+  new leg is green on `v1.15.0` as well. What proves the leg holds D3 is a mutant: v1.15.0 with `wfLinesOnDay` reduced
+  to a plain call and no D3 is red at T1-T3, H1, H2, R1-R4 and M1 (10 of 11).
+- **Proof:** new leg `dayfirstwf` 11/11 (in `gate.sh`'s AFSPEC list beside `dayfirst` / `dayfirstin`). Month-first
+  byte identity, run by hand from `gate.sh`'s own sections (base through the workbook, gate 10, monthexport + gate 13)
+  on port 8871: **334 PASS / 6 FAIL**. `base` 0 clipped cells; the waterfall PDF, its seams and the workbook identical;
+  gate 10 identical on all 11 calendars; gate 13 byte-identical on all 24 runs (+ blocksoff's text). The 6 FAILs are
+  `monthexport` X4-X6 (activation / soft-hyphen timing, the known flake) in the reference, reference UTC+14, halfdays
+  and mvnotesize-14 runs at a load average of 18; all four re-run alone 9/9. Also `dayfirst` 14/14, `dayfirstin`
+  13/13, `wfnotelines` day 5 / link 4 / link2 4 / month 5 / cut 5 / drag 9, `autonotefollow` a 8 / c 6 / e 7 / g 3,
+  `softlines` dayoverrides 6/6 and halfmarks 6/6, `npm run check` 42/42.
+- **Not verified:** the month PDF's placement of a day-first typed line on a DD/MM calendar was not read out of a PDF
+  (both month PDFs draw what `renderMonthView` draws, which is what the leg reads on screen; `dayfirstin` K1 exports one).
+
 ### ✅ 16 Nov 2026: THE RECENT CALENDARS ON AN EMPTY START ARE TWO CARDS. Branch `start-recents-cards` (worktree `.claude/worktrees/start-recents-cards`, from `origin/main` `8f170f9`). One commit, pushed to `main` as a fast-forward on the owner's pickers *"Commit"* and *"Push and deploy"*. No version cut (README: Unreleased). Tracker card `start-recents-look`
 - **Owner, on a screenshot of v1.15.0's list:** *"this recent calendars UI is ugly. Mockup some alternatives that fit in
   better with the UI and look more elegant and natural"*. [`mockups/start-recents.html`](mockups/start-recents.html)
