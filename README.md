@@ -31,6 +31,24 @@ way a user would notice or a future session would need to return to. See
 
 ## Unreleased
 
+### Every phase card shows all its switches again: "More options" is gone (16 Nov 2026)
+
+v1.15.0 (audit item 2.14, AUD2-036) hid each phase card's rarely used switches (Snap to Monday, Number weeks, Hide in
+waterfall, Hiatus and, on Production, Simultaneous Post) behind a "More options" line at the bottom of the card. The
+owner asked first for it to read "More Options" and open in place, saw it built, then decided: *"Nevermind get rid of
+the entire hiding menu - leave the options as they were before"*.
+
+- **Every switch shows on every card, on or off, as before v1.15.0.** No More options line, no hidden switch.
+- **The help reads as it did before v1.15.0** for Phase hiatus and Hide in waterfall (byte for byte), and its More
+  options item is gone.
+- **Kept:** the all-phase hiatus cards still open folded to their one-line head on New, launch, Load and recovery
+  (AUD2-036's other half). The owner's words named the phase cards' menu only.
+- **Verified.** `phasesmore` re-premised to the opposite rule (M1 every switch on show and no More options line, M5 a
+  switch stays on show when turned on and undone, M8 the same on a loaded calendar; M3 and M6 keep the hiatus folds),
+  red on v1.15.0 at M1, M5, M8 and green now at the default and 1280 x 800 windows. The legs that opened More options
+  first (`hidewf`, `undokeys`, `endsdate`, `builtindates`, `hiatusripple.mjs`) no longer do, and stay green, as do
+  `hiatusfold` and `phasesui` (all 46 fixtures' Phases-card ids and `fields.byId` unchanged). `npm run check` 42/42. Chrome only (the sidebar): no grid, workbook, PDF or save-path code; no id changed.
+
 ### The toolbar keeps its laptop size and folds on narrow windows; the app never stacks (16 Nov 2026)
 
 The owner: *"Ok we really need to work on UI scaling at differnt screen sizes. Its mostly an issue with the tool bar.
