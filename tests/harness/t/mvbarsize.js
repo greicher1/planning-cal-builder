@@ -18,10 +18,16 @@
 //
 // CASES
 //   B0   opened with no key: the control shows Standard, inside .prefs-card in the Month view card; no size class on
-//        <body>; every lane and every bar of every month 17 px; not dirty, Undo off
+//        <body>; every bar and band of every month 19 px (34 px on two lines), the height it PRINTS, and the lane rules
+//        of B1; not dirty, Undo off
+//   ⚠️ RE-PREMISED 16 Nov 2026 (the month page: "phase bar size and note size should also reflect the export exactly").
+//        Until then the screen held every Standard lane and bar to 17 px and stretched every bar and note over its
+//        lanes; the PDF never did. Now a lane is as tall as what prints in it and a bar or note is its printed height,
+//        from the top of its first lane. The "+" slots still fill their lanes.
 //   B1-<size>  after a click on Large / Extra large: the control and the class follow, the calendar is dirty, Undo on;
-//        in every month, every lane with no phase bar or band is EXACTLY 17 px, every lane holding a one-lane bar or
-//        band EXACTLY the size's bar height (22 / 25), every bar, band, note and "+" fills exactly the lanes it spans,
+//        in every month, every lane holding nothing but a "+" is EXACTLY 17 px and no lane is under 17, every lane
+//        holding a one-lane bar or band EXACTLY the size's bar height (19 / 22 / 25), every bar and band exactly its
+//        printed height and every note 13 px a line plus 6, none taller than the lanes it spans, every "+" exactly its lanes,
 //        text and grey tags at the size's px, every band whose label was emptied as tall as a labelled one, and no
 //        one-line bar or band overflows its box
 //   P0   the renderer places every bar in the same lane at every size, except in a week where E2 now wraps a one-day
@@ -31,7 +37,9 @@
 //        a band's centre opens it with the hiatus section; a pointer move over a pill shows its edge grips, each as
 //        tall as the pill and level with it; a click on a "+" opens the note editor; a click on the day number opens
 //        the day menu for that day
-//   B4   both sizes at 75%, 150% and 200% zoom: the month on screen has exactly the lanes it has at 100%, in its own px
+//   B4   both sizes at 75%, 150% and 200% zoom: the month on screen has the lanes it has at 100%, in its own px: the
+//        same number, each within 1 px (a note's lane is as tall as its text, and text lines land on whole device
+//        pixels, so at 75% a 13 px line is 13.33; a bar's lane is exact at every zoom)
 //   B5   (mvnotes) E2: at Standard the renamed one-day bar is one uncut line; at Large and Extra large it wraps to two
 //        lines, uncut, and no one-day custom bar anywhere is cut on one line
 //   B3a  each pick is ONE undo step: Undo from Extra large gives Large, again gives Standard (Undo off), Redo twice
@@ -55,7 +63,7 @@ window.addEventListener('load', function () { (async function () {
   out.info.state = st;
   var $ = function (id) { return document.getElementById(id); };
   var SIZES = {
-    standard: { text: 10, tag: 9, h: 17, r: 9 },
+    standard: { text: 10, tag: 9, h: 19, r: 9 },
     large: { cls: 'mv-bar-large', text: 12, tag: 11, h: 22, r: 11 },
     xl: { cls: 'mv-bar-xl', text: 14, tag: 12, h: 25, r: 13 },
   };
@@ -182,7 +190,12 @@ window.addEventListener('load', function () { (async function () {
           var cover = w.items.filter(function (it) { return it.lane <= L && L < it.lane + it.span; });
           var big = cover.filter(function (it) { return it.kind === 'pill' || it.kind === 'band'; });
           var where = m.month + ' wk' + (w.wi + 1) + ' lane' + (L + 1) + ': ' + w.tracks[L];
-          if (!big.length) { R.smallLanes++; if (Math.abs(w.tracks[L] - 17) > 0.01) miss('smallLane', where); }
+          // A lane is as tall as what PRINTS in it (16 Nov 2026): 17 px with nothing but a "+", never under 17.
+          if (!big.length) {
+            R.smallLanes++;
+            var noted = cover.some(function (it) { return it.kind === 'note'; });
+            if (w.tracks[L] < 17 - 0.01 || (!noted && Math.abs(w.tracks[L] - 17) > 0.01)) miss('smallLane', where);
+          }
           else if (big.some(function (it) { return it.span > 1; })) R.sharedLanes++;   // a two-line bar shares its height out
           else { R.bigLanes++; if (Math.abs(w.tracks[L] - S.h) > 0.01) miss('bigLane', where); }
         }
@@ -190,12 +203,15 @@ window.addEventListener('load', function () { (async function () {
           var where = m.month + ' wk' + (w.wi + 1) + ' ' + it.kind + ' "' + it.text + '"';
           var lanes = sum(w.tracks.slice(it.lane, it.lane + it.span)) + 2 * (it.span - 1);
           var big = it.kind === 'pill' || it.kind === 'band';
-          // At Large and Extra large a bar or band has a FIXED height (E1): the size's bar height, or two lines' worth
-          // on a wrapping one-day bar, and never more than its lanes. Everything else stretches to fill its lanes, as
-          // every bar does at Standard.
-          if (big && key !== 'standard') {
+          // A bar or band has a FIXED height at every size (E1; Standard too since 16 Nov 2026): the size's bar height,
+          // or two lines' worth on a wrapping one-day bar, and never more than its lanes. A note is the height it
+          // prints, 13 px a line plus 6, and never more than its lanes. A "+" (and anything else) fills its lanes.
+          if (big) {
             var want = it.twoLine ? 2 * S.text * 1.5 + 4 : S.h;
             if (Math.abs(it.h - want) > 0.02 || it.h > lanes + 0.02) miss('fill', where + ': ' + it.h + ' vs ' + want + ' in ' + r2(lanes));
+          } else if (it.kind === 'note') {
+            var nl = (it.h - 6) / 13;
+            if (it.h > lanes + 0.02 || nl < 0.99 || Math.abs(nl - Math.round(nl)) > 0.01) miss('fill', where + ': ' + it.h + ' in ' + r2(lanes));
           } else if (Math.abs(it.h - lanes) > 0.02) miss('fill', where + ': ' + it.h + ' vs ' + r2(lanes));
           if (!big) return;
           if (it.font !== S.text) miss('font', where + ': ' + it.font);
@@ -266,7 +282,7 @@ window.addEventListener('load', function () { (async function () {
     var input = $('pref-mv-barsize');
     var inCard = !!(input && input.closest('.prefs-card') && input.closest('.pref-view-month'));
     var std = await walk(), J0 = judge(std, 'standard');
-    kase('B0', 'opened with no key: the control shows Standard in the Month view card (.prefs-card), no size class, every lane and bar 17 px, not dirty, Undo off',
+    kase('B0', 'opened with no key: the control shows Standard in the Month view card (.prefs-card), no size class, every bar and band 19 px and every note its printed height, no lane under 17 px, not dirty, Undo off',
          ctl() === 'standard' && inCard && bodySize() === 'standard' && !J0.n.smallLane && !J0.n.bigLane && !J0.n.fill && !J0.n.font && undoOff() && !dirty(),
          { months: std.length, ctl: ctl(), inCard: inCard, body: bodySize(), misses: J0.n, first: J0.bad, undoOff: undoOff(), dirty: dirty() });
 
@@ -280,8 +296,8 @@ window.addEventListener('load', function () { (async function () {
       var m = await walk(), R = judge(m, key);
       walks[key] = m; J[key] = R;
       var S = SIZES[key];
-      kase('B1-' + key, key + ': control, class, dirty and Undo follow the click; lanes with no bar or band exactly 17 px, bar lanes exactly ' + S.h +
-           ' px, every bar fills its lanes, text ' + S.text + '/' + S.tag + ' px, emptied bands full height, no one-line bar overflows',
+      kase('B1-' + key, key + ': control, class, dirty and Undo follow the click; lanes holding only a "+" exactly 17 px and none under, bar lanes exactly ' + S.h +
+           ' px, every bar, band and note at its printed height, text ' + S.text + '/' + S.tag + ' px, emptied bands full height, no one-line bar overflows',
            picked.ctl === key && picked.body === key && picked.dirty && picked.undoOn && !R.n.tracks && !R.n.smallLane && !R.n.bigLane && !R.n.fill &&
            !R.n.font && !R.n.radius && !R.n.clip && R.emptyBands.every(function (h) { return Math.abs(h - S.h) <= 0.02; }) && R.bigLanes > 0,
            { picked: picked, smallLanes: R.smallLanes, bigLanes: R.bigLanes, sharedLanes: R.sharedLanes, emptyBands: R.emptyBands, clipY: R.clipY, misses: R.n, first: R.bad });
@@ -405,7 +421,9 @@ window.addEventListener('load', function () { (async function () {
         document.dispatchEvent(new CustomEvent('sptcal-zoom', { detail: { zoom: z } }));
         await T.sleep(400); await settle('zoom ' + z);
         var wk = document.querySelector('#table-wrap .mv-week');
-        res[z] = { zoom: wk && wk.currentCSSZoom, same: JSON.stringify(measureMonth().map(function (w) { return w.tracks; })) === JSON.stringify(at100) };
+        var atZ = measureMonth().map(function (w) { return w.tracks; });
+        res[z] = { zoom: wk && wk.currentCSSZoom, same: atZ.length === at100.length && atZ.every(function (tr, i) {
+          return tr.length === at100[i].length && tr.every(function (h, j) { return Math.abs(h - at100[i][j]) <= 1; }); }) };
       }
       document.dispatchEvent(new CustomEvent('sptcal-zoom', { detail: { zoom: 1 } }));
       await T.sleep(400); await settle('zoom 1');
@@ -419,7 +437,7 @@ window.addEventListener('load', function () { (async function () {
     await goTo(out.info.b2Month);
     var z2 = await zoomCase('xl');
     function zoomOk(r) { return [0.75, 1.5, 2].every(function (z) { return r[z].zoom === z && r[z].same; }); }
-    kase('B4', 'Large and Extra large at 75%, 150% and 200% zoom: the month has exactly its 100% lanes, in its own px', zoomOk(z1) && zoomOk(z2),
+    kase('B4', 'Large and Extra large at 75%, 150% and 200% zoom: the month has its 100% lanes, in its own px (the same number, each within 1 px)', zoomOk(z1) && zoomOk(z2),
          { month: out.info.b2Month, large: z1, xl: z2 });
 
     // ---- B5: E2, the wrap measured at the bar's own size ----

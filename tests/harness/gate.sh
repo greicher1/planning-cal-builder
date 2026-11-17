@@ -2603,6 +2603,41 @@ sys.exit(1 if bad else 0)
 PYV15
 done
 
+# ---- monthpage: the month view on screen is the month PDF's page (owner, 16 Nov 2026) --------------------------
+# The owner: the month view "needs to work like the waterfall calendar where it maintains consistent proportions despite
+# the window width or height ... as close as how it will appear when exported to pdf", then "phase bar size and note
+# size should also reflect the export exactly". On screen the month is one fixed card, the writer's page
+# (MVL_GEOMETRY: 1027.53 px wide, at least 788.03 px tall, a day column 141.07 px), its weeks sharing the page by the
+# writer's own rule (legacy.css "THE MONTH PAGE"; app.js fitMonthPage), bars and notes at their printed heights.
+# t/monthpage.js: G0 the card is the page in every month; P every week's height is the WRITTEN PDF's row within 0.1 px
+# on every month that fits a page; T a month the PDF shrinks stays full size in a taller card (monthscale has one);
+# B printed bar and note heights; S no note symbol; Z the zoom scales the page only; X a line added to a week stays
+# inside it; V the fit's numbers are on #table-wrap in the month view only; E the empty state keeps the panel's width.
+# The second mvnotes run is a small window (1100 x 760): the same numbers. Red on the build before it at G0, P, B, S,
+# Z, X and V. Screen only: gate 13 (the written month PDF, byte for byte) is what holds the PDF itself still.
+for MPSPEC in "mvnotes:::300" "mvnotes::1100,760:300" "notewrap:::300" "monthscale:tall=1::300" \
+              "mvbarsize-large:::300" "mvnotesize-mixed:::300" ":::90"; do
+  MPSTATE="${MPSPEC%%:*}"; MPR="${MPSPEC#*:}"
+  MPQ="${MPR%%:*}"; MPR="${MPR#*:}"
+  MPWIN="${MPR%%:*}"; MPSECS="${MPR#*:}"
+  rm -f "$HERE/monthpage.json"
+  ( [[ -n $MPWIN ]] && export HARNESS_WINDOW="$MPWIN"
+    HARNESS_PAGE="$PAGE" HARNESS_STATE="$MPSTATE" HARNESS_QUERY="$MPQ" "$HERE/run.sh" monthpage "$MPSECS" >/dev/null 2>&1 )
+  python3 - "$HERE/monthpage.json" "monthpage (${MPSTATE:-no calendar}${MPQ:+; $MPQ}${MPWIN:+; $MPWIN})" <<'PYMP' || FAIL=1
+import json,sys
+path, label = sys.argv[1], sys.argv[2]
+try: a=json.load(open(path))
+except Exception as e:
+    print('  FAIL  '+label+' produced no result: '+str(e)); sys.exit(1)
+cases = a.get('cases') or []
+bad = [c for c in cases if c.get('pass') is not True]
+for c in cases:
+    print(('  PASS  ' if c.get('pass') is True else '  FAIL  ')+label+' '+str(c.get('id'))+': '+str(c.get('title',''))[:110])
+if not cases: print('  FAIL  '+label+': no cases'); sys.exit(1)
+sys.exit(1 if bad else 0)
+PYMP
+done
+
 # The three trusted-input drivers (real Chrome over CDP, as mvkeysreal.mjs above), each judged on its own minimum count:
 # backuptwowin.mjs (3.7, AUD2-074): TWO real windows of one profile with real IndexedDB and Web Locks: window B is never
 #   offered window A's live work, nor lists it (W1, W2); once A closes, B's file menu opened with a real Enter lists it
@@ -2991,8 +3026,13 @@ for n in a:
 nw, wn = files('nw'), files('win')
 docs = [json.load(open(os.path.join(root, r, 'monthwriter.json'))).get('info', {}).get('docHash') for r in ('nw', 'win')]
 same = 'monthwriter.notewrap.pdf' in nw and nw.get('monthwriter.notewrap.pdf') == wn.get('monthwriter.notewrap.pdf')
-chk(same and docs[0] and docs[1] and docs[0] != docs[1],
-    'monthwriter (notewrap): the writer\'s file byte-identical from a 1600 and a 1280 px window, while the print document differs (%s vs %s)'
+# ⚠️ RE-PREMISED 16 Nov 2026 (the month page). Until then the PRINT document differed between the two windows
+# (renderMonthView sized each note from the live day column, which followed the window), and this check required
+# that difference as its control: the writer's file was the same although its input was not. The on-screen month is
+# now the PDF's page at every window, so the day column, and with it the print document, no longer follows the
+# window: both must be the same now. (The monthpage leg holds the card's width; gate 10's README has the proof.)
+chk(same and docs[0] and docs[1] and docs[0] == docs[1],
+    'monthwriter (notewrap): the writer\'s file byte-identical from a 1600 and a 1280 px window, and the print document too since the month page (%s vs %s)'
     % (docs[0], docs[1]))
 sys.exit(1 if bad else 0)
 PYMWC
@@ -3726,7 +3766,8 @@ PYNC
 
 # ---- calzoom: the calendar zoom, bottom right in both views (owner, 20 Oct 2026) ------------------------------
 # CSS `zoom` on #table-wrap, one value per view, a per-machine preference. 100% writes nothing at all (no style,
-# no class), which is why every byte-compared gate above is untouched by it. The leg holds the control's place
+# no class), which is why every byte-compared gate above is untouched by it. (Since 16 Nov 2026 the month view's page fit
+# keeps --mvp-* on #table-wrap's style at every zoom, which is not the zoom's: Z4 and M5 read what is left without it.) The leg holds the control's place
 # beside the help button, the grid fit at four zooms, the frozen resize handles on their rows while zoomed and at
 # 100% (shown at every zoom since 22 Oct 2026; leg zoomresize below drags them), the selection and swap overlays on their cells, the month view as a pure magnification
 # (columns and note lanes unchanged), and that a zoom never dirties the file, adds an undo step or travels in a copy.

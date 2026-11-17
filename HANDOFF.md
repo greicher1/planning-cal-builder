@@ -4,6 +4,129 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### ✅ 17 Nov 2026: THE MONTH VIEW ON SCREEN IS THE MONTH PDF'S PAGE. FINISHED on branch `month-page-fit` (worktree `.claude/worktrees/month-page-fit`, from `origin/main` `7e1d8b4`, `origin/main` `d44a52e` merged in; `node_modules` is a symlink, unlink it before `git worktree remove`): one commit, pushed to `main` as a fast-forward on the owner's pickers *"Commit"* and *"Push and deploy"*. No version cut (README: Unreleased). Tracker card `month-view-page-shape`
+- **Owner:** *"I think the viewport for the month view calendar needs to work like the waterfall calendar where it
+  maintains consistent proportions despite the window width or height. It should reflect whatever is as close as how
+  it will appear when exported to pdf"*, then *"phase bar size and note size should also reflect the export exactly.
+  essentially the live viewer should look just like what it will look like in the pdf export"*. Tried on localhost,
+  found the toolbar's resize jump (its own entry below, live as `d44a52e`), then *"Finish it"*.
+- **Measured first (`origin/main`, mvnotes):** `.month-view` took the panel's width, so the window set its shape: 743 px
+  wide at a 1100 px window, 1023 at 1440, 1409 at 1920, 2064 at 2560, always 721.5 px tall; day columns 100 / 140 /
+  196 / 289 px against the PDF's 141.075; the same two notes 2 + 3 lines, 2 + 2, 1 + 1.
+- **Rulings (owner's pickers, 16 Nov 2026):** *Full page shape* (width AND the weeks stretched to fill a Letter landscape
+  page; a screen-only change to the month view's frozen look, as Soft Lines); *Scroll, like waterfall* (100% is one
+  fixed size, a narrower window scrolls sideways, extra room sits on the right); grid lines *Leave colours apart* (Soft
+  Lines stays: 1 px soft grey on screen, 2 px black in the PDF; sizes and layout match); note symbols *Remove the
+  symbols* (no ↻ / ⚑ in the month view); a crowded month *Full size, taller page* (the PDF shrinks it, the screen does
+  not). 17 Nov 2026: gate 10 *Re-cut all eleven*.
+- **Built** (`src/styles/legacy.css`, `src/legacy/app.js`; no frozen function body edited, no frozen rule edited):
+  - **Width:** in the month view `#table-wrap` is a one-track grid, `calc(11in - 16mm + 32px)` = 1027.528 px =
+    `MVL_GEOMETRY.weekW` (987.528) plus the card's and the body's own borders and padding, at every window and every
+    zoom (`:has(> .month-view)`, so the empty state keeps the panel's width). It replaces the zoomed-only
+    `100% x --cal-zoom` track; `applyCalZoom()` no longer writes `--cal-zoom` on `#table-wrap` (the side boxes still
+    get theirs). ⛔ `grid-auto-rows:max-content` is load-bearing: the card has a min-height, and a grid item with a
+    min-height that is not `auto` gives its row that, not its content, so a month taller than the page ran out of its card.
+  - **Height:** a screen-only block (every selector `#table-wrap .month-view`, in the app shell's `@media screen`
+    block): the card is a flex column with `min-height:calc(8.5in - 16mm + 32.5px)` = 788.028 px, which puts the weeks'
+    room on the PDF's (630.53 px on mvnotes, both). The +32.5 is the card's 38 px of padding and border, less the
+    print page's 4 px padding, less 3 px of lines that print 2 px and draw 1 px, plus 1.5 px for the month bar's
+    hidden arrows (27 px against the text's 25.5).
+  - **How the weeks share it:** each week is `flex: <grow> 0 <basis>` with a min-height, from custom properties
+    `--mvp-f1..6` / `--mvp-m1..6` on `#table-wrap`'s own style, written by new `fitMonthPage()` (app.js, "THE MONTH
+    PAGE") after every render (a `childList` + `subtree` observer; it reads the frozen month, writes nothing inside
+    it). basis = the writer's `need` (top padding + the lines the bars reach + gaps + bottom padding, floor 57), grow
+    = `nice - need` (or `nice` when none is positive), from `mvlFitNumbers()`: the rule is `mvlShareRows`, carried out
+    by flexbox, so a header that changes height is absorbed with nothing re-measured. min = 0, except a week the user
+    added a line to (the row's "+"), which keeps that line inside.
+  - **Bars and notes at the height they print:** lanes `minmax(17px, auto)`, every bar `align-self:start`, Standard's
+    pills and bands a fixed 19 px (34 px wrapping), notes their own height (19 / 32 / 45 px, and every further line of
+    a longer note), "+" slots `contain:size` + stretch. Until now the screen held every line to 17 px. ⛔ These rules
+    carry a DOUBLED id (`#table-wrap#table-wrap`) to out-rank the screen's earlier one-id size rules (`contain:size`
+    on notes at a bar size, `height:17px` on pills at a note size), which are frozen and not edited.
+  - ⛔ **The bars layer never shrinks** (`flex:1 0 auto`, `position:static`; the week clips, `overflow-y:clip`). A
+    layer held shorter than its lines squeezed them (`minmax(17px, auto)` lines reach their own height only out of
+    free room), and `fitMonthPage`, which reads those heights, handed the squeezed week back as its basis: notewrap's
+    October 2026 was 125 px against the PDF's 195. With the layer static, the row-expand strip and a full day's "+"
+    anchor to the week's bottom edge.
+  - **Note symbols:** `mvDayNotePlan` no longer sets `mark`, so frozen edit NS1 and `.mv-note-mark`'s CSS are inert
+    (left in place); `mvNoteMarkFits` is deleted. A marked note was measured 10 px narrower and could take one more
+    line on screen than it prints.
+- **Leg `monthpage`** (`t/monthpage.js`, its own block in `gate.sh`; mvnotes at 1600 x 1200 and 1100 x 760, notewrap,
+  monthscale with `tall=1`, mvbarsize-large, mvnotesize-mixed, and no calendar): G0 the card is the page in every month
+  (1027.53 wide, at least 788.03 tall, a 141.07 px day, at the left of its box, which scrolls sideways exactly when it
+  is narrower); P every week's height is the WRITTEN PDF's row within 0.1 px on every month that fits a page (the
+  PDF's rows read out of its content streams); T a month the PDF shrinks stays full size in a taller card; B printed
+  bar and note heights; S no symbol; Z the zoom; X a line added to a week stays inside it; V the fit's numbers on
+  `#table-wrap` in the month view only; E the empty state keeps the panel's width. RED on `origin/main`'s build at
+  G0, P, B, S, Z, X and V.
+- **Legs re-premised** (each changed case says in its file what it held before):
+  - `calzoom` Z4, M5: "no style on `#table-wrap` at 100%" became "nothing of the ZOOM's" (`zoomLeft()` strips the
+    page fit's `--mvp-*`).
+  - `mvbarsize` B0, B1, B4 and `mvnotesize` (its `judge`): a Standard bar and its line are 19 px (were 17), a
+    two-line Standard bar 34 (was 36), a line with a one-line note is that note's height, a 10 px note is 13 px a
+    line plus 6 from the top of its first line (it used to fill its lines), a "+" still fills its lines; B4's lanes
+    at a zoom are within 1 px (a note's line is as tall as its text, and text lines land on whole device pixels).
+  - `autonoterename` S1, S2, S4: no symbol anywhere; S4 (it narrowed the calendar to 88 px days to crowd a symbol)
+    now holds that a narrowed scroll box does not narrow a day.
+  - `mvkeys` P18 found its automatic note by the symbol's class; it now finds it by its wording.
+- ⭐ **GATE 10 RE-CUT, all eleven cases** (owner's picker; `tests/baselines/2026-09-22-monthprint/README.md` has the
+  table). Frozen `mvNoteBoxWidth()` reads the LIVE day column, which is now the page's 141.07 px at every window, so
+  the print rollback sizes each note's lanes for the page it prints on. On every case exactly one note moved
+  ("Writer's Room Opens 1/5/26": one lane to two, its "+" slot gone, that week's fit `91/g23` to `95/g19`); one sheet
+  per month still holds. ⭐ The rollback's document no longer depends on the window: `reference` and `mvnotes` at
+  1100 x 760 and 1920 x 1080 equal the new cuts. Gate 13 (the written PDF) did not move.
+- ⛔ **CORRECTION: "6/7 px" is SIX SEVENTHS of a pixel, and no width edit closes the last differences.** This entry
+  first said frozen `mvNoteBoxWidth()` was "6/7 px wider than the bar" and proposed a one-line frozen edit. Read
+  wrongly: it is 0.857 px, and `mvNoteLineCountSized` already takes it off for 11 to 14 px notes. What is left is a
+  KNIFE EDGE: a note whose text is within about 0.1 px of its box's width. On mvnotes at 13 px, "Good Friday 3/26/27"
+  is 128.234 px in a 128.219 px box: the hidden measurer (128.205) says two lines, the note's own box (1/64 px wider,
+  Chrome shares a row's last sixty-fourths among the columns) sets it on one, so it sits in a two-line box with one
+  line. `mvnotesize` counts that as `edge`, not a miss. mvnotesize-14's "Office Move 4/1/26" (one line on screen, two
+  in the PDF) is the same kind: Chrome's text measure against the writer's font tables. The proposed frozen edit is
+  WITHDRAWN; it was never put to the owner.
+- ⭐ **WHAT THE FIRST FULL GATE FOUND (5,418 passed, 41 failed), and what each was:**
+  - ⛔ **A REAL BUG: the fit ran AFTER the things that measure the month.** A browser tells a node's observers of a
+    change in the order they were made, and `fitMonthPage`'s was made after a dozen that measure the month the moment
+    it is rendered. The waterfall menu's "Show this day in the month view" ring was drawn 8 px taller than its day
+    (`wfmenu` V2): placed, then the weeks took their page heights. Fix: the fit's observer is now the FIRST one made
+    on `#table-wrap` (near the top of `app.js`, "THE MONTH PAGE'S FIT IS TOLD OF A RENDER FIRST"). ⛔ Keep it first.
+  - ⛔ **A REAL GAP: a month drawn where there was none was measured for the wrong width.** Frozen
+    `mvNoteBoxWidth()` reads a day cell ALREADY on screen; coming from the waterfall, or on the first render after a
+    load, there is none and it guesses `(box width - 30) / 7`, right while the month filled its box and wrong now
+    (a 700 px box guesses 96 px for a 141 px day). Fix: that same observer renders such a month a second time, in the
+    same task, with the call the month arrows' listener makes (`render(currentSchedule)`; frozen code called, not
+    edited). `monthpage` F holds it; red without it at 1100 x 760.
+  - ⛔ **...and the second render must wait for the typeface.** At load it ran 16 ms after the first, before Inter
+    was in, and every note's line count is CACHED by box width: "Writer's Room Opens 1/5/26" was counted as one line
+    in the fallback face at the page's width, and every later render found that count. So a month drawn before the
+    face is in is only noted (`mvDrawnBeforeFonts`), and `mvAfterFonts()` empties `_mvNoteLineCache` /
+    `_mvPillLineCache` and renders once when it arrives. ⛔ `document.fonts.check("500 10px Inter")` answered TRUE
+    while the face was still loading; `mvFontsIn()` reads the Inter face's own `status`.
+  - `monthemit` / `monthwriter` F0 (36 of the 41): the guard that nothing outside the export names a writer function.
+    `monthPageNumbers` reads `mvlFitNumbers()` on purpose (the writer's constants, not a copy). F0 now allows that one
+    function that one name, as it does the Compare PDF's `buildListPdf`.
+  - `gate.sh`'s two-window check on notewrap required the PRINT document to DIFFER between a 1600 and a 1280 px
+    window (its control). It no longer differs; the check now requires both the same.
+  - `mvtextstyle` S3: a re-laid note used to move only its own week. The weeks share a page now, so its whole month
+    takes new shares; S3 holds that the month's weeks still add up to the same height.
+  - `hostile` S2 (one of four loads) did not repeat alone; see the second gate.
+- **Other things the finish found:**
+  - At 50% zoom a week moves by up to 1.5 px in its own px (a hairline draws at least one device pixel, so the
+    header's lines take more of a zoomed-out page), 0.5 px at 75%; exact again at 100%. `monthpage` Z allows 2 px.
+  - With no calendar and Month on, `#table-wrap` holds `.empty-state` (not `.month-empty`) at the panel's width.
+  - ⛔ A leg file may hold no dollar sign (`srv.js` splices it in with `String.replace`).
+- **Verified:** TWO FULL GATES (about 55 minutes each, port 8866). The first: 5,418 passed, 41 failed (the list above). The second,
+  on the final build `35176325…`: 5,464 passed, 1 failed, `scenariocompat` on `/releases/v1.2.0.html` (`after: {}`,
+  the old build never reported), which passed in the first gate and 3 of 3 alone afterwards; this branch touches
+  none of its files (the release, the leg, `lib.js`, `srv.js`, `run.sh`). `hostile` S2, the first gate's one-off,
+  passed in the second. ⚠️ So no single run printed GATE PASSED; every check has passed on the final build.
+  Gates 2, 3 and 13 byte-identical; gate 10 green against its re-cut (cut on `2860e81a…`, before the observer fixes,
+  and still identical on the final build). The written month PDF is byte-identical to `origin/main`'s on mvnotes, notewrap,
+  mvnotesize-mixed, mvbarsize-large, monthscale, mvorder-notes and blocks. `npm run check` 42/42.
+- **Not done / open:** the knife-edge notes above (no fix known). The month PDFs do not follow Soft Lines (a separate
+  frozen edit the owner has not ruled on). `try/` (the owner's try files) is deleted; the try server on port 8853 was
+  a background `srv.js`, stopped at the finish.
+
 ### ✅ 17 Nov 2026: THE TOOLBAR NO LONGER DROPS TO A SECOND LINE FOR A FRAME WHILE THE WINDOW IS RESIZED. Branch `toolbar-resize-fit` (worktree `.claude/worktrees/toolbar-resize-fit`, from `origin/main` `8af4298`; `node_modules` is a symlink, unlink it before `git worktree remove`), one commit, pushed to `main` as a fast-forward on the owner's pickers *"Commit"* and *"Push and deploy"* after trying it on localhost. No version cut (README: Unreleased). Tracker card `toolbar-resize-wrap`
 - **Owner, trying the month page build (branch `month-page-fit`):** *"There's a CSS wrap glitch as i change the size of
   the window"*, then *"at width 1258 px and several other 1 pixel gaps"*. After the fix, on localhost: *"Yes, gone"*.
@@ -32,9 +155,8 @@
   the same widths as before. Not run: the full gate (chrome only).
 - ⚠️ **Not covered:** a row width that changes WITHOUT a window resize (a notice strip, side boxes added) still goes
   through the timer, so one frame can paint before the fit.
-- ⚠️ **`month-page-fit` carries the same edit to `PreviewToolbar.jsx`, uncommitted** (the bug was found and first fixed
-  there). Once this branch is on `main`, drop that copy there (`git checkout -- src/chrome/PreviewToolbar.jsx`) before
-  merging `origin/main` into it.
+- ✅ `month-page-fit` carried the same edit to `PreviewToolbar.jsx`, uncommitted (the bug was found and first fixed
+  there); that copy was dropped and `origin/main` merged in on 17 Nov 2026.
 
 ### ✅ 16 Nov 2026: "MORE OPTIONS" IS GONE: EVERY PHASE CARD SHOWS ALL ITS SWITCHES AGAIN (undoes half of audit 2.14's AUD2-036). Branch `no-more-options` (worktree `.claude/worktrees/more-options-toggle`, from `origin/main` `7e1d8b4`; `node_modules` is a symlink, unlink it before `git worktree remove`): committed locally, NOT pushed (the push is the owner's picker). No version cut (README: Unreleased). Tracker card `remove-phase-more-options`; `more-options-toggle` is rejected (superseded).
 - **How it went:** the owner first asked for the line to read "More Options" with a right-pointing arrow and open IN

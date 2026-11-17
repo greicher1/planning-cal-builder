@@ -1399,6 +1399,38 @@ export function initLegacyApp() {
     hoverTimer = setTimeout(()=>{ hoverTimer = 0; hoverPendingId = null; const again = hoverPromptFor(c.td); if(again && again.id === c.id && c.td.isConnected) showHoverPrompt(again); }, HOVER_PROMPT_DELAY_MS);
   });
   document.addEventListener('pointerleave', clearHoverPrompt);
+  // ⭐ THE MONTH PAGE'S FIT IS TOLD OF A RENDER FIRST (17 Nov 2026; fitMonthPage and its numbers are further down, at
+  // "THE MONTH PAGE"). ⛔ This must stay the FIRST MutationObserver made on #table-wrap. A browser tells a node's
+  // observers of a change in the order they were made, and a dozen of the ones below measure the month the moment it
+  // is rendered (the day menu's flash ring, the picked text's outlines, the phase map). Made after them, the fit
+  // changed every week's height AFTER they had measured: the gate caught the waterfall menu's "Show this day in the
+  // month view" ring 8 px taller than its day (wfmenu V2). Made first, it has run by the time any of them looks.
+  // The functions are declarations (hoisted), and no observer runs before this whole script has.
+  new MutationObserver(recs=>{
+    // ⭐ A MONTH MEASURED WITH NO DAY TO MEASURE IS RENDERED AGAIN, ONCE. Frozen mvNoteBoxWidth() sizes every note's
+    // lines from a day cell ALREADY on screen. Coming from the waterfall, or on the first render after a load, there
+    // is none, and it falls back to a guess from the box's width, (width - 30) / 7: right while the month filled its
+    // box, wrong now that a day is the page's 141.07 px at every window (a 700 px box guesses 96 px and gives a note
+    // lines it does not need; a 2200 px box guesses 310 and gives it too few). So when a render put a month where
+    // there was none, render it again now that its days are there to read. The second render replaces a month with
+    // a month, so it does not come back here. Same task, before anything is painted. The frozen function is called,
+    // not edited (CLAUDE.md, sanctioned pattern 2), with the call the month arrows' own listener makes.
+    const tw = document.getElementById('table-wrap');
+    const isMonth = n=> n.nodeType === 1 && n.classList.contains('month-view');
+    const drawn = recs.filter(r=> r.target === tw && Array.from(r.addedNodes).some(isMonth));
+    const fresh = drawn.some(r=> !Array.from(r.removedNodes).some(isMonth));
+    // ⛔ Only once the month's typeface is in. Every note's line count is cached by its box's width, and a count
+    // taken in the fallback face is wrong (narrower letters: "Writer's Room Opens 1/5/26" fits one line, and needs
+    // two in Inter). A second render at load, before Inter arrived, cached that at the page's width, where every
+    // later render found it. So a month drawn before the face is in is only noted here, and mvAfterFonts() (at "THE
+    // MONTH PAGE") empties the caches and renders it again when the face arrives.
+    if(drawn.length && !mvFontsIn()) mvDrawnBeforeFonts = true;
+    else if(fresh && viewMode === 'month' && currentSchedule && !printingCursor){
+      try { render(currentSchedule); } catch(e){ /* the first render stands */ }
+    }
+    fitMonthPage();
+  }).observe(document.getElementById('table-wrap'), { childList: true, subtree: true });
+
   // A re-render replaces .sheet-grid-wrap (and the layer with it): forget the prompt, as the selection layer does.
   new MutationObserver(()=>{ if(hoverPrompt || hoverTimer) clearHoverPrompt(); }).observe(document.getElementById('table-wrap'), { childList: true });
 
@@ -19507,26 +19539,6 @@ export function initLegacyApp() {
     if(r.arranged) r.ref = mvReferenceAnchors(schedule);
     return r;
   }
-  // Whether a marked line still fits a month note's three lines once the symbol's room is taken (frozen edit NS1 measures
-  // it MV_NOTE_MARK_W narrower, and mvNoteLineCount never gives a note more than three lanes). A line that would need a
-  // fourth is drawn WITHOUT its symbol, so the symbol can never cut a line off; a wider window gives it back. Measured
-  // with mvNoteLineCount's own hidden measurer and rules, unclamped. The box is the renderer's own (mvNoteBoxWidth).
-  const _mvMarkFitCache = new Map();
-  function mvNoteMarkFits(text, fmt){
-    const boxW = mvNoteBoxWidth() - MV_NOTE_MARK_W;
-    const sig = mvMeasureSig(fmt);
-    const key = Math.round(boxW) + '|' + text + (sig ? '|' + sig : '');
-    if(_mvMarkFitCache.has(key)) return _mvMarkFitCache.get(key);
-    mvNoteLineCount('x', boxW);                           // makes the measurer, once
-    const el = _mvNoteMeasureEl;
-    el.style.width = Math.max(24, boxW) + 'px';
-    mvMeasureFont(el, fmt, 500, 1.3, MV_TEXT_LINE_PX.note);
-    el.textContent = String(text || '');
-    const fits = Math.round((el.offsetHeight - 6) / 13) <= 3;
-    if(_mvMarkFitCache.size > 800) _mvMarkFitCache.clear();
-    _mvMarkFitCache.set(key, fits);
-    return fits;
-  }
   // One day's notes, in order, each with its group. With `legacy` (no order or place anywhere, or the untouched
   // layout being drawn) every note is 'below': the waterfall's lines, then the day's own in array order -- the
   // loop renderMonthView always had.
@@ -19537,11 +19549,12 @@ export function initLegacyApp() {
     // A holiday with its own month colour (holidayColors) carries it on its block as `color`, which frozen edit H1
     // draws in place of the week's. Asked only while some holiday has one, so every other calendar plans as before.
     // An automatic note's own colour (autoNoteColors) rides the same way, asked only while some note has one.
-    // ⭐ ...and, ON SCREEN ONLY, which kind of line it is, as `mark` ('auto' | 'holiday'), the symbol frozen edit NS1 draws
-    // before it (owner, 2 Nov 2026, by picker: "Month view, on screen", "↻ auto, ⚑ holiday"). Never while
-    // printingCursor is set -- the print rollback and the month-PDF writer -- so both month PDFs build exactly as before.
+    // ⛔ NO SYMBOL SINCE 16 NOV 2026 (owner's picker, "Remove the symbols"; the month view on screen is the month PDF's
+    // page now, "THE MONTH PAGE"). From 2 Nov 2026 a block also carried `mark` ('auto' | 'holiday') on screen only, the
+    // ↻ / ⚑ frozen edit NS1 drew before the line, and NS1 measured a marked line 10 px narrower, so a long line took
+    // one more line on screen than it prints. Nothing sets `mark` now, so NS1 and its CSS (.mv-note-mark) are inert
+    // and a line wraps on screen exactly as in the PDF. Both are left in place, untouched: NS1 is frozen code.
     const anyHolColor = Object.keys(holidayColors).length > 0, anyAutoColor = Object.keys(autoNoteColors).length > 0;
-    const onScreen = !printingCursor;
     // mvWfLinesFor: notesForWaterfallDate() less a week's typed lines switched off for the month view (owner, 4 Nov 2026).
     // A note linked to a phase (step 5) is drawn in its OWN colour wherever it lands, carried in as `b.color` (frozen
     // edit H1's slot), when it has one; without one it takes its week's, as every waterfall line does. mvWfLinesFor puts
@@ -19557,11 +19570,10 @@ export function initLegacyApp() {
         if(v && (isHexColor(v.color) || isMvNoFill(v.color))) b.color = v.color;
         return b;
       }
-      const hol = (anyHolColor || onScreen) ? mvHolidayLineInfo(schedule, iso, text) : null;
+      const hol = anyHolColor ? mvHolidayLineInfo(schedule, iso, text) : null;
       if(hol && Object.prototype.hasOwnProperty.call(holidayColors, hol.hid)) b.color = holidayColors[hol.hid];
-      const auto = ((anyAutoColor || onScreen) && !hol) ? mvAutoLineInfo(schedule, iso, text) : null;
+      const auto = (anyAutoColor && !hol) ? mvAutoLineInfo(schedule, iso, text) : null;
       if(auto && Object.prototype.hasOwnProperty.call(autoNoteColors, auto.kind)) b.color = autoNoteColors[auto.kind];
-      if(onScreen && (hol || auto) && mvNoteMarkFits(text, mvTextStyleOf('wfnote', mvWfNoteKey(text)))) b.mark = hol ? 'holiday' : 'auto';
       return b;
     });
     const groups = [];
@@ -30512,8 +30524,9 @@ export function initLegacyApp() {
   // larger or smaller. Nothing reflows:
   //   * the waterfall's table has explicit widths, so it is the 100% table scaled; its scroll box
   //     fills the panel at every zoom (the grid fit divides by the zoom, see "THE APP SHELL'S GRID FIT");
-  //   * the month view is PINNED to the width it has at 100% (legacy.css, "THE MONTH VIEW SCROLLS IN
-  //     #table-wrap"), so its day columns keep their CSS width and every note keeps its line count.
+  //   * the month view is laid out in ONE FIXED TRACK, the month PDF page's width, at every zoom and every
+  //     window (legacy.css, "THE MONTH PAGE'S WIDTH"; until 16 Nov 2026 it was pinned to the panel's width at
+  //     100%), so its day columns keep their CSS width and every note keeps its line count.
   //     Zoomed in it scrolls sideways, as a zoomed-in page does. Since 26 Oct 2026 (owner: "The
   //     surrounding menus need to stay fixed in place") #table-wrap is the month's scroll box, under the
   //     toolbar, as the waterfall's grid box is; before that the whole panel scrolled, toolbar and all.
@@ -30572,9 +30585,9 @@ export function initLegacyApp() {
     const tw = document.getElementById('table-wrap');
     if(tw){
       put(tw, 'zoom', on ? String(z) : '');
-      // The month's width pin is CSS now (legacy.css, "THE MONTH VIEW SCROLLS IN #table-wrap"): a grid track
-      // in the app shell, a width when stacked. This hands it the zoom. An inline width it used to be.
-      put(tw, '--cal-zoom', on && calZoomView() === 'month' ? String(z) : '');
+      // (Until 16 Nov 2026 this also wrote --cal-zoom here for the month's track, `100% x the zoom`, to put a zoomed
+      // month back on the panel's width. The track is a fixed width now, legacy.css "THE MONTH PAGE'S WIDTH", which
+      // CSS zoom scales with nothing to undo.)
       if(tw.getAttribute('style') === '') tw.removeAttribute('style');
     }
     // The side boxes are NOT zoomed (owner, 21 Oct 2026: "the side boxes should not change size with
@@ -30627,6 +30640,136 @@ export function initLegacyApp() {
   // Every render may add or remove the calendar. Observing mutates nothing; the re-apply writes only
   // #table-wrap's own style, never a child, so it cannot feed this observer (childList only).
   new MutationObserver(applyCalZoom).observe(document.getElementById('table-wrap'), { childList: true });
+
+  // ⭐ THE MONTH PAGE (owner, 16 Nov 2026: "the viewport for the month view calendar needs to work like the
+  // waterfall calendar where it maintains consistent proportions despite the window width or height. It should
+  // reflect whatever is as close as how it will appear when exported to pdf"; by picker, "Full page shape" and
+  // "Scroll, like waterfall"). On screen the month is drawn at the month PDF's page: its width is one fixed track
+  // on #table-wrap and its height a min-height on the card (legacy.css, "THE MONTH PAGE'S WIDTH" and "The month
+  // page"), so the window decides only how much of the page shows, never its shape.
+  //
+  // This is the one part CSS cannot do alone: how the weeks SHARE the page's height. The PDF's rule is
+  // mvlShareRows() (exportMonthPdf's fill, as flexbox carries it out): each week starts at what its bars need, and
+  // the room left goes to the weeks below the four-line height, in proportion to how far below it they are, or to
+  // all of them by that height when none is. The screen-only block in legacy.css makes each week
+  // `flex: <grow> 0 <basis>` with a min-height, and this hands it the three numbers, so flexbox carries the same
+  // rule out here and a header that changes height (Manual mode, Header: Off, a wrapped title) is absorbed with
+  // nothing re-measured.
+  //
+  // ⛔ IT READS THE FROZEN MONTH AND WRITES ONLY #table-wrap's OWN STYLE (sanctioned pattern 3, "observe the frozen
+  // surface"): custom properties --mvp-f1..6 / --mvp-m1..6, never a node inside it. buildSavedHtml() strips
+  // #table-wrap's style, so none of it reaches a shareable copy. Neither month writer nor the print rollback can see
+  // it: they read renderMonthView's HTML and #print-root.
+  //   basis  what the week's bars need: the top padding, the lines its bars reach, the gaps, the bottom padding,
+  //          and never under one line (the writer's mvlWeekNeed and its floor). The lines are read from the layer's
+  //          computed tracks, which the same stylesheet block sizes as print does, so they are the PDF's lines.
+  //   grow   the four-line height less the basis (mvlFitNumbers: 38 + 19 a line, at least MV_MIN_LANES lines).
+  //   min    0, except in a week the user added a line to (the row's "+"): there, the bottom of its last line, so
+  //          the line asked for is always inside the week. Flexbox freezes such a week at it and shares the rest
+  //          again. The four lines every week is given are NOT held: the PDF has none of them, and holding them
+  //          moved a six-week month's rows up to 2 px off the PDF's (measured on mvnotes, May 2026). Where a week is
+  //          shorter than its empty lines the week clips them (legacy.css, overflow-y:clip).
+  // ⚠️ The tracks read here never depend on the numbers written here: the layer cannot shrink (legacy.css, flex:1 0
+  // auto), so its lines are always at their own height, whatever basis the week still carries from the last render.
+  // A month the PDF has to shrink is not shrunk here: no week can go under its basis, so the card grows instead.
+  // With no numbers (a week it cannot read) the CSS falls back to equal growth, still page-shaped.
+  const MV_PAGE_WEEKS = 6;   // a month never spans more; legacy.css names exactly this many :nth-child rules
+  function monthPageNumbers(tw){
+    if(viewMode !== 'month') return null;
+    const weeks = Array.from(tw.querySelectorAll(':scope > .month-view > .mv-body > .mv-week'));
+    if(!weeks.length || weeks.length > MV_PAGE_WEEKS) return null;
+    let F = null;
+    try { F = mvlFitNumbers(); } catch(e){ return null; }   // the writer's constants, not a copy of them
+    const rows = [];
+    for(const wk of weeks){
+      const layer = wk.querySelector(':scope > .mv-bars');
+      if(!layer) return null;
+      const cs = getComputedStyle(layer);
+      const padTop = parseFloat(cs.paddingTop) || 0, padBottom = parseFloat(cs.paddingBottom) || 0;
+      const gap = parseFloat(cs.rowGap) || 0;
+      const tracks = String(cs.gridTemplateRows || '').split(/\s+/).map(parseFloat).filter(Number.isFinite);
+      // The lines its bars reach, as exportMonthPdf counts them: the furthest line any bar ends on. Their heights
+      // are the layer's computed tracks, which on screen are the heights they print at (legacy.css, "THE BARS AND
+      // THE NOTES AT THE HEIGHT THEY PRINT": content-sized lanes, each bar at its own height, as #print-root).
+      let used = 0;
+      layer.querySelectorAll(':scope > .mv-bar:not(.mv-note-add):not(.mv-row-expand)').forEach(b=>{
+        const m = String(b.style.gridRow || '').match(/^\s*(\d+)(?:\s*\/\s*span\s*(\d+))?/);
+        if(m) used = Math.max(used, parseInt(m[1], 10) - 1 + (m[2] ? parseInt(m[2], 10) : 1));
+      });
+      if(tracks.length < used) return null;
+      const bottomOf = n=>{ let h = padTop; for(let j = 0; j < n; j++) h += tracks[j]; return h + gap * Math.max(0, n - 1); };
+      // `min` only for lines the USER added to the week (the row's "+": mvExtraLanes), which the renderer draws
+      // past both the four it always gives and the ones the bars reach. The PDF has no empty lines at all, so a
+      // week holding one is the one place a fitting month's rows leave the PDF's, for as long as the line is empty.
+      rows.push({ need: Math.max(bottomOf(used) + padBottom, F.floor),
+                  nice: F.chrome + Math.max(used, MV_MIN_LANES) * F.lane,
+                  // ...plus the week's own top line, which is inside its height (box-sizing:border-box).
+                  min: tracks.length > Math.max(used, MV_MIN_LANES)
+                    ? bottomOf(tracks.length) + (parseFloat(getComputedStyle(wk).borderTopWidth) || 0) : 0 });
+    }
+    const grow = rows.map(r=> Math.max(0, r.nice - r.need));
+    const any = grow.some(g=> g > 0);
+    // x100: flexbox shares out only part of the room when the grow factors sum to less than 1.
+    return rows.map((r, i)=>({ f: (Math.round((any ? grow[i] : r.nice) * 1000) / 10) + ' 0 ' + r.need.toFixed(3) + 'px',
+                               m: r.min.toFixed(3) + 'px' }));
+  }
+  function fitMonthPage(){
+    const tw = document.getElementById('table-wrap');
+    if(!tw) return;
+    let nums = null;
+    try { nums = monthPageNumbers(tw); } catch(e){ nums = null; }
+    // Written only when it changes: a style write is a mutation the grid fit observes.
+    const put = (prop, val)=>{
+      if(val){ if(tw.style.getPropertyValue(prop) !== val) tw.style.setProperty(prop, val); }
+      else if(tw.style.getPropertyValue(prop)) tw.style.removeProperty(prop);
+    };
+    for(let i = 0; i < MV_PAGE_WEEKS; i++){
+      put('--mvp-f' + (i + 1), nums && nums[i] ? nums[i].f : '');
+      put('--mvp-m' + (i + 1), nums && nums[i] ? nums[i].m : '');
+    }
+    if(tw.getAttribute('style') === '') tw.removeAttribute('style');
+  }
+  // Run after every render, and after anything that redraws a week in place (subtree): the numbers are that week's
+  // bars'. Observing mutates nothing, and the write is to #table-wrap's style, which childList does not report.
+  // ⛔ The observer itself is made near the top of this script, before every other observer on #table-wrap ("THE
+  // MONTH PAGE'S FIT IS TOLD OF A RENDER FIRST"): it has to run before any of them measures the month.
+  // ⭐ WHEN THE MONTH'S TYPEFACE ARRIVES. A content-sized line's height is its text's, so the numbers are read again
+  // once the fonts are in. And a month drawn BEFORE Inter was in (the observer above notes it) had every note and
+  // one-day bar measured in the fallback face: those counts are cached by box width, so they would be found again
+  // by every later render at the page's width. The two caches are emptied (the frozen measurers empty them
+  // themselves past 800 entries; a cache holds nothing a render cannot measure again) and the month is rendered
+  // once more, with the call the month arrows' own listener makes. Once: the flag is cleared first.
+  // ⛔ Read from the Inter face's OWN status. document.fonts.check("500 10px Inter") answered true while the face was
+  // still loading (measured 17 Nov 2026: a render 16 ms after the first counted "Writer's Room Opens 1/5/26" as one
+  // line in the fallback face, with check() true), and document.fonts.status reads 'loaded' before anything has
+  // asked for a face at all. With no Inter face in the set (a copy that takes it from elsewhere), the set's status.
+  let mvDrawnBeforeFonts = false;
+  function mvFontsIn(){
+    try {
+      if(!document.fonts) return true;
+      let seen = false;
+      for(const f of document.fonts){
+        if(String(f.family).replace(/['"]/g, '') !== 'Inter') continue;
+        seen = true;
+        if(f.status !== 'loaded') return false;
+      }
+      return seen ? true : document.fonts.status === 'loaded';
+    } catch(e){ return true; }
+  }
+  function mvAfterFonts(){
+    if(mvDrawnBeforeFonts && mvFontsIn()){
+      mvDrawnBeforeFonts = false;
+      _mvNoteLineCache.clear(); _mvPillLineCache.clear();
+      if(viewMode === 'month' && currentSchedule && !printingCursor && document.querySelector('#table-wrap > .month-view')){
+        try { render(currentSchedule); } catch(e){ /* the month as drawn stands */ }
+      }
+    }
+    fitMonthPage();
+  }
+  if(document.fonts){
+    if(document.fonts.addEventListener) document.fonts.addEventListener('loadingdone', mvAfterFonts);
+    if(document.fonts.ready && typeof document.fonts.ready.then === 'function') document.fonts.ready.then(mvAfterFonts, ()=>{});
+  }
 
   // Episodes panel wiring. Delegated from the phase-rows container because the panel lives
   // inside the Production row, which is rebuilt by buildPhaseRows().

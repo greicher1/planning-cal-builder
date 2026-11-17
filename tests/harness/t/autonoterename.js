@@ -11,10 +11,17 @@
 // Independence Day (Observed) are switched on for the waterfall, so the 6/29/26 week holds an automatic note AND a
 // holiday.
 //
-//   S1  ON SCREEN an automatic note carries the ↻ mark and a holiday the ⚑ mark (frozen edit NS1), a typed line none
-//   S2  no marked note overflows its box in any month (one the symbol would push past three lines goes without it)
+//   ⚠️ S1, S2, S4 RE-PREMISED 16 Nov 2026: THE SYMBOLS ARE GONE (owner's picker, "Remove the symbols", with the month
+//   page: the screen is the PDF's page, and the PDF never had them; a marked note was also measured 10 px narrower, so it
+//   could take one more line on screen than it prints). mvDayNotePlan no longer sets `mark`; frozen edit NS1 and the
+//   .mv-note-mark CSS are left in place, inert. Until then S1 held the ↻ / ⚑ marks, S2 that none overflowed, and S4
+//   that a holiday the symbol would push past three lines went without it.
+//   S1  ON SCREEN no note carries a symbol: an automatic note, a holiday and a typed line are all plain (4 px padding,
+//       no mask)
+//   S2  no note has its text cut off in any month shown, and none is marked
 //   S3  the print rollback renders no symbol (the month-PDF writer is held byte for byte by gate 13)
-//   S4  narrowed, a holiday the symbol would push past three lines goes without it, and no text is cut off
+//   S4  with its scroll box narrowed to 640 px the month keeps the page's day width (it scrolls, it does not squeeze),
+//       no note is marked and no text is cut off
 //   A1  Start Principal Photography opens the AUTO NOTE editor: "6/29/26 · Auto Note", its name alone, a placeholder
 //       saying clearing hides it, a Hide Auto-Note button (owner, 4 Nov 2026), the week's purple selected
 //   A2  renamed "First Day of Shoot": the month view, the waterfall cell (beside the holiday) and the file follow, and
@@ -199,7 +206,7 @@ window.addEventListener('load', function () { (async function () {
     if (document.fonts && document.fonts.ready) await document.fonts.ready;
     var S0 = JSON.parse(await save());
 
-    // ===== S1-S2: the note symbol, on screen only (frozen edit NS1) =================================================
+    // ===== S1-S2: no note symbol (removed 16 Nov 2026; frozen edit NS1 is inert) =====================================
     function markOf(b) { return !b ? null : b.classList.contains('mv-note-mark-auto') ? 'auto' : b.classList.contains('mv-note-mark-holiday') ? 'holiday' : '-'; }
     await step('S1', async function () {
       await toMonth('July 2026');
@@ -208,10 +215,10 @@ window.addEventListener('load', function () { (async function () {
       var be = b4 ? { width: b4.width, mask: b4.webkitMaskImage || b4.maskImage || '' } : {};
       await toMonth('November 2026');
       var post = block('2026-11-02', /^Post Begins/), typed = block('2026-11-03', /^Post kickoff/);
-      kase('S1', 'on screen an automatic note carries the ↻ mark and a holiday the ⚑ mark, a typed line none; the symbol is an 8px mask in 10px of extra left padding',
-           markOf(start) === 'auto' && markOf(hol) === 'holiday' && markOf(post) === 'auto' && markOf(typed) === '-'
-             && cs.pad === '14px' && be.width === '8px' && /svg/.test(be.mask),
-           { start: markOf(start), holiday: markOf(hol), post: markOf(post), typed: markOf(typed), pad: cs.pad, symbol: be.width });
+      kase('S1', 'on screen no note carries a symbol: an automatic note, a holiday and a typed line are all plain (4px padding, no mask)',
+           markOf(start) === '-' && markOf(hol) === '-' && markOf(post) === '-' && markOf(typed) === '-'
+             && cs.pad === '4px' && !/svg/.test(be.mask || '') && document.querySelectorAll('#table-wrap .mv-note-mark').length === 0,
+           { start: markOf(start), holiday: markOf(hol), post: markOf(post), typed: markOf(typed), pad: cs.pad, symbol: be.width, mask: (be.mask || '').slice(0, 30) });
     });
     // Cut off = the TEXT ends below the inside of its box. (Every one-lane note hides its own 2 px of bottom padding,
     // marked or not, so scrollHeight against clientHeight is no test.)
@@ -231,8 +238,8 @@ window.addEventListener('load', function () { (async function () {
           if (textClipped(b)) (m ? bad : plainBad).push(months[i] + ': ' + txt(b));
         });
       }
-      kase('S2', 'no marked note has its text cut off in any month shown (one the symbol would push past three lines goes without it); nor does any unmarked one',
-           marked >= 5 && plain >= 1 && bad.length === 0 && plainBad.length === 0, { marked: marked, plain: plain, cut: bad, plainCut: plainBad });
+      kase('S2', 'no note has its text cut off in any month shown, and none is marked',
+           marked === 0 && plain >= 6 && bad.length === 0 && plainBad.length === 0, { marked: marked, plain: plain, cut: bad, plainCut: plainBad });
     });
     await step('S3', async function () {
       T.monthPrintPath(true);
@@ -246,9 +253,10 @@ window.addEventListener('load', function () { (async function () {
       kase('S3', 'the print rollback renders no symbol (the month PDF writer is held byte for byte by gate 13)', printed && marks === 0, { printed: printed, marks: marks });
     });
 
-    // S4 makes the case S2 cannot meet at this window's width: the calendar narrowed until "Independence Day (Observed)
-    // 7/3/26" fills its three lines, so the symbol's room would push it onto a fourth (the browser pane showed it, 88 px
-    // days). It must go without its symbol, and nothing anywhere may be cut off.
+    // S4 used to narrow the calendar until "Independence Day (Observed) 7/3/26" filled its three lines (88 px days), where
+    // the symbol's room would have pushed it onto a fourth. Since 16 Nov 2026 the month is the PDF's page at every box
+    // width: narrowing its scroll box no longer narrows a day, and there is no symbol. Held here: the day keeps the
+    // page's width, nothing is marked, nothing is cut off.
     await step('S4', async function () {
       var tw = byId('table-wrap'), w0 = tw.style.width;
       var r = null, cut = null;
@@ -262,8 +270,8 @@ window.addEventListener('load', function () { (async function () {
         tw.style.width = w0;
         await view('sheet'); await view('month');
       }
-      kase('S4', 'narrowed, a holiday the symbol would push past three lines is drawn without it, a shorter one keeps its ⚑, and no text is cut off',
-           r.observed === '-' && r.observedCut === false && r.jul4 === 'holiday' && cut.length === 0, { narrow: r, cut: cut });
+      kase('S4', 'its scroll box narrowed to 640 px, the month keeps the page\'s day width, no holiday is marked and no text is cut off',
+           r.observed === '-' && r.observedCut === false && r.jul4 === '-' && r.day > 130 && cut.length === 0, { narrow: r, cut: cut });
     });
 
     // ===== A1-A4: rename and colour Start Principal Photography in the month view ==================================

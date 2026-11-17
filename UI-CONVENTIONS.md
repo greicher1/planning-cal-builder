@@ -986,6 +986,43 @@ cap and the left packing, never stacked, the 960 px minimum and the sideways scr
 its arrows, the Aa menu acting on a picked cell, the hammer, the icon-only toggle) and `stylebarplace` (the ladder by
 the row's width inside one window, the gaps, the order).
 
+### ✅ AS BUILT — the month view is the month PDF's page (16 Nov 2026)
+
+Owner: *"I think the viewport for the month view calendar needs to work like the waterfall calendar where it maintains
+consistent proportions despite the window width or height. It should reflect whatever is as close as how it will
+appear when exported to pdf"*, then *"phase bar size and note size should also reflect the export exactly. essentially
+the live viewer should look just like what it will look like in the pdf export"*. Five pickers: **Full page shape**,
+**Scroll, like waterfall**, grid lines **Leave colours apart**, note symbols **Remove the symbols**, a crowded month
+**Full size, taller page**.
+
+- **One fixed card.** In the month view `#table-wrap` is a one-track grid, `calc(11in - 16mm + 32px)` = 1027.53 px:
+  the writer's week width (`MVL_GEOMETRY.weekW`, 987.53) plus the card's own borders and padding. A day column is
+  141.07 px at every window and every zoom. Until then the card took the panel's width: 743 px at a 1100 px window,
+  2064 px at 2560, a day column 100 to 289 px, and the same note one, two or three lines.
+- **A smaller window scrolls**, sideways too, as the waterfall does; a larger one leaves its spare room on the right.
+  The zoom scales the card and nothing else.
+- **The page's height.** The card is at least `calc(8.5in - 16mm + 32.5px)` = 788.03 px, a Letter landscape page, and
+  the weeks share what the header leaves by the writer's own rule (`mvlShareRows`: each week its need, the spare room
+  by how far each is short of its comfortable height), carried out by flexbox from numbers `fitMonthPage()` writes
+  on `#table-wrap`'s own style (`--mvp-f1..6`, `--mvp-m1..6`).
+- **Printed heights.** A Standard bar or band is 19 px (34 px on two lines), a 10 px note 13 px a line plus 6, each
+  from the top of its first line; a line is as tall as what prints in it and never under 17 px. Until then the screen
+  held every Standard line to 17 px and stretched bars and notes over their lines.
+- **A month the PDF shrinks stays full size**, in a card taller than the page. The export still warns.
+- **Soft Lines stays**: 1 px soft grey on screen, 2 px black in the PDF. Sizes and layout match; that is the one
+  intended difference.
+- **No note symbols** (↻ / ⚑, 2 Nov 2026): the PDF never had them, and a marked note was measured 10 px narrower.
+- ⛔ **A knife edge can still differ.** A note's lines come from measuring text, and Chrome on screen and the PDF's own
+  font tables differ by hundredths of a pixel. A note whose text is within about 0.1 px of its box's width can take a
+  line more or less on screen than in the PDF (seen: one note at 13 px on `mvnotes`, one at 14 px on `mvnotesize-14`).
+  No width change closes it.
+
+**Held by** `monthpage` (five calendars, a small window, and no calendar): every week's height on screen is the
+written PDF's row within 0.1 px on every month that fits a page; the card, the day column and the scroll rule; printed
+bar and note heights; no symbol; the zoom; a line added to a week stays inside it. `calzoom`, `mvbarsize`,
+`mvnotesize`, `autonoterename` and `mvkeys` were re-premised for it. Gate 13 holds the PDF itself; gate 10 was re-cut
+(the print rollback now sizes notes for the page, not the window).
+
 ### ✅ AS BUILT — the install gate's page (30 Sep 2026, `PWA-ONLY-PLAN.md`)
 
 On the hosted link, an ordinary browser tab shows `#app-gate` instead of the app: one full-screen
@@ -1475,6 +1512,10 @@ Nothing in this document ships without all of these, every stage:
       and a bar spans every phase the month view draws. Part C (28 Oct 2026): the month stepper's label is the month
       band's month after every ‹ › and map click, its arrows stop at both ends, and Today goes to this month.
     - Gates 10 and 13 byte-identical are the proof the look stays off both month PDFs.
+    - `monthpage` (16 Nov 2026; §7, "the month view is the month PDF's page"): the second screen-only block. Every
+      week's height on screen is the written PDF's row within 0.1 px, the card is the page at every window, and bars
+      and notes are their printed heights. ⚠️ Unlike Soft Lines it DOES move boxes, on purpose, so it is not held by
+      `softlines` (which deletes only the Soft Lines block and still passes with this one in place).
     - ⚠️ A new rule in that block must stay paint only. A font-size, padding or weight change on a box that sizes
       itself turns `softlines` L1 red.
 21. **NEW — the month view's day menu stays as the owner trimmed it** (23 Oct 2026, MONTH-CONTEXT-MENU-PLAN.md §13,

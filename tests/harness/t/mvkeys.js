@@ -381,7 +381,10 @@ window.addEventListener('load', function () { (async function () {
       for(var am = 0; am < 3 && !autoEl; am++){
         autoMonth = ['June 2026', 'July 2026', 'August 2026'][am];
         await toMonth(autoMonth); bodyFocus();
-        autoEl = q('#table-wrap .mv-note-block.mv-note-mark-auto');
+        // By its wording: until 16 Nov 2026 an automatic note wore a symbol class (.mv-note-mark-auto), which went with
+        // the symbols (the month page). A waterfall line that reads as one of the app's automatic notes.
+        autoEl = qa('#table-wrap .mv-note-block[data-note-kind="wf"]').filter(function(b){
+          return /^(Start Principal Photography|Principal Photography Wraps|.+ (Begins|Opens|Wraps|Ends))\b/.test(txt(b)); })[0] || null;
       }
       var autoText = autoEl && txt(autoEl), autoDay = autoEl && autoEl.getAttribute('data-note-day');
       if(autoEl) await click(autoEl);
