@@ -34,9 +34,10 @@ way a user would notice or a future session would need to return to. See
 ### Unreleased — A very long show title is cut to fit the workbook's and the waterfall PDF's file names too (16 Nov 2026)
 
 The owner's picker, 16 Nov 2026: *"Cut long titles"* (audit WIN-5). Windows refuses a file name over 255 characters.
-W.2 (above) already cuts a show title over 150 characters, at a word, in every name the app builds outside the frozen
-exporters (Save, Save As, the shareable copy, a scenario saved alone, the month PDF, Compare). The workbook and the
-waterfall PDF name themselves inside frozen code, so a 400-character title still reached their names.
+Audit item W.2 (merged in this release; its own entry waits on the owner's try of it) already cuts a show title over
+150 characters, at a word, in every name the app builds outside the frozen exporters (Save, Save As, the shareable
+copy, a scenario saved alone, the month PDF, Compare). The workbook and the waterfall PDF name themselves inside frozen
+code, so a 400-character title still reached their names.
 
 - **What you see.** A show title over 150 characters is cut the same way in the workbook's and the waterfall PDF's names
   ("<first 150 characters, back to a word> Planning Calendar 2026-11-16 – Plan B.xlsx"); the date, the Version, the

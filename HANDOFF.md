@@ -4,6 +4,31 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### 🚂 16 Nov 2026: RELEASE CANDIDATE `release-wave4` (worktree `.claude/worktrees/release-wave4`, from `origin/main` `7e1d8b4`). Wave 4 merged, three owner-approved frozen edits applied. Committed locally, NOT pushed, NO version cut, the full gate NOT run.
+- **Merged (`--no-ff`, in order):** `ripple-marks` (AUD2-016/037), `idea-changes-since-save` (I.3), `audit-w-2` (W.2:
+  keys named for the computer, Load lists .html, long titles cut in names outside the frozen writers),
+  `frozen-2-4-typed` (D3), `frozen-2-10-name` (the season beside the title), `audit-w-1` (W.1's acceptance case S5).
+  Conflicts: Help's Ripple Hiatus paragraph (ripple-marks' text + W.2's `data-keys="Mod+Z"`); `app.js` around Compare's
+  name comment and `monthPdfFileName` (both kept: W.2's `fileNameTitle()` feeding 2.10's `exportFileName()`;
+  `scenarioFileSuffix()` is gone and nothing calls it); CLAUDE.md (D3 and 2.10 were both "a fourth": 2.10 is "a fifth");
+  README / HANDOFF (every entry kept, newest first).
+- **Frozen edits, each its own commit:** W.1 (`dd93554`, the sixth exception; its ResizeObserver moved from
+  `#table-wrap` to the month's first day cell, see the W.1 entry below), FC1 (`ca6b240`, the seventh; new leg
+  `forcedcolors`, in gate.sh, with `rtleg.mjs` emulating forced-colors on `?forced=active`), and the long-title cut
+  (`c89d0af`), which needed NO frozen edit: the frozen name lines already call `exportFileName()`, which now cuts.
+- **Verified on the final build:** a partial gate from gate.sh's own sections (base, waterfall PDF, seams, workbook,
+  gate 10, monthexport + gate 13, the real-time legs) 368 PASS / 0 FAIL, every baseline byte-identical. One at a time:
+  ripplemarks 35/35, changessince 15/15, oskeys 10/10 for os=win / mac / linux, dayfirstwf 11/11, exportnames 10/10,
+  autonoterename 25/25 at 1600 and at 1584 x 1200, rippleundo 29/29, undokeys 11/11, pdfdialog 15/15, monthpick 10/10,
+  firstrun 22/22, laptopfit 1280 x 800 11/11, hiatusripple.mjs 19/19, cspproof.mjs 15/15, softlines 6/6 x 2, mvnotes,
+  mvnotesize, mvkeys green; `npm run check` 42/42. Load average ran 70-97 (other sessions): flakes seen and green alone
+  (autonoterename F2 once, monthexport X4-X6 timing).
+- ⚠️ **Still to do before a push:** the release's ONE full gate; README entries for ripple-marks, Changes since last save
+  and W.2 (their WIP commits deferred them until the owner tries them); gate.sh wiring for `ripplemarks`,
+  `changessince` and `oskeys` (not wired by their branches); the version cut. Windows: `windows-test-wave4` (worktree
+  `.claude/worktrees/windows-test-wave4`) is committed locally for the Windows runners, NOT pushed (the owner approves
+  that push).
+
 ### ✅ 16 Nov 2026: AUDIT ITEM W.1 (WIN-1) — A MARKED MONTH NOTE CUT OFF ON WINDOWS: FIX APPLIED ON `release-wave4` (owner's picker "Approve the fix"). Branch `audit-w-1` (worktree `.claude/worktrees/audit-w-1`, from `origin/main` `ad48e11`). **One WIP commit: the acceptance case `autonoterename` S5, RED on this branch until the owner signs off the frozen-look patch.** Not merged, not pushed. Built unattended on the owner's "work on it now".
 - **APPLIED (16 Nov 2026, owner's picker *"Approve the fix"*) on `release-wave4`**, the patch's code as written, with ONE
   adaptation found by the hand-run gate: its `ResizeObserver` watched `#table-wrap`, which sits at the same DOM depth (4)
