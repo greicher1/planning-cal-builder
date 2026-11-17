@@ -32041,6 +32041,7 @@ export function initLegacyApp() {
     if(!to || id === currentScenarioId) return false;
     const from = parkCurrentScenario();
     const scroll = captureScroll();
+    const unvisited = savedBaselineUnvisited(id, to.snapshot);   // "Changes since last save" (AUD2-103): see there
     suppressDirty = true;
     try {
       applyStateSnapshotAtomically(Object.assign(JSON.parse(JSON.stringify(to.snapshot)), { viewMode, sidebarTab }));
@@ -32066,6 +32067,7 @@ export function initLegacyApp() {
     to.undo = null;
     lastPushedSnapshotJSON = undoStateJSON();   // the history's own form (no viewMode), or the next push is a phantom
     rebaseLastEdited(false);   // the tab's own Date Last Edited came with its snapshot; a flip is not an edit
+    if(unvisited) savedBaselineFromLive(unvisited);
     refreshUndoRedoUI();
     // At once, not on update()'s debounce: for those 120 ms the band would show the tab just left (KEY-FACTS-PLAN).
     refreshScenarioFacts();   // ...which pushes the chrome
@@ -32358,6 +32360,166 @@ export function initLegacyApp() {
       rows: compareRows(all),
       dayFirst: datesDayFirst(),   // the dates in the calendar on screen's order (audit item 2.4, D3 (a))
     });
+  }
+
+  // ---------- Changes since last save (audit 2026-11 AUD2-103, idea I.3; owner: "work on it now", 16 Nov 2026) ----------
+  // File menu ▸ "Changes since last save…": what changed on the calendar on screen since it was last saved or loaded, in
+  // plain lines a studio coordinator can copy into an email ("Production pushed 2 wks (now 9/28/26 – 2/10/27)",
+  // "Hiatus 10/19/26 – 10/23/26 added (1 wk)", "Title now “X” (was “Y”)"). src/chrome/ChangesDialog.jsx draws it.
+  //
+  // ⭐ THE VALUES ARE COMPARE'S OWN (scenarioFacts(): the header's tokens and the schedule's hiatus list), and the words
+  // are Compare's: a date that moved is Pushed / Pulled (owner, 23 Oct 2026), in weeks when it is whole weeks.
+  //
+  // ⭐ THE BASELINE IS KEPT IN MEMORY, never in the file: nothing new is saved, and no snapshot key was added. It is the
+  // calendar as the last Save / Save As wrote it, or as Load read it (savedBaseline), one entry per scenario tab. The
+  // tab on screen's facts are read on the spot (the live app IS the baseline then); a parked tab's when it is first put
+  // on screen unchanged (savedBaselineUnvisited). ⛔ AUTOSAVE DOES NOT MOVE IT: the use is "what did I change since I opened
+  // last week's file", and a 10-minute autosave that emptied the list would defeat it. New and a crash recovery clear it
+  // (there is nothing saved on screen to compare with); a page that boots a shareable copy starts with none.
+  //
+  // What it lists: the title, the counts, the location, each phase's dates, the all-phase hiatuses and the version. An
+  // edit that changes none of those (a note, a colour, a width) is one line, "Notes, formatting or settings changed",
+  // found by comparing the calendar's content as Date Last Edited does (lastEditedKey), so the list is never empty
+  // while something did change. It is written only when no other line is, because a moved phase also moves its notes.
+  let savedBaseline = null;   // {kind: 'loaded' | 'saved', at: Date, name, tabs: Map(id -> {snap, title, facts, key})}
+  function changesKey(snap){ return lastEditedKey(JSON.parse(JSON.stringify(snap))); }
+  function changesTitleOf(snap){
+    const f = snap && snap.fields && snap.fields.byId && snap.fields.byId['show-title'];
+    return String((f && f.value) || '').trim();
+  }
+  // The calendar as it is now, as a baseline: the tab on screen read live, every parked tab kept to be probed later.
+  // Called the moment the calendar is written or loaded; committed (commitSavedBaseline) only once that has worked.
+  function takeSavedBaseline(kind){
+    try {
+      const tabs = new Map();
+      const live = JSON.parse(JSON.stringify(captureSnapshot()));
+      tabs.set(currentScenarioId, { snap: live, title: changesTitleOf(live), facts: scenarioFacts(), key: changesKey(live) });
+      scenarioTabs.forEach(t => {
+        if(t.id === currentScenarioId || !t.snapshot) return;
+        const snap = JSON.parse(JSON.stringify(t.snapshot));
+        tabs.set(t.id, { snap, title: changesTitleOf(snap), facts: null, key: null });
+      });
+      return { kind, at: new Date(), name: '', tabs };
+    } catch(e){ console.error(e); return null; }
+  }
+  // ⭐ A PARKED TAB'S SAVED VALUES ARE READ THE FIRST TIME IT IS PUT ON SCREEN UNCHANGED (switchScenario), from the live
+  // app, exactly as the tab on screen's are at a Save or Load. Read off a probe instead, they differed from the same
+  // calendar on screen wherever update() settles a value after a restore: a file with no Prep name restores "Prep",
+  // and update() then shows the mode's own "Episodic Prep" (syncPrepName), so an untouched tab read as "Notes,
+  // formatting or settings changed" (found by changessince S2, so there is no probe here). The window only ever shows
+  // the tab on screen, and a parked tab reaches the screen only through switchScenario, so this always runs first.
+  // Returns the entry when `snap` (the parked snapshot about to be applied) is still the saved one.
+  function savedBaselineUnvisited(id, snap){
+    const e = savedBaseline && savedBaseline.tabs.get(id);
+    if(!e || e.key != null) return null;
+    try { return JSON.stringify(e.snap) === JSON.stringify(snap) ? e : null; } catch(err){ return null; }
+  }
+  function savedBaselineFromLive(e){
+    try { e.facts = scenarioFacts(); e.key = changesKey(captureSnapshot()); } catch(err){ console.error(err); e.facts = null; e.key = null; }
+  }
+  function commitSavedBaseline(base){
+    if(base) base.name = (savedFileHandle && savedFileHandle.name) || '';
+    savedBaseline = base || null;
+  }
+  // "9:40 AM" today, "Fri 6 Nov at 3:12 PM" another day (fmtBackupWhen's day, "at" for its comma).
+  function changesWhen(d){
+    return d.toDateString() === new Date().toDateString() ? 'at ' + fmtTime(d) : 'on ' + fmtBackupWhen(d).replace(/, (?=\d{1,2}:\d{2} [AP]M$)/, ' at ');
+  }
+  // The lines, from two sets of facts ({facts, title}). Dates in the calendar's own order (datesDayFirst, audit 2.4).
+  function changeLines(was, now){
+    const df = datesDayFirst();
+    const F = iso => { const p = iso.split('-').map(Number); return (df ? p[2] + '/' + p[1] : p[1] + '/' + p[2]) + '/' + String(p[0]).slice(2); };
+    const days = (a, b) => Math.round((parseDateUTC(b) - parseDateUTC(a)) / DAY_MS);
+    const wks = n => n + (n === 1 ? ' wk' : ' wks');
+    const amount = n => { const a = Math.abs(n); return a % 7 === 0 ? wks(a / 7) : a + (a === 1 ? ' day' : ' days'); };
+    const moved = n => (n > 0 ? 'pushed ' : 'pulled ') + amount(n);
+    const range = r => F(r[0]) + ' – ' + F(r[1]);
+    const bv = (was.facts && was.facts.values) || {}, nv = (now.facts && now.facts.values) || {};
+    const lines = [];
+    const missing = v => v == null || v === '';
+    if(was.title !== now.title){
+      lines.push(!now.title ? 'Title cleared (was “' + was.title + '”)'
+               : 'Title now “' + now.title + '”' + (was.title ? ' (was “' + was.title + '”)' : ''));
+    }
+    // A count or a text: "Episodes now 10 (was 8)", "Location now Atlanta (was Los Angeles)".
+    const plain = (k, label) => {
+      const a = bv[k], b = nv[k];
+      if(missing(a) && missing(b)) return;
+      if(String(a) === String(b)) return;
+      lines.push(missing(b) ? label + ' cleared (was ' + a + ')' : label + ' now ' + b + (missing(a) ? '' : ' (was ' + a + ')'));
+    };
+    plain('eps', 'Episodes');
+    plain('blocks', 'Blocks');
+    plain('days', 'Shoot days');
+    plain('loc', 'Location');
+    // Each phase in phase order (the calendar on screen's, then any phase only the saved one had), by its name now.
+    const phases = ((now.facts && now.facts.phases) || []).slice();
+    ((was.facts && was.facts.phases) || []).forEach(p => { if(!phases.some(q => q.key === p.key)) phases.push(p); });
+    phases.forEach(p => {
+      const prod = p.key === 'production';
+      const r0 = prod ? [bv.first, bv.wrap] : bv['ph:' + p.key], r1 = prod ? [nv.first, nv.wrap] : nv['ph:' + p.key];
+      const has0 = !!(r0 && r0[0] && r0[1]), has1 = !!(r1 && r1[0] && r1[1]);
+      const name = p.label || p.key;
+      if(!has0 && !has1) return;
+      if(!has0){ lines.push(name + ' added (' + range(r1) + ')'); return; }
+      if(!has1){ lines.push(name + ' removed (was ' + range(r0) + ')'); return; }
+      const a = days(r0[0], r1[0]), b = days(r0[1], r1[1]);
+      if(!a && !b) return;
+      const tail = ' (now ' + range(r1) + ')';
+      if(a === b) lines.push(name + ' ' + moved(a) + tail);
+      else if(!a) lines.push(name + ' now ' + (prod ? 'wraps ' : 'ends ') + F(r1[1]) + ' (' + moved(b) + ')');
+      else if(!b) lines.push(name + ' now ' + (prod ? 'starts shooting ' : 'starts ') + F(r1[0]) + ' (' + moved(a) + ')');
+      else lines.push(name + ': ' + (prod ? 'first shoot day ' : 'start ') + moved(a) + ', ' + (prod ? 'wrap ' : 'end ') + moved(b) + tail);
+    });
+    // The all-phase hiatuses, each [first Monday, last Friday, weeks] (Compare's row). The ones that did not change are
+    // left out; the rest pair up in date order when as many are left on each side and each moved under 8 weeks
+    // (one hiatus moved or resized), and otherwise read as removed and added.
+    if(Array.isArray(bv.breaks) && Array.isArray(nv.breaks)){
+      const same = (x, y) => x[0] === y[0] && x[1] === y[1] && x[2] === y[2];
+      const gone = bv.breaks.filter(x => !nv.breaks.some(y => same(x, y)));
+      const added = nv.breaks.filter(y => !bv.breaks.some(x => same(x, y)));
+      const pair = gone.length === added.length && gone.every((x, i) => Math.abs(days(x[0], added[i][0])) < 56);
+      if(pair){
+        gone.forEach((x, i) => {
+          const y = added[i], d = days(x[0], y[0]), w = y[2] - x[2], bits = [];
+          if(d) bits.push(moved(d));
+          if(w) bits.push((w > 0 ? 'longer' : 'shorter') + ' by ' + wks(Math.abs(w)));
+          if(!bits.length) bits.push('changed');
+          lines.push('Hiatus ' + range(x) + ' ' + bits.join(', ') + ' (now ' + range(y) + ')');
+        });
+      } else {
+        gone.forEach(x => lines.push('Hiatus ' + range(x) + ' removed'));
+        added.forEach(y => lines.push('Hiatus ' + range(y) + ' added (' + wks(y[2]) + ')'));
+      }
+    }
+    plain('ver', 'Version');
+    return lines;
+  }
+  // What the window shows: {state, since, lines}. state: 'none' (nothing saved or loaded to compare with), 'newtab' (a
+  // scenario added since), 'failed' (the saved one could not be read), 'ok'.
+  function changesSinceSave(){
+    const multi = scenarioTabs.length >= 2, tab = currentScenario();
+    const inTab = multi && tab ? 'In “' + tab.name + '”, s' : 'S';
+    if(!savedBaseline) return { state: 'none', since: '', lines: [] };
+    const since = inTab + 'ince you ' + (savedBaseline.kind === 'saved' ? 'saved' : 'loaded')
+                + (savedBaseline.name ? ' “' + savedBaseline.name + '”' : ' it') + ' ' + changesWhen(savedBaseline.at);
+    const entry = savedBaseline.tabs.get(currentScenarioId);
+    if(!entry) return { state: 'newtab', since, lines: [] };
+    // Read when the tab was put on screen (savedBaselineUnvisited); without them (reading them threw) there is nothing
+    // to compare with.
+    if(!entry.facts || entry.key == null) return { state: 'failed', since, lines: [] };
+    let lines;
+    try {
+      const live = captureSnapshot();
+      lines = changeLines(entry, { facts: scenarioFacts(), title: changesTitleOf(live) });
+      if(!lines.length && changesKey(live) !== entry.key) lines.push('Notes, formatting or settings changed');
+    } catch(e){ console.error(e); return { state: 'failed', since, lines: [] }; }
+    return { state: 'ok', since, lines };
+  }
+  function openChangesSinceSave(){
+    if(activeNoteEditor) commitActiveNoteEditor();
+    if(activeMvNote) commitMvNoteEditor();
+    chrome.changesDialog(changesSinceSave());
   }
   // "<title> Scenario Comparison S3 2026-11-12" (audit 2026-11 AUD2-025): the season and a Date Last Edited, as every
   // export's name has (exportNameMarks), so a comparison of revised plans never downloads under the last one's name.
@@ -32747,6 +32909,7 @@ export function initLegacyApp() {
     // to convert, and their existing workflow is untouched.
     const legacy = handleIsLegacyHtml(savedFileHandle);
     const body = legacy ? buildSavedHtml({ allScenarios: true }) : buildSavedData();
+    const baseline = takeSavedBaseline('saved');   // the calendar as written: "Changes since last save" compares from it
     const writeBack = async ()=>{
       const writable = await savedFileHandle.createWritable();
       await writable.write(body);
@@ -32778,6 +32941,7 @@ export function initLegacyApp() {
     // status line still saying "unsaved" for as long as IDB took -- measured at ~1.2s in a test
     // run, long enough for an autosave tick to fire a second, redundant write of the same bytes.
     markClean();
+    commitSavedBaseline(baseline);   // only once the bytes are on disk (AUD2-103)
     fileConflict = false;
     savedFileStamp = await fileStamp(savedFileHandle);   // our own write, so it is the new baseline
     await recordRecent(savedFileHandle); // add/update in the recent-files list
@@ -35949,6 +36113,7 @@ export function initLegacyApp() {
     refreshAfterRestore();
     suppressDirty = false;
     resetUndoHistory(); // recovered work is a fresh baseline, not something to undo "past"
+    savedBaseline = null;   // ...and it is not what any file holds, so there is no saved version to list changes from (AUD2-103)
     // What is on screen is the recovered calendar, so the link follows it: its own file, or none. (Without a file,
     // a link to something loaded in the moments before the question came up would send the work into THAT file.)
     const own = entry && recentFiles.indexOf(entry) !== -1;
@@ -36062,12 +36227,15 @@ export function initLegacyApp() {
     // Save As always produces the current format, even when forking a legacy .html calendar --
     // the user is naming a new file here, so there is no existing format to preserve.
     const writable = await handle.createWritable();
-    await writable.write(handleIsLegacyHtml(handle) ? buildSavedHtml({ allScenarios: true }) : buildSavedData());
+    const body = handleIsLegacyHtml(handle) ? buildSavedHtml({ allScenarios: true }) : buildSavedData();
+    const baseline = takeSavedBaseline('saved');   // "Changes since last save" (AUD2-103), as saveToFile
+    await writable.write(body);
     await writable.close();
     savedFileHandle = handle;
     handleNeedsPermission = false;
     fileConflict = false;        // a different file now; whatever changed on the old one stays there
     markClean();                 // bytes are on disk -- report it before the IDB bookkeeping
+    commitSavedBaseline(baseline);
     savedFileStamp = await fileStamp(handle);
     await recordRecent(handle);
     refreshSaveBtn();
@@ -36580,6 +36748,7 @@ export function initLegacyApp() {
     savedFileStamp = stamp;
     fileConflict = false;
     activeFileId = entry.id;
+    commitSavedBaseline(takeSavedBaseline('loaded'));   // the calendar as loaded: "Changes since last save" (AUD2-103)
     entry.savedAt = Date.now();
     recentFiles.sort((a,b)=> b.savedAt - a.savedAt);
     // Clean BEFORE the IndexedDB round-trip, not after it (audit SAVE-14 / N-8): what is on screen IS
@@ -36666,6 +36835,7 @@ export function initLegacyApp() {
     revealSidebarTab('show');
     suppressDirty = false;
     resetUndoHistory(); // a blank calendar starts a fresh undo history
+    savedBaseline = null;   // nothing saved to compare with (AUD2-103)
     isDirty = false; lastSavedAt = null; refreshSaveStatus();
     idbSet(BACKUP_SLOT, undefined);   // this page's slot only (audit SAVE-7)
     refreshSaveBtn();
@@ -38514,6 +38684,9 @@ export function initLegacyApp() {
         // New, in the File menu (audit 2026-11, WIN-2: Chrome on Windows keeps Ctrl+N for itself, so New needs a home
         // that no key has to reach). It presses the New button, so New's own question and re-click guard come along.
         if(item.dataset.action === 'new'){ if(newBtn) newBtn.click(); return; }
+        // "Changes since last save…" (audit 2026-11 AUD2-103): a window over the calendar, not a navigation, so it sits
+        // above the unsaved-changes guard below, as Export does.
+        if(item.dataset.action === 'changes'){ openChangesSinceSave(); return; }
         // Export is not a navigation: it doesn't replace what's on screen, so it deliberately
         // sits above the unsaved-changes guard below.
         if(item.dataset.action === 'share'){

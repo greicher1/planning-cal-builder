@@ -150,6 +150,10 @@ export const chrome = {
   // ({ scenarios: [{ id, name, values }], currentId, rows }) — open the Compare window (CompareDialog.jsx).
   // Its exports go back as 'sptcal-compare-export' {kind: 'xlsx' | 'pdf', model}; the engine writes the files.
   compareDialog: noop,
+  // ({ state, since, lines }) — open File menu ▸ "Changes since last save…" (ChangesDialog.jsx, audit AUD2-103). state is
+  // 'ok' | 'none' | 'newtab' | 'failed'; `lines` are the changes in words, `since` the line under the title. Nothing
+  // goes back: Copy writes the clipboard itself.
+  changesDialog: noop,
   // ({ paper, orientation, gridlines, papers, fits }) → Promise<{ paper, orientation, gridlines } | null> —
   // the Export PDF dialog (src/chrome/ExportPdfDialog.jsx, PAPER-SIZE-PLAN.md §5a). The default, for a
   // chrome that failed to mount, EXPORTS WITH WHAT IS ALREADY CHOSEN rather than cancelling: the PDF comes

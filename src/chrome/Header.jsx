@@ -178,6 +178,11 @@ export function Header() {
                     data-action="open" is the engine contract and deliberately does NOT rename. */}
                 <span className="fm-name">Load…</span>
               </Menu.Item>
+              {/* What changed since the last Save or Load, in lines to copy into an email (audit 2026-11 AUD2-103). The
+                  engine's delegated handler opens it on data-action="changes", above its unsaved-work question. */}
+              <Menu.Item className="file-menu-item" data-action="changes" role="menuitem">
+                <span className="fm-name">Changes since last save…</span>
+              </Menu.Item>
               <div className="fm-search-row">
                 {/* Plain <input>, deliberately not a Mantine TextInput: Mantine inputs mint a
                     random id when none is passed (UI-CONVENTIONS §8.3), and any input[id] outside

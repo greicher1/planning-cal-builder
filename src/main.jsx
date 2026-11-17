@@ -105,6 +105,7 @@ import { MonthPdfDialog } from './chrome/MonthPdfDialog.jsx'
 import { ZoomControl } from './chrome/ZoomControl.jsx'
 import { ScenarioTabs } from './chrome/ScenarioTabs.jsx'
 import { CompareDialog } from './chrome/CompareDialog.jsx'
+import { ChangesDialog } from './chrome/ChangesDialog.jsx'
 import { StartRecents } from './chrome/StartRecents.jsx'
 import { APP_ICON } from './chrome/appIcon.js'
 import { initLegacyApp } from './legacy/app.js'
@@ -181,6 +182,8 @@ function Chrome() {
           In #react-root for DatePop's reason. */}
       <ScenarioTabs />
       <CompareDialog />
+      {/* File menu ▸ "Changes since last save…" (audit AUD2-103). In #react-root for DatePop's reason. */}
+      <ChangesDialog />
     </>
   )
 }
