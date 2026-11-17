@@ -21815,12 +21815,14 @@ export function initLegacyApp() {
     document.body.appendChild(pop);
     sideMenu = pop; sideMenuAnchor = anchor;
     anchor.setAttribute('aria-expanded', 'true');
-    const r = anchor.getBoundingClientRect();
-    pop.style.top = (window.scrollY + r.bottom + 5) + 'px';
-    pop.style.left = (window.scrollX + r.left) + 'px';
-    const pr = pop.getBoundingClientRect();
-    if(pr.right > window.innerWidth - 8) pop.style.left = (window.scrollX + window.innerWidth - pr.width - 8) + 'px';
-    if(pr.bottom > window.innerHeight - 8) pop.style.top = (window.scrollY + r.top - pr.height - 5) + 'px';
+    if(!cascadeFrom(anchor, pop)){
+      const r = anchor.getBoundingClientRect();
+      pop.style.top = (window.scrollY + r.bottom + 5) + 'px';
+      pop.style.left = (window.scrollX + r.left) + 'px';
+      const pr = pop.getBoundingClientRect();
+      if(pr.right > window.innerWidth - 8) pop.style.left = (window.scrollX + window.innerWidth - pr.width - 8) + 'px';
+      if(pr.bottom > window.innerHeight - 8) pop.style.top = (window.scrollY + r.top - pr.height - 5) + 'px';
+    }
     // Bound on the next tick, or the click that opened the menu would close it.
     setTimeout(()=>{
       document.addEventListener('mousedown', onSideMenuOutside, true);
@@ -21828,21 +21830,34 @@ export function initLegacyApp() {
       window.addEventListener('scroll', closeSideMenu, true);
     }, 0);
   }
-  // A page tool clicked inside the toolbar's open More menu (PreviewToolbar.jsx, fold step 2, 16 Nov 2026) has its menu
-  // drop from the More button, where the More panel was, and the chrome closes the panel straight after this click.
-  // Dropped from the clicked row instead, the menu opened UNDER the panel (owner, with a screenshot: Side Boxes' menu
-  // with its first row hidden behind Header). Anywhere else, the button itself. Used by Side Boxes and Header.
-  function toolMenuAnchor(b){
-    const more = b.closest && b.closest('.tb-more.is-open');
-    return (more && more.querySelector('.tb-more-btn')) || b;
+  // ⭐ A TOOL'S MENU CASCADES FROM THE TOOLBAR'S MORE PANEL (owner, 16 Nov 2026, with a macOS menu: "arrow to the right
+  // then opens up another menu"; PreviewToolbar.jsx, fold step 2). Side Boxes' and Header's menus, opened from a row of
+  // the open More panel, sit BESIDE the panel with their first row level with the row: on the right where they fit,
+  // else on the left. The panel stays open, as a menu's parent does. (Dropped under the row, as on the toolbar, the menu
+  // first opened under the panel, its first row hidden behind Header.) Opened anywhere else, nothing changes.
+  function inMorePanel(b){ return !!(b && b.closest && b.closest('.tb-more.is-open .tb-page')); }
+  function cascadeFrom(anchor, pop){
+    if(!inMorePanel(anchor)) return false;
+    const panel = anchor.closest('.tb-page').getBoundingClientRect();
+    const ar = anchor.getBoundingClientRect(), r = pop.getBoundingClientRect();
+    const padTop = parseFloat(getComputedStyle(pop).paddingTop) || 0;
+    let left = panel.right + 4;
+    if(left + r.width > window.innerWidth - 8) left = panel.left - r.width - 4;
+    let top = ar.top - padTop - 1;
+    if(top + r.height > window.innerHeight - 8) top = window.innerHeight - 8 - r.height;
+    pop.style.left = (window.scrollX + Math.max(8, left)) + 'px';
+    pop.style.top = (window.scrollY + Math.max(8, top)) + 'px';
+    return true;
   }
+  // The chrome asks for both to close when the pointer moves on to another row of the panel (PreviewToolbar.jsx).
+  document.addEventListener('sptcal:close-tool-menus', ()=>{ closeSideMenu(); closeHeaderModePop(); });
   // React renders #tb-side-boxes-btn, so it is reached by DELEGATION (HANDOFF §2b-3's law).
   document.addEventListener('click', e=>{
     const b = e.target.closest && e.target.closest('#tb-side-boxes-btn');
     if(!b) return;
-    const a = toolMenuAnchor(b);
-    if(sideMenu && sideMenuAnchor === a){ closeSideMenu(); return; }
-    openSideMenu(a);
+    // A second click closes the menu, except on a More panel row, whose menu the pointer may already have opened.
+    if(sideMenu && sideMenuAnchor === b){ if(!inMorePanel(b)) closeSideMenu(); return; }
+    openSideMenu(b);
   });
   document.addEventListener('keydown', e=>{ if(e.key === 'Escape' && sideMenu) closeSideMenu(); });
 
@@ -28127,12 +28142,14 @@ export function initLegacyApp() {
     document.body.appendChild(pop);
     activeHdrModeAnchor = anchorEl;
     if(anchorEl.hasAttribute('aria-haspopup')) anchorEl.setAttribute('aria-expanded', 'true');
-    const r = anchorEl.getBoundingClientRect();
-    pop.style.top = (window.scrollY + r.bottom + 5) + 'px';
-    pop.style.left = (window.scrollX + r.left) + 'px';
-    const pr = pop.getBoundingClientRect();
-    if(pr.right > window.innerWidth - 8) pop.style.left = (window.scrollX + window.innerWidth - pr.width - 8) + 'px';
-    if(pr.bottom > window.innerHeight - 8) pop.style.top = (window.scrollY + r.top - pr.height - 5) + 'px';
+    if(!cascadeFrom(anchorEl, pop)){   // beside the toolbar's More panel when opened from it (16 Nov 2026)
+      const r = anchorEl.getBoundingClientRect();
+      pop.style.top = (window.scrollY + r.bottom + 5) + 'px';
+      pop.style.left = (window.scrollX + r.left) + 'px';
+      const pr = pop.getBoundingClientRect();
+      if(pr.right > window.innerWidth - 8) pop.style.left = (window.scrollX + window.innerWidth - pr.width - 8) + 'px';
+      if(pr.bottom > window.innerHeight - 8) pop.style.top = (window.scrollY + r.top - pr.height - 5) + 'px';
+    }
     activeHdrModePop = pop;
     // Bound on the next tick, or the click that OPENED the popover closes it again.
     setTimeout(()=>{
@@ -28377,9 +28394,10 @@ export function initLegacyApp() {
   document.addEventListener('click', e=>{
     const b = e.target.closest && e.target.closest('#tb-hdr-mode-btn');
     if(!b) return;
-    const a = toolMenuAnchor(b);   // the More button, when Header was clicked inside the More menu (16 Nov 2026)
-    if(activeHdrModePop && activeHdrModeAnchor === a){ closeHeaderModePop(); return; }   // a second click closes
-    openHeaderModePop(a, viewMode === 'month');
+    // A second click closes, except on a row of the toolbar's More panel, whose menu the pointer may already have opened
+    // (inMorePanel, beside Side Boxes' handler).
+    if(activeHdrModePop && activeHdrModeAnchor === b){ if(!inMorePanel(b)) closeHeaderModePop(); return; }
+    openHeaderModePop(b, viewMode === 'month');
   });
 
   // Ruling 4: the notes reset SPLITS BY VIEW, and both keep the old branch's shape -- render(), since

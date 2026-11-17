@@ -21,10 +21,16 @@
   `max-width:960px` stacked rule removed, the grid fit's media query is `screen`, `fitPopToScreen`'s ≤960 branch gone.
   Sidebar ≤1280 capped at 320 px (was 340: it grew 13 px one pixel below 1281).
 - **Owner's first try (16 Nov, screenshot):** Side Boxes' menu opened UNDER the More panel (its first row hidden behind
-  Header). Fixed: a page tool clicked inside the open More panel drops its menu from the ⋯ button (`toolMenuAnchor` in
-  app.js, used by Side Boxes and Header) and the panel closes a task later. Build Around's step-3 icon is a HAMMER
-  (`IconHammer`, 18 px), not the location pin (*"make it a hammer/wrench symbol"*). Trusted clicks: both menus 4 rows,
-  none covered, top = ⋯ bottom + 5; a box added from it; labelled Side Boxes still drops from its own button.
+  Header). Build Around's step-3 icon is now a HAMMER (`IconHammer`, 18 px), not the location pin (*"make it a
+  hammer/wrench symbol"*).
+- **Then (owner, with a macOS window menu): *"can menus look like this - arrow to the right then opens up another
+  menu"*.** Side Boxes' and Header's menus CASCADE from the More panel: the rows show a › chevron (CSS swaps the ▾ there,
+  and it never turns), and on hover (140 ms) or click the menu opens BESIDE the panel, first row level with the row, on
+  the right where it fits, else the left (`cascadeFrom` in app.js, called by `openSideMenu` / `openHeaderModePop`). The
+  panel stays open; another row closes it (`sptcal:close-tool-menus`, a document event the engine listens for); a choice
+  (a capture-phase click: Side Boxes' items stop propagation), Escape or a press outside closes everything. A second
+  click on an open row keeps it open (`inMorePanel`). Trusted mouse (`clicks6`, scratch): 17/17 at 1280 and 1470 and the
+  month view; the labelled toolbar buttons unchanged (drop under, a second click closes).
 - **Measured (sideboxes.sptcal, both views):** level 0 at 2560 (809 px spare on the right) and 1728; 1 at 1600; 2 at
   1470 / 1366; 3 at 1280; 4 at 1100; 5 at 960; 820 scrolls sideways to 960. One line, header never overflows. 22 trusted
   CDP click checks green (More: Side Boxes menu under its button, a box added, Header Off, Escape; Build Around icon;

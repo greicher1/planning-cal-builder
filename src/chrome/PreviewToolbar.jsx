@@ -236,7 +236,43 @@ export function PreviewToolbar() {
   const textBtnRef = useRef(null)
   const [moreOpen, setMoreOpen] = useState(false)
   const [textOpen, setTextOpen] = useState(false)
-  useFoldMenu(moreOpen, setMoreOpen, (t) => moreRef.current && moreRef.current.contains(t))
+  // The tool menus that CASCADE from the More panel (app.js, cascadeFrom: Side Boxes', Header's) are part of it: a press
+  // in one does not close the panel; the click that chooses in one closes it, a task later, once the engine has acted.
+  const SUBMENUS = '.sb-menu, .hdr-mode-pop'
+  useFoldMenu(moreOpen, setMoreOpen, (t) => (moreRef.current && moreRef.current.contains(t))
+    || !!(t.closest && t.closest(SUBMENUS)))
+  const hoverTimer = useRef(0)
+  useLayoutEffect(() => {
+    if (!moreOpen) {
+      // However the panel closed (Escape, a press outside, a choice, the button), its cascaded menus go with it.
+      clearTimeout(hoverTimer.current)
+      document.dispatchEvent(new Event('sptcal:close-tool-menus'))
+      return
+    }
+    const onChoose = (e) => {
+      const t = e.target
+      if (t.closest && t.closest(SUBMENUS) && t.closest('button:not([disabled])')) setTimeout(() => setMoreOpen(false), 0)
+    }
+    // Capture: Side Boxes' items stop their click from bubbling (app.js, openSideMenu), so a listener on the way up never
+    // hears the choice.
+    document.addEventListener('click', onChoose, true)
+    return () => document.removeEventListener('click', onChoose, true)
+  }, [moreOpen])
+  // HOVER, as a menu does (owner, 16 Nov 2026, with a macOS menu): resting on Side Boxes or Header opens its menu beside
+  // the panel; resting on another row closes it. A short delay, so a pointer crossing a row on its way does nothing.
+  // The open is the row's own click, so the engine's delegated handler does it exactly as a click would.
+  const onPanelOver = (e) => {
+    if (!moreOpen) return
+    const row = e.target.closest && e.target.closest('#tb-side-boxes-btn, #tb-hdr-mode-btn, #tb-fill-space-btn, .month-step')
+    if (!row) return
+    clearTimeout(hoverTimer.current)
+    hoverTimer.current = setTimeout(() => {
+      const sub = row.matches('#tb-side-boxes-btn, #tb-hdr-mode-btn')
+      if (sub && row.getAttribute('aria-expanded') === 'true') return
+      document.dispatchEvent(new Event('sptcal:close-tool-menus'))
+      if (sub) row.click()
+    }, 140)
+  }
   useFoldMenu(textOpen, setTextOpen, (t) => (textBtnRef.current && textBtnRef.current.contains(t))
     || !!(t.closest && t.closest('.style-bar-host')))
   // The Text menu IS the style bar's host, shown under its button: the host stays where React put it (the engine fills
@@ -525,14 +561,9 @@ export function PreviewToolbar() {
         {/* THE MORE MENU (fold step 2, useToolbarFit). Below that step this wrapper is display:contents and its button
             hidden, so the page tools sit in the line exactly as before; from it, they are SHOWN in a panel under the
             button instead (the same nodes, ids and engine bindings: see useFoldMenu). */}
-        {/* A click on Side Boxes or Header in the panel closes it a task later, once the engine has dropped that tool's
-            own menu from the More button (app.js, toolMenuAnchor): until 16 Nov 2026 the menu opened under the panel. A
-            task later, because the engine's listener is on document and must still find the panel open. Fill Gaps and
-            the month stepper leave it open, so a second press can follow. */}
-        <div className={'tb-more' + (moreOpen ? ' is-open' : '')} ref={moreRef}
-             onClick={(e) => {
-               if (moreOpen && e.target.closest && e.target.closest('#tb-side-boxes-btn, #tb-hdr-mode-btn')) setTimeout(() => setMoreOpen(false), 0)
-             }}>
+        {/* Side Boxes' and Header's own menus cascade beside the open panel (app.js, cascadeFrom), on a click or on
+            hover (onPanelOver), and the panel stays open behind them, as a menu's parent does. */}
+        <div className={'tb-more' + (moreOpen ? ' is-open' : '')} ref={moreRef} onMouseOver={onPanelOver}>
         <button type="button" className="tb-more-btn" title="More tools"
                 aria-label="More tools" aria-haspopup="true" aria-expanded={moreOpen ? 'true' : 'false'}
                 onClick={() => setMoreOpen((o) => !o)}>

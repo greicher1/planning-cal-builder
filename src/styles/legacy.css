@@ -1969,6 +1969,12 @@
   .preview-panel.tbf2 .tb-more .tb-solo{ width:100% !important; height:32px; background:transparent; }
   .preview-panel.tbf2 .tb-more .tb-solo .mantine-Button-inner{ width:100%; justify-content:flex-start; }
   .preview-panel.tbf2 .tb-more .tb-solo .mantine-Button-section[data-position="right"]{ margin-left:auto; }
+  /* In the panel a row with a menu of its own points RIGHT, as a macOS menu's does (owner, 16 Nov 2026): its menu opens
+     beside the panel (app.js, cascadeFrom). The toolbar's ▾ is swapped for a chevron here only. */
+  .preview-panel.tbf2 .tb-more .tb-solo .caret{ font-size:0; line-height:1; }
+  .preview-panel.tbf2 .tb-more .tb-solo .caret::after{ content:'\203A'; font-size:18px; color:var(--mantine-color-gray-6); }
+  /* ...and does not turn when its menu is open (every other caret flips to point up, which made this one point left). */
+  .preview-panel.tbf2 .tb-more .tb-solo[aria-expanded="true"] .caret{ transform:none; }
   .preview-panel.tbf2 .tb-more .tb-solo:hover:not([data-disabled]),
   .preview-panel.tbf2 .tb-more .tb-solo[aria-expanded="true"]{ background:var(--mantine-color-gray-1); }
   .preview-panel.tbf2 .tb-more .tb-solo[data-disabled]{ background:transparent; }
