@@ -12,6 +12,8 @@
 // window.__ERR trap is what proves this file is clean -- do not skip it after editing here.
 
 import { chrome } from '../chrome/bridge.js'
+// The key names the app shows, for the computer it is on (audit 2026-11, WIN-3), and the one test of "is this a Mac".
+import { keyLabel, localizeKeys, platformIsMac } from '../chrome/keys.js'
 
 export function initLegacyApp() {
 
@@ -13469,8 +13471,7 @@ export function initLegacyApp() {
   // guard, not the OS turning Ctrl+click into a right-click: that needs a real mouse or trackpad.
   function isMacCtrlClick(e){
     if(!e.ctrlKey) return false;
-    const p = (navigator.userAgentData && navigator.userAgentData.platform) || navigator.platform || '';
-    return /^mac/i.test(p);
+    return platformIsMac();          // src/chrome/keys.js: read on each press, as before
   }
 
   // ---------- The month view's day menu (MONTH-CONTEXT-MENU-PLAN.md) ----------
@@ -14319,8 +14320,7 @@ export function initLegacyApp() {
         if(!navigator.clipboard || typeof navigator.clipboard.readText !== 'function') throw new Error('no clipboard');
         text = await navigator.clipboard.readText();
       } catch(err){
-        const mac = /^mac/i.test((navigator.userAgentData && navigator.userAgentData.platform) || navigator.platform || '');
-        flashTextSel('Paste needs clipboard access: press ' + (mac ? '⌘V' : 'Ctrl+V') + ' instead');
+        flashTextSel('Paste needs clipboard access: press ' + keyLabel('Mod+V') + ' instead');
         return;
       }
       wfNotesPaste(text, null, ctx.keys);
@@ -31570,14 +31570,33 @@ export function initLegacyApp() {
   function shareCopyFileName(){
     return savedFileBase() + scenarioNameSuffix() + '.html';
   }
+  // ⭐ A SHOW TITLE THAT FITS A FILE NAME (audit 2026-11, WIN-5). Every name the app proposes starts with the show
+  // title, and Windows refuses a name over 255 characters (and a whole path over 260): a 420-character title made a
+  // 438-character Save As name. So the title is cut to FILE_TITLE_MAX characters, back to the last space when there is
+  // one in its last stretch, and never left ending in a space, a dot or a dash. The rest of each name (the date, the
+  // season, the Version, the scenario, the extension) is kept whole. Characters Windows forbids become '-', as they
+  // always have. A title of FILE_TITLE_MAX or fewer comes back exactly as before, so no real calendar's name changes.
+  // ⚠️ Used by the names built OUTSIDE the frozen writers: Save / Save As / autosave's picker, the shareable copy, a
+  // scenario saved alone, the month PDF and Compare. exportExcel and exportWaterfallPdfDirect build their own names
+  // inside frozen code (edits S1 / S2) and download them through the browser, which shortens an over-long download
+  // name itself; routing them here as well is a name-only frozen edit, left to the owner.
+  function fileNameTitle(raw){
+    const FILE_TITLE_MAX = 150;   // in the function, not beside it: no temporal dead zone if a name is asked for early
+    let safe = String(raw || '').replace(/[\\/:*?"<>|]/g,'-').replace(/\s+/g,' ').trim();
+    if(safe.length <= FILE_TITLE_MAX) return safe;
+    let cut = safe.slice(0, FILE_TITLE_MAX);
+    const sp = cut.lastIndexOf(' ');
+    if(sp >= FILE_TITLE_MAX - 30) cut = cut.slice(0, sp);
+    return cut.replace(/[\s.,;:\u2013\u2014-]+$/, '');
+  }
   function buildSavedFileName(ext){
     const raw = (document.getElementById('show-title').value || '').trim() || 'Show Name';
     const d = new Date();
     const stamp = d.getFullYear() + '-' +
       String(d.getMonth()+1).padStart(2,'0') + '-' +
       String(d.getDate()).padStart(2,'0');
-    // strip characters that are illegal in filenames
-    const safe = raw.replace(/[\\/:*?"<>|]/g,'-').replace(/\s+/g,' ').trim();
+    // strip characters that are illegal in filenames, and keep the title short enough to save (fileNameTitle)
+    const safe = fileNameTitle(raw);
     return `${safe} ${stamp}${ext || SAVE_EXT}`;
   }
 
@@ -32424,7 +32443,7 @@ export function initLegacyApp() {
   // scenario, since it is all of them.
   function compareFileBase(){
     const raw = (document.getElementById('show-title').value || '').trim();
-    const safe = raw.replace(/[\\/:*?"<>|]/g, '-').replace(/\s+/g, ' ').trim();
+    const safe = fileNameTitle(raw);   // WIN-5: short enough to save on Windows
     noteLastEdited();
     let newest = lastEditedDate();
     scenarioTabs.forEach(t => {
@@ -32646,10 +32665,13 @@ export function initLegacyApp() {
     try { const w = await handle.createWritable(); await w.write(text); await w.close(); }
     catch(e){ console.error(e); uiAlert('Could not save that scenario: ' + e.message); }
   }
-  // The Open picker takes either format. Two entries rather than one with two MIME keys so the
-  // picker shows "Planning Calendar" first and the legacy type as a distinct, clearly-labelled
-  // choice.
+  // The Open picker takes either format.
+  // ⭐ THE FIRST ENTRY TAKES BOTH (audit 2026-11, WIN-5). Windows' file dialog shows ONE "Files of type" filter at a
+  // time and applies the first, so with '.sptcal' alone first, an older .html calendar, or a shareable copy someone
+  // emailed, was not listed until the user changed the filter: it looked lost. The two single-format entries stay
+  // after it, so either can still be picked on its own. (A Mac's dialog lists every accepted file at once either way.)
   const OPEN_TYPES = [
+    { description: 'Planning Calendar (.sptcal, .html)', accept: { [SAVE_MIME]: [SAVE_EXT], 'text/html': ['.html'] } },
     { description: 'Planning Calendar', accept: { [SAVE_MIME]: [SAVE_EXT] } },
     { description: 'Planning Calendar (legacy HTML)', accept: { 'text/html': ['.html'] } },
   ];
@@ -38376,9 +38398,9 @@ export function initLegacyApp() {
   // which the note editors honour: ⌃N is "next line" and ⌃⇧E "select to the end of the line". Taken
   // there, ⌃N in a note would have started a new calendar. Read on each press, not once at boot, so
   // a harness leg can stand in for another platform without a reload.
+  // The test itself is src/chrome/keys.js's platformIsMac(), shared with the WORDS that name these keys (keyLabel).
   function isPlatformCommandKey(e){
-    const p = (navigator.userAgentData && navigator.userAgentData.platform) || navigator.platform || '';
-    return /^mac/i.test(p) ? (e.metaKey && !e.ctrlKey) : (e.ctrlKey && !e.metaKey);
+    return platformIsMac() ? (e.metaKey && !e.ctrlKey) : (e.ctrlKey && !e.metaKey);
   }
   // ⚠️ A mouse press moves focus OFF the field being edited before its click lands, and a Manual
   // header line commits on that focusout (headerManual + markDirty). A key moves nothing, so a
@@ -38655,6 +38677,10 @@ export function initLegacyApp() {
   // Help modal
   (function(){
     const overlay = document.getElementById('help-overlay');
+    // ⭐ HELP NAMES THE KEYS FOR THIS COMPUTER (audit 2026-11, WIN-3). index.html writes them as a Mac's (⌘S) with the
+    // key's spec beside it (data-keys="Mod+S"), and marks the few sentences true on one platform only (data-os). This
+    // rewrites them once, from the specs: Ctrl+S on Windows and Linux, ⌘S on a Mac. See src/chrome/keys.js.
+    localizeKeys(document.getElementById('help-body'));
     // ⭐ A double-clicked ? leaves Help open (audit AUD2-061, 14 Nov 2026), as the app's Mantine windows do
     // (src/chrome/modalGuard.js, the same 500 ms): the overlay covers the ? button the moment Help opens, so the
     // double-click's second press landed on it and its click-away closed Help inside the same gesture.
@@ -42132,7 +42158,7 @@ export function initLegacyApp() {
   // `.pdf`, and made the same way.
   function monthPdfFileName(){
     const titleRaw = (document.getElementById('show-title').value || '').trim();
-    const safe = titleRaw.replace(/[\\/:*?"<>|]/g,'-').replace(/\s+/g,' ').trim();
+    const safe = fileNameTitle(titleRaw);   // WIN-5: short enough to save on Windows
     // The season, the Date Last Edited and the Version (audit AUD2-025, exportNameMarks), then, with two or more
     // scenarios, which one it is (SCENARIOS-PLAN.md D6): scenarioFileSuffix() carries both, as for the other exports.
     return (safe ? safe + ' ' : '') + 'Month Calendar' + scenarioFileSuffix() + '.pdf';
@@ -43887,7 +43913,7 @@ export function initLegacyApp() {
       + 'placeholder="' + pasteDateExample() + ', Table read, pale blue&#10;' + pasteDateExample(23) + ', Network notes due"></textarea>'
       + '<div class="paste-notes-sum" aria-live="polite"></div>'
       + '<div class="paste-notes-preview"></div>'
-      + '<div class="paste-notes-foot"><span class="paste-notes-keys">Month view only · ⌘/Ctrl-Enter to add · Esc to cancel</span>'
+      + '<div class="paste-notes-foot"><span class="paste-notes-keys">Month view only · ' + keyLabel('Mod+Enter') + ' to add · Esc to cancel</span>'
       + '<button type="button" class="paste-notes-cancel">Cancel</button>'
       + '<button type="button" class="paste-notes-add" disabled>Add notes</button></div></div>';
     document.body.appendChild(ov);

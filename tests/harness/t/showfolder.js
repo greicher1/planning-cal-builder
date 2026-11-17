@@ -111,7 +111,10 @@ window.addEventListener('load', function () { (async function () {
     var types = o && o.types ? o.types.map(function (t) { return t.description + ':' + Object.keys(t.accept).join(',') + ':' + [].concat.apply([], Object.values(t.accept)).join(','); }) : null;
     add('P', 'Show in folder… survives the press that closes the file menu, and asks for the file window in that file’s folder (startIn = its handle), with Load…’s types, one file; both menus close',
         survived && calls.length === before + 1 && sameHandle && o.multiple === false &&
-          types && types.length === 2 && /\.sptcal/.test(types[0]) && /\.html/.test(types[1]) && !ctxMenu() && !fileMenuOpen(),
+          // Load…'s types: since WIN-5 (audit 2026-11, W.2) THREE, the first taking both formats so Windows' dialog lists an
+          // older .html calendar under its first filter, then each format on its own. (Two until then.)
+          types && types.length === 3 && /\.sptcal/.test(types[0]) && /\.html/.test(types[0]) && /:\.sptcal$/.test(types[1]) && /:\.html$/.test(types[2])
+          && !ctxMenu() && !fileMenuOpen(),
         {survivedPress: survived, calls: calls.length - before, startIn: startName, sameHandle: sameHandle, multiple: o ? o.multiple : null, types: types,
          ctxMenuAfter: !!ctxMenu(), fileMenuOpenAfter: fileMenuOpen()});
 

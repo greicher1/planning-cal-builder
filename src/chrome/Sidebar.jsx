@@ -22,6 +22,7 @@ import { TextInput, NativeSelect, NumberInput, Input, Button, Text, Group, Stack
 import { IconTv, IconMapPin, IconCalendarDot, IconCalendarRange, IconShare, IconHeading, IconNote, IconRows, IconCalendarPlain, IconPause } from './icons.jsx'
 import { InfoHint } from './InfoHint.jsx'
 import { installChrome } from './bridge.js'
+import { keyLabel } from './keys.js'
 import { useSeasons, seasonsText } from './SeasonPop.jsx'
 
 const SEASONS = [
@@ -914,7 +915,7 @@ export function HiatusPrefsCard() {
         <InfoHint label="Ripple Hiatus Periods" width={300}>
           On: when a hiatus is added, removed, lengthened, shortened or moved, every phase that starts on or
           after it moves by the same number of weeks, so the gaps between phases stay as they were. Locked
-          hiatuses, holidays and notes with a date stay put. ⌘Z takes back your hiatus change and its push
+          hiatuses, holidays and notes with a date stay put. {keyLabel('Mod+Z')} takes back your hiatus change and its push
           together. To change a hiatus without moving anything else, turn this off first.
         </InfoHint>
       </h2>
