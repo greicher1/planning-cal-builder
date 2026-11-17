@@ -47,6 +47,7 @@ import { useState, useLayoutEffect, useRef } from 'react'
 import { InfoHint } from './InfoHint.jsx'
 import { Button, ActionIcon, Tooltip, Group } from '@mantine/core'
 import { installChrome } from './bridge.js'
+import { keyLabel } from './keys.js'
 import { IconRows, IconCalendarPlain, IconUndo, IconRedo, IconDots, IconHeading, IconHammer } from './icons.jsx'
 import { MonthMap, MonthStepper } from './MonthMap.jsx'
 
@@ -656,13 +657,15 @@ export function PreviewToolbar() {
 
         {/* UNDO / REDO, LAST (owner, 10 Nov 2026, the reorder above). Back at the end of .preview-tools, where it was before
             variation 27 briefly put it first. A grey well like the text buttons' and the page tools'. The ids, the
-            Tooltips and the bridged disabled state are unchanged. */}
+            Tooltips and the bridged disabled state are unchanged. The hints name the keys for the computer they are on
+            (audit 2026-11, WIN-3; src/chrome/keys.js): Undo (Ctrl+Z) on Windows and Linux, Undo (⌘Z) on a Mac, and
+            Redo in Apple's order there (⇧⌘Z, as Help writes it; it read ⌘⇧Z until then). */}
         <Group className="undo-redo-group" gap="xxs" wrap="nowrap">
-          <Tooltip label="Undo (⌘Z)" position="bottom" withArrow>
+          <Tooltip label={'Undo (' + keyLabel('Mod+Z') + ')'} position="bottom" withArrow>
             <ActionIcon id="undo-btn" className="icon-btn" variant="subtle" color="gray" size="md"
                         disabled={undoRedo.undo} aria-label="Undo"><IconUndo className="btn-ic" /></ActionIcon>
           </Tooltip>
-          <Tooltip label="Redo (⌘⇧Z)" position="bottom" withArrow>
+          <Tooltip label={'Redo (' + keyLabel('Mod+Shift+Z') + ')'} position="bottom" withArrow>
             <ActionIcon id="redo-btn" className="icon-btn" variant="subtle" color="gray" size="md"
                         disabled={undoRedo.redo} aria-label="Redo"><IconRedo className="btn-ic" /></ActionIcon>
           </Tooltip>

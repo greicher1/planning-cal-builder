@@ -336,7 +336,10 @@ window.addEventListener('load', function () { (async function () {
       numberDays: /Number Production Days/.test(help), paste: /Paste notes/.test(help),
       cmdO: /⌘O/.test(keysSec), cmdY: /⌘Y/.test(keysSec),
       // WIN-2: New's key is offered as a Mac key, and Windows is pointed at New in the File menu (never at Ctrl+N).
-      fileMenuNew: /⌘N — New, on a Mac/.test(keysSec) && /On Windows[^.]*New in the File menu/.test(keysSec) && !/Ctrl\+N/.test(keysSec),
+      // ⚠️ Re-expected for W.2 (WIN-3, audit 2026-11): Help now shows ONE of two New lines, by platform (data-os), so the
+      // Mac's reads "⌘N — New" and the other one points at New in the File menu. keysSec is textContent, which holds
+      // both lines; which one SHOWS on which platform is oskeys' H2.
+      fileMenuNew: /⌘N — New\b/.test(keysSec) && /New has no key here[^.]*New in the File menu/.test(keysSec) && !/Ctrl\+N/.test(keysSec),
       gettingStarted: /Getting started/.test(help) && /Pick up where you left off/.test(help) && /Other recent calendars/.test(help)
     };
     var staleHits = Object.keys(stale).filter(function (k) { return stale[k]; });
