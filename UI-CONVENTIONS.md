@@ -763,6 +763,11 @@ it lands on the feature's primary affordance.
 > ⛔ **THIS SECTION WAS SUPERSEDED BY WHAT WAS BUILT (round 6, 31 Aug 2026). Read the "AS BUILT"
 > block at the end before acting on anything above it.** Three of its prescriptions are not merely
 > unbuilt — they are now known to be wrong for this app, and one of them would break the print paths.
+>
+> ⛔ **And since 16 Nov 2026 the app never stacks** (owner: *"the left side bar (show, phases, settings) should always
+> stay on the left, I never want the UI to start stacking up and down....the app should basically just force you to
+> use it on a screen size that is wide enough"*). Every "below 960 px" in this section describes a layout that no
+> longer exists. Read **"the toolbar and the shell at every window size"** below.
 
 ~~**`AppShell` replaces the hand-rolled sticky layout**~~, with `AppShell.Header` / `.Navbar` /
 `.Main`. `#print-root` stays a direct child of `<body>`, outside the React root.
@@ -813,7 +818,8 @@ overflow, `--header-h` 63 px throughout.
 
 **Fill Gaps (9 Nov 2026; "Fill Space" until the owner renamed it on 10 Nov 2026, id and saved key unchanged), left of Side Boxes** (off = one even width per phase per year): labelled above 1300 px, the drawn switch alone (40 px) at 1300 px and
 below. Measured with it: the row stays on one line down to ~1240 px and wraps between ~1200 and 1230 px where it
-otherwise would not. A toggle Button with `aria-pressed`, never a Switch (its automatic id would be swept into saves).
+otherwise would not. ⚠️ Since 16 Nov 2026 the switch alone is fold step 1 (`useToolbarFit`), not a window width, and
+the row never wraps (below). A toggle Button with `aria-pressed`, never a Switch (its automatic id would be swept into saves).
 
 **The preview toolbar keeps its two highest-frequency controls at every width** — the Waterfall/Month
 toggle and the Shift All arrows, which are deliberately one-click. ~~Below `lg` the three labelled
@@ -822,15 +828,20 @@ the code, and none was ever built.** The row WRAPS instead (`.preview-tools{flex
 max-width:100%}`): measured on v1.4.1 it goes to two lines below about 1144 px. Since the Header
 button joined it (owner ruling 1, after v1.4.1) that is about 1287 px (Auto) / 1301 px (Template).
 The same measurement is why the notes reset went to the app header rather than here (HANDOFF, the
-header-controls build).
+header-controls build). ⛔ **Since 16 Nov 2026 it never wraps: it FOLDS** (the owner's picker *"Icons, then a More
+menu"*), and an overflow menu exists after all: the engine-fights-unmounting objection is met by SHOWING the same
+mounted nodes in a panel, never moving or unmounting them. Read the block below.
 
 ⚠️ **Sidebar internals must be keyed to the sidebar's width, not the viewport's.** Measured, the
 sidebar's width is **non-monotonic in the viewport**: the holiday-row label is 83 px at a 1024 px
 window and 484 px at 960 px — the sidebar is at its narrowest one pixel before it goes full width.
+*(16 Nov 2026: it no longer goes full width, and the ≤1280 px rule is capped at 320 px, so the sidebar now only ever
+narrows as the window does: 280 px at the 960 px minimum. The advice stands.)*
 Every viewport media query written for a sidebar internal is keyed to the wrong quantity. Use
 container queries inside `AppShell.Navbar`.
 
-**Below 960 px the frozen `.sheet-scroll` box hangs 392–434 px below the fold** — because stacking
+~~**Below 960 px the frozen `.sheet-scroll` box hangs 392–434 px below the fold**~~ *(gone with the stacking, 16 Nov
+2026: the shell's grid fit runs at every width)* — because stacking
 the sidebar above the preview pushes the grid down while its `max-height` still assumes it starts
 under the header. The fix is not to touch the frozen rule: below the navbar breakpoint the sidebar
 becomes a Burger-toggled overlay, so `AppShell.Main` always starts directly under the header. Treat
@@ -838,27 +849,31 @@ becomes a Burger-toggled overlay, so `AppShell.Main` always starts directly unde
 
 **Declare the supported range and stop pretending:**
 
-> **1200 px is the design target. 1024 px is the fully supported floor. 768 px is
-> degraded-but-working. Below 768 px is explicitly unsupported.**
+> ~~**1200 px is the design target. 1024 px is the fully supported floor. 768 px is
+> degraded-but-working. Below 768 px is explicitly unsupported.**~~
+>
+> ⛔ **Superseded 16 Nov 2026 (owner's pickers): 960 px is the minimum, half of a 1920 monitor, and the app is the
+> same app at every width above it. Narrower, it stops shrinking and the window scrolls sideways** ("like Excel showing
+> fewer columns"), never stacking and never covering the calendar with a "make it wider" screen.
 
 Nobody builds a production calendar on a phone. Engineer `md` and `lg` properly; treat `sm` as "must
 not break, must not be pretty"; do nothing for `xs` beyond preventing horizontal overflow.
 
 ### ✅ AS BUILT — the app shell: the window never scrolls (22 Sep 2026)
 
-Owner: *"make the app behave like a standard app window."* Above 960 px the **window cannot scroll**;
+Owner: *"make the app behave like a standard app window."* The **window cannot scroll**;
 three things scroll, each in its own box: the sidebar, the waterfall grid, and — through
-`.preview-panel` — the month view. At 960 px and below nothing changed: the layout stacks and the
-page scrolls, exactly as before.
+`.preview-panel` — the month view. ⚠️ Above 960 px only until 16 Nov 2026, when at 960 px and below the layout
+stacked and the page scrolled; now at EVERY width, `<body>` stopping at 960 px and `<html>` scrolling sideways under it.
 
 | | How |
 |---|---|
-| the frame | `@media screen and (width > 960px)` in `legacy.css` ("The app shell"): `<body>` is a `100vh` flex column with `overflow:hidden`; every child is `flex:none` except `.layout` (`flex:1 1 0; min-height:0`). The header and any visible notice strips take their natural height, and the layout gets the rest |
+| the frame | `@media screen` in `legacy.css` ("The app shell"; `(width > 960px)` until 16 Nov 2026): `<html>` is `height:100%; overflow-x:auto; overflow-y:hidden` and `<body>` a `100%`-high flex column, `min-width:960px`, with `overflow:hidden` (⚠️ `<html>`'s own overflow is what lets the window scroll sideways: while it is `visible`, `<body>`'s `hidden` is handed to the window. And `100%`, not `100vh`, is the window LESS a sideways scrollbar, 17 px on Windows); every child is `flex:none` except `.layout` (`flex:1 1 0; min-height:0`). The header and any visible notice strips take their natural height, and the layout gets the rest |
 | the sidebar | fills `.layout` (`align-self:stretch`, `max-height:none`, `min-height:0`) and keeps its own `overflow-y:auto`. Its `calc(100vh - var(--header-h))` knew the header but **not the notice strips**, so with a strip showing it ran past the window and its last rows could not be reached |
 | the month view | *(26 Oct 2026, owner: "The surrounding menus need to stay fixed in place.")* **`#table-wrap` is its scroll box**, as the waterfall's grid box is: in the month view the panel is a flex column, the toolbar rows at their natural height and `#table-wrap` `flex:1 1 0; overflow:auto` under them, so the toolbar and the text style bar never scroll away, at any zoom. Zoomed, `#table-wrap` is a one-track grid (`calc(100% * var(--cal-zoom))`) that pins `.month-view` to its 100% width. Only `#table-wrap`'s own box; nothing inside it, no `.mv-*` rule. Until then the month scrolled in `.preview-panel` (still `overflow:auto`, so a tool popover past its bottom stays reachable). `calzoom` Z5, M2 and M2b hold it |
 | the waterfall | fitted so the panel never scrolls in that view and the grid box is the **one** vertical scroller — below |
-| the bottom strip | *(21 Oct 2026, owner: the zoom pill covered the grid's last rows.)* `.preview-panel{padding-bottom:0; margin-bottom:44px}`: the fixed **?** button (28 px, `bottom:8px`) and the zoom pill (26 px, centred on it) sit in the 44 px under the panel, 8 px clear of it. ⛔ A **margin**, not padding: padding is inside the panel's scroll box, so the month view would still scroll under them. The grid fit needs no change, since it measures the panel. Below 960 px it is `padding-bottom:44px`, so the end of the page clears them. `calzoom` Z5 and W1b hold it |
-| the text style bar | *(21 Oct 2026, TEXT-STYLE-BAR-PLAN.md; moved 10 Nov 2026; card 4b of `mockups/toolbar-month-parity.html`, 11 Nov 2026.)* Its buttons in a grey well on the FIRST line of `.view-toggle-row`. The first line, in the owner's order: the view toggle alone at the left; Shift and Build Around (`.tb-dates`, no well, navy outlines); the text style bar (Highlight ALWAYS there, greyed until a header or side-box line is picked); the page tools (`.tb-page`: Fill Gaps, Side Boxes and Header, each its own grey 34 px button, no border, 10 px padding); Undo / Redo (a well). Fill Gaps and Side Boxes share ONE grid cell with the month stepper (`.tb-slots`), the view not shown kept by `visibility`, so the cell is one width in both views. ⭐ ONE EQUAL GAP after every item, Redo's to the edge included (eight): `useStyleBarFit` solves `--tb-gap-fit` so the line fills the row and writes it on `.preview-panel` (never the row: the shareable copy clones the row's attributes); `--tb-gap` reads it, never under `--tb-gap-min` (10 px). ⭐ NOTHING MOVES as you click around or switch views (owner): Header has a fixed width, its longest label's (`useFixedHeaderWidth`), centred; Template / Manual / Off wear the navy outline on the grey; Fill Gaps greys where it doesn't apply instead of leaving. Where the line can't fit at the minimum gap, the text bar alone drops to its own line directly under the first (`.style-own-line` on the host; the phase map orders after it). ⛔ Inside the row, never a new sibling between it and `#table-wrap`. The grid fit observes `.view-toggle-row`; `stylebarplace`, `calzoom` W1b and `textstyle` B3 hold it |
+| the bottom strip | *(21 Oct 2026, owner: the zoom pill covered the grid's last rows.)* `.preview-panel{padding-bottom:0; margin-bottom:44px}`: the fixed **?** button (28 px, `bottom:8px`) and the zoom pill (26 px, centred on it) sit in the 44 px under the panel, 8 px clear of it. ⛔ A **margin**, not padding: padding is inside the panel's scroll box, so the month view would still scroll under them. The grid fit needs no change, since it measures the panel. (Below 960 px it was `padding-bottom:44px` while the app stacked.) `calzoom` Z5 and W1b hold it |
+| the text style bar | *(21 Oct 2026, TEXT-STYLE-BAR-PLAN.md; moved 10 Nov 2026; card 4b of `mockups/toolbar-month-parity.html`, 11 Nov 2026.)* Its buttons in a grey well on the FIRST line of `.view-toggle-row`. The first line, in the owner's order: the view toggle alone at the left; Shift and Build Around (`.tb-dates`, no well, navy outlines); the text style bar (Highlight ALWAYS there, greyed until a header or side-box line is picked); the page tools (`.tb-page`: Fill Gaps, Side Boxes and Header, each its own grey 34 px button, no border, 10 px padding); Undo / Redo (a well). Fill Gaps and Side Boxes share ONE grid cell with the month stepper (`.tb-slots`), the view not shown kept by `visibility`, so the cell is one width in both views. ⭐ ONE EQUAL GAP after every item, Redo's to the edge included (eight): `useToolbarFit` (`useStyleBarFit` until 16 Nov 2026) solves `--tb-gap-fit` so the line fills the row and writes it on `.preview-panel` (never the row: the shareable copy clones the row's attributes); `--tb-gap` reads it, never under `--tb-gap-min` (10 px) and, since 16 Nov 2026, never over `--tb-gap-max` (14 px), the line packed LEFT (block below). ⭐ NOTHING MOVES as you click around or switch views (owner): Header has a fixed width, its longest label's (`useFixedHeaderWidth`), centred; Template / Manual / Off wear the navy outline on the grey; Fill Gaps greys where it doesn't apply instead of leaving. Where the line can't fit at the minimum gap it FOLDS (since 16 Nov 2026; block below). Until then the text bar alone dropped to its own line directly under the first (`.style-own-line` on the host, retired). ⛔ Inside the row, never a new sibling between it and `#table-wrap`. The grid fit observes `.view-toggle-row`; `stylebarplace`, `calzoom` W1b and `textstyle` B3 hold it |
 | the phase map | *(27 Oct 2026, MONTH-RAIL-PLAN.md, owner's option 3d+.)* `MonthMap.jsx`, a full-width line of `.view-toggle-row` under the first line (and under the text style bar's own line when it has had to drop to one: `order:2`), in the month view only (null in the waterfall). It draws the engine's `monthMap` push: every month (at least 36 px each, scrolling sideways inside the map past that), the phases as named 13 px bars in at most 3 rows plus 4 px thin rows, the all-phase hiatuses as red marks. 54 / 69 / 84 px tall for 1 / 2 / 3 rows. Plain buttons with `data-mvgo`, no ids. In the month view `#table-wrap` is the flex scroll box, so the calendar gives up the map's height with no grid-fit change. `monthmap` holds it |
 | the month stepper | *(28 Oct 2026, MONTH-RAIL-PLAN.md §18; moved 11 Nov 2026, owner, card 4b.)* `MonthStepper` in `MonthMap.jsx`: ‹ October 2026 › in the toolbar's first line, in the month view only, in the grid cell Fill Gaps and Side Boxes hold in the waterfall (`.tb-slots`), stretched to it: white, gray-3 border, navy-filled arrows, 30 px tall. NO Today button since 11 Nov 2026 (owner: "get rid of the today button entirely"); its own line under the phase map went, so the month calendar starts ~44 px higher. `data-mvstep`, no ids. `monthmap` part C and `stylebarplace` P6 hold it |
 
@@ -913,8 +928,63 @@ Before the shell, at 1440×900 the window overran by 4 px in the waterfall and b
 month view.
 
 The invariant stated above (*"the grid's top edge is header + ~140 px from the viewport top"*) is
-**retired above 960 px**. The fit measures where the grid's top actually is, so nothing needs that
+**retired** (above 960 px from 22 Sep 2026, at every width since 16 Nov 2026). The fit measures where the grid's top actually is, so nothing needs that
 140 px to be true any more.
+
+### ✅ AS BUILT — the toolbar and the shell at every window size (16 Nov 2026)
+
+Owner: *"Ok we really need to work on UI scaling at differnt screen sizes. Its mostly an issue with the tool bar. It
+only looks right on a normal sized laptop screen ... When the screen is made larger/on a big monitor, the tool bar
+should stay the same size and just have extra space on the sides rather than adding a bunch of space between the
+buttons. On smaller screens, its also not scaling down right."* Then four pickers: the spare room **on the right**
+(the Excel look), narrow windows **icons, then a More menu**, below the minimum **stop shrinking, scroll sideways**, and
+a cascading menu's arrow that **follows the side** it opens. It took over audit 3.12 (AUD2-065).
+
+**Wide.** The one equal gap is capped at `--tb-gap-max`, 14 px (about the gap on the owner's 1728 px laptop), and the
+line is `justify-content:flex-start` with no auto margins, so a wider window leaves its spare room after Undo / Redo.
+Before, the gap grew without limit: 116 px on a 2560 px window.
+
+**Narrow: the fold steps.** `useToolbarFit` (PreviewToolbar.jsx) tries the levels in turn and keeps the first whose
+line fits at the minimum gap; each is a class on `.preview-panel`, cumulative (`tbf1`-`tbf5`), and CSS draws it.
+Measured on `sideboxes.sptcal` (the narrowest preview), both views:
+
+| Level | What gives up room | First at (window) |
+|---|---|---|
+| 0 | nothing: every label | 1728 px and wider |
+| 1 | Fill Gaps its switch alone, Header its icon (`IconHeading`); Side Boxes keeps its label, since the month stepper shares their slot and needs about that width | ~1600 |
+| 2 | Fill Gaps, Side Boxes and Header (in the month view the stepper and Header) into the **More menu** (`.tb-more`, a ⋯ button) | ~1470 |
+| 3 | Build Around its **hammer** (`IconHammer`; a pin first, the owner: it read as a location) | ~1280 |
+| 4 | the text style buttons behind an **Aa** button (`.tb-text-btn`) | ~1100 |
+| 5 | Waterfall and Month their icons alone, named by hover hints the hook writes | 960 |
+
+Every folded control keeps a hover hint (`title=`). The view toggle and Shift go last; Shift never folds.
+
+- ⛔ **The menus SHOW the same nodes; nothing moves or unmounts.** The More panel is `.tb-page` itself, displayed under
+  the ⋯ button (`display:contents` wrapper below level 2), so the engine's delegated clicks and every id are unchanged.
+  The Aa menu is the style bar's host itself, `position:fixed` under its button (class `is-dropped`), because the host
+  must stay `.view-toggle-row > .style-bar-host` (the engine finds it by class; legs reach it by that path).
+- **The More menu's rows cascade, macOS-style.** Side Boxes' and Header's own menus open BESIDE the panel (`cascadeFrom`
+  in app.js), first row level with the row, on hover (140 ms) or click; the panel stays open behind them; another row
+  closes them (`sptcal:close-tool-menus`); a choice, Escape or a press outside closes everything. The rows show a
+  chevron that points the side the menu will open (‹ or ›): when the panel opens, the engine builds each menu off
+  screen, measures it (`sptcal:measure-tool-menus`, `cascadeSide`) and writes `data-cascade` on the row, which both the
+  CSS and the placement read. Side Boxes' menu (230 px) usually opens left, Header's (170 px) usually right.
+- A press on Aa keeps the focus and the text picked where they are (`preventDefault` on its mousedown), so the bar acts
+  on them once it opens.
+- ⚠️ **The preview panel's own scrollbar takes no width** (`scrollbar-width:none` in the shell). It overflows only for a
+  moment (the grid fit re-solving after a font or a strip changes a height) or on a very short window, and a classic
+  scrollbar (Windows; this machine's headless Chrome) took 15 px from the toolbar row as it came and went, so the
+  chosen fold level stopped fitting and the line wrapped for a moment (laptopfit at 1280 × 800). It still scrolls by
+  wheel or trackpad. The fold level must never depend on a scrollbar's presence.
+
+**The shell at every width.** The stacked layout is gone (every `max-width:960px` rule in legacy.css, and the
+SettingsWindow's in-flow form). The grid fit's media query is `screen`, and `fitPopToScreen`'s 960 px branch went with
+it. The sidebar's ≤1280 px width is capped at 320 px (it was 340, so it grew 13 px one pixel below 1281 px).
+
+**Held by** `toolbarfit.mjs` (real window widths with trusted mouse input: the levels in both views, one line, the
+cap and the left packing, never stacked, the 960 px minimum and the sideways scroll, the More menu's hover cascade and
+its arrows, the Aa menu acting on a picked cell, the hammer, the icon-only toggle) and `stylebarplace` (the ladder by
+the row's width inside one window, the gaps, the order).
 
 ### ✅ AS BUILT — the install gate's page (30 Sep 2026, `PWA-ONLY-PLAN.md`)
 

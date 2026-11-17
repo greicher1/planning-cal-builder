@@ -14,10 +14,11 @@
 // CASES
 //   T1  nothing moves between the views: every control both views share (the view switch, Shift, Build Around, the
 //       text style bar and its buttons, Header, Undo / Redo) keeps its place and size when Month is clicked (AUD2-034)
-//   T2  the shared tools stay on ONE line in both views: Shift, Build Around, Header and Undo / Redo level with the
-//       view switch (the month stepper never pushes them to a second line). At 1280 px and up only: narrower, they
-//       wrap, the same way in both views, which T1 holds
-//   T3  stepping through the months moves nothing: the stepper's label changes length, its slot does not
+//   T2  the shared tools stay on ONE line in both views: Shift, Build Around, Header (or, folded, the ⋯ button) and Undo /
+//       Redo level with the view switch. At every width since 16 Nov 2026 (the toolbar folds, useToolbarFit); until
+//       then at 1280 px and up only, the tools wrapping below it
+//   T3  stepping through the months moves nothing: the stepper's label changes length, its slot does not. Folded (step
+//       2+, at these windows) the stepper is in the More panel, which is opened for it
 //   T4  the column question is a waterfall question: the layout strip is never shown in the month view (AUD2-035)
 //   T5  one strip at a time: of the two raised, only the first shows; dismissing it brings the next
 //   T6  a strip is one line: a strip's text never wraps, and a long one offers Details, which shows the rest and folds
@@ -59,8 +60,11 @@ window.addEventListener('load', function () { (async function () {
   }
   // The first line: every shared tool level with the view switch.
   function oneLine(){
-    var t = mid(R(q('.view-toggle'))), ids = ['shift-group', 'pop-solve-btn', 'tb-hdr-mode-btn'];
-    var ys = ids.map(function (id) { return +(mid(R($id(id))) - t).toFixed(1); });
+    // Header, or the ⋯ button it folds into (useToolbarFit, step 2).
+    var hdr = $id('tb-hdr-mode-btn').getClientRects().length && !$id('tb-hdr-mode-btn').closest('.tb-more.is-open') ? 'tb-hdr-mode-btn' : null;
+    var t = mid(R(q('.view-toggle'))), ids = ['shift-group', 'pop-solve-btn'].concat(hdr ? [hdr] : []);
+    if(!hdr) ids.push(null);
+    var ys = ids.map(function (id) { return +(mid(R(id ? $id(id) : q('.tb-more-btn'))) - t).toFixed(1); });
     ys.push(+(mid(R(q('.undo-redo-group'))) - t).toFixed(1));
     return {ok: ys.every(function (d) { return Math.abs(d) < 1; }), off: ys};
   }
@@ -98,13 +102,14 @@ window.addEventListener('load', function () { (async function () {
     out.mvStrips = mvShown.map(function (id) { return id + ' h' + $id(id).offsetHeight; });
     add('T1', 'nothing moves between the views: every shared control keeps its place and size when Month is clicked',
         mM < 0.5, {moved: mM, shift: [rnd(R($id('shift-group')))], header: rnd(R($id('tb-hdr-mode-btn')))}, {moved: 0});
-    // At 1280 px and up (a laptop). Narrower, the tools wrap to a second line, the same in both views (T1).
-    if(innerWidth >= 1280)
-      add('T2', 'the shared tools stay on one line, level with the view switch, in both views',
-          wfLine.ok && mvLine.ok, {waterfall: wfLine.off, month: mvLine.off}, 'all 0');
-    else out.T2skipped = {why: 'under 1280 px the tools wrap in both views', waterfall: wfLine.off, month: mvLine.off};
+    // At every width since 16 Nov 2026: the line folds rather than wrapping (useToolbarFit).
+    add('T2', 'the shared tools stay on one line, level with the view switch, in both views',
+        wfLine.ok && mvLine.ok, {waterfall: wfLine.off, month: mvLine.off}, 'all 0');
 
     // ---- T3: step through the months ----
+    // Folded (step 2+) the stepper is in the More panel: open it first, so the stepper is on show to be read.
+    var folded = !!q('.preview-panel.tbf2');
+    if(folded){ q('.tb-more-btn').click(); await T.sleep(300); }
     var stepMoves = 0, labels = [], notFit = [];
     // The label on show: the full name, or its short form where the full one does not fit (the full one is then
     // visually hidden, 1 px, for the live region).
@@ -121,9 +126,12 @@ window.addEventListener('load', function () { (async function () {
     }
     var stepR = q('.month-step') && R(q('.month-step')), slotR = R(q('.tb-slots'));
     var shownLabel = shownLabelNow(), labelFits = !notFit.length;
+    // On the line the stepper fills the slot; in the More panel it is the panel's width less its 4 px margins.
+    var fills = !!stepR && (folded ? Math.abs(stepR.width - (slotR.width - 8)) < 0.5 : Math.abs(stepR.width - slotR.width) < 0.5);
     add('T3', 'stepping through the months moves nothing, and the month on show always fits its box',
-        labels.length >= 3 && stepMoves < 0.5 && labelFits && !!stepR && Math.abs(stepR.width - slotR.width) < 0.5,
-        {labels: labels, shown: shownLabel && shownLabel.textContent, notFit: notFit, moved: stepMoves, labelFits: labelFits, stepper: rnd(stepR), slot: rnd(slotR)}, {moved: 0, labelFits: true});
+        labels.length >= 3 && stepMoves < 0.5 && labelFits && fills,
+        {folded: folded, labels: labels, shown: shownLabel && shownLabel.textContent, notFit: notFit, moved: stepMoves, labelFits: labelFits, stepper: rnd(stepR), slot: rnd(slotR)}, {moved: 0, labelFits: true});
+    if(folded){ document.body.dispatchEvent(new KeyboardEvent('keydown', {key: 'Escape', bubbles: true, cancelable: true})); await T.sleep(250); }
 
     // ---- T4 / T5 / T6: the strips ----
     var layoutInMonth = $id('layout-notice').offsetHeight;

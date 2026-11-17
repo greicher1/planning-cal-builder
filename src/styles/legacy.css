@@ -507,6 +507,12 @@
     /* ...plus the scenario key facts band's measured room while it shows (--sc-band-space, KEY-FACTS-PLAN.md): the
        margin grows, the panel's border box shrinks, and the grid fit ends the waterfall above the band. */
     .preview-panel{ min-height:0; overflow:auto; padding-bottom:0; margin-bottom:calc(44px + var(--sc-band-space, 0px)); }
+    /* ⚠️ ITS OWN SCROLLBAR TAKES NO WIDTH (16 Nov 2026). The panel overflows only for a moment (the grid fit re-solving
+       after a font or a strip changes a height) or on a very short window, and a classic scrollbar (Windows; headless
+       Chrome) took 15 px from the toolbar row as it came and went: the toolbar's fold level then no longer fitted, the
+       line wrapped for a moment, and the observers above reported "ResizeObserver loop" errors (laptopfit at 1280 x
+       800). It still scrolls, by wheel or trackpad. Steady, nothing changes: the panel has no scrollbar then. */
+    .preview-panel{ scrollbar-width:none; }
     /* ⭐ THE MONTH VIEW SCROLLS IN #table-wrap, like the waterfall in its grid box (owner, 26 Oct 2026: "The
        viewport of the month view needs to work the same way as the viewport of the waterfall view ... The
        surrounding menus need to stay fixed in place"). Until then the month scrolled in .preview-panel, so the

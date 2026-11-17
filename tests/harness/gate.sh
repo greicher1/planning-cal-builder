@@ -1918,8 +1918,9 @@ done
 # hidden, a hostile key, removal pruning the key, and Shift All.
 # stylebarplace (owner, 10 Nov 2026) is where the text style bar sits: its bare buttons on the toolbar's first line,
 # beside Shift with Build Around's gap before it (--tools-group-gap, one value), at Shift's 30 px, the Size box's own
-# arrow 8 px in; a header line's Highlight well growing it leftward with nothing else moving; and, the row set narrower
-# than the three groups, the bar alone on its old line (the month view: beside the stepper), the class never flipping.
+# arrow 8 px in; a header line's Highlight well growing it leftward with nothing else moving. ⚠️ Re-expected 16 Nov 2026
+# (UI scaling): a wide row keeps the laptop size packed left (gaps capped at 14 px, the spare after Redo), and a narrow one
+# FOLDS through levels 1-5, always one line, where the bar used to drop to its old line (`.style-own-line`, retired).
 # On fill-intent (Fill Space shows: the widest toolbar). Red on the build before it in every placement case.
 # phasesui (same plan §3) is the Phases tab redesigned to the A + D blend "without changing functionality": for 46
 # fixtures, the Phases card's id'd controls (in order), the saved fields.byId and hiatus rows are those of the build
@@ -3321,6 +3322,29 @@ for c in cases:
     print(('  PASS  ' if c.get('pass') is True else '  FAIL  ')+label+' '+str(c.get('id'))+': '+str(c.get('title',''))[:110])
 sys.exit(0 if cases and all(c.get('pass') is True for c in cases) else 1)
 PYHD
+
+# ---- toolbarfit: the toolbar and the app shell at every window size (owner, 16 Nov 2026) -------------------------
+# The owner: the toolbar "only looks right on a normal sized laptop screen"; wide, it keeps its laptop size packed left
+# (the gap capped at 14 px); narrow, it FOLDS in five steps, always one line (useToolbarFit, PreviewToolbar.jsx); the
+# sidebar never stacks and the app stops shrinking at 960 px, a narrower window scrolling sideways (legacy.css, "The
+# app shell"; audit 3.12, AUD2-065). A Node script, not a t/ leg: the WINDOW changes width case by case
+# (Emulation.setDeviceMetricsOverride), and the More menu's rows open their menus on hover, which only CDP input is.
+# On sideboxes.sptcal, both views. stylebarplace holds the fold ladder by the row's width inside one window.
+rm -f "$HERE/toolbarfit.json"
+node "$HERE/toolbarfit.mjs" --page "$PAGE" >/dev/null 2>&1
+python3 - "$HERE/toolbarfit.json" "toolbarfit (sideboxes)" <<'PYTF' || FAIL=1
+import json,sys
+path, label = sys.argv[1], sys.argv[2]
+try: a=json.load(open(path))
+except Exception as e:
+    print('  FAIL  '+label+' produced no result: '+str(e)); sys.exit(1)
+if a.get('EX'):
+    print('  FAIL  '+label+' threw: '+str(a['EX'])[:200]); sys.exit(1)
+cases = a.get('cases') or []
+for c in cases:
+    print(('  PASS  ' if c.get('pass') is True else '  FAIL  ')+label+' '+str(c.get('id'))+': '+str(c.get('title',''))[:110])
+sys.exit(0 if cases and all(c.get('pass') is True for c in cases) else 1)
+PYTF
 
 # ---- hiatusripple: a hiatus change moves the phases after it (HIATUS-RIPPLE-PLAN.md) ------------------
 # ⭐ ADDED 4 Nov 2026 (owner: "editing a hiatus (either all phase or per phase) can automatically ripple the whole

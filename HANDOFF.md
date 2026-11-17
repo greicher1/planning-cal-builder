@@ -4,7 +4,7 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### 🔨 16 Nov 2026: UI SCALING AT EVERY WINDOW SIZE (toolbar folds, sidebar never stacks). TRY BUILD on branch `ui-scaling` (worktree `.claude/worktrees/ui-scaling`, from `origin/main` `ad48e11`), WIP commit, NOT pushed. Tracker card `ui-scaling-screen-sizes`; takes over audit 3.12 (AUD2-065), dropped from wave 4 on the owner's picker.
+### ✅ 16 Nov 2026: UI SCALING AT EVERY WINDOW SIZE (toolbar folds, sidebar never stacks). FINISHED on branch `ui-scaling` (worktree `.claude/worktrees/ui-scaling`, from `origin/main` `ad48e11`): committed locally, NOT merged, NOT pushed (the push is the owner's picker). Tracker card `ui-scaling-screen-sizes`; takes over audit 3.12 (AUD2-065), dropped from wave 4 on the owner's picker. Owner tried it on localhost and said *"Looks good, finish it"*.
 - **Owner:** the toolbar "only looks right on a normal sized laptop screen"; on a big monitor it "should stay the same
   size and just have extra space on the sides rather than adding a bunch of space between the buttons"; on smaller
   screens it doesn't scale down right; the sidebar "should always stay on the left, I never want the UI to start
@@ -38,14 +38,32 @@
   (`cascadeSide`) and writes `data-cascade="left|right"` on the row; CSS draws ‹ for left, and `cascadeFrom` follows the
   same value. Checked (`clicks7`, scratch): arrow = opened side for both rows at 1470, 1366, 1100, 960 and the month view.
 - **Measured (sideboxes.sptcal, both views):** level 0 at 2560 (809 px spare on the right) and 1728; 1 at 1600; 2 at
-  1470 / 1366; 3 at 1280; 4 at 1100; 5 at 960; 820 scrolls sideways to 960. One line, header never overflows. 22 trusted
-  CDP click checks green (More: Side Boxes menu under its button, a box added, Header Off, Escape; Build Around icon;
-  Text: a picked cell stays picked, Bold applies; the stepper in More steps; min width scrolls).
-- **NOT DONE (after the owner tries it):** legs. `stylebarplace` P0/P2 need re-expecting (order has the new buttons;
-  gaps no longer fill the row); a new leg for the fold levels and the min width. ⚠️ On this machine `hdrcontrols`,
-  `fillspace`, `monthmap`, `calzoom`, `stylebarplace` time out loading calendars on untouched `origin/main` too (A/B
-  16 Nov), so they say nothing either way until that is fixed. Docs: UI-CONVENTIONS §7 (the header ladder note, the
-  shell's "above 960 px", the 1024 floor), CLAUDE.md's 960 mentions, README Unreleased.
+  1470 / 1366; 3 at 1280; 4 at 1100; 5 at 960; 820 scrolls sideways to 960. One line, header never overflows.
+- **Found while finishing: the preview panel's own scrollbar.** A classic scrollbar (Windows; this machine's headless
+  Chrome) appeared on `.preview-panel` for a moment as fonts loaded, took 15 px from the toolbar row, and the chosen
+  level wrapped for ~3 s under the harness (laptopfit 1280 × 800 T1/T2, "ResizeObserver loop" errors). Fix:
+  `.preview-panel{scrollbar-width:none}` in the shell (it still scrolls by wheel). That also clears the
+  ResizeObserver errors `laptopfit` Z shows on untouched `origin/main` here.
+- **Legs:** NEW `toolbarfit.mjs` (in gate.sh after hiatusdrag; real window widths, trusted mouse, real scrollbars):
+  12/12. RE-EXPECTED `stylebarplace` (P0 order with ⋯ and Aa; P2 wide = packed left at 14 px; P2b just over the fit =
+  eight equal gaps; P4 the fold ladder by row width, monotonic to 5, one line; P5 level steady; P12 month folded, the
+  stepper in More), `monthmap` (the bar folded at step 4 instead of its own line; dead at 1600), `laptopfit` (T2 at
+  every width; T3 opens More when folded). Green on the build: stylebarplace 15/15, monthmap ×3 20/20, laptopfit ×3
+  11/11, hdrcontrols 12, fillspace 6, textstyle 52, phasesmore ×2 9, hdrrow 40, buildaround 36, anchorside 39,
+  sharecopy2, toolbarfit 12, `npm run check` 42/42. ⚠️ Red on untouched `origin/main` too on this machine (A/B, so not
+  this work): `settingswin` W10 (the Settings window's width vs the sidebar's clientWidth with a classic scrollbar).
+  Also red, A/B against untouched `origin/main` on this machine: `sideboxes` S12 (77/78 on both: a side box's size at 50%
+  zoom, a scrollbar in its stack) and `calzoom` (25/26 on both, but a DIFFERENT case: base fails M3 at 50%, this branch
+  M1 at 150%). Both checks compare day-column widths strictly, and #table-wrap's 15 px vertical scrollbar moves them by
+  ~2 px; whichever zoom first shows the scrollbar fails. The one-line toolbar gives the month 44 px more height, so on
+  `mvnotes` the month fits at 100% here and the scrollbar first appears at 150%. A test fragility, not a reflow; worth
+  making the two checks scrollbar-aware (measure `offsetWidth - clientWidth` at each zoom) when calzoom is next touched.
+  **Partial gate** (gate.sh's base, waterfall PDF, seams, workbook, restore, fields.byId sections, cut as a temp file):
+  ALL PASS, every baseline identical.
+- **Next:** the owner's push picker. `git fetch` first; if `origin/main` is still `ad48e11` the branch fast-forwards it
+  (`git push origin ui-scaling:main`), else merge `origin/main` into the branch and re-run `toolbarfit` + `stylebarplace`.
+  After the push, check the live `index.html` is this build byte for byte. Local `main` (the main checkout) is behind
+  `origin/main` and has another session's uncommitted HANDOFF edit; leave it alone.
 
 ### ✅ 16 Nov 2026: THE RECENT CALENDARS ON AN EMPTY START ARE TWO CARDS. Branch `start-recents-cards` (worktree `.claude/worktrees/start-recents-cards`, from `origin/main` `8f170f9`). One commit, pushed to `main` as a fast-forward on the owner's pickers *"Commit"* and *"Push and deploy"*. No version cut (README: Unreleased). Tracker card `start-recents-look`
 - **Owner, on a screenshot of v1.15.0's list:** *"this recent calendars UI is ugly. Mockup some alternatives that fit in

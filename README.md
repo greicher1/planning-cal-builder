@@ -31,6 +31,44 @@ way a user would notice or a future session would need to return to. See
 
 ## Unreleased
 
+### The toolbar keeps its laptop size and folds on narrow windows; the app never stacks (16 Nov 2026)
+
+The owner: *"Ok we really need to work on UI scaling at differnt screen sizes. Its mostly an issue with the tool bar.
+It only looks right on a normal sized laptop screen ... When the screen is made larger/on a big monitor, the tool bar
+should stay the same size and just have extra space on the sides rather than adding a bunch of space between the
+buttons. On smaller screens, its also not scaling down right. Also the left side bar (show, phases, settings) should
+always stay on the left, I never want the UI to start stacking up and down."* Four pickers settled the details. It
+also covers audit 3.12 (AUD2-065, a half-screen window).
+
+- **Wide windows.** The toolbar stays at its laptop size with the spare room after Undo / Redo (the gap between
+  buttons stops at 14 px; on a 2560 px window it used to be 116 px).
+- **Narrow windows.** The toolbar is always one line. Short of room it gives up width in steps, least-used first:
+  Fill Gaps shows its switch and Header its icon; then Fill Gaps, Side Boxes and Header (the month stepper in the
+  month view) move into a ⋯ More menu; then Build Around shows a hammer; then the text style buttons fold behind an
+  Aa button; at the narrowest, Waterfall and Month show their icons. Every folded button names itself on hover. Until
+  now the text style buttons dropped to a second line and, below about 1150 px, the rest wrapped to a third.
+- **The More menu's menus cascade, as on a Mac.** Side Boxes and Header show an arrow; resting on one (or clicking it)
+  opens its menu beside the panel, the arrow pointing the side it opens. Choosing, Escape or a click elsewhere closes
+  everything.
+- **The sidebar always stays on the left.** At 960 px and below the sidebar used to go full width above the calendar
+  and the page scrolled; at 960 px (half of a 1920 monitor) the toolbar ran off screen and the calendar started below
+  the fold. Now the app is the same at every width and stops shrinking at 960 px; a narrower window scrolls sideways.
+  The sidebar between 1230 and 1280 px no longer grows as the window narrows.
+- **Nothing frozen changed.** No grid, workbook or PDF code; the print paths never see the shell (screen media only).
+
+- **Found on the way:** a scrollbar on the preview panel, drawn for a moment while fonts load on systems with
+  full-width scrollbars (Windows), took 15 px from the toolbar and wrapped it for a moment on a 1280 px laptop. The
+  panel's own scrollbar now takes no width (it still scrolls by wheel or trackpad).
+
+Verified: a new `toolbarfit.mjs` (in the gate: real window widths from 2560 to 820 px and real mouse input, both views)
+12/12; `stylebarplace` re-expected 15/15; `monthmap` ×3, `laptopfit` ×3 (1280 × 800 included), `hdrcontrols`,
+`fillspace`, `textstyle`, `phasesmore` ×2, `hdrrow`, `mvhdroff`, `buildaround`, `anchorside`, `sharecopy2` green;
+`npm run check` 42/42; the gate's export sections (grid clipping, the waterfall PDF and its seams, the workbook, the
+v1.0.0 restore, `fields.byId`'s 77 ids) identical to their baselines. Red here on untouched `origin/main` too, so not
+this change: `settingswin` W10 and `sideboxes` S12 (a classic scrollbar's 15 px), and one of `calzoom` M1 / M3 (which
+one depends on whether the month's box has a scrollbar at 100%; the one-line toolbar gives the month 44 px more height,
+so here it is M1 that trips).
+
 ### The recent calendars on an empty start are two cards (16 Nov 2026)
 
 The owner, on a screenshot of the list v1.15.0 put under the empty preview: *"this recent calendars UI is ugly. Mockup
