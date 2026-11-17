@@ -37389,12 +37389,39 @@ export function initLegacyApp() {
       // Clicks inside a popover must not reach the click-away handler below.
       p.menu.addEventListener('click', e=> e.stopPropagation());
     });
-    // ⭐ NO CLICK-AWAY (owner, 11 Nov 2026, option 2: "keep it open while you use the grid"). A panel used to close
-    // on any click outside the toolbar, so the calendar it quotes could not be clicked, checked or scrolled to while
-    // it was up. It now closes only on its ✕, on its button again, on Escape, or when the other tool opens. (The
-    // handler that did this also had to exclude .date-pop, whose day clicks are "outside"; nothing to exclude now.)
-    // Escape closes it only when the key is not someone else's: focus inside a tool panel, or on nothing. A note
-    // editor's Escape would otherwise close the Shift panel along with it.
+    // ⭐ A CLICK OUTSIDE CLOSES A PANEL LEFT WHERE IT OPENED; A DRAGGED PANEL STAYS (owner, 16 Nov 2026: "universal
+    // rule at any window size...shift tool and build around menus should hide when you click anywhere outside of them
+    // EXCEPT when a user has dragged them to any custom spot"). This revises 11 Nov's option 2 ("keep it open while
+    // you use the grid"), which had removed the click-away for every panel. Moving a panel out of the way is now
+    // how you keep it up while you work in the grid.
+    //   * "Dragged" is popPos: set only when the user lets go of the title row, and cleared by closeAllPops(), so it
+    //     lasts one opening, as the spot itself does. A panel fitPopToScreen() floated BY ITSELF (WIN-4: a short
+    //     window, the same spot) is not in popPos, so it is not dragged and closes like any other.
+    //   * Nothing here reads the window's width: one rule at every size.
+    //   * Not outside: the panels and their buttons (.tools-wrap, .shift-group: a click on a tool's own button is
+    //     its toggle, which this would close and the button then reopen), the date picker a panel opens (.date-pop,
+    //     a body-level panel: closing the panel mid-pick threw the edit away, round 7), and a hint's card (Mantine
+    //     portals it to <body>). .select-pop portals INSIDE .tools-menu, so it is inside already.
+    //   * Judged by where the PRESS began as well as where the click lands: a press that starts in a panel never
+    //     closes it. A drag down the list, or a text selection in a date box, let go outside lands its click on the
+    //     two ends' common ancestor; the list's press guard stops that click spreading but cannot stop another
+    //     listener on the document. A click with no press before it (the keyboard, or code) goes by its target.
+    //   * CAPTURE, so a click something on the page stops from bubbling still counts.
+    // Escape still closes either kind, and only when the key is not someone else's: focus inside a tool panel, or on
+    // nothing. A note editor's Escape would otherwise close the Shift panel along with it.
+    const POP_INSIDE = '.tools-wrap, .shift-group, .tools-menu, .date-pop, .mantine-HoverCard-dropdown';
+    const inPopSurface = t => !!(t && t.closest && t.closest(POP_INSIDE));
+    let pressBeganInPop = null;   // true / false from the last press; null after a key, or before any press
+    document.addEventListener('pointerdown', e=>{ pressBeganInPop = inPopSurface(e.target); }, true);
+    document.addEventListener('keydown', ()=>{ pressBeganInPop = null; }, true);
+    document.addEventListener('click', e=>{
+      const began = pressBeganInPop;
+      pressBeganInPop = null;
+      const open = POPS.find(p=>p.menu.classList.contains('open'));
+      if(!open || popPos.has(open.menu) || popDrag) return;
+      if(began === true || inPopSurface(e.target)) return;
+      closeAllPops();
+    }, true);
     document.addEventListener('keydown', e=>{
       if(e.key !== 'Escape') return;
       const a = document.activeElement;

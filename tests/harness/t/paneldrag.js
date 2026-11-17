@@ -1,7 +1,7 @@
-// paneldrag -- the Shift and Build Around panels can be dragged anywhere and stay open while the grid is used
-// (owner, 11 Nov 2026: "shift popup covers the waterfall which can be annoying when you're trying to reference it";
-// then "lets do 1+2 where it pops up like normal but you can drag it whereever you want. no put back button", and
-// "keep it open").
+// paneldrag -- the Shift and Build Around panels can be dragged anywhere, and a DRAGGED one stays open while the grid
+// is used (owner, 11 Nov 2026: "shift popup covers the waterfall which can be annoying when you're trying to reference
+// it"; then "lets do 1+2 where it pops up like normal but you can drag it whereever you want. no put back button", and
+// "keep it open"; narrowed 16 Nov 2026: a click outside closes a panel that has NOT been dragged, N1-N3).
 //
 //   HARNESS_PAGE=/dist/index.html HARNESS_STATE=anchorside ./run.sh paneldrag 300
 //
@@ -9,9 +9,13 @@
 //   H1  the title row holds the grip, the hint and a close, and nothing else: no Put back, no `title`, and no id
 //       but the hint's own (Mantine mints one for the existing InfoHint trigger)
 //   D1  a drag by the title row floats the panel (position:fixed) where it is dropped, over the sidebar if dropped there
-//   S1  a click on a grid cell and a scroll of the grid leave it open
+//   S1  dragged: a click on a grid cell and a scroll of the grid leave it open
 //   R1  1 wk → while it is open: its Production row quotes the new date; Undo: the old one again
 //   C1  the ✕ closes it; reopened, it drops down under its button again (a drag lasts only until it closes)
+//   N1  NOT dragged (owner, 16 Nov 2026: "should hide when you click anywhere outside of them EXCEPT when a user has
+//       dragged them to any custom spot"): a press and click on a grid cell closes it
+//   N2  not dragged: a press that BEGINS inside it (its Phases caption) and whose click lands on the grid leaves it open
+//   N3  not dragged: its own button group's 1 wk → leaves it open (and Undo, outside, then closes it)
 //   K1  Escape with focus on a sidebar field (someone else's key) leaves it open; Escape with nothing focused closes it
 //   B1  Build Around: opening it closes Shift; it drags the same, and a drag far off screen keeps it on screen
 //   E0  0 console errors
@@ -99,6 +103,35 @@ window.addEventListener('load', function () { (async function () {
     add('C1', 'the ✕ closes it; reopened, it drops down under its button again, not where it was dragged',
       closed && isOpen(shift) && !shift.classList.contains('is-floating') && JSON.stringify(again) === JSON.stringify(home),
       {closed: closed, reopened: again, home: home, floating: shift.classList.contains('is-floating')}, 'closed, then open at home');
+
+    // N1-N3: the panel is open where it opened (C1), not dragged. A real click comes after a press; give it one.
+    function pressAndClick(downOn, clickOn){
+      downOn.dispatchEvent(new PointerEvent('pointerdown', {bubbles: true, cancelable: true, button: 0, buttons: 1, pointerId: 9}));
+      downOn.dispatchEvent(new MouseEvent('mousedown', {bubbles: true, cancelable: true, button: 0}));
+      clickOn.dispatchEvent(new PointerEvent('pointerup', {bubbles: true, cancelable: true, button: 0, buttons: 0, pointerId: 9}));
+      clickOn.dispatchEvent(new MouseEvent('mouseup', {bubbles: true, cancelable: true, button: 0}));
+      clickOn.click();
+    }
+    var gridCell = document.querySelectorAll('#table-wrap td')[5] || cell;
+    pressAndClick(gridCell, gridCell); await T.sleep(200);
+    add('N1', 'not dragged: a press and click on a grid cell closes it (owner, 16 Nov 2026)',
+      !isOpen(shift), {open: isOpen(shift)}, 'closed');
+
+    $('pop-shift-btn').click(); await T.sleep(400);
+    var cap = shift.querySelector('.tools-cap');
+    pressAndClick(cap, gridCell); await T.sleep(200);
+    var keptByPress = isOpen(shift);
+    var p0 = prodDate();
+    $('shift-fwd-btn').click(); await T.sleep(900);
+    var keptByArrow = isOpen(shift), p1 = prodDate();
+    $('undo-btn').click(); await T.sleep(900);
+    var closedByUndo = !isOpen(shift);
+    add('N2', 'not dragged: a press that begins inside it (its Phases caption) and lets go over the grid leaves it open',
+      keptByPress, {open: keptByPress}, 'open');
+    add('N3', 'not dragged: its own 1 wk → leaves it open and moves its rows; Undo, a click outside, then closes it',
+      keptByArrow && p0 === '6/29/26' && p1 === '7/6/26' && closedByUndo,
+      {afterArrow: keptByArrow, before: p0, after: p1, closedByUndo: closedByUndo}, 'open, 6/29/26 then 7/6/26, then closed');
+    $('pop-shift-btn').click(); await T.sleep(400);
 
     // A visible field outside the panels (a hidden one cannot take focus, and Escape would then be nobody's).
     var field = Array.prototype.filter.call(document.querySelectorAll('input:not([type=checkbox]):not([type=radio])'), function (i) {

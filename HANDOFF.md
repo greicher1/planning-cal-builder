@@ -60,10 +60,59 @@
   making the two checks scrollbar-aware (measure `offsetWidth - clientWidth` at each zoom) when calzoom is next touched.
   **Partial gate** (gate.sh's base, waterfall PDF, seams, workbook, restore, fields.byId sections, cut as a temp file):
   ALL PASS, every baseline identical.
-- **Next:** the owner's push picker. `git fetch` first; if `origin/main` is still `ad48e11` the branch fast-forwards it
+- **Merged `origin/main` `4be2d02`** (Shift / Build Around close on a click outside unless dragged; README / HANDOFF
+  conflicts only, both entries kept). On the merge: `npm run check` 42/42, toolbarfit 12/12, paneldrag 12, panelstale
+  16, stylebarplace 15, buildaround 36, laptopfit 1280 × 800 11/11 (Z green: the scrollbar fix also clears the
+  ResizeObserver errors that commit saw red on origin/main), hdrcontrols 12.
+- **Next:** the owner's push picker. `git fetch` first; if `origin/main` is still `4be2d02` the branch fast-forwards it
   (`git push origin ui-scaling:main`), else merge `origin/main` into the branch and re-run `toolbarfit` + `stylebarplace`.
   After the push, check the live `index.html` is this build byte for byte. Local `main` (the main checkout) is behind
   `origin/main` and has another session's uncommitted HANDOFF edit; leave it alone.
+
+
+### ✅ 16 Nov 2026: A CLICK OUTSIDE CLOSES THE SHIFT / BUILD AROUND PANEL, UNLESS IT HAS BEEN DRAGGED. Branch `tool-pop-outside-close` (worktree `.claude/worktrees/tool-pop-outside-close`, from `origin/main` `ad48e11`), one commit, pushed to `main` as a fast-forward on the owner's *"looks good commit and push"* after trying it on localhost. No version cut (README: Unreleased). Tracker card `tool-pop-click-outside`
+- **Owner:** *"universal rule at any window size...shift tool and build around menus should hide when you click anywhere
+  outside of them EXCEPT when a user has dragged them to any custom spot."* This narrows 11 Nov's *"keep it open"*
+  (section "THE SHIFT AND BUILD AROUND PANELS…" below), which had removed the click-away for every panel.
+- **As built (engine only, `app.js`, the shift-tools IIFE where the "NO CLICK-AWAY" note was):** a CAPTURE `click` on
+  the document closes the open panel unless it is dragged (`popPos.has(menu)`, set only by letting go of the title row,
+  cleared by `closeAllPops()`, so per opening) or the click is on `POP_INSIDE` (`.tools-wrap, .shift-group, .tools-menu,
+  .date-pop, .mantine-HoverCard-dropdown`). A capture `pointerdown` records whether the press began inside one of those
+  (`pressBeganInPop`); a click whose press began inside never closes it (a list drag or a date-box text selection let go
+  over the grid). A `keydown` clears the record, so a keyboard click goes by its target. Capture, so a click something
+  on the page stops from bubbling still counts. Nothing reads the width: the rule is the same above and below 960 px.
+  - A panel `fitPopToScreen()` floats BY ITSELF on a short window (WIN-4) is not in `popPos`, so it closes like any other.
+  - The toolbar's own controls (`.tools-wrap`, `.shift-group`: the tool buttons and ← 1 wk / 1 wk →) never close it, as
+    before 11 Nov; the button would otherwise close it and its own handler reopen it. Undo, the grid, the sidebar, the
+    view switch: all outside.
+  - Esc, the ✕, the button and the other tool close either kind, unchanged.
+  - Help (`src/index.html`, the paragraph that introduces the two tools) gained one sentence: either box closes on a
+    click outside; drag it by its grey top bar to keep it open until its ×, its button or Esc.
+- **Tried on localhost (`?state=anchorside`, real clicks):** at 1024 px: a grid click closes an undragged Shift and
+  still selects the cell; a dragged one stays open through a grid click; ✕ then reopen drops under the button again and a
+  grid click closes it; a list drag let go over the grid keeps it; ← 1 wk keeps it; a day picked in the date picker
+  keeps it and the next grid click closes it; Build Around the same (a length box click keeps it, a sidebar click closes
+  it, dragged it stays); the two buttons still toggle. At 820 px (page-scroll layout): grid click closes an undragged
+  one, a dragged one stays, Esc closes. At 1100 x 560 Build Around floats itself (not dragged) and a grid click closes it.
+- **Legs:** `paneldrag` gains N1 (not dragged: a grid press and click closes it), N2 (a press begun in its Phases caption
+  and let go on the grid keeps it), N3 (its own 1 wk → keeps it; Undo, outside, closes it); S1 now says "dragged". 12/12
+  on the build; N1 red on `releases/v1.15.0.html` (N2, N3 follow from it). `T.closePops()`'s note updated (the ✕ is
+  still the sure way). `npm run check` 42/42.
+- **`panelstale` re-expected:** its B steps click the sidebar's Add phase with Shift open and expect it to stay open
+  (audit AUD2-049's "a panel left open while the calendar changes"). That is now true only of a DRAGGED panel, so B
+  drags it aside first (`dragAside`, pointer events on the title row) and B4 also asserts it is still open. 16/16.
+- **Targeted run (every leg that opens these panels, on the build):** green: `paneldrag` 12, `anchorside` 39,
+  `buildalongside` 8, `buildaround` 36, `buildaroundfresh` 5, `rebuildticks` 20, `panelstale` 16, `shiftheld` 13,
+  `datepick` 17, `laptopfit` 1366x768 11, `buildcarry` 17, `builddates` 9, `buildendsby` 21, `calrange` 18, `dayfirst`
+  14, `halfworked` 24, `hdrcontrols` 12, `overrides` 20, `rangeheld` 10, `rowheight` 7, `seasonroll` 17,
+  `shiftbandline` 10, `snaptools` 14, `stalebandkey` 9, `stylebarplace` 14, `weekswapholds` 11, `yearroll` 11,
+  `customunits` 23 + 28, `builtindates` 17 + 15, `episodeprep` 33, `loadsparse` (bare) 8, `phasekeys` 18, `phaselink`
+  14, `phaselook` 10, `phasemonth` 21, `phasenotes` 21.
+  - ⚠️ **Red, and NOT from this change:** `laptopfit` 1280x800 and 1280x943 (Z) and `monthmap` (mvnotes) E0, each a
+    console "ResizeObserver loop completed with undelivered notifications". Identical, twice each, on origin/main
+    without this change (`ad48e11`) and on `releases/v1.15.0.html`, which passed them in its own gate. The machine was
+    running other sessions' legs at the same time (load average 12-20), so it reads as load; re-run them on a quiet
+    machine before trusting either way. `laptopfit` never clicks outside an open panel, so this change cannot reach it.
 
 ### ✅ 16 Nov 2026: THE RECENT CALENDARS ON AN EMPTY START ARE TWO CARDS. Branch `start-recents-cards` (worktree `.claude/worktrees/start-recents-cards`, from `origin/main` `8f170f9`). One commit, pushed to `main` as a fast-forward on the owner's pickers *"Commit"* and *"Push and deploy"*. No version cut (README: Unreleased). Tracker card `start-recents-look`
 - **Owner, on a screenshot of v1.15.0's list:** *"this recent calendars UI is ugly. Mockup some alternatives that fit in
@@ -1175,7 +1224,9 @@ they wait on), then ONE full gate and the owner's yes before any push.
   cursor), drawn as a GREY BAR across the panel's top (gray-1, How far's `.tools-seg` grey, by the owner's screenshot; gray-2 under the pointer and while dragging; owner: *"make
   the bar at the top of the menus grey so its clear its a grabable window"*); pointerdown on it (not on its buttons or the hint) floats the panel (`floatPop`: `is-floating`,
   position:fixed, `clampPopPos` keeps it on screen) and pointer capture drags it. `popPos` holds the drop only until
-  `closeAllPops()`, which clears it, so `placePop()` opens it under its button every time. **No click-away:** the
+  `closeAllPops()`, which clears it, so `placePop()` opens it under its button every time. ⚠️ **SUPERSEDED 16 Nov 2026
+  for a panel that has not been dragged** (section "A CLICK OUTSIDE CLOSES…" at the top): a click outside closes it
+  again; only a dragged one keeps the rule below. **No click-away:** the
   document click handler is gone; a panel closes on its ✕ (`[data-tools-close]`, in `.tools-head-btns`, no id, no
   title), its button, Esc (only when focus is in a panel or on nothing), or the other tool. A `MutationObserver` on
   `#table-wrap` (pattern 3) re-reads a NEW `currentSchedule` into an open panel via `refreshMenuFromCalendar()`, unless
