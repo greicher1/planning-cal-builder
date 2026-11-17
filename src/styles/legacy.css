@@ -594,9 +594,9 @@
            a crowded one): the PDF has no empty lines. The WEEK then clips what is below it (overflow-y:clip, so
            nothing sideways is cut and no scroll box is made), or an empty "+" line would lie over the next week's day
            numbers and take their clicks. A bar is never clipped: no week goes under what its bars need.
-       A month the PDF has to SHRINK to fit (more in its weeks than a sheet holds) is not shrunk here: its weeks keep
-       what they need and the card is taller than the page. That is the one place the two differ, on purpose: on
-       screen it is edited at full size.
+       A month the PDF has to SHRINK to fit (more in its weeks than a sheet holds) is shrunk here too since 17 Nov
+       2026, at the PDF's own factor: "THE MONTH PAGE SHRINKS A CROWDED MONTH", at the end of this block. (16 to 17 Nov
+       2026 it stayed full size, in a card taller than the page.)
        - The bars layer grows with its week and NEVER SHRINKS (flex:1 0 auto), and that is load-bearing: its lines are
          `minmax(17px, auto)`, which reach their own height only out of free room, so a layer held shorter than its
          lines squeezed them, and the engine, which reads those heights, then handed the squeezed week back as its
@@ -655,6 +655,98 @@
     body:not(.mv-bar-11):not(.mv-bar-large):not(.mv-bar-13):not(.mv-bar-xl) #table-wrap#table-wrap .month-view .mv-pill,
     body:not(.mv-bar-11):not(.mv-bar-large):not(.mv-bar-13):not(.mv-bar-xl) #table-wrap#table-wrap .month-view .mv-hiatus-bar{ height:19px; }
     body:not(.mv-bar-11):not(.mv-bar-large):not(.mv-bar-13):not(.mv-bar-xl) #table-wrap#table-wrap .month-view .mv-pill.mv-pill-2l{ height:34px; }
+
+    /* ⭐ THE MONTH PAGE SHRINKS A CROWDED MONTH, EXACTLY AS ITS PDF DOES (owner, 17 Nov 2026: "I think id rather the
+       live view look like it will in the pdf"; by picker "Shrink like the PDF", which replaces the 16 Nov "Full size,
+       taller page"; MONTH-SHRINK-PLAN.md). A month with more in its weeks than a sheet holds is drawn at the month PDF
+       writer's own factor k: the engine asks the writer for that month's fit and writes k as --mvk on #table-wrap's own
+       style (app.js, "THE MONTH PAGE SHRINKS A CROWDED MONTH"), with each week's share of the page (the writer's own basis and grow, so its row) in --mvp-f1..6.
+       ⛔ EVERY RULE NEEDS --mvk IN #table-wrap's OWN STYLE ([style*="--mvk"]), which only a shrunk month on screen has:
+       a month that fits is drawn by exactly the rules above, and buildSavedHtml() strips that style, so nothing here
+       reaches a shareable copy. Screen only, under #table-wrap, as the rest of this block: neither month PDF can see it.
+       WHAT SCALES is mvlWeekPaint(k)'s list, the writer's own, each as calc(<px> x var(--mvk)): the bar layer's top
+       and bottom padding, the lanes and their gap, every bar's type, line, vertical padding and corner, a note's type,
+       line and vertical padding, the grey tag, the day number, the cell's top padding and its 14 px strut, "Day N".
+       ⛔ WHAT DOES NOT: every width, every horizontal padding and margin, every line weight (a bar's 1 px border, the
+       grid's lines), and the header, the month bar and the weekday row. So a fixed height is its scaled inside plus
+       the two unscaled 1 px borders: a Standard bar 17k + 2 px, a 10 px note (13n + 4)k + 2.
+       (tests/harness/t/monthwriter.js's scaledCss() is the same list for the print document, which that leg holds box
+       for box to the written PDF.)
+       - A size written INLINE (a month text style's, or a note size's, with its line: app.js mvTextCss) is out-ranked
+         only by !important, one rule per size the app can write (6 to 14 px), in both spellings: Chrome re-serialises
+         an element's style attribute ("font-size: 12px") once any script touches its .style.
+       - The screen's own affordances (the "+" slots, the row's "+" strip, the click sheet under the date band) scale
+         with the lines they sit on. */
+    #table-wrap#table-wrap[style*="--mvk"]{ --mvk-bl:15px; }
+    body.mv-bar-11 #table-wrap#table-wrap[style*="--mvk"]{ --mvk-bl:16px; }
+    body.mv-bar-large #table-wrap#table-wrap[style*="--mvk"]{ --mvk-bl:18px; }
+    body.mv-bar-13 #table-wrap#table-wrap[style*="--mvk"]{ --mvk-bl:19px; }
+    body.mv-bar-xl #table-wrap#table-wrap[style*="--mvk"]{ --mvk-bl:21px; }
+    /* The day cell: its top padding, its strut (the cell sets no font size, so it has <body>'s 14 px), the number. */
+    #table-wrap#table-wrap[style*="--mvk"] .month-view .mv-daycell{ padding-top:calc(3px * var(--mvk)); font-size:calc(14px * var(--mvk)); }
+    #table-wrap#table-wrap[style*="--mvk"] .month-view .mv-daynum{ font-size:calc(11px * var(--mvk)); }
+    #table-wrap#table-wrap[style*="--mvk"] .month-view .mv-daycell[data-shoot-day]::after{ font-size:calc(10px * var(--mvk)); line-height:calc(24px * var(--mvk)); }
+    #table-wrap#table-wrap[style*="--mvk"] .month-view .mv-daygrid::after{ top:calc(24px * var(--mvk)); }
+    /* The bar layer and its lines. */
+    #table-wrap#table-wrap[style*="--mvk"] .month-view .mv-bars{
+      padding-top:calc(24px * var(--mvk)); padding-bottom:calc(14px * var(--mvk)); row-gap:calc(2px * var(--mvk));
+      grid-auto-rows:minmax(calc(17px * var(--mvk)), auto);
+    }
+    /* Every bar: type and vertical padding (its line is 1.5 x the type, a note's 1.3 x, both unitless, so they follow). */
+    #table-wrap#table-wrap[style*="--mvk"] .month-view .mv-bar{ font-size:calc(10px * var(--mvk)); padding-top:calc(1px * var(--mvk)); padding-bottom:calc(1px * var(--mvk)); }
+    #table-wrap#table-wrap[style*="--mvk"] .month-view .mv-note-block{ padding-top:calc(2px * var(--mvk)); padding-bottom:calc(2px * var(--mvk)); }
+    #table-wrap#table-wrap[style*="--mvk"] .month-view .mv-pill-block{ font-size:calc(9px * var(--mvk)); }
+    /* Pills and bands: the corner, and the fixed height (the line plus 2 x 1 px padding, scaled; plus the two borders). */
+    #table-wrap#table-wrap[style*="--mvk"] .month-view .mv-pill,
+    #table-wrap#table-wrap[style*="--mvk"] .month-view .mv-hiatus-bar{ border-radius:calc(9px * var(--mvk)); }
+    body:not(.mv-bar-11):not(.mv-bar-large):not(.mv-bar-13):not(.mv-bar-xl) #table-wrap#table-wrap[style*="--mvk"] .month-view .mv-pill,
+    body:not(.mv-bar-11):not(.mv-bar-large):not(.mv-bar-13):not(.mv-bar-xl) #table-wrap#table-wrap[style*="--mvk"] .month-view .mv-hiatus-bar{ height:calc(17px * var(--mvk) + 2px); }
+    body:not(.mv-bar-11):not(.mv-bar-large):not(.mv-bar-13):not(.mv-bar-xl) #table-wrap#table-wrap[style*="--mvk"] .month-view .mv-pill.mv-pill-2l{ height:calc(32px * var(--mvk) + 2px); }
+    /* ...at a phase bar size (frozen edit E1's numbers): type, line, corner, tag, and the height less its borders. */
+    body.mv-bar-11 #table-wrap#table-wrap[style*="--mvk"] .month-view .mv-pill,
+    body.mv-bar-11 #table-wrap#table-wrap[style*="--mvk"] .month-view .mv-hiatus-bar{
+      font-size:calc(11px * var(--mvk)); line-height:calc(16px * var(--mvk)); border-radius:calc(10px * var(--mvk)); height:calc(18px * var(--mvk) + 2px); }
+    body.mv-bar-11 #table-wrap#table-wrap[style*="--mvk"] .month-view .mv-pill.mv-pill-2l{ height:calc(34px * var(--mvk) + 2px); }
+    body.mv-bar-11 #table-wrap#table-wrap[style*="--mvk"] .month-view .mv-pill-block{ font-size:calc(10px * var(--mvk)); }
+    body.mv-bar-large #table-wrap#table-wrap[style*="--mvk"] .month-view .mv-pill,
+    body.mv-bar-large #table-wrap#table-wrap[style*="--mvk"] .month-view .mv-hiatus-bar{
+      font-size:calc(12px * var(--mvk)); border-radius:calc(11px * var(--mvk)); height:calc(20px * var(--mvk) + 2px); }
+    body.mv-bar-large #table-wrap#table-wrap[style*="--mvk"] .month-view .mv-pill.mv-pill-2l{ height:calc(38px * var(--mvk) + 2px); }
+    body.mv-bar-large #table-wrap#table-wrap[style*="--mvk"] .month-view .mv-pill-block{ font-size:calc(11px * var(--mvk)); }
+    body.mv-bar-13 #table-wrap#table-wrap[style*="--mvk"] .month-view .mv-pill,
+    body.mv-bar-13 #table-wrap#table-wrap[style*="--mvk"] .month-view .mv-hiatus-bar{
+      font-size:calc(13px * var(--mvk)); line-height:calc(19px * var(--mvk)); border-radius:calc(12px * var(--mvk)); height:calc(21px * var(--mvk) + 2px); }
+    body.mv-bar-13 #table-wrap#table-wrap[style*="--mvk"] .month-view .mv-pill.mv-pill-2l{ height:calc(40px * var(--mvk) + 2px); }
+    body.mv-bar-13 #table-wrap#table-wrap[style*="--mvk"] .month-view .mv-pill-block{ font-size:calc(12px * var(--mvk)); }
+    body.mv-bar-xl #table-wrap#table-wrap[style*="--mvk"] .month-view .mv-pill,
+    body.mv-bar-xl #table-wrap#table-wrap[style*="--mvk"] .month-view .mv-hiatus-bar{
+      font-size:calc(14px * var(--mvk)); border-radius:calc(13px * var(--mvk)); height:calc(23px * var(--mvk) + 2px); }
+    body.mv-bar-xl #table-wrap#table-wrap[style*="--mvk"] .month-view .mv-pill.mv-pill-2l{ height:calc(44px * var(--mvk) + 2px); }
+    body.mv-bar-xl #table-wrap#table-wrap[style*="--mvk"] .month-view .mv-pill-block{ font-size:calc(12px * var(--mvk)); }
+    /* A size written inline: one rule per size, both spellings. */
+    #table-wrap#table-wrap[style*="--mvk"] .month-view .mv-bar[style*="font-size:6px"], #table-wrap#table-wrap[style*="--mvk"] .month-view .mv-bar[style*="font-size: 6px"]{ font-size:calc(6px * var(--mvk)) !important; }
+    #table-wrap#table-wrap[style*="--mvk"] .month-view .mv-bar[style*="font-size:7px"], #table-wrap#table-wrap[style*="--mvk"] .month-view .mv-bar[style*="font-size: 7px"]{ font-size:calc(7px * var(--mvk)) !important; }
+    #table-wrap#table-wrap[style*="--mvk"] .month-view .mv-bar[style*="font-size:8px"], #table-wrap#table-wrap[style*="--mvk"] .month-view .mv-bar[style*="font-size: 8px"]{ font-size:calc(8px * var(--mvk)) !important; }
+    #table-wrap#table-wrap[style*="--mvk"] .month-view .mv-bar[style*="font-size:9px"], #table-wrap#table-wrap[style*="--mvk"] .month-view .mv-bar[style*="font-size: 9px"]{ font-size:calc(9px * var(--mvk)) !important; }
+    #table-wrap#table-wrap[style*="--mvk"] .month-view .mv-bar[style*="font-size:10px"], #table-wrap#table-wrap[style*="--mvk"] .month-view .mv-bar[style*="font-size: 10px"]{ font-size:calc(10px * var(--mvk)) !important; }
+    #table-wrap#table-wrap[style*="--mvk"] .month-view .mv-bar[style*="font-size:11px"], #table-wrap#table-wrap[style*="--mvk"] .month-view .mv-bar[style*="font-size: 11px"]{ font-size:calc(11px * var(--mvk)) !important; }
+    #table-wrap#table-wrap[style*="--mvk"] .month-view .mv-bar[style*="font-size:12px"], #table-wrap#table-wrap[style*="--mvk"] .month-view .mv-bar[style*="font-size: 12px"]{ font-size:calc(12px * var(--mvk)) !important; }
+    #table-wrap#table-wrap[style*="--mvk"] .month-view .mv-bar[style*="font-size:13px"], #table-wrap#table-wrap[style*="--mvk"] .month-view .mv-bar[style*="font-size: 13px"]{ font-size:calc(13px * var(--mvk)) !important; }
+    #table-wrap#table-wrap[style*="--mvk"] .month-view .mv-bar[style*="font-size:14px"], #table-wrap#table-wrap[style*="--mvk"] .month-view .mv-bar[style*="font-size: 14px"]{ font-size:calc(14px * var(--mvk)) !important; }
+    /* ...and the line it was written with: a bar's or band's is its bar size's (--mvk-bl), a styled 10 px note's is
+       13 px, a sized note's is its one-line box less 6 px (--mvn-h1 = line + 2 x 2 px padding + 2 x 1 px border). */
+    #table-wrap#table-wrap[style*="--mvk"] .month-view .mv-bar[style*="line-height"]{ line-height:calc(var(--mvk-bl) * var(--mvk)) !important; }
+    #table-wrap#table-wrap[style*="--mvk"] .month-view .mv-note-block[style*="line-height"]{ line-height:calc(13px * var(--mvk)) !important; }
+    #table-wrap#table-wrap[style*="--mvk"] .month-view .mv-note-block[style*="--mvn-h1"]{ line-height:calc((var(--mvn-h1) - 6px) * var(--mvk)) !important; }
+    /* A sized note's fixed boxes (frozen edit E1's --mvn-h1 / --mvn-h2, and D1's three and four lines), less their
+       two 1 px borders, scaled, plus the borders. */
+    #table-wrap#table-wrap[style*="--mvk"] .month-view .mv-bars > .mv-bar.mv-note-block[style*="--mvn-h1"]{ height:calc((var(--mvn-h1) - 2px) * var(--mvk) + 2px); }
+    #table-wrap#table-wrap[style*="--mvk"] .month-view .mv-bars > .mv-bar.mv-note-block[style*="--mvn-h1"][style*="span 2"]{ height:calc((var(--mvn-h2) - 2px) * var(--mvk) + 2px); }
+    #table-wrap#table-wrap[style*="--mvk"] .month-view .mv-bars > .mv-bar.mv-note-block[style*="--mvn-h1"][style*="span 3"]{ height:calc((2 * var(--mvn-h2) - var(--mvn-h1) - 2px) * var(--mvk) + 2px); }
+    #table-wrap#table-wrap[style*="--mvk"] .month-view .mv-bars > .mv-bar.mv-note-block[style*="--mvn-h1"][style*="span 4"]{ height:calc((3 * var(--mvn-h2) - 2 * var(--mvn-h1) - 2px) * var(--mvk) + 2px); }
+    /* The screen's own affordances, on the shrunk lines. */
+    #table-wrap#table-wrap[style*="--mvk"] .month-view .mv-note-add.mv-note-add-full{ height:calc(13px * var(--mvk)); }
+    #table-wrap#table-wrap[style*="--mvk"] .month-view .mv-row-expand{ height:calc(11px * var(--mvk)); font-size:calc(11px * var(--mvk)); }
   }
   /* (A stacked twin of the zoomed month's rule lived here, for 960 px and below, until the app stopped stacking on
      16 Nov 2026.) */

@@ -1,7 +1,17 @@
 # MONTH-SHRINK-PLAN.md — a crowded month shrinks on screen exactly as its PDF does
 
-**Status: RULED, NOT BUILT (17 Nov 2026).** Branch `month-shrink` (worktree `.claude/worktrees/month-shrink`, from
-`origin/main` `aa16ffe`, v1.16.0). Tracker card `month-view-shrink-like-pdf`.
+**Status: STAGE 1 BUILT, the owner tries it first (17 Nov 2026).** Branch `claude/month-shrink-build-c94fac` (worktree
+`.claude/worktrees/month-shrink-build-c94fac`), cut from the planning branch `month-shrink` (`c6b7830`: `origin/main`
+`aa16ffe`, v1.16.0, plus this plan). Tracker card `month-view-shrink-like-pdf`. Tests and docs (§5) wait for the owner's
+"finish". HANDOFF's top entry has what was measured and what does not match.
+
+**As built, where it left this plan** (both measured, both in HANDOFF):
+- §4.4 "under a class on `#table-wrap`": the rules are gated on the factor's own presence in `#table-wrap`'s style,
+  `#table-wrap#table-wrap[style*="--mvk"]`, not on a class. One piece of state, and `buildSavedHtml()` already strips it.
+- §4.5 "`0 0 <row>px`": the weeks get the writer's own `fit.basis` and `fit.grow` (`<grow> 0 <basis>px`), so flexbox
+  lands on `fit.rows` and the room left over absorbs a zoom's hairlines (fixed rows: 2.3 px over the page at 75%). The
+  basis is never under what the week's bars need as drawn, so a note that takes a line more on screen (zoomed out) grows
+  its week instead of being cut.
 
 ## 1. What the owner said
 

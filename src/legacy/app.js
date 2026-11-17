@@ -1430,6 +1430,16 @@ export function initLegacyApp() {
     else if(fresh && viewMode === 'month' && currentSchedule && !printingCursor){
       try { render(currentSchedule); } catch(e){ /* the first render stands */ }
     }
+    // ⭐ ...AND A MONTH THE PDF SHRINKS IS RENDERED AGAIN AT THE PDF'S FACTOR, ONCE (17 Nov 2026, "THE MONTH PAGE
+    // SHRINKS A CROWDED MONTH", further down). Whatever was just drawn in #table-wrap (a month, the waterfall, the
+    // empty state), ask the month PDF writer for its fit of the month on screen; when its factor is not the one that
+    // month was rendered with, mvShrinkToFit() sets it and renders once more, here, before any later observer looks.
+    // That render comes back here with the same answer (the fit is worked out from the print html, which does not
+    // depend on the factor), so it is one render more at most.
+    if(recs.some(r=> r.target === tw)){
+      if(drawn.length) mvAskPdfFonts();
+      mvShrinkToFit();
+    }
     fitMonthPage();
   }).observe(document.getElementById('table-wrap'), { childList: true, subtree: true });
 
@@ -15793,8 +15803,30 @@ export function initLegacyApp() {
   // Four, not 10 px's three: measured at 12 and 14 px in an 1100 / 1280 px window, "Independence Day (Observed) 7/3/26"
   // and "Principal Photography Wraps 10/27/26" wrap to four. Its key carries `|k`, so it never meets a two-lane count.
   // Without `keep` nothing here changed.
+  // ⛔ FROZEN EDIT SK1 (owner sign-off by picker, 17 Nov 2026, "Approve with that gate"; MONTH-SHRINK-PLAN.md R2): ON
+  // SCREEN ONLY, IN A MONTH THE PDF SHRINKS, a note's lines are counted at the smaller text size. The month PDF writer
+  // shrinks a crowded month's weeks by one factor k and RE-WRAPS every note at that size in the same box
+  // (mvlShrinkWeeks), so a note that takes two lines at full size often takes one. The screen now draws such a month at
+  // the same k (mvScreenK; "THE MONTH PAGE SHRINKS A CROWDED MONTH", further down), so each note must get the lanes its
+  // text needs at that size, or every note keeps a full-size lane count and the weeks no longer match the PDF's rows.
+  //  - Type shrunk by k in the same box wraps exactly as full-size type in a box 1/k as wide, so only the measuring
+  //    WIDTH changes: the note's text width (its DRAWN box, 6/7 px inside frozen mvNoteBoxWidth()'s, less the 4 px
+  //    padding and 1 px border each side) divided by k. The measurer's font, line and the counting rule are untouched.
+  //  - ⛔ Not in mvNoteBoxWidth(): one-day pills read that width too, and the PDF does not re-wrap a pill.
+  //  - The cache keys carry the measuring width (`k` + two decimals at 10 px; the sized key always did), so a shrunk
+  //    count never meets a full-size one.
+  //  - ⛔ INERT at full size (mvScreenK is 1 in every month that fits a page, which is every month before this edit)
+  //    and WHILE PRINTING (printingCursor: the print rollback's document and the html the writer parses are counted
+  //    exactly as before). Its gate: gates 10 and 13 byte-identical, and the screen's week heights equal to the written
+  //    PDF's rows on the shrunk test months (monthscale, month-dense60, month-lanecap: August 2026).
+  // Session state, never saved: 1 = the month on screen is not shrunk.
+  let mvScreenK = 1;
+  const MV_NOTE_TEXT_INSET = 10;   // .mv-note-block{ padding:2px 4px } + .mv-bar's 1px border, both sides
+  function mvShrunkNoteW(drawnBoxW){ return Math.max(24, (drawnBoxW - MV_NOTE_TEXT_INSET) / mvScreenK + MV_NOTE_TEXT_INSET); }
   function mvNoteLineCountSized(t, boxW, fmt, px, keep){
-    const G = MV_NOTE_SIZES[px], f = fmt || {}, w = Math.max(24, boxW - 6 / 7);
+    const G = MV_NOTE_SIZES[px], f = fmt || {};
+    let w = Math.max(24, boxW - 6 / 7);
+    if(!printingCursor && mvScreenK !== 1) w = mvShrunkNoteW(w);   // SK1
     const key = w.toFixed(2) + '|' + t + '|n' + px + '/' + (f.bold === undefined ? '' : f.bold ? 'b' : 'r') + '/' + (f.italic ? 'i' : '') + (keep ? '|k' : '');
     if(_mvNoteLineCache.has(key)) return _mvNoteLineCache.get(key);
     const el = mvNoteMeasurer();
@@ -15817,10 +15849,12 @@ export function initLegacyApp() {
     const px = mvNoteEffPx(fmt);
     if(px > 10 && MV_NOTE_SIZES[px]){ mvNoteMeasurer(); return mvNoteLineCountSized(t, boxW, fmt, px, !!keep); }
     const sig = mvMeasureSig(fmt);
-    const key = Math.round(boxW) + '|' + t + (sig ? '|' + sig : '');
+    // SK1 (above mvNoteLineCountSized): on screen, in a shrunk month, the width the count is taken at.
+    const shrunkW = (!printingCursor && mvScreenK !== 1) ? mvShrunkNoteW(boxW - 6 / 7) : 0;
+    const key = (shrunkW ? 'k' + shrunkW.toFixed(2) : Math.round(boxW)) + '|' + t + (sig ? '|' + sig : '');
     if(_mvNoteLineCache.has(key)) return _mvNoteLineCache.get(key);
     mvNoteMeasurer();
-    _mvNoteMeasureEl.style.width = Math.max(24, boxW) + 'px';
+    _mvNoteMeasureEl.style.width = (shrunkW || Math.max(24, boxW)) + 'px';
     mvMeasureFont(_mvNoteMeasureEl, fmt, 500, 1.3, MV_TEXT_LINE_PX.note);
     _mvNoteMeasureEl.textContent = t;
     const h = _mvNoteMeasureEl.offsetHeight; // = lines*13 (line-height) + 4 (padding) + 2 (border)
@@ -30689,7 +30723,10 @@ export function initLegacyApp() {
   //          shorter than its empty lines the week clips them (legacy.css, overflow-y:clip).
   // ⚠️ The tracks read here never depend on the numbers written here: the layer cannot shrink (legacy.css, flex:1 0
   // auto), so its lines are always at their own height, whatever basis the week still carries from the last render.
-  // A month the PDF has to shrink is not shrunk here: no week can go under its basis, so the card grows instead.
+  // A month the PDF has to shrink is shrunk here too since 17 Nov 2026, at the PDF's own factor ("THE MONTH PAGE
+  // SHRINKS A CROWDED MONTH", under fitMonthPage): there the weeks share the page by the writer's own numbers, and
+  // from here come only `min` and `need` (the floor no week goes under, so nothing drawn is ever cut). 16 to 17 Nov
+  // 2026 such a month stayed full size and its card grew.
   // With no numbers (a week it cannot read) the CSS falls back to equal growth, still page-shaped.
   const MV_PAGE_WEEKS = 6;   // a month never spans more; legacy.css names exactly this many :nth-child rules
   function monthPageNumbers(tw){
@@ -30698,6 +30735,9 @@ export function initLegacyApp() {
     if(!weeks.length || weeks.length > MV_PAGE_WEEKS) return null;
     let F = null;
     try { F = mvlFitNumbers(); } catch(e){ return null; }   // the writer's constants, not a copy of them
+    // In a shrunk month (--mvk on #table-wrap, written by fitMonthPage just before this runs) the lines read below are
+    // the shrunk ones, so the floor and the four-line height are taken at the same factor, as the writer takes them.
+    const k = parseFloat(tw.style.getPropertyValue('--mvk')) || 1;
     const rows = [];
     for(const wk of weeks){
       const layer = wk.querySelector(':scope > .mv-bars');
@@ -30719,8 +30759,8 @@ export function initLegacyApp() {
       // `min` only for lines the USER added to the week (the row's "+": mvExtraLanes), which the renderer draws
       // past both the four it always gives and the ones the bars reach. The PDF has no empty lines at all, so a
       // week holding one is the one place a fitting month's rows leave the PDF's, for as long as the line is empty.
-      rows.push({ need: Math.max(bottomOf(used) + padBottom, F.floor),
-                  nice: F.chrome + Math.max(used, MV_MIN_LANES) * F.lane,
+      rows.push({ need: Math.max(bottomOf(used) + padBottom, F.floor * k),
+                  nice: (F.chrome + Math.max(used, MV_MIN_LANES) * F.lane) * k,
                   // ...plus the week's own top line, which is inside its height (box-sizing:border-box).
                   min: tracks.length > Math.max(used, MV_MIN_LANES)
                     ? bottomOf(tracks.length) + (parseFloat(getComputedStyle(wk).borderTopWidth) || 0) : 0 });
@@ -30729,23 +30769,133 @@ export function initLegacyApp() {
     const any = grow.some(g=> g > 0);
     // x100: flexbox shares out only part of the room when the grow factors sum to less than 1.
     return rows.map((r, i)=>({ f: (Math.round((any ? grow[i] : r.nice) * 1000) / 10) + ' 0 ' + r.need.toFixed(3) + 'px',
+                               need: r.need,
                                m: r.min.toFixed(3) + 'px' }));
   }
   function fitMonthPage(){
     const tw = document.getElementById('table-wrap');
     if(!tw) return;
-    let nums = null;
-    try { nums = monthPageNumbers(tw); } catch(e){ nums = null; }
     // Written only when it changes: a style write is a mutation the grid fit observes.
     const put = (prop, val)=>{
       if(val){ if(tw.style.getPropertyValue(prop) !== val) tw.style.setProperty(prop, val); }
       else if(tw.style.getPropertyValue(prop)) tw.style.removeProperty(prop);
     };
+    // A SHRUNK MONTH ("THE MONTH PAGE SHRINKS A CROWDED MONTH", below): the factor goes on first, because the numbers
+    // read next are the layer's computed lines, and those are the shrunk ones only once legacy.css sees --mvk.
+    const fit = mvScreenFit;
+    const nWeeks = viewMode === 'month' ? tw.querySelectorAll(':scope > .month-view > .mv-body > .mv-week').length : 0;
+    const shrunk = mvScreenK !== 1 && !!fit && fit.mode === 'shrink' && fit.scale === mvScreenK && nWeeks > 0 && fit.basis.length === nWeeks;
+    put('--mvk', shrunk ? String(mvScreenK) : '');
+    let nums = null;
+    try { nums = monthPageNumbers(tw); } catch(e){ nums = null; }
+    // Its weeks share the page by the writer's OWN numbers for the shrunk month (mvlFitMonth's `basis`, each week's
+    // height at the factor, and `grow`, mvlShareRows' shares of the room left over), handed to flexbox exactly as a
+    // fitting month's are, so the rows are the PDF's (fit.rows = basis + the room left x grow / the grows' sum) and
+    // the card is one page. Flexbox, not fixed heights, for the fitting month's reason: what the screen's header or
+    // a zoom's hairlines take is absorbed by the room left over instead of making the card taller (measured at 75%
+    // zoom, fixed rows: 2.3 px taller than the page).
+    // ⛔ AND NEVER UNDER WHAT THE WEEK'S BARS NEED AS DRAWN (`need`, read from the layer's own lines, plus the week's
+    // top line). At 100% that is never more than the writer's basis: the same lanes at the same sizes. But a note can
+    // take a line more on screen than the PDF gives it, and then its lanes grow: zoomed out, Chrome draws a 1 px
+    // border one whole device pixel wide, so a note's text has up to 2 px less room than it was counted in (measured
+    // on monthscale at 75%: ten notes a line longer, and with the writer's basis alone their week ran 27 px past its
+    // bottom edge and was cut there). With this floor that week is as tall as its bars and the card grows instead, as
+    // a fitting month's does. Nothing is ever cut.
     for(let i = 0; i < MV_PAGE_WEEKS; i++){
-      put('--mvp-f' + (i + 1), nums && nums[i] ? nums[i].f : '');
+      let f = nums && nums[i] ? nums[i].f : '';
+      if(f && shrunk){
+        const wk = tw.querySelector(':scope > .month-view > .mv-body > .mv-week:nth-child(' + (i + 1) + ')');
+        const top = wk ? (parseFloat(getComputedStyle(wk).borderTopWidth) || 0) : 0;
+        f = (Math.round(fit.grow[i] * 1000) / 10) + ' 0 ' + Math.max(fit.basis[i], nums[i].need + top).toFixed(3) + 'px';
+      }
+      put('--mvp-f' + (i + 1), f);
       put('--mvp-m' + (i + 1), nums && nums[i] ? nums[i].m : '');
     }
     if(tw.getAttribute('style') === '') tw.removeAttribute('style');
+  }
+  // ⭐ THE MONTH PAGE SHRINKS A CROWDED MONTH, EXACTLY AS ITS PDF DOES (owner, 17 Nov 2026, with a PDF and a screenshot
+  // of one crowded month side by side: "the live viewer still looks different and is changing the height and
+  // stretching the whole calendar", "I think id rather the live view look like it will in the pdf"; by picker, "Shrink
+  // like the PDF", which REPLACES the 16 Nov "Full size, taller page"; MONTH-SHRINK-PLAN.md).
+  // A month with more in its weeks than a sheet holds is shrunk by the month PDF writer: one factor k for every week
+  // (a whole number of 64ths, the largest at which the month fits), every note re-wrapped at the smaller size, the
+  // rows shared out again (mvlFitMonth). Until now the screen drew such a month at full size in a card taller than the
+  // page. Now the card is one page at every month, and a crowded month is drawn at the writer's own factor:
+  //  1. THE WRITER IS ASKED, never copied. mvWriterFit() renders the month on screen as the export renders it (the
+  //     print html: printingCursor set to the cursor month, frozen renderMonthView called, both put back in `finally`,
+  //     as buildMonthLayout does it, synchronously), models it (mvlMonthLayout) and takes mvlFitMonth's `fit`. So the
+  //     factor and the rows are the PDF's own for that month, whatever the header's height or the bar and note sizes.
+  //     It needs the four Inter PDF programs (loadInterPdfFont), which are decoded the first time a month is drawn,
+  //     never at boot of a waterfall session; until they are in, the month is drawn as before and fitted when they
+  //     arrive. Cached by the print html.
+  //  2. THE FACTOR IS SESSION STATE (mvScreenK, beside the note measurers; 1 = not shrunk; never in captureSnapshot()).
+  //     When the writer's factor is not the one the month on screen was rendered with, mvShrinkToFit() sets it and
+  //     calls render(currentSchedule) once, from the page fit's own first observer. ⛔ IT CANNOT LOOP: the fit is
+  //     worked out from the PRINT html, and frozen edit SK1 is inert while printingCursor is set, so the fit does not
+  //     depend on the factor; the render it causes asks again, gets the same fit from the cache, and stops.
+  //  3. FROZEN EDIT SK1 (owner-approved; at mvNoteLineCountSized) counts each note's lines at the smaller size, so a
+  //     note gets the lanes it has in the PDF.
+  //  4. THE SIZES are screen-only CSS (legacy.css, "THE MONTH PAGE SHRINKS A CROWDED MONTH"), every one mvlWeekPaint
+  //     scales, as calc(<px> * var(--mvk)). fitMonthPage() writes --mvk on #table-wrap's own style, and the rules
+  //     match only while it is there, so a month that fits is drawn by exactly the rules it had.
+  //  5. THE WEEKS' HEIGHTS in a shrunk month come from the writer's own `fit.basis` and `fit.grow`, handed to flexbox
+  //     as a fitting month's numbers are (fitMonthPage), so they are the writer's `fit.rows`.
+  // ⛔ Nothing here is saved, nothing is written inside #table-wrap, and neither month PDF can see any of it.
+  let mvPdfFonts = null, mvPdfFontsBusy = false, mvPdfFontTries = 0;
+  function mvAskPdfFonts(){
+    if(mvPdfFonts || mvPdfFontsBusy || mvPdfFontTries >= 3 || viewMode !== 'month') return;
+    mvPdfFontsBusy = true; mvPdfFontTries++;
+    Promise.all(MVL_FONT_WEIGHTS.map(w=> loadInterPdfFont(w))).then(list=>{
+      const f = {};
+      MVL_FONT_WEIGHTS.forEach((w, i)=>{ f[w] = list[i]; });
+      mvPdfFonts = f; mvPdfFontsBusy = false;
+      mvShrinkToFit();
+      fitMonthPage();
+    }, ()=>{ mvPdfFontsBusy = false; });   // the month stays as drawn; a later month draw asks again (three times at most)
+  }
+  let mvScreenFit = null;                  // the writer's fit of the month on screen ({ mode, scale, rows, basis, grow }), or null
+  const _mvScreenFitCache = new Map();     // the print html (and the two settings stamped outside it) -> that fit
+  function mvWriterFit(){
+    if(viewMode !== 'month' || !currentSchedule || printingCursor || !monthCursor || !mvPdfFonts || !mvFontsIn()) return null;
+    if(!document.querySelector('#table-wrap > .month-view')) return null;
+    let html = '';
+    const savedCursor = monthCursor;
+    // ⛔ SYNCHRONOUS, as buildMonthLayout: printingCursor is module state the live renderer reads.
+    try {
+      printingCursor = new Date(monthCursor.getTime());
+      html = renderMonthView(currentSchedule);
+    } finally {
+      printingCursor = null;
+      monthCursor = savedCursor;
+    }
+    if(!html) return null;
+    const key = (mvHeaderOff ? '1' : '0') + '|' + (mvBarSize || '') + '|' + html;
+    if(_mvScreenFitCache.has(key)) return _mvScreenFitCache.get(key);
+    const F = mvPdfFonts, px = MVL_GEOMETRY.noteFontPx;
+    // The model and the fit, as exportMonthPdfDirect makes them for this month (buildMonthLayout's two measurers, the
+    // bar size as its argument, the header's Off stamped between the model and the fit).
+    const model = mvlMonthLayout(html, s=> mvlTextWidth(F['500'].font, s, px), s=> mvlTextWidth(F['600'].font, s, px), F, mvBarSize);
+    if(mvHeaderOff) model.headerOff = true;
+    const fitted = mvlFitMonth(model, F).fit;
+    const fit = { mode: fitted.mode, scale: fitted.scale, rows: fitted.rows.slice(), basis: fitted.basis.slice(), grow: fitted.grow.slice() };
+    if(_mvScreenFitCache.size >= 12) _mvScreenFitCache.clear();
+    _mvScreenFitCache.set(key, fit);
+    return fit;
+  }
+  // Sets the factor the month on screen should be drawn at, and renders it again when that is not the one it was
+  // rendered with. True when it rendered.
+  function mvShrinkToFit(){
+    let fit = null;
+    try { fit = mvWriterFit(); } catch(e){ fit = null; }   // a month the writer cannot fit is drawn as before
+    mvScreenFit = fit;
+    const k = (fit && fit.mode === 'shrink' && fit.scale > 0 && fit.scale < 1) ? fit.scale : 1;
+    if(k === mvScreenK) return false;
+    mvScreenK = k;
+    if(viewMode === 'month' && currentSchedule && !printingCursor && document.querySelector('#table-wrap > .month-view')){
+      try { render(currentSchedule); } catch(e){ /* the month as drawn stands */ }
+      return true;
+    }
+    return false;
   }
   // Run after every render, and after anything that redraws a week in place (subtree): the numbers are that week's
   // bars'. Observing mutates nothing, and the write is to #table-wrap's style, which childList does not report.

@@ -4,21 +4,100 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### 📋 17 Nov 2026: A CROWDED MONTH SHRINKS ON SCREEN EXACTLY AS ITS PDF DOES. RULED, NOT BUILT. Branch `month-shrink` (worktree `.claude/worktrees/month-shrink`, from `origin/main` `aa16ffe`; `node_modules` is a symlink, unlink it before `git worktree remove`): the plan only, one local commit, nothing pushed. Tracker card `month-view-shrink-like-pdf`. ⭐ Read [`MONTH-SHRINK-PLAN.md`](MONTH-SHRINK-PLAN.md): it is the whole design
+### 🔨 17 Nov 2026: A CROWDED MONTH SHRINKS ON SCREEN EXACTLY AS ITS PDF DOES. STAGE 1 BUILT (WIP), THE OWNER TRIES IT FIRST. Branch `claude/month-shrink-build-c94fac` (worktree `.claude/worktrees/month-shrink-build-c94fac`, cut from the planning branch `month-shrink` at `c6b7830`, which is `origin/main` `aa16ffe` plus the plan; its `node_modules` is a real copy, not a symlink, so there is nothing to unlink). Local WIP commits, nothing pushed, NO tests or docs yet (owner workflow: try on localhost first). Tracker card `month-view-shrink-like-pdf`. ⭐ [`MONTH-SHRINK-PLAN.md`](MONTH-SHRINK-PLAN.md) is the design
 - **Owner, 17 Nov 2026**, with a PDF and a screenshot of one crowded month: *"1st image is pdf export, 2nd image is live
-  viewer...the live viewer still looks different and is changing the height and stretching the whole calendar"*. That is
-  the month page's "Full size, taller page" (16 Nov, `b8f4ccf`) working as built; the owner now wants the opposite.
+  viewer...the live viewer still looks different and is changing the height and stretching the whole calendar"*, and
+  *"I think id rather the live view look like it will in the pdf"*. That was the month page's "Full size, taller page"
+  (16 Nov, `b8f4ccf`) working as built; the owner now wants the opposite.
 - **Rulings (pickers, 17 Nov 2026):** *"Shrink like the PDF"* (the card stays one page at every month; a crowded
   month's bars and text shrink by the PDF's own factor and notes wrap where the PDF wraps them; replaces "Full size,
-  taller page") and *"Approve with that gate"* (one frozen edit: on screen, in a shrunk month, a note's lines are
+  taller page") and *"Approve with that gate"* (ONE frozen edit: on screen, in a shrunk month, a note's lines are
   counted at the smaller size; gate: gates 10 and 13 byte-identical and the screen's weeks equal the PDF's rows on the
-  shrunk test months).
-- **The design in one line:** ask the writer itself (`mvlFitMonth` on the visible month's print html) for the factor
-  and the rows, hold the factor in session state, re-render once so frozen edit SK1 counts notes at that size, and
-  scale the week's sizes in screen-only CSS (the `monthwriter` leg's `scaledCss` is the worked list).
+  shrunk test months). Any other frozen edit needs a new approval.
 - ⛔ The owner's two images are a real show's calendar: nothing from them goes into the repo. The fixtures with a
-  shrunk month are `monthscale`, `month-dense60` and `month-lanecap` (August 2026 in each).
-- **Re-premise when built:** `monthpage` T ("stays full size in a taller card") and G0's "at least"; F0's allow-list.
+  shrunk month are `monthscale` (k = 39/64), `month-dense60` (49/64) and `month-lanecap` (30/64), August 2026 in each.
+- **Built** (`src/legacy/app.js`, `src/styles/legacy.css`; the one approved frozen edit, no other frozen line):
+  - **The writer is asked, not copied** (app.js, "THE MONTH PAGE SHRINKS A CROWDED MONTH", under `fitMonthPage`).
+    `mvWriterFit()` renders the month on screen as the export does (`printingCursor` set to the cursor month, frozen
+    `renderMonthView`, both restored in `finally`, synchronous), models it with `mvlMonthLayout` and takes
+    `mvlFitMonth(...).fit` (`mode`, `scale`, `rows`, `basis`, `grow`). Header Off and the bar size are passed as
+    `exportMonthPdfDirect` passes them. Cached by the print html (12 entries). It needs the four Inter PDF programs:
+    `mvAskPdfFonts()` decodes them the first time a month is drawn (never in a waterfall-only session); until they are
+    in, the month is drawn as before (full size, taller card) and re-fitted when they arrive, a few ms later.
+  - **The factor is session state**, `mvScreenK` (1 = none; beside the note measurers; never saved). The page fit's
+    FIRST observer calls `mvShrinkToFit()` after every render of `#table-wrap`: when the writer's factor is not the one
+    the month was rendered with, it sets it and calls `render(currentSchedule)` once. ⛔ It cannot loop: the fit comes
+    from the PRINT html and SK1 is inert while `printingCursor` is set, so the fit does not depend on the factor; the
+    second pass gets the same fit from the cache. Measured: one render per page turn, two when the factor changes
+    (into and out of the shrunk month), never more.
+  - **Frozen edit SK1** (owner-approved; in `mvNoteLineCount`'s 10 px path and `mvNoteLineCountSized`): when
+    `!printingCursor && mvScreenK !== 1`, the count is taken in a box whose text width is the DRAWN text width
+    (`mvNoteBoxWidth()` less 6/7 px, less 10 px of padding and border) divided by k. The cache keys carry that width.
+    Not in `mvNoteBoxWidth()`, which pills also read.
+  - **The sizes** are screen-only CSS at the end of the month page's block (legacy.css, "THE MONTH PAGE SHRINKS A
+    CROWDED MONTH"), every one `mvlWeekPaint(k)` scales, as `calc(<px> * var(--mvk))`, unscaled borders added to the
+    fixed heights (a Standard bar `17k + 2`, a sized note's `--mvn-h1` box `(h1 - 2)k + 2`). ⚠️ The plan said "under a
+    class on `#table-wrap`"; it is `#table-wrap#table-wrap[style*="--mvk"]` instead, the factor's own presence in
+    `#table-wrap`'s style: one piece of state instead of two, and `buildSavedHtml()` already strips that style. Inline
+    sizes (a month text style's, a note size's) are out-ranked with `!important`, one rule per size 6 to 14 px, both
+    spellings (Chrome re-serialises a touched style attribute as `font-size: 12px`).
+  - **The weeks' heights** in a shrunk month: `--mvp-f<i>` is `<grow x 100> 0 <basis>px` from the writer's own
+    `fit.grow` / `fit.basis`, so flexbox lands on `fit.rows`. ⚠️ The plan said `0 0 <row>px`; fixed rows made the card
+    2.3 px taller than the page at 75% zoom (hairlines draw one device pixel), which the room left over now absorbs,
+    as in a fitting month. ⛔ And the basis is never under what the week's bars need AS DRAWN (`monthPageNumbers`'
+    `need`, read at the factor, plus the week's top line): zoomed out, a note can take a line more than it was counted
+    for, and with the writer's basis alone its week ran 27 px past its bottom edge and was cut (monthscale, 75%).
+- **Measured** (scratch probes, not committed: every month of each fixture walked, the written PDF's rows read out of
+  its content streams, and the writer's own fit run from a slice of `app.js` over the print document):
+  - At 100% zoom, 1600 x 1200 and 1100 x 760: on all three shrink fixtures August's card is 1027.52 x 788.02 px, the
+    screen's factor is the writer's, every week is the written PDF's row within 0.1 px (worst 0.016), every pill and
+    band is `17k + 2` px, and no bar runs past its week. Notes with the PDF's lanes and lines: `month-dense60` 81 of
+    81, `month-lanecap` 46 of 46, `monthscale` 62 of 63 (the one below).
+  - The written month PDF AND the print rollback's document are byte-identical to `origin/main`'s build on
+    `monthscale`, `month-dense60`, `month-lanecap`, `mvnotes`, `notewrap`, `mvbarsize-large`, `mvnotesize-mixed`,
+    `mvtextstyle`, and again on the three shrink fixtures exported WHILE the shrunk month is on screen. `npm run check`
+    42/42.
+  - Editing a note in a shrunk month (double-click, type, Save, by hand in the pane and by probe) re-fits it: the
+    factor moved 39/64 to 38/64 in the probe's case, the card stayed one page, the note drawn in full.
+  - Bar and note sizes in a shrunk month: `monthscale` at Extra large bars (k = 38/64), `monthscale` at 11 px bars
+    with 12 px notes (47/64) and `month-dense60` at 13 px notes (46/64): one page, rows the PDF's within 0.02 px,
+    bars `(line + 2)k + 2` px.
+  - The existing `monthpage` leg: 10 of 10 on `mvnotes` (1600 x 1200 and 1100 x 760), `notewrap`,
+    `mvbarsize-large`, `mvnotesize-mixed` (months that fit are unchanged). On `monthscale` with `tall=1`: T and B red,
+    as they must be until re-premised (T holds "taller card", B holds 19 px bars); G0, P, S, Z, X, V, F, E0 green,
+    F on the shrunk month itself (from the waterfall it lands on the same lanes and rows as a later render).
+  - Cost, on this Mac: a page turn's month render is 6 to 7 ms and the writer's fit adds about 5 (a second, print
+    render and the fit); a turn into a shrunk month is 60 to 80 ms (two renders and the six-step fit), out of it about
+    30. ⚠️ Timings taken from the Browser pane while it is HIDDEN run about seven times slower, plain renders included
+    (it cost a false alarm here): read `tabs_context` before believing one.
+- **What does not match the PDF, and why:**
+  - ⭐ **Chrome draws a font at a size CUT to a hundredth of a device pixel** (measured: 6.09375 px draws as 6.09 at
+    1x, 6.715 for 6.71875 at 2x; whole and half sizes are exact). So shrunk text on screen is up to about 0.16%
+    narrower than the PDF's. SK1 counts at the exact factor, as the PDF does, so the LANES are the PDF's; a note
+    within that margin of its box draws one line fewer inside them (`monthscale`: one note of 63, three lanes, two
+    lines drawn, three in the PDF). The direction is always narrower, so text is never cut by it.
+  - **At a zoom other than 100%** Chrome snaps a 1 px border to whole device pixels, which moves a note's text box by
+    up to 2 px (narrower zoomed out, wider zoomed in), as it already does in every month. Zoomed in, some notes draw a
+    line fewer than their lanes; zoomed out, a line more, and that week and the card grow (`monthscale` at 75%: ten of
+    its near-identical notes, card 823 px; `month-dense60` at 75% and `month-lanecap` at 125%: one page). Nothing is cut.
+  - A line the user added to a week (the row's "+") is kept inside the week in a shrunk month too, so that week can be
+    taller than the PDF's while the line is empty (the PDF has no empty lines). Unchanged rule; say if it should give way.
+  - **Chrome breaks a line after a hyphen** ("2026-" / "08-10", "Scale-" / "mode"); the writer breaks only at
+    spaces. So a note holding such a word can wrap to fewer lines on screen than in the PDF, at every size and in
+    every month, shrunk or not (not new; seen here on `monthscale`'s notes at 12 px, three lines against four, the
+    third and fourth behind the two-line cut either way).
+  - The usual knife edges (Chrome's text measure against the writer's font tables) remain. One found on the way that
+    is NOT this change's: at note size 13, two FITTING months of `month-dense60` (June and July 2026) are 1 px off
+    the PDF's rows, identically on `origin/main`'s build.
+- **NOT DONE (stage 2, only after the owner says to finish):** `monthpage` T, G0 and B re-premised and a notes case
+  added, each shown red on a mutant (SK1 off; the CSS off); F0's allow-list in `monthemit.js` / `monthwriter.js`
+  widened to the names the month page region now uses (`MVL_FONT_WEIGHTS`, `loadInterPdfFont`, `mvlTextWidth`,
+  `MVL_GEOMETRY`, `mvlMonthLayout`, `mvlFitMonth`, beside `mvlFitNumbers`) ⚠️ those two legs are RED on this branch
+  until then, by design; the full gate (gates 10 and 13 byte-identical is SK1's gate); README, CLAUDE.md,
+  UI-CONVENTIONS §7, this entry; the commit and push pickers.
+- **Try it:** launch entry `month-shrink-8872` (this worktree's `.claude/launch.json`, `srv.js` on port 8872):
+  `http://localhost:8872/dist/index.html?state=monthscale`, Month, page to August 2026 (also `?state=month-dense60`,
+  `?state=month-lanecap`). `tests/harness/zzbase.html` (untracked, ignored) is `origin/main`'s build for side by side.
 
 ### 🚂 v1.16.0 — wave 4. Branch `release-wave4` (worktree `.claude/worktrees/release-wave4`), cut from `origin/main` `7e1d8b4`; `origin/main` `8af4298` merged in at `91619e1`. The owner said *"Yes, prep it"* (16 Nov 2026): merge the newest live changes, write the owed docs and test wiring, cut v1.16.0. Tagged v1.16.0 and pushed to `main` on 17 Nov 2026 (owner's picker *"Push v1.16.0 now"*), after two full gates and the merges of `d44a52e` and `b8f4ccf`.
 - ⛔ **This section SUPERSEDES the "WIP", "NOT merged, NOT pushed", "the owner tries it first", "not in gate.sh yet" and
