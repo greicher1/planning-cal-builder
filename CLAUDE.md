@@ -104,6 +104,76 @@ there for a specific, measured reason, and the reasons are not visible from the 
   `mvDayNotePlan` sets only while `printingCursor` is null, so the print rollback and the month-PDF writer never see it
   (gates 10 and 13 byte-identical). A marked note is measured `MV_NOTE_MARK_W` narrower and its CSS padding grows by the
   same, so it cannot clip; one the symbol would push past three lines goes without it (`mvNoteMarkFits`).
+- ⚠️ **A third, audit item 3.1's two frozen edits (owner's picker, 14 Nov 2026: *"Month notes keep date"*, *"Two-holiday
+  rows grow"*; the proposal and its measurements are the audit's `work/overnight/3.1-frozen.md`).**
+  - **D1, the month view on screen and the print rollback only (AUD2-045):** at note sizes 11-14 a waterfall line ending in
+    a date (`MV_NOTE_DATED`) may take 3 or 4 lanes instead of 2, so its date is never the part cut off. It is the `keep`
+    argument of `mvNoteLineCountSized` / `mvNoteLineCount`, passed only by `renderMonthView`'s waterfall-line (`wf`)
+    branch, and the E1 "Note size" CSS block's span-3 / span-4 rules with their `#print-root` twin. Nothing at 10 px and
+    below changes, a typed day note still cuts at two lines, and the direct writer keeps the date by itself (not frozen).
+  - **R4, the waterfall, Excel and the waterfall PDF (AUD2-044):** a row nobody sized by hand whose Notes cell is only two
+    or more holiday lines is 23 px (17.25 pt), not 20. `autoRowPxFor` / `sheetRowPx`: every row-height reader in
+    `renderSpreadsheetView`, `exportExcel` and `buildWaterfallPdf` (and the non-frozen `sideRowPtFn`) asks
+    `sheetRowPx(schedule, r)`, which is `rowHeights[r]`, else that answer, else `ROW_DEFAULT_PX`. Nothing is stored; a
+    dragged row wins.
+  - ⛔ **16 Nov 2026 (owner's picker *"Fix it, update refs"*): R4's answer is worked out afresh on every pass.** It was
+    cached against the schedule object, but what it reads (holiday ticks, notes, sizes) is not in the schedule, and a
+    holiday tick redraws the SAME schedule, so the row stayed 20 px until the next edit. The memo now lasts one
+    synchronous pass and `markDirty()` drops it. Never key a memo on `currentSchedule` for inputs the schedule does not
+    carry. Gates 1-3 were re-cut for the reference calendar's Thanksgiving row (their baseline README), and gate 13's
+    `mvnotesize-14` / `mvnotesize-mixed` for D1 (14 Nov, *"Accept them"*). Legs `textfit` g=screen (D1), g=wf and g=tick (R4).
+- ⚠️ **A fourth, audit item 2.4's frozen edit D3 (owner's picker, 16 Nov 2026: *"Work on it now"*, on 2.4's unapplied
+  frozen edit; the proposal is the audit's `work/overnight/2.4-frozen.md`; the owner's decision D3 (a), 13 Nov 2026).**
+  In `notesForWaterfallDate`'s typed-line loop, a line's trailing date is read by `slashDateInWeek()` (2.4's helper) in
+  place of the three lines that built it month first. So on a DD/MM calendar the frozen reader itself places "Table read
+  17/7/26" on 17 July (a date reading inside its week only month first, typed before the switch, still places the line),
+  and the month view, both month PDFs and the holiday tint (`mvHolidayDays`) follow. v1.15.0's stand-in, `wfLinesOnDay`
+  (sanctioned pattern 2: it handed the frozen function a rewritten copy of the week's note for one call), is gone;
+  `mvWfTypedLinesFor` and `mvHolidayDays` call the frozen reader directly again. ⛔ On a month-first calendar
+  `slashDateInWeek()` returns exactly the old date when it is in the week and null where the old lines fell through, so
+  gates 2, 3, 10 and 13 stay byte-identical. Leg `dayfirstwf` (a mutant with neither the stand-in nor D3 is red there).
+- ⚠️ **A fifth, audit item 2.10's frozen edit (owner's picker, 16 Nov 2026: *"Work on it now"*; the audit's
+  `work/overnight/2.10-frozen.md`): the season beside the title in every export's FILE NAME.** Frozen edits S1b / S2b are
+  the name line in `exportExcel` and `exportWaterfallPdfDirect`: `exportFileName(<their own safe title>, 'Planning
+  Calendar', ext)`, "Harbor Lights S3 Planning Calendar 2026-11-12 v3 – Plan B.xlsx" (it was '<title> Planning Calendar' +
+  `scenarioFileSuffix()`, which is gone). Both lines run AFTER the writer has made its bytes and set only the anchor's
+  `download`, so no byte of either output moves: gates 1-3 (base) and 13 identical. `exportFileName` / `exportNameHead` /
+  `exportNameMarks` are not frozen and also name the month PDF (`monthPdfFileName`) and Compare (`compareFileBase`). ⛔
+  Keep `exportFileName`'s name and argument order: the frozen lines call it. Leg `exportnames` (X1-X8). ⭐ Since 16 Nov
+  2026 (owner's picker *"Cut long titles"*, WIN-5) `exportFileName` also cuts a title over 150 characters through
+  `fileNameTitle()`, so the workbook's and the waterfall PDF's names are cut with NO further frozen edit (W.2's proposed
+  re-edit of S1b / S2b was not applied); a title of 150 or fewer is unchanged. Legs `exportnames` X9 / X10.
+- ⚠️ **A sixth, audit item W.1 (WIN-1), the month view ON SCREEN ONLY (owner's picker, 16 Nov 2026: *"Approve the
+  fix"*; the proposal and its measurements are the audit's `work/overnight/W1-frozen.md`): a month note gets the lanes
+  its text needs in the column it is DRAWN in.** "Writer's Room Opens 1/5/26" (↻) lost its second line on Windows: not
+  the font, the column. A note's lanes are decided from frozen `mvNoteBoxWidth()` when the month renders, and the month
+  can be drawn in another column (`#table-wrap`'s scroll bar comes and goes with the month's height where scroll bars
+  take room; from the waterfall the column is an estimate ~1.45 px wide; the drawn box is 6/7 px narrower; counts were
+  cached by the whole pixel).
+  - **Hunk group 1** (no frozen symbol edited): a `MutationObserver` on `#table-wrap`, after the month paging handler,
+    calls frozen `render(currentSchedule)` ONCE more when the column a month was measured in is not the one it is drawn
+    in (0.01 px), month view only, never while `printingCursor` is set; a `ResizeObserver` keeps the record current.
+    ⚠️ It watches the month's first DAY CELL (re-attached after each render), never `#table-wrap` as the proposal had
+    it: `#table-wrap` is at the same DOM depth (4) as `.view-toggle-row`, and observing it made Chrome log
+    "ResizeObserver loop completed with undelivered notifications" now and then (`monthexport` E0). Keep the target
+    deeper than every observer that can resize the grid.
+  - **Hunk group 2, frozen edit W1 in NS1** (`renderMonthView`): a MARKED line's lanes come from `mvNoteMarkSpan()`,
+    measured at `mvNoteBoxWidth() - MV_NOTE_MARK_W - MV_NOTE_BAR_INSET` (6/7 px) at an exact width (`mvNoteMarkLinesAt`,
+    keyed to 1/100 px); `mvNoteMarkFits` measures the same way. An unmarked line is unchanged.
+  - ⛔ Screen only: marks are set only while `printingCursor` is null, the print rollback draws into `#print-root` and
+    the writer into no DOM, so gates 10 and 13 are byte-identical (all 11 and all 24). Unmarked 10 px notes keep the
+    6/7 px and whole-pixel gaps: fixing them is a print-path frozen edit the owner has not been asked for. Legs
+    `autonoterename` S2 + S5 (also at `HARNESS_WINDOW=1584,1200`, Windows' page width), `softlines`.
+- ⚠️ **A seventh, frozen-surface edit FC1 (audit item W.2, WIN-5; owner's picker, 16 Nov 2026: *"Keep colours
+  (contrast)"*): a Windows contrast theme keeps the calendar's colours, ON SCREEN ONLY.** In forced-colors mode Chrome
+  paints every background in the theme's colours, so the waterfall and the month view lost every phase fill, hiatus band
+  and coloured note. One block at the end of `legacy.css`, `@media (forced-colors: active){ #table-wrap, .month-map,
+  .side-col, .pc-sw{ forced-color-adjust:none } }`: the calendar, and the chrome swatches that show its colours, opt out
+  of the theme; the rest of the chrome follows it. ⛔ Outside forced-colors mode it matches nothing; the workbook and
+  both written PDFs read no paint, and `#print-root` is not in the block, so gates 2, 3 and 13 are byte-identical and the
+  print rollback is as it was. Leg `forcedcolors`: `rtleg.mjs --query forced=active` emulates
+  the theme over CDP (`Emulation.setEmulatedMedia`, which no page can do for itself), and the leg deletes the block to
+  show the theme does replace the fills without it; `run.sh forcedcolors` is the control (the block changes nothing).
 
 **Why, concretely.** These three cost weeks and are each invisible without measurement:
 
@@ -202,21 +272,21 @@ may change height at all — the grid adapts *because* the value is measured rat
 it measured; do not replace it with a constant, and do not let the header wrap.
 
 ⚠️ **Since 22 Sep 2026 there are TWO values, and the one the on-screen grid reads is not the
-header's.** Above 960 px the app is a fixed window (UI-CONVENTIONS §7, "the app shell"), and the
+header's.** The app is a fixed window at every width (UI-CONVENTIONS §7, "the app shell"; above 960 px only until
+16 Nov 2026, when it stopped stacking: it now stops shrinking at 960 px and a narrower window scrolls sideways), and the
 waterfall must end exactly at the bottom of `.preview-panel`. So a second block in `app.js` ("THE
 APP SHELL'S GRID FIT") writes `--header-h` onto **`.preview-panel` only**, solved from the frozen
 rule's own computed `max-height`. That is sanctioned pattern 1 below: the declaration changes, the
 rule does not. It is re-measured on resize, on every `#table-wrap` re-render, and when `#span-hint`,
 a notice strip or the toolbar changes. (`#gap-warning` was on that list until the owner removed the
 gap banner on 30 Sep 2026. The div is always empty now, so it is no longer observed.) Keep the two apart:
-- **`:root`** holds the header's measured height. The sidebar's rules read it, although above 960 px
+- **`:root`** holds the header's measured height. The sidebar's rules read it, although
   the shell sizes the sidebar from `.layout`, because a calc off the header cannot see a notice
   strip. The print-fallback
   waterfall PDF's `.sheet-scroll` inside `#print-root`, a direct child of `<body>`, which measures in
   screen media (MANTINE-SEAM §3.1). Its arithmetic is unchanged.
 - **`.preview-panel`** holds a solved value that is NOT a height. It can be large or negative, and
-  only the live grid inherits it. Below 960 px it is removed, and the grid reads `:root` as it
-  always did.
+  only the live grid inherits it. (Below 960 px it was removed while the app stacked; in print media it still is.)
 
 ⛔ Never "simplify" these into one value. Writing the solved value on `:root` would resize the print
 fallback's measured copy and could flip its page orientation.
@@ -280,6 +350,15 @@ The **snapshot JSON schema is the compatibility contract**, and `captureSnapshot
 - **Restore unconditionally.** `if(snap.x) x = snap.x` leaves the *previous* file's values in
   place when the new file has no such key. Always `snap.x ? {...snap.x} : {}`.
 - **A missing key falls back to a default, never to whatever is in memory.**
+  - **Since 13 Nov 2026 that holds for every saved field and every list** (audit AUD2-005; it had been closed one
+    feature at a time). A field `fields.byId` does not name gets a NEW calendar's value from `savedFieldDefault()`,
+    over exactly the fields `isSweptField()` saves. An absent `fields.hiatuses` means NO all-phase hiatus, in a fresh
+    window too (it used to keep the rows on screen: the previous calendar's, or a new calendar's four winter breaks).
+    Absent `episodeDefs`, `mvExtraLanes` and `dayNoteColors` mean none; absent `viewMode` and `sidebarTab` mean the
+    waterfall and Show info. No file the app has written lacks any of these.
+  - ⛔ A new id'd field whose new-calendar value is not `''` (or, for a box, unticked) needs a line in
+    `savedFieldDefault()`. Leg `loadsparse` (its `bare` run) changes every saved field on the page, loads a file
+    that names none, compares every field with a new calendar's (N1), and goes red on a miss.
 - **Migrations are forward-only** — old file into new app. New file into old app is not supported
   and cannot be. `migrateHolidayViewKeys()` and `normalizeRegionSelection()` are the existing
   worked examples; follow their shape.
@@ -351,7 +430,8 @@ format change, a decision about how something should work.
      exist; `APP_VERSION` alone makes a real update invisible. This is the update-delivery contract
      (README v1.2.0), not bookkeeping. ⚠️ **CORRECTED at the v1.3.0 cut (28 Sep 2026):** this rule
      used to say "`APP_VERSION` in `index.html`, in `src/legacy/app.js` and in `version.json`, all
-     three together." But the root `index.html` is the frozen legacy rollback and **must stay
+     three together." But the root `index.html` is the frozen legacy app (no longer the rollback since 13 Nov 2026:
+     see the deploy note below) and **must stay
      byte-identical to `releases/v1.2.0.html`** (§"Never touch the grid…" / the deploy note), and
      `src/index.html` carries no `APP_VERSION` at all — so the root file's copy is deliberately left
      at `1.2.0` and only the two above are bumped. The rule predated the build cutover; do not bump
@@ -387,7 +467,10 @@ long sessions — it is easy to forget precisely when it matters most.
 > header, preview toolbar and static sidebar cards are React now — and **since 31 Aug 2026
 > (owner-approved cutover) `.github/workflows/deploy.yml` publishes that build to Pages on every
 > push to `main`.** The root `index.html` stays in the repo untouched, byte-identical to
-> `releases/v1.2.0.html`, as the legacy app and the instant rollback. Read [`HANDOFF.md`](HANDOFF.md)
+> `releases/v1.2.0.html`, as the legacy app. ⛔ **It is NOT the rollback** (owner's decision D7 (a), 13 Nov 2026, audit
+> AUD2-006): serving it puts every user on v1.2.0, which drops the Region (every wrap date moves) and strips newer settings
+> and scenarios on Save. To pull a bad release, run "Build and deploy" on `main` with `release` set to the previous
+> version: it publishes `releases/<version>.html` (header of `deploy.yml`). Read [`HANDOFF.md`](HANDOFF.md)
 > §1 and §2b-3 for what exists, and note that the product is still ONE self-contained file — that is
 > what the build produces. *(Corrected 2 Sep 2026; this note said "nothing has been deployed" for two
 > days after the cutover, and a push went out on that belief.)*
@@ -464,7 +547,7 @@ DOM inputs → readState() → computeSchedule(state) → render(schedule) → m
 
 The toolbar above the preview holds two tools: **Shift** (split control: the arrows move everything one week, the caret opens the Shift form) and **Build Around** (Rebuild From until 5 Nov 2026). One difference tells them apart, and the popover descriptions exist to say it: *Shift keeps the gaps between phases, Build Around closes them*. Anything true of both must **not** appear in a description; it reads as a distinction while distinguishing nothing.
 
-⭐ **Both panels drag and stay open** (owner, 11 Nov 2026: *"pops up like normal but you can drag it whereever you want. no put back button"*, *"keep it open"*). Each opens under its button; its title row is a grip, and a drag floats it (`is-floating`, position:fixed, kept on screen) until it closes (`closeAllPops` clears `popPos`), so there is no Put back. ⛔ **There is no click-away:** a panel closes only on its ✕ (`[data-tools-close]`), its button, Esc with focus in a panel or on nothing, or the other tool opening. So a leg must close one with `T.closePops()`, never `document.body.click()`, or the next press of its button CLOSES it. While open, a `MutationObserver` on `#table-wrap` re-reads a NEW `currentSchedule` into it unless focus is inside it. Leg `paneldrag`.
+⭐ **Both panels drag, and a DRAGGED one stays open** (owner, 11 Nov 2026: *"pops up like normal but you can drag it whereever you want. no put back button"*; narrowed 16 Nov 2026: *"universal rule at any window size...shift tool and build around menus should hide when you click anywhere outside of them EXCEPT when a user has dragged them to any custom spot"*). Each opens under its button; its title row is a grip, and a drag floats it (`is-floating`, position:fixed, kept on screen) until it closes (`closeAllPops` clears `popPos`), so there is no Put back. ⭐ **A click outside closes a panel that has NOT been dragged** (a capture `click` on the document, beside `closeAllPops`): "dragged" is `popPos.has(menu)`, set only when the user lets go of the title row, so a panel `fitPopToScreen()` floated by itself on a short window still closes. Not outside: `.tools-wrap`, `.shift-group` (a tool's own button is its toggle), `.tools-menu`, `.date-pop`, a hint's card; and a click whose PRESS began inside a panel never closes it (a list drag let go over the grid). No width test anywhere: one rule at every size. A dragged panel closes only on its ✕ (`[data-tools-close]`), its button, Esc with focus in a panel or on nothing, or the other tool opening. So a leg must close one with `T.closePops()`, never `document.body.click()`, or the next press of a dragged one's button CLOSES it. While open, a `MutationObserver` on `#table-wrap` re-reads a NEW `currentSchedule` into it unless focus is inside it. Leg `paneldrag`.
 
 ⭐ **Build Around** (owner, 5 Nov 2026, layout B of `REBUILD-FROM-LENGTHS-PLAN.md`; renamed by the owner's picker). Pin one phase to a date (`starts on` or **`ends by`**, its last workday) and the ticked phases are built end to end around it from their lengths, the ones before it backwards and the ones after it forwards, **in one run** (`buildAround()`). One list holds every phase in run order with the pin in its place.
 - **It wears Shift's look and feel since 10 Nov 2026** (owner: *"make Build Around match the same UI look and feel as the shift tool"*; `mockups/build-around-like-shift.html`; plan §7): the title, "Phases", the list in Shift's box (`.shift-box`) with its header strip (`[data-solve-all]`, ticked and drawn as a minus once every phase that can be built is ticked; the count `N of M build`), then, under the list, "Pin to a date": the phase (`#tool-solve-phase`) directly above `starts on`, then Build. ⛔ **NO SIDE BUTTONS** (owner, 10 Nov 2026: *"using the build around tool is such a big change that i dont think we need the before and after buttons. I'd say just get rid of them entirly"*; and before that no Both: *"you can just select all with the top checkbox"*). `Prior to X` / `After X` (`tool-solve-back` / `tool-solve-fwd`) and `solveDir` are gone: the box always builds both sides of the pin, and what is built is what is ticked. To build one side, untick the other. Shift keeps its own pair.
@@ -472,7 +555,9 @@ The toolbar above the preview holds two tools: **Shift** (split control: the arr
 - ⭐ **THE STARTING TICKS: a phase is left unticked ONLY when it runs ALONGSIDE the phase it would be built against** (`solveAlongside()`; owner, 10 Nov 2026: *"its just confusing if you click prior to pre prep and then writers room isn't selected"*, *"writers room doesnt always overlap the next phases, only sometimes"*). Walk outward from the pin, each way, over the phases with a length: one that shares `SOLVE_ALONGSIDE_DAYS` (5, a full working week) or more days with the last phase taken into the chain is left out and named, with that neighbour, on the line under the list (`[data-solve-left]`: *"Writer's Rm left unticked: it runs alongside Pre Prep. Tick it to build it in line."*); any other joins the chain. Read from the calendar as it stands. It decides how the box opens, and a new pin re-ticks by it while the ticks are still untouched (`solveIsDefault()`). ⛔ Until then **Writer's Rm and every custom phase were always left out** (5 Nov / 30 Oct 2026), which was wrong whenever the room did not overlap. A phase the user has ticked, cleared or dragged over is their own choice and drops off the line. One thing is still by kind: a CUSTOM phase with no date yet starts unticked. ⚠️ On `buildFixture()` that leaves Localization out (it starts in Post's last week: the Christmas hiatus pauses Post to Fri 3/5/27) and ticks Writer's Rm.
 - **A length can be typed in the list** (`solveLens`): staged until Build, then written through the phase's own `weeks-` / `days-` field in the same undo step as the dates (ruling R2(a)); typing one into a row that had none ticks it. ⛔ **Production's length is read-only there** (owner): Show info's shoot days, or "Not set" with a line pointing to Show info; Build never writes a Show info field.
 - ⛔ The ids did NOT rename (`pop-solve-btn`, `#pop-solve`, `tool-solve-*`), as Load kept `data-action="open"`. `tool-solve-both`, `tool-solve-back` and `tool-solve-fwd` are gone (retired, not renamed). Nothing new carries an id. No `title` on a row and the hint opens upward, as in Shift (`npm run check` holds both hints).
+- ⭐ **A placed phase CARRIES its own break and its `<week>|<key>` stores** (audit AUD2-009, item 2.2, 13 Nov 2026): every start Build Around writes goes through `placeBuilt`, and `carryBuilt` moves that phase's own hiatus (`phiatus-start-<key>`) plus its band label, colour, size, phase-cell styles, hand-widened cells and column swaps by the weeks the start moved, through the ▲ / ▼ mover's part form (`shiftCalendar` with an empty week window and `carryOnly`), inside the build's one undo step and `asShootDayMove`. `shiftCalendarDates`'s body is unchanged. The solvers place a phase WITH its break where it will land (`searchCarried`). Typed week notes stay on their weeks, and the result line counts them ("N typed notes stayed on their weeks."). A snapped Production **ends by** walks back by whole Mondays (`productionMondayEndingBy`), so it no longer wraps two weeks early before a long break (AUD2-010). Legs `buildcarry`, `buildendsby`.
 - **Close all gaps is gone**: it chained Pre-Prep after the room and pushed the shoot 3 to 45 weeks on every calendar studied then.
+- ⭐ **A Dates phase keeps its WEEKDAYS** (audit AUD2-068, item 3.2, 14 Nov 2026): `customStartEndingBy` ends one built before the pin on the last weekday before the next phase and counts its Mon–Fri days back (`datesWeekdays`, `nthWeekday`); `placeBuilt` ends every Dates phase it writes (after the pin, and the pin itself) that many weekdays after its start, through `setPhaseStart`'s `endTo`. It used to keep the CALENDAR span and end the day before a Monday, a Sunday (Mon–Fri became Wed–Sun). Leg `builddates`.
 - Legs `buildaround`, `rebuildticks` and `buildalongside` (the threshold's lower side: phases that touch by two days stay ticked). `T.solvePress` / `T.solveDrag` in `t/lib.js` press Build Around's rows. `T.solveKeepSide(dir)` unticks the other side of the pin, which is how a leg builds one side now that the buttons are gone.
 
 ⚠️ **Shift From and Anchor To are gone as buttons** (owner, 4 Nov 2026, layout C of `ANCHOR-TO-DIRECTION-PLAN.md`), **and since 9 Nov 2026 so are the What moves buttons: the Shift box is THE LIST FIRST** (owner's eight-point spec, *"build this"*, and three corrections the same day; plan §7.6). From its title the box goes straight to the phases (Build Around's rows, drawn by `renderShiftList`): a tick each, the date, Moves / Stays or Pushed / Pulled.
@@ -481,6 +566,8 @@ The toolbar above the preview holds two tools: **Shift** (split control: the arr
 - **`Prior to X` / `After X`** under the list name the outlined row and REPLACE the ticks: that row and every row above it, or below it.
 - **How far** is `By weeks | To a date`. To a date's box (`#tool-anchor-phase`, the one phase select left) shows the outlined row's phase and offers ticked phases only (`fillShiftPhase`; owner: *"it should be the default option under To a date. The list should also be limited to only selected phases"*); a pick in it outlines that row, so there is ONE chosen phase. ⛔ The landing phase is no longer forced to move and drawn pinned: every row keeps its box.
 - It opens with every phase ticked, By weeks, every time (ruling R2(a); the owner asked for the case each way and kept it), which is the old Shift All form.
+- ⭐ **An open panel does not go stale** (audit AUD2-049, item 3.2, 14 Nov 2026). A date TYPED into Build Around's box or Shift's To a date box survives the observer's refresh (`solveDateTyped` / `anchorDateTyped`, `{key, edge}`): it is refilled only by a new pin or landing phase, the other edge, closing the panel, or the panel's own tool running. A phase dated while Shift is open is TICKED when every phase was (`syncShiftTicks`, `shiftKnown`), so the whole-calendar move stays whole; a hand-picked set leaves it out. Leg `panelstale`.
+- ⭐ **The part-move line names what a carried hiatus did** (audit AUD2-069, same item): `moveTail(res, plan, before)` compares each unticked phase's first and last working day (`phaseRunsNow`, `seg.weekNo`) before and after, and ends "1 hiatus moved with it, so Music now ends 12/25/26 (pulled 2 wks) …"; the "stayed" list keeps only the rest. The carry itself (T2) is unchanged. Leg `shiftbandline`.
 - ⭐ **THE TICKS DECIDE THE MOVE** (`shiftPlan()`, worked out once for the list, the result line and `shiftCalendarDates(weeks, null, {part: {phases, windows}})`). Every phase ticked: the whole calendar, no `part` (the old Shift All / Anchor To call). The TOP of the list down to one phase: the old Phase & before, one window to that phase's LAST week. The BOTTOM of the list from one phase: the old Phase & after and Shift From, one window from its start week. Any other set: one window PER TICKED PHASE, its start week to its last week (owner's T2: a note inside a ticked phase's run moves, even in a week an unticked phase shares). The windows carry notes, unlocked hiatuses and the range. The rows run in START order, so **each phase goes by its START week; an overlap does not count.** ⛔ For one deploy (`c52094f`) a phase overlapping the picked one moved too; the owner reverted it the same night: *"how would you move everything except for writers room"*.
 - ⛔ **Nothing may float over the list's rows** (spec item 8): no `title` on a row, the strip is never sticky, and the box's hint opens ABOVE the title and never flips (`npm run check` asserts it in the built file, because a leg cannot hover a Mantine HoverCard).
 - ⛔ **The press's own click is swallowed by a guard that the NEXT PRESS OR KEY drops, never a timer.** The row is redrawn under the press, so often no click follows; a timer-disarmed guard ate the next click instead ("choose a row, press After" did nothing).
@@ -500,7 +587,7 @@ State lives in module-scope mutable objects scattered through the script, *not* 
 
 | Variable | Purpose |
 |---|---|
-| `userNotes` | note-cell overrides; `text:''` means "auto-note explicitly cleared". `monthHidden: true` on an entry (4 Nov 2026, the waterfall editor's "Show in month view" off) keeps the week's TYPED lines out of the month view (`mvWfLinesFor`); holidays and automatic notes stay. Written only as `true`, carried by `saveNoteEdit` across edits |
+| `userNotes` | note-cell overrides; `text:''` means "auto-note explicitly cleared". `monthHidden: true` on an entry (4 Nov 2026, the waterfall editor's "Show in month view" off) keeps the week's TYPED lines out of the month view (`mvWfLinesFor`); holidays and automatic notes stay. Written only as `true`, carried by `saveNoteEdit` across edits ⭐ Its text carries the week's automatic and holiday lines (the editor opens on them), and since 13 Nov 2026 those lines FOLLOW the calendar (audit AUD2-001/002/003, owner's D1 (a); `followAutoNotes`, run by `update()` and `markDirty()`): re-dated in place, taken out when gone, added when arrived, a line the user took out stays out. Rebuilt from the note as left (a session-only WeakMap on the note object, cleared on every restore), never chained. ⛔ A new path that changes what a week's automatic lines are without `update()` or `markDirty()` must call it |
 | `phaseNotes` | notes LINKED TO A PHASE (5 Nov 2026, PHASE-LINKED-NOTES-PLAN.md, rulings R1–R9; steps 1–5 of 6 built on `phase-notes`: the engine, "Stays with" in the waterfall note editor, the look, Delete / copy / paste / drag, and the month view): keyed by the LINK, `<phase>@<n>` (the phase's n-th WORKING week, `seg.weekNo`'s order) or `production@day<n>` (its n-th shoot day), never by a week. `computeSchedule` places them every run (`placePhaseNotes` → `schedule.phaseNotePlace`, ABSENT when empty), so every mover carries them with no code of its own; `effectiveNoteText` draws them after the week's own text. Their look (`color`, `size`, `style`, `height`) is ON the note and travels (`wfLinkedLook`). The month view draws them through `mvWfLinesFor` (`mvLinkedLinesOn`). `monthHidden: true` keeps one out of the month view and `sheetHidden: true` (R10(a), 10 Nov 2026) out of the waterfall (`wfLinkedLinesFor`); a note linked from the month view starts `sheetHidden`. ⛔ PERMANENT key, key shapes and field words (`sheetHidden` among them); absent while empty; no version bump. ⛔ Never re-keyed by `shiftCalendarDates` (it would move them twice). `var`, since `computeSchedule` reads it |
 | `dayNotes` / `dayNoteColors` | month-view per-day notes and legacy colors (folded in by `dayNoteList()`). `waterfall: true` on an entry (4 Nov 2026, the month editor's "Show in waterfall", off by default) adds it to its week's Notes cell as "text m/d/yy" through `effectiveNoteText`, so the screen, Excel, the waterfall PDF and the widths follow with no frozen edit. ⛔ Code that WRITES a week's own note reads `wfOwnNoteText`, never `effectiveNoteText`, or it bakes these lines into typed text. Both flags PERMANENT |
 | `noteColors`, `hiatusTexts`, `hiatusColors` | per-cell appearance overrides |
@@ -527,7 +614,7 @@ State lives in module-scope mutable objects scattered through the script, *not* 
 | `simPostName` | Simultaneous Post's own name (owner, 2 Nov 2026), typed in the box at the top of its settings. `''` = "Simultaneous Post". Read only through `simPostLabel()` / `simPostDisplayName()`, so the waterfall, the month view, the colour key and both writers follow ("*name* wk N" when numbered). A PERMANENT key, written only while renamed (the default typed in full counts as the default). Its box has NO id, so it never enters `fields.byId`. The month view shows it through frozen edit S1, which escapes the label in `renderMonthView` |
 | `headerOff` | Header: Off (owner ruling 10, 20 Oct 2026; HEADER-ROW-PLAN.md §2): no title block on screen, in Excel or in the waterfall PDF, and the top margin reclaimed. A FLAG over `headerMode`, never a third value of it (decision H3). Written only as `true` |
 | `mvHeaderOff` | the Month view's Header: Off (owner, 23 Oct 2026), the waterfall's twin and independent of it. Written only as `true`. No frozen edit: `body.mv-hdr-off` COLLAPSES `.mv-header` (zero height, never `display:none`, because frozen `exportMonthPdf` measures each page's reserve from that header's top), and the direct writer skips the header when `exportMonthPdfDirect` stamps `headerOff` on each month before the fit (`mvlFrame`). The `mvhdroff` leg holds it |
-| `dateFormat` | the waterfall's date format (ruling 4): absent = 1/6/25, `'m/d/yyyy'` = 1/6/2025, and since 11 Nov 2026 day first, unpadded: `'d/m/yyyy'` = 6/1/2025, `'d/m/yy'` = 6/1/25 (all PERMANENT values; the menu reads MM/DD/YYYY, MM/DD/YY, DD/MM/YYYY, DD/MM/YY). Read through `fmtWeekDate()` at three frozen call sites and `weekDateNumFmt()` in `exportExcel`. Automatic notes keep 1/6/25 (owner's picker). Its select is in `.prefs-card` |
+| `dateFormat` | the waterfall's date format (ruling 4): absent = 1/6/25, `'m/d/yyyy'` = 1/6/2025, and since 11 Nov 2026 day first, unpadded: `'d/m/yyyy'` = 6/1/2025, `'d/m/yy'` = 6/1/25 (all PERMANENT values; the menu reads MM/DD/YYYY, MM/DD/YY, DD/MM/YYYY, DD/MM/YY). Read through `fmtWeekDate()` at three frozen call sites and `weekDateNumFmt()` in `exportExcel`. ⭐ Since 13 Nov 2026 (audit item 2.4, owner's D3 (a), which REVERSES the 20 Oct "automatic notes keep 1/6/25") a day-first value puts EVERY date day first, not just the Date column: holiday and automatic note lines, the title block and its tokens, the sidebar, the tool lists, the note editors, messages, Compare and the key facts band (`fmtShort`, `orderedDate`; only the ORDER follows, years stay two-digit in notes and the header). Dates read from text (a typed line's trailing date, Paste notes, the month drag) are read day first too (`slashDate`, `slashDateInWeek`, `slashNames`), and one that reads outside its week is read month first when THAT falls inside it, never a guess. Changing the order re-dates automatic lines inside typed notes (`followAutoNotes`), one undo step. Frozen `notesForWaterfallDate` reads a typed line's date in the calendar's order itself, through `slashDateInWeek` (frozen edit D3, owner-approved 16 Nov 2026; until then a stand-in, `wfLinesOnDay`, did it from outside). ⛔ Every helper returns the old string or date when `datesDayFirst()` is false, so a month-first calendar is unchanged byte for byte. Its select is in `.prefs-card` |
 | `hiddenNotesCols` | the years whose Notes column is hidden (HIDE-NOTES-PLAN.md, the owner's option B, 22 Oct 2026), as width-model keys (`y2031:notes`): `{key: true}` in memory, a sorted array in the file, written only while one is hidden. Read through `notesHiddenFor()`; W1 takes the column out of `cols`, so the screen, the PDF and the metrics follow, and Excel HIDES it (width and notes kept). On screen a 14 px strip stands in for it, never in print (`wfPrintRender`, X1). No id anywhere |
 | `headerRowCustom`, `headerRowLabels`, `headerRowSplits` | column headings, editable by double-click ALL THE TIME since 22 Oct 2026 (HEADINGS-EDITABLE-PLAN.md; the Settings switch is gone). `headerRowTyped()` (any label, any split, or `headerRowCustom`) picks the frozen writers' typed path (H1–H3); an untouched calendar takes the original path, `Date \| year \| Notes` byte for byte. ⚠️ `headerRowCustom` is a PERMANENT key with a NEW meaning: "saved with the old switch on, so the Date column defaults to the year" (`headerRowDefault()`). Still read, sanitized and restored, written only as `true`, and nothing new writes it (New clears it). Labels are keyed by the width model's column keys (`y2026:s0`) and only typed ones are stored; identical neighbours merge (`headerRowRuns`) UNLESS `headerRowSplits` lists the right-hand column (the editor's Split, 20 Oct 2026: an array of keys, written only when non-empty; no key = v1.6.0's merging). Typing in the editor never merges or splits; only its buttons do |
 | `sideBoxes`, `sideWidths` | boxes beside the waterfall (owner ruling 7, 20 Oct 2026; SIDE-BOXES-PLAN.md): colour keys and text boxes, left or right, and each side's dragged width in Excel column units. Saved as ONE key, `sideBoxes: {boxes, widths}`, written only while a box exists (absent = no boxes). Drawn outside `#table-wrap`, and read by both writers through `sideBoxLayout()` (frozen edits E1–E6). A box's optional `row` (21 Oct 2026) is the sheet row it sits on; without one it stacks under the box before it, as every older file does. No id anywhere |
@@ -552,10 +639,16 @@ Any new persistent state must be added in **both** places or it will silently no
 
 `parseCalendarText()` is the **only** thing that reads a calendar file: text starting with `{` is a snapshot, anything else gets the `saved-state` regex. It returns **`{format, snapshot}`** — the format is part of the contract because opening a legacy `.html` is the one moment the app can offer to upgrade it. Both converge on `applyStateSnapshot()`, which rebuilds custom-phase and hiatus rows first (re-keying generated ids to the saved keys), then applies `fields.byId`. On page load, `restoreSavedState()` still reads the inline block — that is how a shareable copy opens itself.
 
+⛔ **A file's JSON is read with `parseUntrustedJson()`, never a bare `JSON.parse`** (audit item 1.3, 13 Nov 2026): `parseCalendarText()` (both formats), `restoreSavedState()` and the `.spthdr` reader all go through it, and `sanitizeSnapshot()` copies with `ownCopy()`. A new reader of anything from another machine must do the same. HANDOFF's 13 Nov entry says why.
+
 ⛔ **What the clone must strip, and the one thing it must HIDE rather than strip.** The strip list is
 five classes — `.note-pop, .mv-note-pop, .phase-color-pop, .date-pop, .select-pop` — because each is
 a body-level panel that a Share click can catch mid-close (React commits after the synchronous
-build). Separately the clone **re-hides** `#legacy-notice` and `#update-notice`: they ship `hidden`
+build). ⚠️ *(Out of date by v1.15.0: `buildSavedHtml()`'s own lists are the authority. The strip list is now some thirty
+classes, `.month-sel-chip` among them; every notice strip is re-hidden, and the text of each that names the sender's
+files or phases is EMPTIED too: `#launch-notice`, `#heading-notice`, `#backup-notice`, `#storage-notice`,
+`#colswap-notice`; 2.14's Details buttons are dropped, and `.start-recents` goes out empty and hidden.)*
+Separately the clone **re-hides** `#legacy-notice` and `#update-notice`: they ship `hidden`
 and are un-hidden at runtime by `el.hidden = false`, which *removes* the attribute `outerHTML` would
 have serialised, so a copy exported while the upgrade strip was up carried a permanent banner naming
 someone else's file. Hidden rather than removed, because the copy is a working app whose own engine
@@ -565,13 +658,15 @@ may need to raise them later. (Fixed round 7; it restores v1.0.0's output rather
 
 File handles are kept in IndexedDB (`spt-planning-cal` / `handles`) as a recents list, so a reopened saved file can write back in place after one permission click. `suppressDirty` gates dirty-tracking during load/restore; `markDirty()` schedules the rolling crash backup (debounced 3 s) and the 10-minute autosave. ⚠️ That backup is **IndexedDB**, not `localStorage` — since v1.3.1 one slot **per page load**, `idbSet(BACKUP_SLOT, …)` = `unsavedBackup:<id>`; the old single `unsavedBackup` key is still read for recovery, never written (audit SAVE-7). And a linked file is **stamped** (`savedFileStamp`) at load and after each write: if it changed on disk, autosave pauses and Save asks — overwrite, load newer, or save a copy (owner ruling R4, audit M-6). **`localStorage` is used nowhere in the app today**, so the Settings menu (HANDOFF §2b) would be introducing it, not joining it.
 
+⛔ **Recovery checks that the backup was applied** (audit AUD2-004, 13 Nov 2026). `restoreSavedState()` returns what happened (`'ok'`, `'none'`, `'newer'`, `'damaged'`, `'failed'`), and `offerBackupRecovery()` stops on anything but `'ok'`: it says the unsaved work could not be opened, KEEPS the slot, and leaves the file link, the dirty flag and this page's own backup untouched. Before, a backup that could not be applied (a newer build's after a rollback, a damaged scenario tab, a throw partway) left the blank launch calendar linked to the backup's file, and the next autosave wrote it over that file. A new path that restores from a backup or a state block must read that result too. Leg `recoverfail`.
+
 ## Exports
 
 **Frozen — see the rule above.** Listed here so the seam is legible, not so it can be edited.
 
 - **Excel** (`exportExcel()`): builds an ExcelJS workbook directly with explicit column widths, merges, and ARGB fills. `computeBlockLayout()` / `computePhaseRowLayout()` compute the column-slot assignment (which phase occupies which column in a given week, honoring `maxConcurrent` and the fixed sim-post slot) — the **same** layout logic backs the on-screen waterfall and the PDF, so changes there land everywhere at once. Excel caps a header/footer string at **255 characters in total**; one over and Excel reports the file as corrupt.
 - **Waterfall PDF** (`buildWaterfallPdf()` → `exportWaterfallPdfDirect()`): **writes PDF bytes directly, no print dialog** — TrueType subsetting from the embedded Carlito, `/FontFile2`, WinAnsi, xref, Flate. `WF_PDF_MODE` selects it; the old print path is the fallback. Orientation comes from `sheetPageOrientation()`, the same rule the workbook uses. Since 21 Oct 2026 its button opens the **Export PDF dialog** first (paper, orientation with the rule's pick marked Recommended, grid lines), and the page is the calendar's `paperSize`. ⚠️ Every gate leg that exports this PDF has the dialog answered at its defaults by `tests/harness/t/lib.js`.
-- **Month PDF**, since 2 Oct 2026 (MONTH-PDF-WRITER-PLAN.md step 5, ruling 4(a)): **the direct writer.** `exportMonthPdfDirect()` → `buildMonthLayout` (frozen `renderMonthView`'s HTML, parsed) → `fitMonthLayout` → `buildMonthPdf`, then the **Save dialog** (a download without the File System Access API), with characters it cannot set named first. The writer is new code, not on the frozen list; the owner has not ruled on freezing it.
+- **Month PDF**, since 2 Oct 2026 (MONTH-PDF-WRITER-PLAN.md step 5, ruling 4(a)): **the direct writer.** `exportMonthPdfDirect()` → `buildMonthLayout` (frozen `renderMonthView`'s HTML, parsed) → `fitMonthLayout` → `buildMonthPdf`, then the **Save dialog** (a download without the File System Access API), with characters it cannot set named first. Since v1.15.0 two steps come first: a **Months dialog** (All / This month / Range, `src/chrome/MonthPdfDialog.jsx`, root `.export-pdf-dlg month-pdf-dlg` so the sweep skips it and `t/lib.js` answers it at All; audit 2.11), whose answer only FILTERS the layout's months before the fit, so All is byte for byte the old file; and, when the fit shrinks a month's 10 px text below 6 pt, "Some months print very small" naming them (`mvlSmallType`; audit 3.1, D4 (a), "No floor" kept). The print rollback asks neither and prints every month. The writer is new code, not on the frozen list; the owner has not ruled on freezing it.
 - ⚠️ **Both written PDFs carry the SPTCal mark** (owner, 2 Nov 2026): an incremental update APPENDED after the writer's own bytes (`markPdf`) that adds `/Info` (Creator `SPTCal`, Producer `SPTCal <APP_VERSION>`) and an unpainted "Made with SPTCal <APP_VERSION>" on every page. The writers did not change. The waterfall's call is frozen edit MK1 in `exportWaterfallPdfDirect`. Gates 2 and 13 compare the bytes BEFORE the mark (`tests/harness/pdfmark.py`). ⛔ A saved PDF holds each page dictionary twice under one object number, so a new leg that compares a saved PDF to a writer's bytes, or counts pages, must go through `T.pdfUnmark` / `T.pdfPages` (lib.js) or `pdfmark.py`. HANDOFF has the rest.
 - ⚠️ **In the waterfall PDF, touching fills carry seam strips** (frozen edit SM1, owner, 4 Nov 2026). Cells drawn edge to edge left a light line between weeks in anti-aliasing viewers. Right after a cell's fill, a strip of its colour now crosses each edge it shares with a later fill. ⛔ So a leg that counts `re f` must count CELLS: a fill followed, after its strips, by its own clip to the same box (`cellFills()` in `t/wfnotecolors.js`, `pdfseams.py`). Gate check `pdfseams` holds it through Quartz.
   - **The print path, `exportMonthPdf()` (frozen), is the rollback:** flip `MV_PDF_MODE` to `'print'`. On **localhost only**, `localStorage 'sptcal.mvPdfTest' = 'print'` also routes there (`monthPdfMode()`), which is how gate 10 and every leg that captures a print document still reach it. It renders every month into `#print-root`, adds `body.printing-calendar` (a print stylesheet hides everything else) and calls `window.print()`. Always clear the class and `#print-root` before starting: a stuck class hides the app and makes the next print silently do nothing. Cleanup is bound to `afterprint`, with a 60 s safety net.

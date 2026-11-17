@@ -47,33 +47,47 @@ import { useState, useLayoutEffect, useRef } from 'react'
 import { InfoHint } from './InfoHint.jsx'
 import { Button, ActionIcon, Tooltip, Group } from '@mantine/core'
 import { installChrome } from './bridge.js'
-import { IconRows, IconCalendarPlain, IconUndo, IconRedo } from './icons.jsx'
+import { keyLabel } from './keys.js'
+import { IconRows, IconCalendarPlain, IconUndo, IconRedo, IconDots, IconHeading, IconHammer } from './icons.jsx'
 import { MonthMap, MonthStepper } from './MonthMap.jsx'
 
-// THE FIRST LINE'S LAYOUT (owner, 10-11 Nov 2026). Two jobs, one measurement.
-// 1. WHERE THE TEXT STYLE BAR GOES. It sits on the first line, between the date tools and the page tools, while every
-//    section fits there at the smallest gap. Where they don't, the host takes `.style-own-line`, and CSS puts the bar
-//    alone on a line under them, its old place: a plain flex wrap would have pushed the TOOLS down instead.
-// 2. ONE EQUAL GAP (owner, 11 Nov 2026: once the space either side of the tools was 19 px, "the gap should be the same
-//    as the gaps between all the other buttons"). The first line holds the view toggle, Shift, Build Around, the text
-//    bar, Fill Gaps, Side Boxes (or, in the month view, the stepper in their place), Header and Undo / Redo, with a gap
-//    after each one, Redo's to the toolbar's edge included: eight gaps (a first build counted nine and left the spare
-//    gap's width split between the two ends: 19 px there against 12.6 between the buttons). They are all one value, solved here so the line
-//    exactly fills the row, never under --tb-gap-min (10 px), and written as --tb-gap-fit on .preview-panel, which every
-//    gap on the line reads through --tb-gap. On a wider window every gap grows together.
-// * None of the widths summed depends on the mode or the gap, so neither can flip-flop: the sections are flex:none at
-//   their content width, the bar is width:max-content, Header has a fixed width (useFixedHeaderWidth), Highlight is
-//   always in the bar (greyed where it doesn't apply), Fill Gaps is never display:none, and Fill Gaps and Side Boxes
-//   are measured even in the month view (they keep their place there, hidden by visibility).
+// THE FIRST LINE'S LAYOUT (owner, 10-11 Nov 2026; reworked 16 Nov 2026 for every window size). One measurement, two jobs.
+// 1. THE GAP. One equal gap after every item on the line, Redo's to the toolbar's edge included (owner, 11 Nov 2026:
+//    "the gap should be the same as the gaps between all the other buttons"). It is solved so the line fills the row,
+//    but NEVER over --tb-gap-max (14 px, the gap on the owner's laptop) and never under --tb-gap-min (10 px). On a wide
+//    window the toolbar therefore keeps its laptop size and the spare room collects on the RIGHT (owner's picker,
+//    16 Nov 2026: "keep the toolbar at its laptop size, as Excel does"); until then every gap grew with the window, to
+//    116 px on a 2560 px screen. Written as --tb-gap-fit on .preview-panel, which every gap reads through --tb-gap.
+// 2. THE FOLD LEVEL. The line is ALWAYS one line (owner's picker, 16 Nov 2026: "Icons, then a More menu"). Where it
+//    cannot fit at the smallest gap, it gives up room in fixed steps, least-used first, the view toggle and Shift last:
+//      1. Fill Gaps shows its switch alone and Header its icon (both keep a hover hint). Side Boxes keeps its label:
+//         the month stepper shares their slot and needs about that width, so its icon would save nothing.
+//      2. Fill Gaps, Side Boxes and Header (the month stepper in the month view) fold into one More menu (.tb-more).
+//      3. Build Around shows its icon (a hammer; a pin until the owner said it read as a location) and caret.
+//      4. The text style buttons fold behind a Text button and open under it (.tb-text-btn).
+//      5. Waterfall and Month show their icons alone, each with its name as a hover hint (written here, below).
+//    Each step is a class on .preview-panel, cumulative (tbf1 ... tbf5), so CSS draws it; this hook only tries the
+//    levels in turn, from 0, and keeps the first whose line fits. Measured with side boxes, the narrowest preview:
+//    step 0 to about 1,700 px, 1 to 1,560, 2 to 1,290, 3 to 1,100, 4 to 1,000, 5 at the app's minimum width (960 px,
+//    legacy.css, "The app shell"), where it fits with about 80 px to spare. Below the minimum the window scrolls
+//    sideways instead.
+//    Until 16 Nov 2026 the text bar dropped to a line of its own instead (`.style-own-line`), and the rest of the
+//    line wrapped to a third below about 1150 px.
+// * None of the widths summed depends on the gap, so the answer cannot flip-flop: the sections are flex:none at their
+//   content width, the bar is width:max-content, Header has a fixed width (useFixedHeaderWidth), Highlight is always
+//   in the bar (greyed where it doesn't apply), Fill Gaps is never display:none, and Fill Gaps and Side Boxes are
+//   measured even in the month view (they keep their place there, hidden by visibility).
+// * Trying the levels changes classes and reads layout within ONE task, so nothing paints in between and nothing
+//   flickers; the result is the same level every time for the same row width, so the observers settle at once.
 // * Applied in a task of its own (a zero timer): changing the row's height inside the observer's own callback is what
 //   makes Chrome report "ResizeObserver loop completed with undelivered notifications" as a page error, which legs
 //   count. ⛔ Not requestAnimationFrame: a hidden page never gets one, and under the harness's --virtual-time-budget
-//   it may never fire (monthmap.js says the same), so the class would never be set there.
-// * The class is on the HOST and the gap on .preview-panel, never on .view-toggle-row: the shareable copy is a clone of
-//   the page whose builder empties the row but keeps the row's own attributes (sharecopy2 caught a class riding there).
+//   it may never fire (monthmap.js says the same), so the level would never be set there.
+// * The classes and the gap are on .preview-panel, never on .view-toggle-row: the shareable copy is a clone of the page
+//   whose builder empties the row but keeps the row's own attributes (sharecopy2 caught a class riding there).
 //   .preview-panel already carries the grid fit's --header-h the same way, and a copy solves both again when it opens.
-const TB_GAPS = 8
-function useStyleBarFit() {
+const TB_LEVELS = 5
+function useToolbarFit() {
   useLayoutEffect(() => {
     const row = document.querySelector('.view-toggle-row')
     const host = row && row.querySelector('.style-bar-host')
@@ -81,26 +95,43 @@ function useStyleBarFit() {
     const tools = row && row.querySelector('.preview-tools')
     const dates = row && row.querySelector(':scope > .tb-dates')
     const panel = row && row.closest('.preview-panel')
-    if (!row || !host || !toggle || !tools || !dates || typeof ResizeObserver === 'undefined') return
-    const byId = (id) => row.querySelector('#' + id)
+    if (!row || !host || !toggle || !tools || !dates || !panel || typeof ResizeObserver === 'undefined') return
+    const q = (sel) => row.querySelector(sel)
     let timer = 0, watchedBar = null
+    const setLevel = (level) => {
+      for (let k = 1; k <= TB_LEVELS; k++) panel.classList.toggle('tbf' + k, k <= level)
+      // Step 5's hover hints. Written here because React renders these buttons once with no title (a tooltip naming
+      // the label beside it would only be noise), so nothing else ever writes the attribute.
+      toggle.querySelectorAll('.view-toggle-btn').forEach((b) => {
+        if (level >= 5) b.title = b.textContent.trim(); else b.removeAttribute('title')
+      })
+    }
+    // The items on the first line at a level, each followed by one gap.
+    const partsAt = (level, bar) => level < 2
+      ? [toggle, q('#shift-group'), q('#pop-solve-btn'), bar, q('#tb-fill-space-btn'), q('#tb-side-boxes-btn'),
+         q('#tb-hdr-mode-btn'), q('.undo-redo-group')]
+      : [toggle, q('#shift-group'), q('#pop-solve-btn'), level < 4 ? bar : q('.tb-text-btn'), q('.tb-more-btn'),
+         q('.undo-redo-group')]
     const fit = () => {
       timer = 0
+      host.classList.remove('style-own-line')   // retired 16 Nov 2026; a copy saved before may still carry it
       const bar = host.firstElementChild
-      if (!bar) { host.classList.remove('style-own-line'); return }
+      if (!bar) return
       if (bar !== watchedBar) { ro.observe(bar); watchedBar = bar }
       const rowCs = getComputedStyle(row)
-      const min = parseFloat(rowCs.getPropertyValue('--tb-gap-min')) || 12
-      const parts = [toggle, byId('shift-group'), byId('pop-solve-btn'), bar, byId('tb-fill-space-btn'), byId('tb-side-boxes-btn'),
-                     byId('tb-hdr-mode-btn'), row.querySelector('.undo-redo-group')]
-      const content = parts.reduce((t, el) => t + (el ? el.getBoundingClientRect().width : 0), 0)
+      const min = parseFloat(rowCs.getPropertyValue('--tb-gap-min')) || 10
+      const max = parseFloat(rowCs.getPropertyValue('--tb-gap-max')) || 14
       const inner = row.clientWidth - (parseFloat(rowCs.paddingLeft) || 0) - (parseFloat(rowCs.paddingRight) || 0)
-      const own = inner < content + TB_GAPS * min
-      host.classList.toggle('style-own-line', own)
-      if (panel) {
-        if (own) panel.style.removeProperty('--tb-gap-fit')
-        else panel.style.setProperty('--tb-gap-fit', ((inner - content) / TB_GAPS).toFixed(2) + 'px')
+      let level = 0, content = 0, n = 1
+      for (; level <= TB_LEVELS; level++) {
+        setLevel(level)
+        const parts = partsAt(level, bar)
+        content = parts.reduce((t, el) => t + (el ? el.getBoundingClientRect().width : 0), 0)
+        n = parts.length
+        if (content + n * min <= inner || level === TB_LEVELS) break
       }
+      const gap = Math.max(min, Math.min(max, (inner - content) / n))
+      panel.style.setProperty('--tb-gap-fit', gap.toFixed(2) + 'px')
     }
     const later = () => { if (!timer) timer = setTimeout(fit, 0) }
     const ro = new ResizeObserver(later)
@@ -111,9 +142,40 @@ function useStyleBarFit() {
     // A ResizeObserver reports only at a rendering opportunity, which a hidden page never gets (the grid fit in app.js
     // found that); a window resize arrives regardless.
     window.addEventListener('resize', later)
+    // Inter arrives a moment after the first layout, and every label's width changes with it: a level chosen on the
+    // fallback font stuck (seen as fold step 3 on a window that holds step 0) when nothing painted in between.
+    const fonts = document.fonts
+    if (fonts) { fonts.addEventListener && fonts.addEventListener('loadingdone', later); fonts.ready && fonts.ready.then(later) }
     fit()
-    return () => { ro.disconnect(); mo.disconnect(); window.removeEventListener('resize', later); if (timer) clearTimeout(timer) }
+    return () => {
+      ro.disconnect(); mo.disconnect(); window.removeEventListener('resize', later)
+      if (fonts && fonts.removeEventListener) fonts.removeEventListener('loadingdone', later)
+      if (timer) clearTimeout(timer)
+    }
   }, [])
+}
+
+// THE TWO FOLD MENUS (step 2 and step 4 above). Each is open while its state says so and closes on a press anywhere
+// outside it, on Escape and on a window resize (the level may change under it). ⛔ Plain elements, never a Mantine
+// Menu or Popover: the page tools are the engine's by id and by delegation (it opens Side Boxes' and Header's own
+// menus under whichever button was clicked), so they must stay these very nodes, mounted where they are, and simply
+// be SHOWN in a panel. A press inside the engine's own menus (.sb-menu, .hdr-mode-pop) counts as outside: it closes
+// More, which those menus do not need (each was placed once, when it opened).
+function useFoldMenu(open, setOpen, isInside) {
+  useLayoutEffect(() => {
+    if (!open) return
+    const onDown = (e) => { if (!isInside(e.target)) setOpen(false) }
+    const onKey = (e) => { if (e.key === 'Escape') setOpen(false) }
+    const onResize = () => setOpen(false)
+    document.addEventListener('mousedown', onDown, true)
+    document.addEventListener('keydown', onKey)
+    window.addEventListener('resize', onResize)
+    return () => {
+      document.removeEventListener('mousedown', onDown, true)
+      document.removeEventListener('keydown', onKey)
+      window.removeEventListener('resize', onResize)
+    }
+  }, [open])
 }
 
 // THE HEADER BUTTON'S FIXED WIDTH (owner, 11 Nov 2026: "I don't like the menu changing as you click around"). Its label
@@ -147,7 +209,7 @@ function useFixedHeaderWidth(ref, setW) {
 }
 
 export function PreviewToolbar() {
-  useStyleBarFit()
+  useToolbarFit()
   // The ONLY React-owned state in this component. It exists because Mantine styles disabled state
   // from [data-disabled] alone -- there is no :disabled rule in its CSS -- so the engine's
   // `u.disabled = !undoStack.length` would disable the buttons functionally while leaving them
@@ -167,6 +229,71 @@ export function PreviewToolbar() {
   const hdrRef = useRef(null)
   const [hdrW, setHdrW] = useState(null)
   useFixedHeaderWidth(hdrRef, setHdrW)
+  // The Header button's words, also its hover hint's first words (at fold step 1 it shows its icon alone).
+  const hdrLabel = hdr.mode === 'template' ? 'Header: Template' : hdr.mode === 'manual' ? 'Header: Manual'
+    : hdr.mode === 'off' ? 'Header: Off' : 'Header: Auto'
+  // The fold menus (useToolbarFit's steps 2 and 4): More holds the page tools, Text the text style buttons.
+  const moreRef = useRef(null)
+  const textBtnRef = useRef(null)
+  const [moreOpen, setMoreOpen] = useState(false)
+  const [textOpen, setTextOpen] = useState(false)
+  // The tool menus that CASCADE from the More panel (app.js, cascadeFrom: Side Boxes', Header's) are part of it: a press
+  // in one does not close the panel; the click that chooses in one closes it, a task later, once the engine has acted.
+  const SUBMENUS = '.sb-menu, .hdr-mode-pop'
+  useFoldMenu(moreOpen, setMoreOpen, (t) => (moreRef.current && moreRef.current.contains(t))
+    || !!(t.closest && t.closest(SUBMENUS)))
+  const hoverTimer = useRef(0)
+  useLayoutEffect(() => {
+    if (!moreOpen) {
+      // However the panel closed (Escape, a press outside, a choice, the button), its cascaded menus go with it.
+      clearTimeout(hoverTimer.current)
+      document.dispatchEvent(new Event('sptcal:close-tool-menus'))
+      return
+    }
+    // Which side each row's menu will open, so its arrow points that way before the first paint (app.js, cascadeSide).
+    document.dispatchEvent(new Event('sptcal:measure-tool-menus'))
+    const onChoose = (e) => {
+      const t = e.target
+      if (t.closest && t.closest(SUBMENUS) && t.closest('button:not([disabled])')) setTimeout(() => setMoreOpen(false), 0)
+    }
+    // Capture: Side Boxes' items stop their click from bubbling (app.js, openSideMenu), so a listener on the way up never
+    // hears the choice.
+    document.addEventListener('click', onChoose, true)
+    return () => document.removeEventListener('click', onChoose, true)
+  }, [moreOpen])
+  // HOVER, as a menu does (owner, 16 Nov 2026, with a macOS menu): resting on Side Boxes or Header opens its menu beside
+  // the panel; resting on another row closes it. A short delay, so a pointer crossing a row on its way does nothing.
+  // The open is the row's own click, so the engine's delegated handler does it exactly as a click would.
+  const onPanelOver = (e) => {
+    if (!moreOpen) return
+    const row = e.target.closest && e.target.closest('#tb-side-boxes-btn, #tb-hdr-mode-btn, #tb-fill-space-btn, .month-step')
+    if (!row) return
+    clearTimeout(hoverTimer.current)
+    hoverTimer.current = setTimeout(() => {
+      const sub = row.matches('#tb-side-boxes-btn, #tb-hdr-mode-btn')
+      if (sub && row.getAttribute('aria-expanded') === 'true') return
+      document.dispatchEvent(new Event('sptcal:close-tool-menus'))
+      if (sub) row.click()
+    }, 140)
+  }
+  useFoldMenu(textOpen, setTextOpen, (t) => (textBtnRef.current && textBtnRef.current.contains(t))
+    || !!(t.closest && t.closest('.style-bar-host')))
+  // The Text menu IS the style bar's host, shown under its button: the host stays where React put it (the engine fills
+  // it once and finds it by its class, and legs reach it as `.view-toggle-row > .style-bar-host`), so it is placed
+  // with position:fixed from the button's box (CSS, under .tbf4). Fixed, so the preview panel's scroll box cannot clip
+  // it. A class and two inline lengths on the host, which React never writes (its className never changes).
+  useLayoutEffect(() => {
+    const host = document.querySelector('.view-toggle-row > .style-bar-host')
+    const btn = textBtnRef.current
+    if (!host) return
+    host.classList.toggle('is-dropped', textOpen)
+    if (!textOpen || !btn) { host.style.removeProperty('top'); host.style.removeProperty('left'); return }
+    const r = btn.getBoundingClientRect()
+    host.style.top = Math.round(r.bottom + 6) + 'px'
+    host.style.left = Math.round(r.left) + 'px'
+    const hr = host.getBoundingClientRect()
+    if (hr.right > window.innerWidth - 8) host.style.left = Math.max(8, Math.round(window.innerWidth - 8 - hr.width)) + 'px'
+  }, [textOpen])
 
   useLayoutEffect(() => {
     installChrome({
@@ -259,7 +386,7 @@ export function PreviewToolbar() {
             </InfoHint>
             {/* THE PANEL'S OWN CONTROLS (owner, 11 Nov 2026: the panel covered the dates being read). The title row is
                 the grip: drag it and the panel floats where it is dropped (engine: placePop / the head's pointerdown).
-                It opens under its button every time, and a drag lasts until it closes (no Put back); the cross closes it, since a click on the grid no longer does.
+                It opens under its button every time, and a drag lasts until it closes (no Put back). A click outside closes it unless it has been dragged (owner, 16 Nov 2026); the cross closes either.
                 ⛔ No id and no `title` (nothing may float over the list's rows), inside .tools-menu besides. */}
             <span className="tools-head-btns">
               <button type="button" className="tools-close" data-tools-close="" aria-label="Close">✕</button>
@@ -330,8 +457,10 @@ export function PreviewToolbar() {
             owner's picker). ⛔ The ids keep the old names (pop-solve-*, tool-solve-*), as Load kept
             data-action="open": the engine and the legs reach these controls by id, and only what a user reads
             changed. Twelve characters, as "Rebuild From" was, so the toolbar wraps no sooner. */}
-        <Button className="tools-btn" id="pop-solve-btn" type="button" size="xs" variant="default"
-                title="Pin one phase to a date and build the others around it" aria-haspopup="true" aria-expanded="false"
+        {/* The hammer is drawn only at fold step 3 (useToolbarFit), when the label gives way to it; its title is the hint. */}
+        <Button className="tools-btn has-fold-ic" id="pop-solve-btn" type="button" size="xs" variant="default"
+                title="Build Around: pin one phase to a date and build the others around it" aria-haspopup="true" aria-expanded="false"
+                leftSection={<IconHammer className="tb-fold-ic" />}
                 rightSection={<span className="caret" aria-hidden="true">▾</span>}>Build Around</Button>
         {/* 400px, the widest panel: each row holds a tick, a colour, the name, a LENGTH box, a date and "Pushed
             3 wks", and only the name gives way.
@@ -353,7 +482,7 @@ export function PreviewToolbar() {
             </InfoHint>
             {/* THE PANEL'S OWN CONTROLS (owner, 11 Nov 2026: the panel covered the dates being read). The title row is
                 the grip: drag it and the panel floats where it is dropped (engine: placePop / the head's pointerdown).
-                It opens under its button every time, and a drag lasts until it closes (no Put back); the cross closes it, since a click on the grid no longer does.
+                It opens under its button every time, and a drag lasts until it closes (no Put back). A click outside closes it unless it has been dragged (owner, 16 Nov 2026); the cross closes either.
                 ⛔ No id and no `title` (nothing may float over the list's rows), inside .tools-menu besides. */}
             <span className="tools-head-btns">
               <button type="button" className="tools-close" data-tools-close="" aria-label="Close">✕</button>
@@ -408,7 +537,17 @@ export function PreviewToolbar() {
           second line of this row, a boxed bar with a "Text" label and a hint. The well is drawn on the engine's
           .style-bar (width:max-content), never on this host, which grows when the bar has its own line. Where the
           sections no longer fit on one line, the bar alone drops to its own line under them, its old place
-          (useStyleBarFit below), so a narrow window keeps every other tool where it is. */}
+          (useToolbarFit above). Since 16 Nov 2026 it never leaves the line: at fold step 4 it opens under the Text button. */}
+      {/* Fold step 4 (useToolbarFit): the text style buttons fold behind this button and open under it. Hidden below
+          that step. preventDefault on the press keeps the focus and the text picked where they are, so the buttons
+          act on them once the menu is open. No id (collectFieldValues), and a <button>, never an input. */}
+      <button type="button" className="tb-text-btn" ref={textBtnRef}
+              title="Text style: size, bold, italic, colour, alignment"
+              aria-haspopup="true" aria-expanded={textOpen ? 'true' : 'false'}
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={() => setTextOpen((o) => !o)}>
+        <span className="tb-text-aa" aria-hidden="true">Aa</span><span className="caret" aria-hidden="true">▾</span>
+      </button>
       <div className="style-bar-host"></div>
 
       <div className="preview-tools">
@@ -417,7 +556,22 @@ export function PreviewToolbar() {
             Side Boxes, in the month view the month stepper (it left its own line under the phase map, and its Today button
             went: "get rid of the today button entirely and just make the stepper larger"). Both sit in the same grid cell,
             the view not shown kept by visibility, so the cell is one width in both views and Header, Undo and Redo never
-            move when you switch ("the menu should be locked where it is"). */}
+            move when you switch ("the menu should be locked where it is").
+            ⚠️ That holds only because the stepper adds NO width to the cell (audit 2.14, AUD2-034: legacy.css gives it
+            `container-type:inline-size`, and it shortens to "Sep 2027" where the full name does not fit). At 1300 px and
+            below Fill Gaps is its bare switch, the pair is about 142 px, and the stepper had made the cell wider in the
+            month view only: at 1280 px the first line wrapped there and not in the waterfall. */}
+        {/* THE MORE MENU (fold step 2, useToolbarFit). Below that step this wrapper is display:contents and its button
+            hidden, so the page tools sit in the line exactly as before; from it, they are SHOWN in a panel under the
+            button instead (the same nodes, ids and engine bindings: see useFoldMenu). */}
+        {/* Side Boxes' and Header's own menus cascade beside the open panel (app.js, cascadeFrom), on a click or on
+            hover (onPanelOver), and the panel stays open behind them, as a menu's parent does. */}
+        <div className={'tb-more' + (moreOpen ? ' is-open' : '')} ref={moreRef} onMouseOver={onPanelOver}>
+        <button type="button" className="tb-more-btn" title="More tools"
+                aria-label="More tools" aria-haspopup="true" aria-expanded={moreOpen ? 'true' : 'false'}
+                onClick={() => setMoreOpen((o) => !o)}>
+          <IconDots className="btn-ic" />
+        </button>
         <div className="tb-page">
         <div className="tb-slots">
         <div className="tb-pair">
@@ -473,19 +627,20 @@ export function PreviewToolbar() {
             sweep it into a saved file. */}
         {/* ⚠️ A FIXED WIDTH, that of its longest label (useFixedHeaderWidth), so switching Auto / Template / Manual / Off
             never resizes it and the toolbar stays put as you click around (owner, 11 Nov 2026). */}
-        <Button id="tb-hdr-mode-btn" ref={hdrRef} className={'tools-btn tb-solo' + (hdr.mode === 'auto' ? '' : ' is-manual')}
+        <Button id="tb-hdr-mode-btn" ref={hdrRef} className={'tools-btn tb-solo has-fold-ic' + (hdr.mode === 'auto' ? '' : ' is-manual')}
                 style={hdrW ? { width: hdrW } : undefined}
                 type="button" size="xs" variant="default"
-                title={hdr.view === 'month'
-                  ? 'Choose how the Month view’s header is written: Auto, Template or Manual, or turn it Off'
-                  : 'Choose how the header is written: Auto, Template or Manual, or turn it Off'}
+                title={hdrLabel + (hdr.view === 'month'
+                  ? '. Choose how the Month view’s header is written: Auto, Template or Manual, or turn it Off'
+                  : '. Choose how the header is written: Auto, Template or Manual, or turn it Off')}
                 aria-haspopup="true" aria-expanded="false"
+                leftSection={<IconHeading className="tb-fold-ic" />}
                 rightSection={<span className="caret" aria-hidden="true">▾</span>}>
           {/* 'off' is Header: Off: the waterfall's (owner ruling 10, 20 Oct 2026) and, since 23 Oct 2026, the month's. */}
-          {hdr.mode === 'template' ? 'Header: Template' : hdr.mode === 'manual' ? 'Header: Manual'
-            : hdr.mode === 'off' ? 'Header: Off' : 'Header: Auto'}
+          {hdrLabel}
         </Button>
 
+        </div>
         </div>
 
         {/* Paste notes… lived here (MONTH-NOTES-PLAN.md §5) until the owner moved it into the Settings
@@ -502,13 +657,15 @@ export function PreviewToolbar() {
 
         {/* UNDO / REDO, LAST (owner, 10 Nov 2026, the reorder above). Back at the end of .preview-tools, where it was before
             variation 27 briefly put it first. A grey well like the text buttons' and the page tools'. The ids, the
-            Tooltips and the bridged disabled state are unchanged. */}
+            Tooltips and the bridged disabled state are unchanged. The hints name the keys for the computer they are on
+            (audit 2026-11, WIN-3; src/chrome/keys.js): Undo (Ctrl+Z) on Windows and Linux, Undo (⌘Z) on a Mac, and
+            Redo in Apple's order there (⇧⌘Z, as Help writes it; it read ⌘⇧Z until then). */}
         <Group className="undo-redo-group" gap="xxs" wrap="nowrap">
-          <Tooltip label="Undo (⌘Z)" position="bottom" withArrow>
+          <Tooltip label={'Undo (' + keyLabel('Mod+Z') + ')'} position="bottom" withArrow>
             <ActionIcon id="undo-btn" className="icon-btn" variant="subtle" color="gray" size="md"
                         disabled={undoRedo.undo} aria-label="Undo"><IconUndo className="btn-ic" /></ActionIcon>
           </Tooltip>
-          <Tooltip label="Redo (⌘⇧Z)" position="bottom" withArrow>
+          <Tooltip label={'Redo (' + keyLabel('Mod+Shift+Z') + ')'} position="bottom" withArrow>
             <ActionIcon id="redo-btn" className="icon-btn" variant="subtle" color="gray" size="md"
                         disabled={undoRedo.redo} aria-label="Redo"><IconRedo className="btn-ic" /></ActionIcon>
           </Tooltip>

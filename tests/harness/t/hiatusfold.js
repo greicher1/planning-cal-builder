@@ -6,8 +6,11 @@
 // Folded, only the red head shows (the name, still editable, its dates and ×). Session UI, never in the saved file,
 // never an undo step, and the calendar draws exactly as it did. A hiatus row has NO KEY, so the fold lives on the
 // row and applyStateSnapshot() carries it across a rebuild: position for position while the row count holds, by
-// the row's own values when an undo or redo added or removed a row. A Load or New is a different calendar and
-// unfolds everything.
+// the row's own values when an undo or redo added or removed a row. A Load or New is a different calendar.
+// ⚠️ RE-EXPECTED 13 Nov 2026 (audit 2.14, AUD2-036, approved): a calendar now OPENS with every all-phase hiatus card
+// folded to its head (New, the boot, a Load, a recovery), and one the user adds opens unfolded. So the leg first opens
+// New's four with their carets (hit-tested), which is the state every case after H1 was written from, and H1, H9 and
+// H10 say the new rule: New's four start folded, a Load folds every card, New starts with every card folded.
 //
 // THE CALENDAR (synthetic: made-up dates, no region, so no holidays), with New's four default hiatuses:
 //   prePrep    Pre Prep    Mon 11/2/26 x 10 weeks   (crosses the 12/21/26 hiatus)
@@ -113,17 +116,19 @@ window.addEventListener('load', function () { (async function () {
     T.set('start-production', '2027-01-11');
     await phasesTab();                                 // sidebarTab is saved state
     await settle();
+    var newFolds = folds();                            // New's four, as the calendar opened (folded since AUD2-036)
+    for (var u = 0; u < 4; u++) await clickCaret(u);   // ...opened, the state the cases below were written from
     var saveA = await save();                          // the calendar with every card open
     var gridA = grid();
 
     await step('H1', async function () {
       var rs = rows(), carets = rs.map(caretOf);
-      kase('H1', 'every all-phase hiatus card (New\'s four) has ONE caret, first in its head: a type=button with no id, open (aria-expanded=true), every card unfolded',
-           rs.length === 4 && carets.every(function (b, i) {
+      kase('H1', 'every all-phase hiatus card (New\'s four) starts FOLDED (AUD2-036) and has ONE caret, first in its head: a type=button with no id; its click opens the card (aria-expanded=true)',
+           JSON.stringify(newFolds) === '[true,true,true,true]' && rs.length === 4 && carets.every(function (b, i) {
              return b && b === rs[i].querySelector('.hiatus-head').firstElementChild && b.tagName === 'BUTTON' && b.type === 'button' &&
                     !b.id && b.getAttribute('aria-expanded') === 'true';
            }) && rs.every(function (r) { return r.querySelectorAll('.hiatus-collapse-btn').length === 1 && !folded(r); }),
-           { rows: rs.length, carets: carets.filter(Boolean).length });
+           { newFolds: newFolds, rows: rs.length, carets: carets.filter(Boolean).length });
     });
 
     await step('H2', async function () {
@@ -239,21 +244,21 @@ window.addEventListener('load', function () { (async function () {
     await step('H9', async function () {
       var before = folds();                              // H8 leaves the folds as H7 did
       await load(saveA);
-      kase('H9', 'a Load is a different calendar: every hiatus card opens unfolded, every caret aria-expanded=true',
-           JSON.stringify(before) === '[true,false,true,false]' && rows().length === 4 && folds().every(function (f) { return !f; }) &&
-           document.querySelectorAll('.hiatus-collapse-btn[aria-expanded="false"]').length === 0,
+      kase('H9', 'a Load is a different calendar: every hiatus card opens FOLDED (AUD2-036), every caret aria-expanded=false',
+           JSON.stringify(before) === '[true,false,true,false]' && rows().length === 4 && folds().every(function (f) { return f; }) &&
+           document.querySelectorAll('.hiatus-collapse-btn[aria-expanded="true"]').length === 0,
            { before: before, after: folds() });
     });
 
     await step('H10', async function () {
-      await clickCaret(1); await clickCaret(3);
+      await clickCaret(0); await clickCaret(2);
       var before = folds();
       $('new-file-btn').click();
       for (var i = 0; i < 30; i++) { await T.sleep(100); if (/Start a new blank calendar/.test(T.modalText())) { T.clickModalButton('Start new'); break; } }
       await settle();
-      kase('H10', 'New starts with every hiatus card unfolded', JSON.stringify(before) === '[false,true,false,true]' &&
-           rows().length === 4 && folds().every(function (f) { return !f; }) &&
-           document.querySelectorAll('.hiatus-collapse-btn[aria-expanded="false"]').length === 0, { before: before, after: folds() });
+      kase('H10', 'New starts with every hiatus card FOLDED (AUD2-036)', JSON.stringify(before) === '[false,true,false,true]' &&
+           rows().length === 4 && folds().every(function (f) { return f; }) &&
+           document.querySelectorAll('.hiatus-collapse-btn[aria-expanded="true"]').length === 0, { before: before, after: folds() });
     });
 
     var errs = (T.appHealth().errors || []);

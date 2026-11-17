@@ -31,12 +31,12 @@ Two year blocks, 52 rows.
 | Measurement | Baseline | File |
 |---|---|---|
 | **Horizontally clipped cells** | **0** | `base.json` → `hClipCount` |
-| Vertically clipped cells | 3 | `base.json` → `vClipCount` |
+| Vertically clipped cells | 3 → **2 since the 16 Nov 2026 re-cut** (Thanksgiving's row, see below) | `base.json` → `vClipCount` |
 | Grid width, unscaled | 797 pt | `base.json` → `gridWidthPt` |
 | Column widths | `2026: 53 / 88 / 88 / 179` · `2027: 53 / 86 / 86 / 164` | `base.json` → `cols` |
 | Rows | 52 | |
-| Excel | 10,169 B → **10,542 B since the 29 Sep 2026 re-cut** (the Date column's cached values, see below) · XML valid · header 238/255 · 75 merges, 0 overlapping · portrait | `base.xlsx` |
-| Waterfall PDF | 76,568 B → 76,567 B at the 5 Oct 2026 re-cut (the header's clearance) → **77,025 B since the 4 Nov 2026 re-cut** (the seam strips, see below) · 612×792 · 204 text ops · 279 → **356** rects · grid drawn 573.84 × 572.4 pt | `base.pdf` |
+| Excel | 10,169 B → 10,542 B at the 29 Sep 2026 re-cut (the Date column's cached values, see below) → **10,547 B since the 16 Nov 2026 re-cut** (Thanksgiving's row) · XML valid · header 238/255 · 75 merges, 0 overlapping · portrait | `base.xlsx` |
+| Waterfall PDF | 76,568 B → 76,567 B at the 5 Oct 2026 re-cut (the header's clearance) → 77,025 B at the 4 Nov 2026 re-cut (the seam strips, see below) → **77,039 B since the 16 Nov 2026 re-cut** (Thanksgiving's row) · 612×792 · 204 text ops · 279 → **356** rects · grid drawn 573.84 × 572.4 → **574.02** pt | `base.pdf` |
 | `v1.0.0-saved.html` restore | 52 rows / 154 cells / **55 fields** · 0 clipped · grid 324 pt | `restore.json` |
 
 `base.pdf.json` is `pdf-info.js` run over `base.pdf`; `base.pdf.txt` is every string the PDF draws,
@@ -401,6 +401,39 @@ stamp, `8.29.26`. Before writing, three things were proven:
    build's output, fails it (`pdfcmp.py` exit 1, first diff at the first strip).
 
 Unchanged by this: `base.xlsx`, `base.json`, `restore.json`.
+
+## ✅ `base.pdf`, `base.xlsx` and `base.json` RE-CUT — Thanksgiving's row is 23 px (16 Nov 2026)
+
+**A deliberate change to the waterfall's row heights, and the owner approved this re-cut** (picker, 16 Nov 2026: *"Fix
+it, update refs"*). Audit item 3.1's frozen edit R4 (AUD2-044, the owner's D4 = a, 14 Nov 2026) gives a row nobody sized
+by hand, whose Notes cell holds only two or more holiday lines, the 23 px those lines need at the shrink floor instead of
+20. R4 remembered its answer against the schedule object, and a holiday's Waterfall box re-renders that SAME schedule, so
+this calendar's holidays, ticked on one at a time by the `base` leg, left Thanksgiving's row at 20 px: the old baseline
+was the stale answer, and every output depended on edit order. The memo now lasts one synchronous pass (and `markDirty()`
+drops it), so the row is 23 px however the holidays were shown.
+
+| what | before → after | why |
+|---|---|---|
+| the grid's row heights (declared, `tr` style) | 52 × 20 px → **row 46 = 23 px**, the other 51 still 20 | row 46 holds Thanksgiving 11/26/26 + Day After 11/27/26 in the 2026 block (and 11/22/27 in the 2027 block, the same sheet row) |
+| `base.json` | `vClipCount` 3 → **2**, `vClip` loses ONE entry ("Thanksgiving 11/26/26 / Day After Thanksgi…", 3 px hidden). `sig`, `headers`, `cols`, `noteCells`, `hClip` (0), `gridWidthPt`, `rows` identical | both holiday lines now show whole. Only those two keys were rewritten; the rest of the file is the old one byte for byte |
+| `base.xlsx` → `xl/worksheets/sheet1.xml` | ONE attribute: `<row r="48" ht="15" …>` → `ht="17.25"` (23 px × 0.75). Every cell, merge and other row identical; every other part identical | the same row in the workbook |
+| `base.pdf`, stream 0 (the page) | 759 lines either way; 61 lines differ, each a pure vertical move: 7 clip boxes and fills of row 46 grow down by 1.62 pt with their top fixed (2.25 pt × the page's 0.72 fit); 3 texts in it, centred, move 0.81; 47 boxes, fills, texts and rules below it move down 1.62; 3 vertical rules end 1.62 lower; 1 seam strip on its bottom edge moves with it. Nothing above it moves; the fit scale, the fonts (streams 1 and 2) and every string are identical | the row is 1.62 pt taller on the page; `base.pdf.txt` (every string drawn, in order) is unchanged |
+| `base.pdf.json` | bytes 77,025 → **77,039**, `contentLen` 32,641 → 32,700, `gridBottom` 165.6 → 163.98, `gridDrawnH` 572.4 → 574.02 | `pdf-info.js` on the new file |
+
+**How it was cut.** As on 5 Oct and 4 Nov: the `base` leg (with `?layout=legacy`, as gate 1 runs it) on the fixed build,
+in a throwaway copy with a clock in front that starts at local noon on 29 Aug 2026 and keeps running, so the PDF and the
+workbook carry the baseline's own stamp, `8.29.26`. `base.pdf` is that run's writer bytes (`pdfmark.py`, mark checked and
+stripped). `base.xlsx` is the OLD zip entry for entry (names, order, MS-DOS origin, attributes, dates kept) with only
+`sheet1.xml` replaced. Before writing, these were proven:
+1. the pinned run equals today's run of the same build bar the stamp (`pdfcmp.py`), and its `vClip` equals today's;
+2. against the old baseline, every changed PDF line is one of the moves above, by position (a script classified each
+   changed number by where it sat against the row's box, 219.6 to 230.4 pt; none unexplained), and the new `sheet1.xml`
+   with row 48 put back to `ht="15"` is the old one byte for byte, every other part of the fresh export identical;
+3. the fixed build passes gates 1 to 3 against the new files, and the OLD baseline (the old build's output) fails the new
+   one (`pdfcmp.py` exit 1, first diff `q 19.08 219.6 38.16 10.8 re W n` → `q 19.08 217.98 38.16 12.42 re W n`).
+
+Unchanged by this: `base.pdf.txt`, `restore.json`. Gate 10 (`reference`, `month-lanecap`, `mvnotes`) and gate 13 (every
+calendar) were run by hand on the fixed build and are byte-identical: the month view never reads `sheetRowPx`.
 
 ## Reproducing it
 

@@ -154,8 +154,10 @@ window.addEventListener('load', function () { (async function () {
       await toMonth('November 2026');
       var pop = await openMv('2026-11-27', /^Day After Thanksgiving/);
       var ta = q('textarea', pop), sel = q('.color-swatch.selected', pop);
-      kase('R1', 'Day After Thanksgiving opens the holiday editor: "11/27/26 · Holiday", its name alone, the original named in the placeholder, the week\'s purple selected',
-           txt(q('.mv-note-pop-day', pop)) === '11/27/26 · Holiday' && ta.value === 'Day After Thanksgiving'
+      // ⚠️ RE-EXPECTED for the editors' look A2 (owner, 4 Nov 2026; notelook): the heading is the name, then the day. It
+      // read "11/27/26 · Holiday".
+      kase('R1', 'Day After Thanksgiving opens the holiday editor: "Holiday Fri 11/27/26", its name alone, the original named in the placeholder, the week\'s purple selected',
+           txt(q('.mv-note-pop-day', pop)) === 'Holiday Fri 11/27/26' && ta.value === 'Day After Thanksgiving'
              && /Day After Thanksgiving/.test(ta.placeholder) && !!sel && sel.title === 'Purple',
            { heading: txt(q('.mv-note-pop-day', pop)), text: ta.value, placeholder: ta.placeholder, selected: sel && sel.title });
       await commitMv(pop, 'Thanksgiving Fri');

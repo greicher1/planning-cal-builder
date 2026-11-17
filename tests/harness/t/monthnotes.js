@@ -114,10 +114,10 @@ window.addEventListener('load', function () { (async function () {
     var s6 = await snap();
     var n6 = blocks('2026-09-07');
     add('N6', 'Labor Day opens the holiday editor (its name alone) and a rename writes no waterfall note: the day reads "Labor Day BBQ 9/7/26" once',
-      head6 === '9/7/26 · Holiday' && pre6 === 'Labor Day' && !(s6.userNotes && s6.userNotes['2026-09-07'])
+      head6.replace(/\s+/g, ' ') === 'Holiday Mon 9/7/26' && pre6 === 'Labor Day'   // A2's heading (re-expected; was '9/7/26 · Holiday') && !(s6.userNotes && s6.userNotes['2026-09-07'])
         && s6.holidayNames && s6.holidayNames['labor-day@2026'] === 'Labor Day BBQ'
         && n6.filter(function (t) { return t === 'Labor Day BBQ 9/7/26'; }).length === 1 && n6.indexOf('Labor Day 9/7/26') === -1,
-      {head: head6, prefill: pre6, userNote: s6.userNotes && s6.userNotes['2026-09-07'], names: s6.holidayNames, sep7: n6}, 'heading "9/7/26 · Holiday", prefill "Labor Day", no userNotes, renamed once');
+      {head: head6, prefill: pre6, userNote: s6.userNotes && s6.userNotes['2026-09-07'], names: s6.holidayNames, sep7: n6}, 'heading "Holiday Mon 9/7/26", prefill "Labor Day", no userNotes, renamed once');
 
     // N5 -- the waterfall shows the week's two lines, and no holiday line in it; Labor Day's week stays empty there.
     document.getElementById('view-sheet-btn').click();

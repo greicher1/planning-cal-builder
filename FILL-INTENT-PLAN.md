@@ -111,6 +111,13 @@ column that holds two phases in a year (column reuse): which phase owns its widt
 whole phase" wish for text styles; third, turning the part-column swap into a pair wish, which would also reverse
 ruling E5. None of these is built; each is the owner's call.
 
+⚠️ **One narrow piece built, 14 Nov 2026 (audit AUD2-077, the Nov 2026 audit's item 3.8, the finding's default):** when
+the APP itself rearranges a year's columns — Reset Columns (§6) and the strip's Update layout — typed headings, their
+splits and their styles move to the position now holding the phase that was under them (the phase with the most weeks
+in that column), and a heading whose phase now shares a column under another phase's heading is removed and named in a
+one-line strip (`#heading-notice`; Undo brings it back). A date edit or a hidden phase still leaves them on their
+positions, as the table says: that is still the wish form above, unbuilt. Leg `headingsfollow`.
+
 ## 8. A swap holds when one of its phases moves (owner, 6 Nov 2026: *"so if you swap a collumn then move one of those collumn up, it should maintain the position its in."*)
 
 **Measured on the fill-intent build** (Pre-Prep 3/17 ×6 and Prod Prep 4/7 ×14 sharing three weeks, swapped so Prod Prep

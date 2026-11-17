@@ -163,12 +163,21 @@ export function MonthStepper() {
   // ⚠️ NO TODAY BUTTON since 11 Nov 2026 (owner: "get rid of the today button entirely and just make the stepper
   // larger"). The stepper sits in the toolbar now, in the slot Fill Gaps and Side Boxes hold in the waterfall
   // (PreviewToolbar.jsx, .tb-slots), and stretches to that slot. The phase map's month boxes still jump to any month.
+  // ⭐ IT NEVER WIDENS THE SLOT (audit 2.14, AUD2-034). On a laptop Fill Gaps runs as its bare switch, the slot is about
+  // 142 px, and "September 2027" needs about 180: the stepper made the slot wider in the month view only, so the first
+  // line wrapped there and not in the waterfall, and Shift, Header and Undo all moved when Month was clicked (and as
+  // the month's name changed length). The CSS gives the stepper no width of its own (`container-type`), so the slot is
+  // the waterfall's in both views, and where "September 2027" does not fit it reads "Sep 2027" (.ms-short, a
+  // container query). The full name stays in .ms-label, visually hidden there, so the live region and every reader of
+  // the label still get it.
+  const on = months[onIdx].key
   return (
     <nav className="month-step" aria-label="Step through the months">
       <span className="ms-group">
         <button type="button" className="ms-arrow" data-mvstep="-1" disabled={!prev} aria-label="Previous month"
           title={prev ? 'Previous month (' + monthName(prev.key) + ')' : 'This is the first month'}>‹</button>
-        <span className="ms-label" aria-live="polite">{monthName(months[onIdx].key)}</span>
+        <span className="ms-label" aria-live="polite">{monthName(on)}</span>
+        <span className="ms-short" aria-hidden="true">{monthName(on).slice(0, 3) + ' ' + on.slice(0, 4)}</span>
         <button type="button" className="ms-arrow" data-mvstep="1" disabled={!next} aria-label="Next month"
           title={next ? 'Next month (' + monthName(next.key) + ')' : 'This is the last month'}>›</button>
       </span>

@@ -94,6 +94,16 @@ try {
     await send('Input.dispatchKeyEvent', { type: 'keyDown', key: k, code, windowsVirtualKeyCode: vk, modifiers });
     await send('Input.dispatchKeyEvent', { type: 'keyUp', key: k, code, windowsVirtualKeyCode: vk, modifiers });
   };
+  // ⭐ Since audit item 2.11 (AUD2-026, 13 Nov 2026) the month view's Export PDF first asks which months to print
+  // (MonthPdfDialog.jsx: All / This month / Range) whenever the calendar has two or more. The release gate went red here
+  // waiting for a PDF the open dialog held back. Answer it at its default, All, as cspproof.mjs and t/lib.js do, so the
+  // file is the all-months one this leg has always read. (A calendar with one month to print writes with no dialog.)
+  const exportMonthPdf = async () => {
+    await key('e', 'KeyE', 69, 4 | 8);
+    await until(`!!document.querySelector('.month-pdf-dlg [data-pdfdlg="export"]') || (window.__files || []).some(f => /\\.pdf$/i.test(f.name))`,
+      'the month Export PDF dialog', 10000).catch(() => {});
+    await ev(`(() => { const b = document.querySelector('.month-pdf-dlg [data-pdfdlg="export"]'); if (b) b.click(); return 1; })()`);
+  };
   const undo = () => key('z', 'KeyZ', 90, 4);
   const redo = () => key('z', 'KeyZ', 90, 4 | 8);
   await send('Page.enable');
@@ -219,7 +229,7 @@ try {
   // sits ABOVE it (PDF y grows upward); before the drag it sat below.
   const pdfStack = async () => {
     await ev(`window.__files = (window.__files || []).filter(f => !/\\.pdf$/i.test(f.name)), true`);
-    await key('e', 'KeyE', 69, 4 | 8);
+    await exportMonthPdf();
     await until(`window.__files.some(f => /\\.pdf$/i.test(f.name))`, 'the month PDF', 30000);
     const b = Buffer.from(await ev(`window.__files.find(f => /\\.pdf$/i.test(f.name)).b64`), 'base64');
     const str = b.toString('latin1'), re = /stream\r?\n/g, res = [];

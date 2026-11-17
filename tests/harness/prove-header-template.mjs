@@ -65,9 +65,20 @@ const tplBody = slice(
   'return { out, i, closed: false };',
   '\n  }',
   'the header-template block');
-const { resolveHeaderTemplate, lookupHeaderToken, fmtHeaderDate, hdrDate } =
+// ⭐ The calendar's date ORDER (audit item 2.4, D3 (a), 13 Nov 2026): fmtHeaderDate's numeric forms call
+// orderedDate, which asks datesDayFirst, which reads the engine's `dateFormat`. All three are sliced verbatim (the
+// gate's 15 Nov run went red here with "orderedDate is not defined" when only the template block was), and
+// `dateFormat` is a variable of this evaluation, so the day-first group below can set it. Unset, it is month first,
+// which is every expectation above that group, unchanged.
+const orderBody = slice(
+  'function datesDayFirst(){',
+  "return (y === undefined || y === null ? md : md.concat([y])).join(sep || '/');",
+  '\n  }',
+  'datesDayFirst and orderedDate');
+const { resolveHeaderTemplate, lookupHeaderToken, fmtHeaderDate, hdrDate, setDateFormat } =
   new Function('parseDateUTC',
-    `${tplBody}; return { resolveHeaderTemplate, lookupHeaderToken, fmtHeaderDate, hdrDate };`)(parseDateUTC);
+    `let dateFormat; ${orderBody}; ${tplBody};
+     return { resolveHeaderTemplate, lookupHeaderToken, fmtHeaderDate, hdrDate, setDateFormat: f => { dateFormat = f; } };`)(parseDateUTC);
 
 // ---- A fixed ctx, so every expectation below is a constant ---------------------------------------
 // UTC dates deliberately: the resolver's local/UTC flag is tested separately, and pinning these to
@@ -202,6 +213,16 @@ eq('{writersRoom.open:long}', 'January 5, 2026', ':long on a phase date');
 eq('{production.wrap:slash}', '10/20/26', ':slash on the wrap date');
 eq('{today:nonsense}', '9.2.26', 'an unrecognised format falls back to dot rather than failing');
 eq('{title:long}', 'Test Show', 'a format argument on a non-date token is ignored');
+
+group('date formats on a day-first calendar (audit item 2.4: only the ORDER follows)');
+setDateFormat('d/m/yy');
+eq('{today}', '2.9.26', 'dot, day first');
+eq('{today:slash}', '2/9/26', ':slash, day first, as the grid\'s fmtShort');
+eq('{today:long}', 'September 2, 2026', ':long names the month and is unchanged');
+eq('{today:iso}', '2026-09-02', ':iso is unchanged');
+setDateFormat('m/d/yyyy');
+eq('{today:slash}', '9/2/26', 'MM/DD/YYYY is month first, as with no setting');
+setDateFormat(undefined);
 
 group('{date:...} -- the token that takes its value as an argument');
 eq('{date:2026-10-05}', '10.5.26', '{date:YYYY-MM-DD}');

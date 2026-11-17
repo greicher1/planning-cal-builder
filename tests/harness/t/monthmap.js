@@ -29,14 +29,14 @@
 //   B6  this month's dot, and no id or form field anywhere in it
 //   PART C, §18: the month stepper (MonthStepper in MonthMap.jsx)
 //   C0  it sits in the toolbar's slot (.tb-slots), exactly where Fill Gaps and Side Boxes sit in the waterfall, level with
-//       Shift; its old line (.style-row) is empty. The text style bar is on the first line after Build Around, or (its own
-//       line, a narrow window) directly under the first line, above the phase map
+//       Shift; its old line (.style-row) is empty. The text style bar is on the first line after Build Around, or (fold
+//       step 4, a narrow window; useToolbarFit) behind the Text button. It had a line of its own until 16 Nov 2026
 //   C1  its label is always the month band's month: stepping › through every month, and after every map click
 //   C2  its ‹ and › are real clicks one month each way, disabled at the two ends
 //   C3  there is no Today button (owner, 11 Nov 2026); the phase map's month still goes straight to this month
 //   C4  no id or form field anywhere in it
 //   B7  in the waterfall the map and the stepper are gone, the stepper's line takes no room, and the style bar is after
-//       Build Around on the first line, or (.style-own-line) a whole line of its own under the tools
+//       Build Around on the first line, or (fold step 4) behind the Text button
 //   E0  no console errors over every render above, in both views
 window.__T.memoryIDB();
 window.addEventListener('load', function () { (async function () {
@@ -292,7 +292,8 @@ window.addEventListener('load', function () { (async function () {
     // ---- C0: where it sits ----
     // Since 11 Nov 2026 the stepper is in the toolbar's slot, the one grid cell Fill Gaps and Side Boxes share with it (they
     // keep their place here, hidden by visibility), so it covers exactly their span and nothing on the line moves.
-    var ownLine = document.querySelector('.view-toggle-row > .style-bar-host').classList.contains('style-own-line');
+    // Folded behind the Text button (fold step 4, useToolbarFit; until 16 Nov 2026 it took a line of its own instead).
+    var ownLine = document.querySelector('.preview-panel').classList.contains('tbf4');
     var R0 = function (el) { return el.getBoundingClientRect(); };
     var cy = function (r) { return r.top + r.height / 2; };
     var stR = stp() ? R0(stp()) : null, fR = R0(document.getElementById('tb-fill-space-btn')), sR = R0(document.getElementById('tb-side-boxes-btn'));
@@ -301,7 +302,7 @@ window.addEventListener('load', function () { (async function () {
     add('C0', "the stepper sits in the toolbar's slot, over Fill Gaps' and Side Boxes' span, level with Shift; its old line is empty; the style bar after Build Around (or on its own line under the first)",
         !!stR && lineEmpty && Math.abs(stR.left - fR.left) < 1 && Math.abs(stR.right - sR.right) < 1 && Math.abs(cy(stR) - cy(shR)) < 1 &&
           getComputedStyle(document.getElementById('tb-side-boxes-btn')).visibility === 'hidden' &&
-          (ownLine ? barR.top >= shR.bottom && barR.bottom <= mapR.top
+          (ownLine ? barR.width === 0 && cy(R0(document.querySelector('.tb-text-btn'))) - cy(shR) < 1
                    : Math.abs(cy(barR) - cy(shR)) < 1 && barR.left > R0(document.getElementById('pop-solve-btn')).right),
         {ownLine: ownLine, lineEmpty: lineEmpty, step: stR && [Math.round(stR.left), Math.round(stR.right), Math.round(cy(stR))],
          slot: [Math.round(fR.left), Math.round(sR.right)], shiftMid: Math.round(cy(shR)), bar: [Math.round(barR.left), Math.round(barR.top)]},
@@ -348,14 +349,14 @@ window.addEventListener('load', function () { (async function () {
     await frame();
     // ---- B7: gone in the waterfall ----
     var wfKids = Array.from(document.querySelector('.view-toggle-row').children).map(function (e) { return e.className; });
-    var wfLine = document.querySelector('.style-row'), wfOwn = document.querySelector('.view-toggle-row > .style-bar-host').classList.contains('style-own-line');
+    var wfLine = document.querySelector('.style-row'), wfOwn = document.querySelector('.preview-panel').classList.contains('tbf4');
     var wfBar = document.querySelector('.style-bar').getBoundingClientRect(), wfShift = document.querySelector('.shift-group').getBoundingClientRect();
     var wfTools = document.querySelector('.preview-tools').getBoundingClientRect(), wfRowR = document.querySelector('.view-toggle-row').getBoundingClientRect();
     var vmid = function (r) { return r.top + r.height / 2; };
     add('B7', "in the waterfall the map and the stepper are gone, the stepper's empty line takes no room, and the style bar sits after Build Around (or on its own line under the tools)",
         !document.querySelector('.month-map') && !document.querySelector('.month-step') && wfLine.children.length === 0 &&
           getComputedStyle(wfLine).display === 'none' &&
-          (wfOwn ? wfBar.top >= wfTools.bottom && Math.abs(wfBar.left - wfRowR.left) < 1
+          (wfOwn ? wfBar.width === 0
                  : Math.abs(vmid(wfBar) - vmid(wfShift)) < 1 && wfBar.left > document.getElementById('pop-solve-btn').getBoundingClientRect().right),
         {kids: wfKids, ownLine: wfOwn, lineDisplay: getComputedStyle(wfLine).display, bar: [Math.round(wfBar.left), Math.round(wfBar.top), Math.round(wfBar.right)],
          shift: [Math.round(wfShift.left), Math.round(wfShift.top)]}, 'style-row empty and display:none; the bar level with Shift, or a line of its own under the tools');

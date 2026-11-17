@@ -15,6 +15,7 @@
 //   S2  no marked note overflows its box in any month (one the symbol would push past three lines goes without it)
 //   S3  the print rollback renders no symbol (the month-PDF writer is held byte for byte by gate 13)
 //   S4  narrowed, a holiday the symbol would push past three lines goes without it, and no text is cut off
+//   S5  at the day columns a Windows window gives, January from the waterfall and from February cuts off no note (WIN-1)
 //   A1  Start Principal Photography opens the AUTO NOTE editor: "6/29/26 · Auto Note", its name alone, a placeholder
 //       saying clearing hides it, a Hide Auto-Note button (owner, 4 Nov 2026), the week's purple selected
 //   A2  renamed "First Day of Shoot": the month view, the waterfall cell (beside the holiday) and the file follow, and
@@ -266,13 +267,45 @@ window.addEventListener('load', function () { (async function () {
            r.observed === '-' && r.observedCut === false && r.jul4 === 'holiday' && cut.length === 0, { narrow: r, cut: cut });
     });
 
+    // S5 (audit WIN-1, item W.1): the day columns a Windows window gives. Its frame takes 16 px, so #table-wrap is
+    // 1144 px where the Mac harness has 1160, and in the month view #table-wrap scrolls with a scrollbar that takes
+    // room there: a five-week January is drawn 15/7 px narrower than a four-week February, the month it is paged from.
+    // Narrowed in steps (1156, 1152, 1148, 1144 px, absolute, so every runner draws the same columns), January is
+    // reached from the waterfall and paged back to from February, and no note may lose its end. On the build this case
+    // was written against (v1.15.0 + main), "Writer's Room Opens 1/5/26" is cut at 1152, 1148 and 1144; with the
+    // proposed WIN-1 patch (audit work/overnight/W1-frozen.patch) none is.
+    await step('S5', async function () {
+      var tw = byId('table-wrap'), w0 = tw.style.width, seen = [], cut = [];
+      try {
+        var widths = [1156, 1152, 1148, 1144];
+        for (var i = 0; i < widths.length; i++) {
+          tw.style.width = widths[i] + 'px';
+          await toMonth('January 2026'); await view('sheet'); await view('month');
+          var col = q('#table-wrap .mv-daycell').getBoundingClientRect().width.toFixed(2);
+          var fromSheet = qa('#table-wrap .mv-note-block').filter(textClipped).map(txt);
+          await toMonth('February 2026'); await toMonth('January 2026');
+          var paged = qa('#table-wrap .mv-note-block').filter(textClipped).map(txt);
+          seen.push(widths[i] + ':' + col);
+          fromSheet.forEach(function (t) { cut.push(widths[i] + ' from the waterfall: ' + t); });
+          paged.forEach(function (t) { cut.push(widths[i] + ' paged from February: ' + t); });
+        }
+      } finally {
+        tw.style.width = w0;
+        await view('sheet'); await view('month');
+      }
+      kase('S5', 'at the day columns a Windows window gives (#table-wrap 1156 to 1144 px), January reached from the waterfall and paged back to from February cuts off no note (WIN-1)',
+           cut.length === 0 && seen.length === 4, { columns: seen, cut: cut });
+    });
+
     // ===== A1-A4: rename and colour Start Principal Photography in the month view ==================================
     await step('A1', async function () {
       await toMonth('June 2026');
       var pop = await openMv('2026-06-29', /^Start Principal Photography/);
       var ta = q('textarea', pop), sel = q('.color-swatch.selected', pop), del = q('.note-pop-delete', pop);
-      kase('A1', 'Start Principal Photography opens the Auto Note editor: "6/29/26 · Auto Note", its name alone, a placeholder saying clearing hides it, a Hide Auto-Note button (owner, 4 Nov 2026), the week\'s purple selected',
-           txt(q('.mv-note-pop-day', pop)) === '6/29/26 · Auto Note' && ta.value === 'Start Principal Photography'
+      // ⚠️ RE-EXPECTED for the editors' look A2 (owner, 4 Nov 2026: "yes A2, but its an "Auto-Note""; notelook): the heading
+      // is the name, "Auto-Note", then the day, "Mon 6/29/26". It read "6/29/26 · Auto Note".
+      kase('A1', 'Start Principal Photography opens the Auto-Note editor: "Auto-Note Mon 6/29/26", its name alone, a placeholder saying clearing hides it, a Hide Auto-Note button (owner, 4 Nov 2026), the week\'s purple selected',
+           txt(q('.mv-note-pop-day', pop)) === 'Auto-Note Mon 6/29/26' && ta.value === 'Start Principal Photography'
              && /hide/i.test(ta.placeholder) && !!del && txt(del) === 'Hide Auto-Note' && !!sel && sel.title === 'Purple',
            { heading: txt(q('.mv-note-pop-day', pop)), text: ta.value, placeholder: ta.placeholder, button: del && txt(del), selected: sel && sel.title });
       await commitMv(pop, 'First Day of Shoot');
@@ -335,7 +368,7 @@ window.addEventListener('load', function () { (async function () {
       await view('sheet');
       var c = cellText('2026-11-02');
       kase('O1', 'renaming "Post Begins" rewrites it inside the typed note that carries it, which keeps its own line',
-           head === '11/2/26 · Auto Note' && c === 'Post Starts 11/2/26\nPost kickoff 11/3/26'
+           head === 'Auto-Note Mon 11/2/26' && c === 'Post Starts 11/2/26\nPost kickoff 11/3/26'   // A2's heading (was '11/2/26 · Auto Note')
              && s.userNotes['2026-11-02'].text === 'Post Starts 11/2/26\nPost kickoff 11/3/26' && s.autoNoteNames.postStart === 'Post Starts',
            { heading: head, cell: c, userNote: s.userNotes['2026-11-02'], names: s.autoNoteNames });
     });
@@ -461,11 +494,15 @@ window.addEventListener('load', function () { (async function () {
     });
     await step('R1', async function () {
       byId('tb-notes-reset-btn').click();
+      // It asks first since 14 Nov 2026 (audit AUD2-054): answered Reset (the notesreset leg holds the question).
+      for (var g = 0; g < 30 && !/Reset Waterfall Notes/.test(T.modalText()); g++) await T.sleep(100);
+      var asked = T.modalText();
+      T.clickModalButton('Reset');
       await settle();
       var s = JSON.parse(await save());
       var c = { jun29: cellText('2026-06-29'), oct19: cellText('2026-10-19'), nov2: cellText('2026-11-02') };
       kase('R1', 'Reset Notes clears the typed notes and leaves the Automatic notes switches alone (the wrap, hidden in the month view only, stays in its waterfall cell)',
-           !Object.keys(s.userNotes || {}).length && same((s.autoNotesView || {}).principalStart, { sheet: false })
+           /Reset Waterfall Notes/.test(asked) && !Object.keys(s.userNotes || {}).length && same((s.autoNotesView || {}).principalStart, { sheet: false })
              && same((s.autoNotesView || {}).principalWrap, { month: false })
              && (c.jun29 === '' || c.jun29 === '+') && c.oct19 === 'Principal Photography Wraps 10/20/26' && (c.nov2 === '' || c.nov2 === '+'),
            { userNotes: s.userNotes, autoNotesOff: s.autoNotesOff, view: s.autoNotesView, cells: c });

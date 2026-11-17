@@ -4,7 +4,8 @@
 // HOW THE ENGINE CALLS IT. The Export PDF click handler awaits `chrome.pdfExportDialog(opts)`, where opts is
 //   { paper: 'letter'|'legal'|'tabloid', orientation: ''|'portrait'|'landscape', gridlines,
 //     papers: [{value, label, size}], fits: { <paper>: {recommended, portrait, landscape} } }
-// and it resolves { paper, orientation, gridlines } for Export, or null for Cancel / Escape / outside-click.
+// and it resolves { paper, orientation, gridlines } for Export, or null for Cancel / Escape / outside-click (an
+// outside click within DOUBLE_CLICK_MS of opening is the double-click that opened it, and is ignored: modalGuard.js).
 // The engine applies the answer; this component only shows it.
 //  - `fits` is the ENGINE'S answer for every paper, worked out before the dialog opens by frozen
 //    sheetPageOrientation() (the rule both exports use), so a paper clicked here needs no call back into the
@@ -27,6 +28,7 @@
 import { useState, useLayoutEffect, useCallback, useRef } from 'react'
 import { Modal, Button, Text, Group, Stack, SegmentedControl } from '@mantine/core'
 import { installChrome } from './bridge.js'
+import { useOutsideCloseGuard } from './modalGuard.js'
 
 const GRID_OPTIONS = [
   { value: 'none', label: 'None' },
@@ -41,7 +43,8 @@ const ORIENTS = [
 // A segment's two lines. The second line always renders (a no-break space when empty), so the two
 // orientation segments stay the same height whichever one is recommended. A paper segment passes `tag` as
 // well, a third line that is always there for the same reason, holding "Recommended" on Letter or Legal.
-function SegLabel({ main, sub, strong, tag }) {
+// Shared with the month view's dialog (MonthPdfDialog.jsx), so the two Export PDF dialogs read alike.
+export function SegLabel({ main, sub, strong, tag }) {
   return (
     <Stack gap={0} align="center">
       <Text size="sm" fw={500} lh={1.3}>{main}</Text>
@@ -51,7 +54,7 @@ function SegLabel({ main, sub, strong, tag }) {
   )
 }
 
-function Row({ label, children }) {
+export function Row({ label, children }) {
   return (
     <div>
       <Text size="sm" fw={600} mb={6}>{label}</Text>
@@ -89,6 +92,8 @@ export function ExportPdfDialog() {
     setDlg(null)
     if (r) r(answer)
   }, [])
+  // A click outside cancels, except the second press of the double-click that opened it (modalGuard.js, AUD2-061).
+  const outside = useOutsideCloseGuard(dlg, () => finish(null))
 
   if (!dlg) return null
 
@@ -113,6 +118,7 @@ export function ExportPdfDialog() {
       key={dlg.n}
       opened
       onClose={() => finish(null)}
+      closeOnClickOutside={false}
       withinPortal={false}
       centered
       size="md"
@@ -121,7 +127,7 @@ export function ExportPdfDialog() {
       title="Export PDF"
       className="export-pdf-dlg"
       styles={{ title: { fontWeight: 600 } }}
-      overlayProps={{ backgroundOpacity: 0.35 }}
+      overlayProps={{ backgroundOpacity: 0.35, onClick: outside }}
     >
       <div onKeyDown={onKey}>
         <Stack gap="md">

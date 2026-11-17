@@ -252,6 +252,12 @@
      this is the one thing in the old .file-menu block that carried meaning rather than looks:
      which calendar is open. */
   .file-menu-item.active{ background:var(--edit-accent-bg); color:var(--edit-accent); font-weight:600; }
+  /* The file menu's "Unsaved work" (audit AUD2-056, 14 Nov 2026): kept crash backups, each its name over the day and
+     time it was written. Two short lines, so a long name ellipsis-cuts rather than wrapping the 280 px menu. */
+  .file-menu .fm-backup .fm-name, .file-menu .fm-backup .fm-when{ display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .file-menu .fm-backup .fm-when{ font-size:var(--mantine-font-size-xs); color:var(--mantine-color-dimmed); }
+  /* Several windows closed unsaved over time leave several: the section scrolls on its own, as .fm-list does. */
+  .fm-backups{ max-height:180px; overflow-y:auto; }
   /* The right-click menu on a loaded file (Header.jsx, "Show in folder…", 4 Nov 2026). Its label is the file's name,
      cut to one line: a long show title must not wrap the 240 px menu into a tall box. */
   .fm-ctx .fm-ctx-name{ overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
@@ -268,26 +274,59 @@
      has a newer version". Sharing the structural rules and varying only the hue keeps them
      reading as one family -- this app already has more warning looks than it should
      (HANDOFF §6), and a second strip built from scratch would have made that worse. */
-  #legacy-notice, #update-notice, #colswap-notice, #holiday-notice, #browser-notice, #calrange-notice, #layout-notice{
+  #legacy-notice, #launch-notice, #update-notice, #colswap-notice, #holiday-notice, #browser-notice, #calrange-notice, #layout-notice, #heading-notice, #backup-notice, #storage-notice{
     display:flex; align-items:center; gap:9px; padding:8px 28px;
     border-bottom:1px solid; font-size:12px;
   }
   #legacy-notice{ background:#FEF6E7; border-bottom-color:#F0D9A8; color:#7A5B14; }
+  /* The double-click strip (audit item 2.6): the legacy strip's amber, because it too says something about this FILE
+     that the user would not otherwise know (Save writes back to a copy another app handed over). */
+  #launch-notice{ background:#FEF6E7; border-bottom-color:#F0D9A8; color:#7A5B14; }
   #update-notice{ background:#EDF4FD; border-bottom-color:#C3D9F2; color:#1B4A7A; }
-  #legacy-notice[hidden], #update-notice[hidden], #colswap-notice[hidden], #holiday-notice[hidden], #browser-notice[hidden], #calrange-notice[hidden], #layout-notice[hidden]{ display:none; }
+  #legacy-notice[hidden], #launch-notice[hidden], #update-notice[hidden], #colswap-notice[hidden], #holiday-notice[hidden], #browser-notice[hidden], #calrange-notice[hidden], #layout-notice[hidden], #heading-notice[hidden], #backup-notice[hidden], #storage-notice[hidden]{ display:none; }
   /* A paused column order is a state to notice, not a failure: amber like the legacy strip
      rather than red, because nothing is broken and no data is at risk -- the override is still
      stored and resumes by itself when the schedule allows it again. */
   #colswap-notice{ background:#FBF3FF; border-bottom-color:#E0CCEF; color:#5F2E7E; }
-  #legacy-notice .ln-icon, #update-notice .ln-icon, #colswap-notice .ln-icon, #holiday-notice .ln-icon, #browser-notice .ln-icon, #calrange-notice .ln-icon, #layout-notice .ln-icon{ font-size:13px; flex:none; }
-  #legacy-notice .ln-text,  #update-notice .ln-text, #colswap-notice .ln-text, #holiday-notice .ln-text, #browser-notice .ln-text, #calrange-notice .ln-text, #layout-notice .ln-text{ flex:1; min-width:0; }
-  #legacy-notice .ln-text strong, #update-notice .ln-text strong, #colswap-notice .ln-text strong, #holiday-notice .ln-text strong, #browser-notice .ln-text strong, #layout-notice .ln-text strong{ font-weight:600; }
-  #legacy-notice .ln-go, #update-notice .ln-go, #layout-notice .ln-go, #layout-notice .ln-keep{
+  #legacy-notice .ln-icon, #launch-notice .ln-icon, #update-notice .ln-icon, #colswap-notice .ln-icon, #holiday-notice .ln-icon, #browser-notice .ln-icon, #calrange-notice .ln-icon, #layout-notice .ln-icon, #heading-notice .ln-icon, #backup-notice .ln-icon, #storage-notice .ln-icon{ font-size:13px; flex:none; }
+  #legacy-notice .ln-text, #launch-notice .ln-text, #update-notice .ln-text, #colswap-notice .ln-text, #holiday-notice .ln-text, #browser-notice .ln-text, #calrange-notice .ln-text, #layout-notice .ln-text, #heading-notice .ln-text, #backup-notice .ln-text, #storage-notice .ln-text{ flex:1; min-width:0; }
+  /* ⭐ ONE LINE, ONE STRIP, ONE VIEW (audit 2.14, AUD2-035). On a 1280 x 800 laptop two strips stacked over the month
+     view (the holiday list's three lines, then the column question) and left under two weeks of the month in view.
+     - ONE LINE: a strip's text never wraps. Where it is cut short, the engine adds Details after it (app.js, "THE
+       NOTICE STRIPS: ONE LINE EACH"), which opens the strip to its full text (.ln-open) and reads Less while open.
+     - ONE AT A TIME, in this document order: legacy, holiday, layout, update, colswap, calrange, browser. A strip
+       after one on show waits (display:none, never `hidden`, which is the engine's and means "not raised"), and
+       shows the moment the one before it is dismissed. Pure CSS off `hidden`, so the grid fit, which watches each
+       strip's `hidden`, sees the change in the same mutation.
+     - ⭐ THE FOUR NEWER STRIPS FOLLOW THE SAME RULE (owner's picker, 16 Nov 2026: "Yes, same rule"), and the document
+       order is their priority (index.html says why each sits where it does): backup, storage, legacy, launch,
+       holiday, layout, update, colswap, heading, calrange, browser. The two about work at risk come first; the
+       double-clicked-file strip sits beside the legacy strip, the removed-heading strip beside the column-order one.
+       A strip added later joins every list below, or it wraps and stacks over the others.
+     - THE COLUMN QUESTION IS THE WATERFALL'S: #layout-notice is about the waterfall's columns, so the month view never
+       shows it, and it does not hold a strip behind it there. It is still raised (not `hidden`) and is back on the
+       waterfall. */
+  #legacy-notice .ln-text, #launch-notice .ln-text, #update-notice .ln-text, #colswap-notice .ln-text, #holiday-notice .ln-text, #browser-notice .ln-text, #calrange-notice .ln-text, #layout-notice .ln-text, #heading-notice .ln-text, #backup-notice .ln-text, #storage-notice .ln-text{
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  :is(#legacy-notice, #launch-notice, #update-notice, #colswap-notice, #holiday-notice, #browser-notice, #calrange-notice, #layout-notice, #heading-notice, #backup-notice, #storage-notice).ln-open .ln-text{
+    white-space:normal; overflow:visible; }
+  :is(#legacy-notice, #launch-notice, #update-notice, #colswap-notice, #holiday-notice, #browser-notice, #calrange-notice, #layout-notice, #heading-notice, #backup-notice, #storage-notice) .ln-more{
+    flex:none; font-family:inherit; font-size:11.5px; font-weight:600; line-height:inherit; padding:0 4px; margin-left:-4px;
+    border:0; background:none; color:inherit; text-decoration:underline; text-underline-offset:2px; cursor:pointer; border-radius:4px; }
+  :is(#legacy-notice, #launch-notice, #update-notice, #colswap-notice, #holiday-notice, #browser-notice, #calrange-notice, #layout-notice, #heading-notice, #backup-notice, #storage-notice) .ln-more:hover{ background:rgba(0,0,0,.05); }
+  :is(#legacy-notice, #launch-notice, #update-notice, #colswap-notice, #holiday-notice, #browser-notice, #calrange-notice, #layout-notice, #heading-notice, #backup-notice, #storage-notice) .ln-more:focus-visible{ outline:2px solid currentColor; outline-offset:1px; }
+  :is(#backup-notice, #storage-notice, #legacy-notice, #launch-notice, #holiday-notice, #update-notice, #colswap-notice, #heading-notice, #calrange-notice, #browser-notice):not([hidden])
+    ~ :is(#backup-notice, #storage-notice, #legacy-notice, #launch-notice, #holiday-notice, #layout-notice, #update-notice, #colswap-notice, #heading-notice, #calrange-notice, #browser-notice){ display:none; }
+  body:not(:has(#view-month-btn.active)) > #layout-notice:not([hidden])
+    ~ :is(#backup-notice, #storage-notice, #legacy-notice, #launch-notice, #holiday-notice, #layout-notice, #update-notice, #colswap-notice, #heading-notice, #calrange-notice, #browser-notice){ display:none; }
+  body:has(#view-month-btn.active) > #layout-notice{ display:none; }
+  #legacy-notice .ln-text strong, #launch-notice .ln-text strong, #update-notice .ln-text strong, #colswap-notice .ln-text strong, #holiday-notice .ln-text strong, #browser-notice .ln-text strong, #layout-notice .ln-text strong, #backup-notice .ln-text strong, #storage-notice .ln-text strong{ font-weight:600; }
+  #legacy-notice .ln-go, #launch-notice .ln-go, #update-notice .ln-go, #layout-notice .ln-go, #layout-notice .ln-keep, #backup-notice .ln-go{
     flex:none; font-family:inherit; font-size:11.5px; font-weight:500; padding:5px 10px;
     background:#fff; border:1px solid; border-radius:7px; cursor:pointer;
   }
-  #legacy-notice .ln-go{ border-color:#D9B45F; color:#7A5B14; }
-  #legacy-notice .ln-go:hover{ background:#FFFBF2; border-color:#B8912F; }
+  #legacy-notice .ln-go, #launch-notice .ln-go{ border-color:#D9B45F; color:#7A5B14; }
+  #legacy-notice .ln-go:hover, #launch-notice .ln-go:hover{ background:#FFFBF2; border-color:#B8912F; }
   #update-notice .ln-go{ border-color:#8FB4DE; color:#1B4A7A; }
   #update-notice .ln-go:hover{ background:#F7FAFE; border-color:#5A8CC4; }
   /* The layout strip (LAYOUT-BUILD-PLAN.md §4): the update strip's blue, an offer rather than a warning. "Keep as
@@ -299,12 +338,12 @@
   #layout-notice .ln-keep:hover{ background:rgba(0,0,0,.05); }
   #layout-notice .ln-x{ color:#5A8CC4; }
   #layout-notice .ln-x:hover{ color:#1B4A7A; background:rgba(0,0,0,.06); }
-  #legacy-notice .ln-x, #update-notice .ln-x, #holiday-notice .ln-x, #browser-notice .ln-x, #calrange-notice .ln-x, #layout-notice .ln-x{
+  #legacy-notice .ln-x, #launch-notice .ln-x, #update-notice .ln-x, #holiday-notice .ln-x, #browser-notice .ln-x, #calrange-notice .ln-x, #layout-notice .ln-x, #heading-notice .ln-x, #backup-notice .ln-x, #storage-notice .ln-x{
     flex:none; border:none; background:none; font-size:16px; line-height:1;
     cursor:pointer; padding:0 2px; border-radius:4px;
   }
-  #legacy-notice .ln-x{ color:#A98B3D; }
-  #legacy-notice .ln-x:hover{ color:#7A5B14; background:rgba(0,0,0,.06); }
+  #legacy-notice .ln-x, #launch-notice .ln-x{ color:#A98B3D; }
+  #legacy-notice .ln-x:hover, #launch-notice .ln-x:hover{ color:#7A5B14; background:rgba(0,0,0,.06); }
   /* Same amber as the legacy strip on purpose: both say "something about this file is not what
      you expected", and HANDOFF §6 warns this app already has more warning looks than it should. */
   #holiday-notice{ background:#FEF6E7; border-bottom-color:#F0D9A8; color:#7A5B14; }
@@ -315,18 +354,51 @@
   #calrange-notice{ background:#FEF6E7; border-bottom-color:#F0D9A8; color:#7A5B14; }
   #calrange-notice .ln-x{ color:#A98B3D; }
   #calrange-notice .ln-x:hover{ color:#7A5B14; background:rgba(0,0,0,.06); }
+  /* A typed column heading removed when the app rearranged the columns (audit AUD2-077): the same amber. */
+  #heading-notice{ background:#FEF6E7; border-bottom-color:#F0D9A8; color:#7A5B14; }
+  #heading-notice .ln-x{ color:#A98B3D; }
+  #heading-notice .ln-x:hover{ color:#7A5B14; background:rgba(0,0,0,.06); }
   #update-notice .ln-x{ color:#6D93BF; }
   #update-notice .ln-x:hover{ color:#1B4A7A; background:rgba(0,0,0,.06); }
   /* Audit L-20: the Chrome/Edge strip. The update strip's blue, because both are about the APP. */
   #browser-notice{ background:#EDF4FD; border-bottom-color:#C3D9F2; color:#1B4A7A; }
   #browser-notice .ln-x{ color:#6D93BF; }
   #browser-notice .ln-x:hover{ color:#1B4A7A; background:rgba(0,0,0,.06); }
+  /* Audit AUD2-075: site data refused. The Chrome/Edge strip's blue: both are about the browser. */
+  #storage-notice{ background:#EDF4FD; border-bottom-color:#C3D9F2; color:#1B4A7A; }
+  #storage-notice .ln-x{ color:#6D93BF; }
+  #storage-notice .ln-x:hover{ color:#1B4A7A; background:rgba(0,0,0,.06); }
+  /* Audit AUD2-076: unsaved work kept for another calendar. The legacy strip's amber: something about your work
+     is not where you expected it, and nothing has failed. */
+  #backup-notice{ background:#FEF6E7; border-bottom-color:#F0D9A8; color:#7A5B14; }
+  #backup-notice .ln-go{ border-color:#D9B45F; color:#7A5B14; }
+  #backup-notice .ln-go:hover{ background:#FFFBF2; border-color:#B8912F; }
+  #backup-notice .ln-x{ color:#A98B3D; }
+  #backup-notice .ln-x:hover{ color:#7A5B14; background:rgba(0,0,0,.06); }
+  /* Audit AUD2-078: the chrome's error boundary (main.jsx). It covers the window, so nothing half-drawn shows behind
+     it. The app's own :root tokens and never Mantine's: it stands in for the MantineProvider, whose variables leave
+     with it. Hidden in print with the rest of #react-root (body.printing-* > *:not(#print-root)). */
+  .chrome-failed{ position:fixed; inset:0; z-index:100000; display:flex; align-items:center; justify-content:center;
+    padding:24px 16px; background:var(--bg); color:var(--text);
+    font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; }
+  .chrome-failed-box{ max-width:420px; background:var(--panel); border:1px solid var(--border); border-radius:12px;
+    padding:24px 24px 20px; box-shadow:0 8px 28px rgba(0,0,0,.08); }
+  .chrome-failed-title{ font-size:16px; font-weight:600; margin-bottom:8px; }
+  .chrome-failed-text{ font-size:13px; line-height:1.5; color:var(--text-muted); margin:0 0 18px; }
+  .chrome-failed-btn{ font-family:inherit; font-size:13px; font-weight:500; padding:8px 14px; border:none;
+    border-radius:8px; background:var(--accent); color:#fff; cursor:pointer; }
+  .chrome-failed-btn:hover{ background:var(--accent-hover); }
 
   /* Fill the available width at any window size (no artificial cap), so the calendar gets
      as much room as the screen allows. The sidebar keeps a comfortable fixed width and the
      preview takes everything left over. */
   .layout{display:flex; gap:0; align-items:flex-start; width:100%;}
-  @media (max-width:960px){ .layout{flex-direction:column;} }
+  /* ⛔ NEVER STACKED (owner, 16 Nov 2026: "the left side bar (show, phases, settings) should always stay on the left, I
+     never want the UI to start stacking up and down....the app should basically just force you to use it on a screen
+     size that is wide enough"). Until then, at 960 px and below, the sidebar went full width above the preview and the
+     page scrolled (audit AUD2-065: at 960 px the toolbar ran off screen and the grid started below the fold). Now the
+     app shell below holds at every width and stops shrinking at its minimum, 960 px; a narrower window scrolls
+     sideways, as Excel shows fewer columns (owner's picker, "Stop shrinking, scroll sideways"). */
 
 
   /* ============================================================================================
@@ -368,29 +440,20 @@
     min-width:0;
     padding:var(--mantine-spacing-sm) var(--mantine-spacing-xl) var(--mantine-spacing-xl);
   }
-  /* Smaller laptops (above the stack breakpoint): narrow the sidebar so the waterfall gets more
-     room before it has to collapse to a single column. Declared before the 960px rule so that
-     rule's full-width stacking still wins at the smaller size. */
-  @media (max-width:1280px){ .form-panel{ width:clamp(280px, 26vw, 340px); } }
-  @media (max-width:960px){
-    .form-panel{ width:100%; border-right:none;
-      border-bottom:1px solid var(--border); max-height:none; min-height:0; position:static; }
-    /* When the panel goes full width, don't let the form fields stretch across the whole
-       window -- cap the content to a comfortable column and centre it so inputs stay a sane
-       size instead of ballooning to 900px wide. */
-    /* Descendant, not child: the three React cards now sit inside #sidebar-static, so a child
-       combinator would silently stop capping them when the panel goes full width. */
-    .form-panel section.card{ max-width:640px; margin-left:auto; margin-right:auto; }
-  }
+  /* Smaller laptops: narrow the sidebar so the calendar gets more room, down to 280 px at the app's 960 px minimum.
+     ⚠️ Capped at 320 px since 16 Nov 2026 (it was 340): 26vw is 333 px at 1280, so one pixel narrower than 1281 px
+     (where 24vw gives the 320 px floor) the sidebar grew 13 px WIDER, and the toolbar folded a step early there. Now
+     the sidebar only ever narrows as the window does. */
+  @media (max-width:1280px){ .form-panel{ width:clamp(280px, 26vw, 320px); } }
 
   /* The 44px at the bottom is the room the fixed help button and zoom pill sit in (the bottom strip,
-     #help-fab below): stacked, the page scrolls, so at its end the last of the preview clears them. */
+     #help-fab below). In the app shell it becomes a margin (below). */
   /* + --sc-band-space: the scenario key facts band above the tabs, while it shows (KEY-FACTS-PLAN.md; written by
      ScenarioTabs.jsx from the band's measured height, absent otherwise). */
   .preview-panel{flex:1; min-width:0; padding:20px 28px calc(44px + var(--sc-band-space, 0px));}
 
   /* ---------- The app shell: the WINDOW never scrolls (owner, 22 Sep 2026) ----------
-     "Make the app behave like a standard app window." Above the 960px stack point the window is a
+     "Make the app behave like a standard app window." The window is a
      fixed frame: <body> is a full-height flex column -- the header, then whichever notice strips
      are showing at their natural height, then .layout taking everything left -- and only three
      things scroll, each inside its own box: the sidebar, the waterfall grid and (via
@@ -404,10 +467,14 @@
      header.app-header must stay a direct child of <body> for the --header-h ResizeObserver. So the
      shell is built from <body>'s existing children, in place.
 
-     ⛔ SCREEN ONLY, and above 960px only. `(width > 960px)` is the exact complement of the stack
-     rules' `(max-width:960px)`, so there is no fractional-width gap where neither applies. Print
-     media never sees these rules, so neither print path changes; at 960px and below the stacked
-     layout and its normal page scrolling are exactly what they were.
+     ⛔ SCREEN ONLY. Print media never sees these rules, so neither print path changes.
+     ⭐ AT EVERY WIDTH since 16 Nov 2026 (owner: never stack). Until then it held above 960 px only, and at 960 px and
+     below the old stacked layout scrolled as a web page. Now <body> stops shrinking at 960 px (`min-width`), the app's
+     minimum: narrower, <html> scrolls sideways and nothing else changes. That needs <html>'s own overflow set: while
+     it is `visible`, <body>'s overflow:hidden is handed to the window, and the window could not scroll at all. With
+     <html> the scroller, <body>'s overflow is its own again, and it clips only what it always clipped. <body> is
+     100% of <html>, which is the window less a sideways scrollbar (Windows draws one 17 px tall), where 100vh was
+     the window with it, so the scrollbar never pushes the bottom strip off screen.
 
      ⚠️ Once <body> is a flex column EVERY child is a flex item: script#saved-state, the notices,
      #help-fab, #help-overlay, #react-root, #print-root, and whatever the engine or Mantine appends
@@ -426,8 +493,9 @@
      SHELL'S GRID FIT"), so in that view .preview-panel's scroll never engages and the grid box is
      the one vertical scroller. The month view scrolls in #table-wrap (below, since 26 Oct 2026; it scrolled
      here before). */
-  @media screen and (width > 960px){
-    body{ height:100vh; overflow:hidden; display:flex; flex-direction:column; }
+  @media screen{
+    html{ height:100%; overflow-x:auto; overflow-y:hidden; }
+    body{ height:100%; min-width:960px; overflow:hidden; display:flex; flex-direction:column; }
     body > *{ flex:none; }
     body > .layout{ flex:1 1 0; min-height:0; align-items:stretch; }
     .form-panel{ align-self:stretch; min-height:0; max-height:none; }
@@ -439,6 +507,12 @@
     /* ...plus the scenario key facts band's measured room while it shows (--sc-band-space, KEY-FACTS-PLAN.md): the
        margin grows, the panel's border box shrinks, and the grid fit ends the waterfall above the band. */
     .preview-panel{ min-height:0; overflow:auto; padding-bottom:0; margin-bottom:calc(44px + var(--sc-band-space, 0px)); }
+    /* ⚠️ ITS OWN SCROLLBAR TAKES NO WIDTH (16 Nov 2026). The panel overflows only for a moment (the grid fit re-solving
+       after a font or a strip changes a height) or on a very short window, and a classic scrollbar (Windows; headless
+       Chrome) took 15 px from the toolbar row as it came and went: the toolbar's fold level then no longer fitted, the
+       line wrapped for a moment, and the observers above reported "ResizeObserver loop" errors (laptopfit at 1280 x
+       800). It still scrolls, by wheel or trackpad. Steady, nothing changes: the panel has no scrollbar then. */
+    .preview-panel{ scrollbar-width:none; }
     /* ⭐ THE MONTH VIEW SCROLLS IN #table-wrap, like the waterfall in its grid box (owner, 26 Oct 2026: "The
        viewport of the month view needs to work the same way as the viewport of the waterfall view ... The
        surrounding menus need to stay fixed in place"). Until then the month scrolled in .preview-panel, so the
@@ -455,6 +529,10 @@
        (min-height:auto), and #table-wrap's min-height:0 gives up the room first. Name elements, never `*`. */
     body:has(#view-month-btn.active) .preview-panel{ display:flex; flex-direction:column; }
     body:has(#view-month-btn.active) .preview-panel > #table-wrap{ flex:1 1 0; min-height:0; overflow:auto; }
+    /* The recent calendars of an empty start (AUD2-030) sit UNDER #table-wrap, so while they show the box takes only
+       the empty-state sentence's height; otherwise it would push them to the window's foot. There is no calendar
+       then, so nothing in it can be measured differently. #table-wrap's own box only, as above. */
+    body:has(#view-month-btn.active) .preview-panel.has-start-recents > #table-wrap{ flex:0 0 auto; }
     /* Zoomed: #table-wrap is the zoomed box AND the scroller, so its screen width is the panel's, and 100% of its
        content box is that width in its own (zoomed) px. One track of 100% x the zoom puts .month-view back on the
        width it has at 100%, so the day columns keep their CSS width and every note its lines. --cal-zoom is
@@ -464,17 +542,15 @@
       display:grid; grid-template-columns:calc(100% * var(--cal-zoom, 1)); align-content:start; justify-content:start;
     }
   }
-  /* Stacked (960px and below) the page scrolls as it always has, so a zoomed month is pinned by its own width and
-     the page scrolls sideways, as before 26 Oct 2026 (when this was an inline width written by applyCalZoom). */
-  @media screen and (max-width:960px){
-    body.cal-zoomed:has(#view-month-btn.active) #table-wrap{ width:calc(100% * var(--cal-zoom, 1)); }
-  }
+  /* (A stacked twin of the zoomed month's rule lived here, for 960 px and below, until the app stopped stacking on
+     16 Nov 2026.) */
 
   /* ---------- Side boxes (SIDE-BOXES-PLAN.md, owner ruling 7, 20 Oct 2026) ----------
      Colour keys and text boxes beside the waterfall. ⛔ OUTSIDE #table-wrap: two .side-col hosts AFTER
      it in main.preview-panel (so .view-toggle-row -> #table-wrap stays the sibling pair the contracts
      above need), placed left and right by a grid on the panel that exists ONLY while a box exists, in
-     the Waterfall view, above the 960px stack point. Nothing here is a .sheet-* / .mv-* rule.
+     the Waterfall view (above the old 960px stack point until 16 Nov 2026; at every width since, as the app no longer
+     stacks). Nothing here is a .sheet-* / .mv-* rule.
 
      ⛔ HIDDEN IN THE MONTH VIEW BY THE BUTTON'S CLASS, not by a class the engine sets after a render:
      setViewMode() and applyStateSnapshot() both set #view-month-btn.active BEFORE their render, so
@@ -498,7 +574,7 @@
   .sb-width{ flex:none; width:14px; align-self:stretch; min-height:40px; cursor:col-resize; position:relative; }
   .sb-width::before{ content:''; position:absolute; top:0; bottom:0; left:6px; width:2px; border-radius:1px; }
   .sb-width:hover::before, body.sb-resizing .sb-width::before{ background:var(--edit-accent); }
-  @media screen and (width > 960px){
+  @media screen{
     body:not(:has(#view-month-btn.active)) .preview-panel.has-side-boxes{
       display:grid; grid-template-columns:auto minmax(0, 1fr) auto; align-items:start;
       grid-template-areas:"hint hint hint" "gap gap gap" "bar bar bar" "left main right";
@@ -515,6 +591,7 @@
     .preview-panel.has-side-boxes > #table-wrap{ grid-area:main; min-width:0; }
     .preview-panel.has-side-boxes > .side-left{ grid-area:left; }
     .preview-panel.has-side-boxes > .side-right{ grid-area:right; }
+    .preview-panel.has-side-boxes > .start-recents{ grid-column:1 / -1; }
     /* As tall as the grid box may be, and no taller, so the window still never scrolls. ⚠️ A COPY of
        the frozen `.sheet-scroll{max-height:...}` expression: it reads the SAME --header-h, the panel's
        solved value (app.js, "THE APP SHELL'S GRID FIT"), so the two bottoms line up. The sideboxes leg
@@ -523,9 +600,6 @@
        2026), so the fit solves this value in the zoomed box's own px. --cal-zoom is set on .side-col by
        applyCalZoom(), and absent (1) at 100%. */
     .side-col .sb-stack{ max-height:calc((100vh - var(--header-h) - 140px) * var(--cal-zoom, 1)); }
-  }
-  @media screen and (max-width:960px){
-    .side-col{ margin-top:14px; }
   }
   /* The boxes are drawn like the grid, not like the chrome, because they print: Carlito 11px, the
      20px row pitch, a dark frame, the screen grid header's grey for the title. */
@@ -696,10 +770,6 @@
   .side-tab-btn:hover:not(.active), .side-settings-btn:hover{ background:var(--mantine-color-gray-1); color:var(--mantine-color-gray-9); }
   .side-tab-btn:focus-visible, .side-settings-btn:focus-visible{ outline:2px solid var(--accent); outline-offset:1px; }
   .card.tab-hidden{ display:none !important; }
-  @media (max-width:960px){
-    /* On the stacked mobile layout the panel isn't its own scroll region, so un-stick. */
-    .side-tabs{ position:static; }
-  }
 
   /* ---------- The Settings window (owner ruling 12, 20 Oct 2026; src/chrome/SettingsWindow.jsx) ----------
      "A tabbed panel that slides in over the sidebar from a Settings button and leaves the waterfall
@@ -748,18 +818,6 @@
   .sw-panel{
     flex:1 1 0; min-height:0; overflow-y:auto;
     padding:var(--mantine-spacing-sm) var(--mantine-spacing-xl) var(--mantine-spacing-xl);
-  }
-  /* Stacked (960 px and below) the sidebar is not a scroll box and the page scrolls, so the window
-     goes IN FLOW and takes the sidebar's place instead of lying over it. */
-  @media (max-width:960px){
-    .settings-window{ position:static; width:auto; height:auto; }
-    /* flex:none, or the zero basis that sizes them inside the fixed-height window collapses them to
-       nothing here, where the window's height is its content's, and they paint over the preview. */
-    .settings-window .sw-tabs, .settings-window .sw-panel{ flex:none; }
-    .settings-window .sw-panel{ overflow:visible; }
-    .form-panel.settings-open{ overflow:visible; }
-    /* The rail stays, as above 960 px; the window takes the place of everything under it. */
-    .form-panel.settings-open .side-content > :not(#settings-host){ display:none; }
   }
 
   /* ⭐ THE PHASE CARD, THE A + D BLEND (owner, 23 Oct 2026; PHASES-TAB-PLAN.md §3.4a, rulings R6-R10). A stack, no
@@ -1265,12 +1323,34 @@
   .form-panel .sw-row > input[type=checkbox]:hover:not(:disabled){ border:0; }
   .form-panel .sw-row > input[type=checkbox]:focus-visible{ outline:2px solid var(--mantine-primary-color-filled); outline-offset:2px; }
 
+  /* ⭐ MORE OPTIONS (audit 2.14, AUD2-036; app.js "MORE OPTIONS ON EVERY PHASE CARD"). A card's rarely used switches
+     show only while SET (away from a new phase's own value) or while the card's More options is open: Snap to Monday
+     and Number weeks while off, Hide in waterfall, Hiatus and Simultaneous Post while on. Off each switch's own
+     :checked, so a value the engine writes without an event is followed at once. Hidden, never removed: every id
+     stays in the document. Then the card's last line, the More options button (no id), a quiet text button like
+     "Start after previous phase". */
+  .phase-row:not(.more-open) > .phase-switches > :is(.phase-snap, .phase-wknum):has(> input:checked),
+  .phase-row:not(.more-open) > .phase-switches > .phase-hidewf:not(:has(> input:checked)),
+  .phase-row:not(.more-open) > .phase-hiatus > .phase-hiatus-toggle:not(:has(> input:checked)),
+  .phase-row:not(.more-open) > .simpost-panel > .simpost-toggle:not(:has(> input:checked)){ display:none; }
+  .phase-more-btn{
+    display:inline-flex; align-items:center; gap:4px; margin:6px 12px 2px; padding:1px 0; background:none; border:none;
+    font:inherit; font-size:var(--mantine-font-size-xs); color:var(--mantine-color-gray-6); cursor:pointer;
+  }
+  .phase-more-btn::after{
+    content:''; width:0; height:0; border-left:3.5px solid transparent; border-right:3.5px solid transparent;
+    border-top:4.5px solid currentColor; opacity:.8; transition:transform 150ms ease;
+  }
+  .phase-more-btn[aria-expanded="true"]::after{ transform:rotate(180deg); }
+  .phase-more-btn:hover{ color:var(--mantine-color-black); text-decoration:underline; }
+  .phase-more-btn:focus-visible{ outline:2px solid var(--accent); outline-offset:1px; border-radius:3px; }
+
   /* ---- An optional block (a phase's hiatus, Sim Post): a switch row that opens its fields underneath, indented
      and ruled in the phase colour. The hiatus's fields are shown by the engine (style.display), Sim Post's by CSS
      off its own box below, so neither can disagree with its switch. */
   .phase-hiatus{ padding:0 12px; }
   /* The last row of a card has no hairline: the hiatus's switch while it is off, the block's last row when on. */
-  .phase-row > .phase-hiatus:last-child > .phase-hiatus-toggle:not(:has(input:checked)){ border-bottom:none; }
+  .phase-row > .phase-hiatus:is(:last-child, :has(+ .phase-more-btn:last-child)) > .phase-hiatus-toggle:not(:has(input:checked)){ border-bottom:none; }
   .phase-hiatus-fields{
     flex-direction:column; gap:8px; margin:2px 0 8px 2px; padding:6px 0 0 12px;
     border-left:3px solid var(--phase-color);
@@ -1624,6 +1704,48 @@
 
   .empty-state{color:var(--text-faint); font-size:13.5px; padding:40px 0; text-align:center;}
 
+  /* THE RECENT CALENDARS ON AN EMPTY START (audit 2026-11, AUD2-030; StartRecents.jsx). Under the empty-state sentence,
+     centred like it. Since 16 Nov 2026 (owner, version 7 of mockups/start-recents.html) two white cards in the popovers'
+     look: the last calendar's card ("Pick up where you left off", a navy tile, Open), then "Other recent calendars"
+     with Load… in its title row and a two-line row per calendar (an arrow shows on hover). Names cut to one line (the
+     title= shows the whole of it). Outside #table-wrap (a sibling after it), so no .sheet-* / .mv-* rule is touched. */
+  .start-recents:not([hidden]){ display:flex; justify-content:center; padding:0 0 40px; }
+  .sr-stack{ width:460px; max-width:100%; display:flex; flex-direction:column; gap:12px; }
+  .sr-hero, .sr-card{ box-sizing:border-box; background:var(--mantine-color-white); border:1px solid var(--mantine-color-gray-2);
+    border-radius:var(--mantine-radius-lg); box-shadow:var(--mantine-shadow-xs); }
+  .sr-hero{ display:flex; align-items:center; gap:14px; width:100%; padding:14px 16px; text-align:left;
+    transition:border-color .12s, box-shadow .12s; }
+  .sr-hero:hover{ border-color:var(--mantine-color-gray-4); box-shadow:var(--mantine-shadow-sm); }
+  .sr-hero:focus-visible{ outline:2px solid var(--accent); outline-offset:2px; }
+  .sr-tile{ width:30px; height:30px; flex:none; display:grid; place-items:center; border-radius:var(--mantine-radius-md);
+    background:var(--mantine-color-navy-0); color:var(--mantine-color-navy-6); }
+  .sr-tile svg{ width:16px; height:16px; }
+  .sr-hero .sr-tile{ width:40px; height:40px; border-radius:var(--mantine-radius-lg); background:var(--mantine-color-navy-6);
+    color:var(--mantine-color-white); }
+  .sr-hero .sr-tile svg{ width:18px; height:18px; }
+  .sr-txt{ flex:1; min-width:0; display:flex; flex-direction:column; line-height:1.35; }
+  .sr-over{ font-size:var(--mantine-font-size-xs); font-weight:500; color:var(--text-faint); }
+  .sr-hero-name{ margin:1px 0; font-size:var(--mantine-font-size-md); font-weight:600; color:var(--text); }
+  .sr-name{ font-size:var(--mantine-font-size-sm); font-weight:500; color:var(--text); }
+  .sr-hero-name, .sr-name{ overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .sr-meta{ font-size:var(--mantine-font-size-xs); color:var(--text-faint); }
+  .sr-ext{ font-weight:400; color:var(--mantine-color-gray-5); }
+  .sr-open{ display:inline-flex; align-items:center; gap:4px; flex:none; font-size:var(--mantine-font-size-sm); font-weight:500;
+    color:var(--mantine-color-navy-6); }
+  .sr-open svg{ width:14px; height:14px; }
+  .sr-card{ padding:6px; }
+  .sr-head{ display:flex; align-items:center; justify-content:space-between; gap:8px; padding:6px 6px 8px 10px; }
+  .sr-title{ font-size:var(--mantine-font-size-sm); font-weight:600; color:var(--text); }
+  .sr-row{ display:flex; align-items:center; gap:11px; width:100%; box-sizing:border-box; padding:6px 8px;
+    border-radius:var(--mantine-radius-md); text-align:left; }
+  .sr-row:hover{ background:var(--mantine-color-gray-0); }
+  .sr-row:focus-visible{ outline:2px solid var(--accent); outline-offset:-2px; }
+  .sr-go{ display:grid; flex:none; color:var(--mantine-color-navy-6); opacity:0; transition:opacity .1s; }
+  .sr-go svg{ width:16px; height:16px; }
+  .sr-row:hover .sr-go, .sr-row:focus-visible .sr-go{ opacity:1; }
+  .sr-empty{ padding:0 10px 10px; font-size:var(--mantine-font-size-sm); color:var(--text-faint); }
+  .sr-foot{ display:flex; justify-content:center; }
+
   /* Wraps rather than overflowing once the toggle and the tools can't share a line. */
   /* THE TOOLBAR'S SECTIONS (owner, 10 Nov 2026, variation 27 of mockups/toolbar-variations.html: "the spacing between
      the differnt sections is literally all different. It needs to be consistnet"). The view toggle alone at the left
@@ -1636,8 +1758,15 @@
      same as the gaps between all the other buttons"): --tb-gap is --tb-gap-fit, which PreviewToolbar's useStyleBarFit
      solves so the first line exactly fills the row (eight gaps, Redo's to the edge included) and writes on
      .preview-panel; never under --tb-gap-min. Until it is solved, and while the text bar has its own line, the minimum. */
-  .view-toggle-row{display:flex; align-items:center; justify-content:space-between; column-gap:var(--tb-gap); row-gap:10px;
-    flex-wrap:wrap; margin-bottom:14px; --tb-gap-min:10px; --tb-gap:var(--tb-gap-fit, var(--tb-gap-min));}
+  .view-toggle-row{display:flex; align-items:center; justify-content:flex-start; column-gap:var(--tb-gap); row-gap:10px;
+    flex-wrap:wrap; margin-bottom:14px; --tb-gap-min:10px; --tb-gap-max:14px; --tb-gap:var(--tb-gap-fit, var(--tb-gap-min));}
+  /* ⭐ PACKED LEFT, AT MOST --tb-gap-max APART (owner, 16 Nov 2026: "When the screen is made larger/on a big monitor, the
+     tool bar should stay the same size and just have extra space on the sides rather than adding a bunch of space
+     between the buttons", then the picker "On the right"). useToolbarFit caps the solved gap at 14 px, the gap on the
+     owner's laptop, and the line starts at the left, so a wider window leaves its spare room after Undo / Redo. The
+     auto margins that packed the tools right of the view toggle (10 Nov 2026) went with it. The line never wraps any
+     more: where it is short of room it folds instead (useToolbarFit's steps, the `tbf1`-`tbf4` rules below). The
+     rows under it (the phase map, the stepper's empty line) are full-width items and wrap as before. */
   /* Reads as a Mantine SegmentedControl, but it is two <button>s -- deliberately. A real
      SegmentedControl renders an <input type="radio"> per segment, and Mantine generates an id for
      each; those are `input[id]` outside any .tools-menu, so collectFieldValues() would sweep them
@@ -1682,7 +1811,6 @@
      after it pairs with the date tools' before Shift; with the gap solved they are ~0, and while the text bar has its
      own line they split what is left evenly either side of the tools (owner, 11 Nov 2026). */
   .preview-tools::after{ content:''; flex:none; width:0; }
-  .view-toggle-row > .preview-tools{ margin-right:auto; }
   /* THE WELLS (variation 27). The view toggle's grey ground, padding and gap, around each section's buttons. The text
      style bar is one too (.style-bar, its block below); Undo / Redo's Mantine Group is styled here so its markup stays
      a Group. Never position:relative and never overflow:hidden: the popovers inside anchor to their own buttons and
@@ -1702,7 +1830,6 @@
   /* The date tools come right after the view toggle (owner's reorder, 10 Nov 2026: view | Shift + Build Around | text |
      page tools | Undo / Redo), and their auto left margin packs every tool to the right. Variation 27 had Undo / Redo
      first, carrying this margin. */
-  .view-toggle-row > .tb-dates{ margin-left:auto; }
   /* Inside a well a plain button has no edge of its own until it is hovered or open: then the raised white chip of
      the view toggle's active segment. The date tools keep their white ground and navy outline (owner: Shift "just
      white background color like build around"); Header: Manual / Template keeps its purple state (an id rule). */
@@ -1790,10 +1917,94 @@
   /* Measured 9 Nov 2026: the labelled button (99px) wraps the toolbar row to two lines below about 1293px, where the row
      without it stays on one line down to 1200px. At 1300px and below it shows the drawn switch alone (40px); its
      title= says what it does, as the header's icon-only buttons do. */
-  @media (max-width:1300px){
-    .fill-space-btn .mantine-Button-label{ display:none; }
-    .fill-space-btn .mantine-Button-section{ margin:0; }
-    .fill-space-btn{ padding-left:8px !important; padding-right:8px !important; }
+  /* ⚠️ Since 16 Nov 2026 that is fold step 1 (useToolbarFit), not a window width: the switch alone wherever the line
+     needs the room, and from step 2 the label again, inside the More menu. */
+  .preview-panel.tbf1:not(.tbf2) .fill-space-btn .mantine-Button-label{ display:none; }
+  .preview-panel.tbf1:not(.tbf2) .fill-space-btn .mantine-Button-section{ margin:0; }
+  .preview-panel.tbf1:not(.tbf2) .fill-space-btn{ padding-left:8px !important; padding-right:8px !important; }
+
+  /* ---------- THE TOOLBAR'S FOLD STEPS (owner's pickers, 16 Nov 2026; PreviewToolbar.jsx, useToolbarFit) ----------
+     The first line is always one line. Short of room it gives up width in fixed steps, least-used first, each a
+     class on .preview-panel, cumulative: tbf1 (Fill Gaps' switch alone, above, and Header's icon), tbf2 (Fill Gaps,
+     Side Boxes and Header, or the month stepper, fold into the More menu), tbf3 (Build Around's hammer), tbf4 (the text
+     style buttons fold behind the Text button), tbf5 (Waterfall and Month show their icons alone). Shift never folds.
+     Every folded button keeps a hover hint (its title=). ⛔ Nothing here is inside #table-wrap. */
+  /* The fold icons are drawn only at the step that hides their label. ⚠️ By CLASS, not id: useFixedHeaderWidth
+     measures a copy of the Header button with its id removed, and an id rule let the hidden icon widen that copy. */
+  .has-fold-ic .mantine-Button-section[data-position="left"]{ display:none; }
+  .tb-fold-ic{ width:15px; height:15px; flex:none; }
+  /* Step 1: Header shows its icon and caret. Its fixed width (its longest label's) gives way to the icon's. */
+  .preview-panel.tbf1:not(.tbf2) #tb-hdr-mode-btn{ width:auto !important; }
+  .preview-panel.tbf1:not(.tbf2) #tb-hdr-mode-btn .mantine-Button-label{ display:none; }
+  .preview-panel.tbf1:not(.tbf2) #tb-hdr-mode-btn .mantine-Button-section[data-position="left"]{ display:flex; }
+  /* Step 2: the More menu. Below it the wrapper is not a box at all and its button is hidden, so the page tools sit in
+     the line exactly as they did. From it the page tools are SHOWN in a panel under the button: the same nodes, so the
+     engine's delegated clicks and the menus it opens under them work unchanged. The panel hangs right-aligned, so it
+     opens back over the line, never past the preview's right edge (a scroll box: keepPopInPanel's note). */
+  .tb-more{ display:contents; }
+  .tb-more-btn{ display:none; }
+  .preview-panel.tbf2 .tb-more{ display:inline-flex; position:relative; flex:none; }
+  .preview-panel.tbf2 .tb-more-btn, .preview-panel.tbf4 .tb-text-btn{
+    display:inline-flex; align-items:center; justify-content:center; flex:none; height:34px; border:0; padding:0;
+    background:var(--mantine-color-gray-1); color:var(--mantine-color-gray-7); cursor:pointer;
+    border-radius:calc(var(--mantine-radius-default) + 2px);
+  }
+  .preview-panel.tbf2 .tb-more-btn{ width:34px; }
+  .preview-panel.tbf2 .tb-more-btn .btn-ic{ width:16px; height:16px; }
+  .preview-panel.tbf2 .tb-more-btn:hover, .preview-panel.tbf2 .tb-more.is-open .tb-more-btn,
+  .preview-panel.tbf4 .tb-text-btn:hover, .preview-panel.tbf4 .tb-text-btn[aria-expanded="true"]{
+    background:var(--mantine-color-gray-2); color:var(--mantine-color-black);
+  }
+  .tb-more-btn:focus-visible, .tb-text-btn:focus-visible{ outline:2px solid var(--mantine-primary-color-filled); outline-offset:1px; }
+  .preview-panel.tbf2 .tb-more > .tb-page{ display:none; }
+  .preview-panel.tbf2 .tb-more.is-open > .tb-page{
+    display:flex; flex-direction:column; align-items:stretch; gap:2px;
+    position:absolute; top:calc(100% + 6px); right:0; z-index:300; min-width:220px; padding:4px;
+    background:var(--mantine-color-white); border:1px solid var(--mantine-color-gray-3);
+    border-radius:var(--mantine-radius-lg); box-shadow:var(--mantine-shadow-md);
+  }
+  .preview-panel.tbf2 .tb-more .tb-slots, .preview-panel.tbf2 .tb-more .tb-pair{
+    display:flex; flex-direction:column; align-items:stretch; gap:2px;
+  }
+  /* In the month view the panel holds the stepper and Header; Fill Gaps and Side Boxes, which only keep the slot's
+     width on the line, take no room in a menu. */
+  body:has(#view-month-btn.active) .preview-panel.tbf2 .tb-more .tb-pair{ display:none; }
+  /* The stepper stretches across the menu. ⚠️ It must: its inline-size containment gives it no width of its own, and
+     its line-up rule (align-self:center) would leave it 0 px wide in a column. */
+  .preview-panel.tbf2 .tb-more .tb-slots > .month-step{ align-self:stretch; margin:2px 4px 4px; }
+  .preview-panel.tbf2 .tb-more .tb-solo{ width:100% !important; height:32px; background:transparent; }
+  .preview-panel.tbf2 .tb-more .tb-solo .mantine-Button-inner{ width:100%; justify-content:flex-start; }
+  .preview-panel.tbf2 .tb-more .tb-solo .mantine-Button-section[data-position="right"]{ margin-left:auto; }
+  /* In the panel a row with a menu of its own points RIGHT, as a macOS menu's does (owner, 16 Nov 2026): its menu opens
+     beside the panel (app.js, cascadeFrom). The toolbar's ▾ is swapped for a chevron here only. */
+  .preview-panel.tbf2 .tb-more .tb-solo .caret{ font-size:0; line-height:1; }
+  .preview-panel.tbf2 .tb-more .tb-solo .caret::after{ content:'\203A'; font-size:18px; color:var(--mantine-color-gray-6); }
+  /* ...and does not turn when its menu is open (every other caret flips to point up, which made this one point left). */
+  .preview-panel.tbf2 .tb-more .tb-solo[aria-expanded="true"] .caret{ transform:none; }
+  /* It points LEFT where its menu will open on the left (owner's picker, "Arrow follows the side"): app.js measures each
+     menu when the panel opens and writes the side on the row (data-cascade). */
+  .preview-panel.tbf2 .tb-more .tb-solo[data-cascade="left"] .caret::after{ content:'\2039'; }
+  .preview-panel.tbf2 .tb-more .tb-solo:hover:not([data-disabled]),
+  .preview-panel.tbf2 .tb-more .tb-solo[aria-expanded="true"]{ background:var(--mantine-color-gray-1); }
+  .preview-panel.tbf2 .tb-more .tb-solo[data-disabled]{ background:transparent; }
+  /* Step 3: Build Around shows its hammer and caret. */
+  .preview-panel.tbf3 #pop-solve-btn .mantine-Button-label{ display:none; }
+  .preview-panel.tbf3 #pop-solve-btn .mantine-Button-section[data-position="left"]{ display:flex; }
+  /* Turned 45°, the hammer's ink fills less of its box than the upright icons do, so it is drawn a size up. */
+  #pop-solve-btn .tb-fold-ic{ width:18px; height:18px; }
+  /* Step 4: the Text button, in the text style buttons' place, and the buttons themselves in a panel under it. The
+     panel IS the host (PreviewToolbar.jsx places it): fixed, so the preview's scroll box cannot clip it. */
+  .tb-text-btn{ display:none; }
+  .preview-panel.tbf4 .tb-text-btn{ gap:5px; padding:0 10px; font-family:inherit; font-size:14px; font-weight:600; }
+  .tb-text-btn .caret{ color:var(--text-faint); font-size:9px; font-weight:400; }
+  .preview-panel.tbf4 .view-toggle-row > .style-bar-host{ display:none; }
+  /* Step 5: Waterfall and Month, the icons alone (useToolbarFit writes their names as hover hints). */
+  .preview-panel.tbf5 .view-toggle-btn > span{ display:none; }
+  .preview-panel.tbf5 .view-toggle-btn{ padding-left:var(--mantine-spacing-md); padding-right:var(--mantine-spacing-md); }
+  .preview-panel.tbf4 .view-toggle-row > .style-bar-host.is-dropped{
+    display:block; position:fixed; z-index:300; padding:5px;
+    background:var(--mantine-color-white); border:1px solid var(--mantine-color-gray-3);
+    border-radius:var(--mantine-radius-lg); box-shadow:var(--mantine-shadow-md);
   }
   .tools-btn[aria-expanded="true"]{background:var(--bg);}
   /* The SHIFTING tools (four until 4 Nov 2026, when Shift From and Anchor To folded into Shift) wear a NAVY OUTLINE (owner, 21 Oct 2026: "right now all the buttons look
@@ -1836,6 +2047,11 @@
   /* One popover per tool, each anchored under its own button. Right-aligned because these buttons
      sit near the right edge of the preview panel. Each holds a single tool, so none is tall enough
      to need the height cap the old combined menu did. */
+  /* ⚠️ ...on a desktop window. On a short laptop window (657 px for a 1080p Windows laptop at 150%) Build Around ran
+     past the preview panel's bottom, which clips it, and its pin date and Build sat out of sight (audit 2.14, WIN-4).
+     The engine fits an open panel to the window (app.js, "A panel's foot stays on screen"): its phase list gives way,
+     as an inline max-height under .solve-list's own 276 px cap, and a panel still cut off by the preview panel floats
+     where it is. No rule here changed. */
   /* ⛔ NOT a Mantine Popover, and it must not become one. Popover portals by default, which moves
      these panels out from under .tools-menu -- the single ancestor test that keeps their eight
      id'd controls out of every saved file -- and it mounts from an effect, so the panels would not
@@ -2389,6 +2605,16 @@
     display:-webkit-box; -webkit-box-orient:vertical; -webkit-line-clamp:2;
   }
   body.mv-note-sized #table-wrap .mv-bars > .mv-bar.mv-note-block[style*="--mvn-h1"][style*="span 2"]{ height:var(--mvn-h2); }
+  /* ⛔ FROZEN EDIT D1 (PROPOSED, audit AUD2-045, item 3.1, D4 = a): a waterfall line ending in its date takes up to FOUR
+     lanes above 10 px (renderMonthView, mvNoteLineCountSized), so its three- and four-line boxes (each a line more than the
+     one before: --mvn-h2 - --mvn-h1 is one line) show three and four lines. Only such a line ever spans three or four lanes
+     at a note size, so "span 3" / "span 4" can never be "span 30". */
+  body.mv-note-sized #table-wrap .mv-bars > .mv-bar.mv-note-block[style*="--mvn-h1"][style*="span 3"]{
+    height:calc(2 * var(--mvn-h2) - var(--mvn-h1)); -webkit-line-clamp:3;
+  }
+  body.mv-note-sized #table-wrap .mv-bars > .mv-bar.mv-note-block[style*="--mvn-h1"][style*="span 4"]{
+    height:calc(3 * var(--mvn-h2) - 2 * var(--mvn-h1)); -webkit-line-clamp:4;
+  }
   body.mv-note-sized:not(.mv-bar-11):not(.mv-bar-large):not(.mv-bar-13):not(.mv-bar-xl) #table-wrap .mv-pill,
   body.mv-note-sized:not(.mv-bar-11):not(.mv-bar-large):not(.mv-bar-13):not(.mv-bar-xl) #table-wrap .mv-hiatus-bar{ height:17px; }
   body.mv-note-sized:not(.mv-bar-11):not(.mv-bar-large):not(.mv-bar-13):not(.mv-bar-xl) #table-wrap .mv-pill.mv-pill-2l{ height:36px; }
@@ -2699,6 +2925,10 @@
   #print-root .mv-bars > .mv-bar.mv-note-block[style*="--mvn-h1"]{
     display:-webkit-box; -webkit-box-orient:vertical; -webkit-line-clamp:2;
   }
+  /* ⛔ FROZEN EDIT D1 (PROPOSED, AUD2-045): the print rollback's twin of the rules above: three or four lines for a line
+     that keeps its date, as the direct writer draws every line of it (mvlKeepsDate). */
+  #print-root .mv-bars > .mv-bar.mv-note-block[style*="--mvn-h1"][style*="span 3"]{ -webkit-line-clamp:3; }
+  #print-root .mv-bars > .mv-bar.mv-note-block[style*="--mvn-h1"][style*="span 4"]{ -webkit-line-clamp:4; }
   @media print{
     /* Landscape with minimal margins so the grid prints as large as the sheet allows.
        ⛔ FROZEN EDIT (owner-approved, FIX-PLAN R3 / audit L-3, 29 Sep 2026): the PAPER is pinned
@@ -2904,6 +3134,12 @@
      selection's. Purple for Expand (the selection's colour: it becomes a fill), amber for Pull back (the swap layer's
      colour for taking something back). The chip is the only clickable thing on it. Never printed. */
   .grid-hover-layer{ position:absolute; inset:0; pointer-events:none; z-index:1; overflow:hidden; }
+  /* The chip's OWN layer (audit AUD2-062, 14 Nov 2026), the .grid-swap-layer answer below to the same trap: inside
+     the outlines' layer (z 1, a stacking context) the chip painted under the frozen column handles (.grid-resize.is-col,
+     z 5), and over a blank two columns wide its centre, where the owner wants it, is a column boundary: a real click on
+     "Expand?" there hit the handle. Here it is above them; the outlines stay at 1, under the sticky heading row, and the
+     engine clips this layer to below that row as drawn (clipHoverChip), so the chip still scrolls under it. */
+  .grid-hover-layer.is-chip{ z-index:8; }
   .grid-hover-rect{ position:absolute; box-sizing:border-box; border:2px dashed rgba(112,48,160,.8);
     background:rgba(112,48,160,.07); border-radius:2px; }
   .grid-hover-rect.is-pull{ border-color:rgba(185,121,26,.9); background:rgba(232,163,61,.10); }
@@ -3293,7 +3529,12 @@
      the today button entirely and just make the stepper larger"), and so did its own line. 30 px tall, the height of
      the toolbar's other white controls (Shift, Build Around). */
   .month-step{ display:flex; align-items:stretch; height:var(--input-height-xs, 30px); min-width:0; }
-  .tb-slots > .month-step{ justify-self:stretch; align-self:center; }
+  /* ⭐ NO WIDTH OF ITS OWN (audit 2.14, AUD2-034). `container-type:inline-size` gives the stepper inline-size
+     containment, so it adds nothing to the slot's width: the slot is Fill Gaps + gap + Side Boxes in BOTH views, and
+     the first line wraps (or not) at the same point whichever view is on screen. It was wider than the pair at 1300 px
+     and below, where Fill Gaps runs as its bare switch, so at 1280 px Shift, Header and Undo / Redo jumped when Month
+     was clicked, and again as the month's name changed length. Where the full name does not fit, the short one shows. */
+  .tb-slots > .month-step{ justify-self:stretch; align-self:center; container-type:inline-size; }
   .month-step .ms-group{
     flex:1 1 auto; min-width:0; display:inline-flex; align-items:stretch; overflow:hidden; box-sizing:border-box;
     border:1px solid var(--mantine-color-gray-3); border-radius:var(--mantine-radius-default); background:#fff;
@@ -3305,6 +3546,15 @@
   .month-step .ms-label{
     flex:1 1 auto; min-width:0; padding:0 8px; display:flex; align-items:center; justify-content:center; white-space:nowrap;
     font-size:13px; font-weight:600; color:var(--text);
+  }
+  /* The short month (AUD2-034, above): after the label's own rule, so the narrow form's padding wins. */
+  .month-step .ms-short{ display:none; }
+  @container (max-width:184px){
+    .month-step .ms-label{ position:absolute; width:1px; height:1px; overflow:hidden; clip-path:inset(50%); white-space:nowrap; padding:0; }
+    .month-step .ms-short{
+      flex:1 1 auto; min-width:0; padding:0 4px; display:flex; align-items:center; justify-content:center; white-space:nowrap;
+      font-size:13px; font-weight:600; color:var(--text);
+    }
   }
   .month-step .ms-arrow:hover:not(:disabled){ background:var(--mantine-primary-color-filled-hover); }
   .month-step button:disabled{ opacity:.35; cursor:default; }
@@ -3390,7 +3640,11 @@
   .view-toggle-row > .style-row{ order:3; }
   /* With no phase map (the waterfall, or a month view with nothing scheduled) nothing full-width ends the first line,
      so the bar takes a whole line of its own; 260 px could still fit beside the tools and land right of Undo. */
-  .view-toggle-row:not(:has(> .month-map)) > .style-bar-host.style-own-line{ flex-basis:100%; }
+  /* ⚠️ In BOTH views since 13 Nov 2026 (audit 2.14, AUD2-034): below about 1150 px the tools themselves wrap to a second
+     line, and in the month view the bar (basis 260 px) then sat beside them, right of Undo, while in the waterfall it
+     had a line of its own, so it jumped when Month was clicked. Where the tools fit on one line nothing changes: the
+     bar was alone on its line there anyway, the phase map taking the next. */
+  .view-toggle-row > .style-bar-host.style-own-line{ flex-basis:100%; }
   /* The month stepper's line. Empty in the waterfall (the stepper renders nothing there), and then it takes no room,
      not even the row's gap above it. */
   .view-toggle-row > .style-row{
@@ -3960,6 +4214,87 @@
      note palette), at the same gap; a hiatus band's single row keeps the wider one. */
   .note-pop .note-palette-row{ gap:5px; }
   .note-pop .note-palette-row + .note-palette-row{ padding-top:2px; }
+  /* ---- The note editors' look A2 (owner, 4 Nov 2026: "yes A2, but its an "Auto-Note""; mockups/note-editor-look.html,
+     card note-editor-overhaul, PHASE-LINKED-NOTES-PLAN.md §4.4) ----
+     The heading's name in the panel's own type with its day in grey, the text box, then ONE LIST: a name on the left and
+     its value on the right, a hairline between rows (Day, Stays with and its hint, Colour with every swatch out, Show in
+     month view / Show in waterfall, the waterfall's "In this cell" with its Hides), then a foot with Save. Scoped to
+     `.note-a2`, which only the two note editors carry: the heading editor is a .note-pop too and keeps its own look.
+     ⛔ CHROME ONLY. Both editors are body-level panels, never in #table-wrap or #print-root, so nothing here can change
+     what a grid cell looks like or how much text fits in it (CLAUDE.md, the freeze's line). */
+  .note-pop.note-a2, .mv-note-pop.note-a2{ width:272px; padding:14px 14px 12px; }
+  .note-a2 .note-pop-head{ align-items:center; min-height:20px; margin-bottom:8px; }
+  .note-a2 .note-pop-heading{ display:flex; align-items:baseline; gap:8px; min-width:0; overflow:hidden; white-space:nowrap;
+    margin:0; font-size:13px; font-weight:400; letter-spacing:0; text-transform:none; color:var(--mantine-color-black); }
+  .note-a2 .note-pop-heading .note-pop-title{ flex:none; margin:0; font-size:13px; font-weight:600; letter-spacing:0;
+    text-transform:none; color:var(--mantine-color-black); }
+  .note-a2 .note-pop-when{ min-width:0; overflow:hidden; text-overflow:ellipsis; font-size:11.5px; font-weight:400;
+    color:var(--text-faint); }
+  .note-a2 .note-editor{ gap:0; }
+  .note-a2 .note-editor textarea, .mv-note-pop.note-a2 textarea{
+    display:block; font-size:13px; line-height:1.4; min-height:46px; padding:7px 10px; border-radius:8px;
+    background:var(--mantine-color-gray-0); border:1px solid transparent; outline:none;
+    transition:background-color 120ms ease, border-color 120ms ease, box-shadow 120ms ease;
+  }
+  .note-a2 .note-editor textarea:focus, .mv-note-pop.note-a2 textarea:focus{
+    background:var(--mantine-color-white); border-color:var(--mantine-color-navy-2); box-shadow:0 0 0 3px var(--mantine-color-navy-0);
+  }
+  /* What saving does, under the box: a single automatic note's or holiday's line (the old hint, moved up). */
+  .note-a2 .note-pop-hint, .note-a2 .mv-note-pop-hint{ margin:6px 2px 0; font-size:11px; line-height:1.4; color:var(--text-muted); }
+  .note-a2 .note-list{ margin-top:8px; border-top:1px solid var(--mantine-color-gray-2); }
+  .note-a2 .note-item{ display:block; margin:0; padding:0; border:0; border-bottom:1px solid var(--mantine-color-gray-2); }
+  .note-a2 .note-line{ display:flex; align-items:center; gap:10px; min-height:31px; margin:0;
+    font-size:12.5px; color:var(--mantine-color-black); cursor:default; }
+  .note-a2 .note-line .note-row-name, .note-a2 .note-view-label{ flex:none; width:auto; text-align:left;
+    font-size:12.5px; font-weight:400; color:var(--mantine-color-gray-7); }
+  /* The two selects are plain words with a chevron, set to the right edge (A2's "value on the right"), so Day's and
+     Stays with's line up there. Still id-less real <select>s (save-format hygiene). */
+  .note-a2 .note-line select{
+    -webkit-appearance:none; appearance:none; flex:0 1 auto; min-width:0; max-width:178px; margin-left:auto;
+    font:inherit; font-size:12.5px; font-weight:500; color:var(--mantine-color-black);
+    text-align:right; text-align-last:right; background-color:transparent; border:0; border-radius:var(--mantine-radius-sm);
+    padding:3px 16px 3px 4px; cursor:pointer;
+    /* A fixed height (Chrome drew it 30 px tall in a 31 px row), so the select's own box ends above the hint that is
+       tucked under the Stays with row (below). */
+    height:22px; line-height:16px;
+    background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 16 16' xmlns='http://www.w3.org/2000/svg' fill='none' stroke='%23726F68' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4.5 6.5 8 10l3.5-3.5'/%3E%3C/svg%3E");
+    background-repeat:no-repeat; background-position:right 1px center; background-size:11px 11px;
+  }
+  /* Hover and focus are the same soft tint, inside the select's own box. ⛔ NO OUTLINE (owner, 16 Nov 2026: "why do
+     these boxes show up"). Chrome counts a MOUSE click on a <select> as :focus-visible, so the 2 px ring this had drew
+     a dark box on every click, and it stayed until focus moved: the change handler moves focus to the text box, but
+     re-picking the same option, or closing the list, fires no change. The ring sat 1 px outside the select, and its
+     bottom edge ran through the Stays with hint. */
+  .note-a2 .note-line select:hover, .note-a2 .note-line select:focus{ outline:none; background-color:var(--mantine-color-gray-0); }
+  .note-a2 .note-link-hint{ margin:-4px 0 8px; font-size:11px; line-height:1.35; color:var(--text-muted); }
+  .note-a2 .note-link-hint.is-wait{ color:var(--mantine-color-orange-8); }
+  .note-a2 .note-link-also{ margin:-2px 0 8px; font-size:11px; }
+  .note-a2 .note-colour-name{ margin-left:auto; font-weight:500; color:var(--mantine-color-gray-7); }
+  /* Every colour out (the owner's "color is all the chips not a dropdown"): ten to a row on one grid, so the second row's
+     eight sit under the first eight. Each row stays its own .note-color-row, one line each, as the legs read them. */
+  .note-a2 .note-color-row{ display:grid; grid-template-columns:repeat(10, 18px); gap:6px; justify-content:space-between;
+    padding:1px 1px 0; }
+  .note-a2 .note-color-row + .note-color-row{ padding-top:6px; }
+  .note-a2 .note-color-row:last-child{ padding-bottom:11px; }
+  .note-a2 .color-swatch{ width:18px; height:18px; }
+  .note-a2 .note-view-row{ display:flex; align-items:center; justify-content:space-between; gap:10px; min-height:31px;
+    margin:0; padding:0; border-top:0; font-size:12.5px; }
+  /* "In this cell" (WATERFALL-NOTE-EDITOR-PLAN.md R3(a)), the list's last row: the cell's automatic notes and holidays,
+     each with its ↻ / ⚑ and its Hide at the right. */
+  .note-a2 .wf-note-items{ margin:0; padding:6px 0 4px; }
+  .note-a2 .wf-note-items-head{ margin:0 0 2px; font-size:12.5px; font-weight:400; letter-spacing:0; text-transform:none;
+    color:var(--mantine-color-gray-7); }
+  .note-a2 .wf-note-item{ min-height:27px; font-size:12px; }
+  .note-a2 .wf-note-hide{ margin-right:-8px; }
+  .note-a2 .note-pop-foot{ display:flex; align-items:center; gap:8px; margin-top:10px; }
+  .note-a2 .note-pop-keys{ min-width:0; font-size:10.5px; line-height:1.3; color:var(--text-faint); }
+  .note-a2 .note-pop-save{
+    margin-left:auto; flex:none; height:26px; padding:0 12px; border:0; border-radius:var(--mantine-radius-sm);
+    font:inherit; font-size:12px; font-weight:600; color:var(--mantine-color-white);
+    background:var(--mantine-primary-color-filled); cursor:pointer;
+  }
+  .note-a2 .note-pop-save:hover{ background:var(--mantine-primary-color-filled-hover); }
+  .note-a2 .note-pop-save:focus-visible{ outline:2px solid var(--mantine-primary-color-filled); outline-offset:2px; }
   td.sheet-note-cell.has-note{cursor:text; text-align:center;}
   /* A shrunk single-line note sits on the row's centre line like every other cell; a wrapped
      one grows the row and reads better from the top. */
@@ -4108,6 +4443,9 @@
     display:flex; align-items:center; gap:6px; height:28px; min-width:0;
   }
   .sc-tabs{ display:flex; align-items:center; gap:2px; min-width:0; overflow-x:auto; scrollbar-width:none; }
+  /* Only the TABS give way (audit AUD2-060, 14 Nov 2026). With the strip's other items left to shrink, many tabs
+     squeezed Compare down to its icon (31px at 1,440 px with 20 scenarios), its word cut off. */
+  .sc-strip > :not(.sc-tabs){ flex:none; }
   .sc-tabs::-webkit-scrollbar{ display:none; }
   .sc-tab{
     flex:none; display:inline-flex; align-items:center; gap:2px; height:26px; padding:0 10px;
@@ -4129,6 +4467,19 @@
     border:1px solid var(--mantine-primary-color-filled); border-radius:var(--mantine-radius-sm); outline:none;
   }
   .sc-menu-anchor{ position:fixed; width:1px; height:1px; pointer-events:none; }
+  /* Tabs that do not fit (audit AUD2-060, 14 Nov 2026). The strip has no scrollbar, so a cut edge FADES out over 24px
+     (FADE in ScenarioTabs.jsx) to say there is more that way; only an edge that actually cuts a tab off, so a strip
+     whose tabs all fit is untouched. A mask, so it fades the tabs and nothing behind them. */
+  .sc-tabs.is-cut-l{ -webkit-mask-image:linear-gradient(to right, transparent 0, #000 24px); mask-image:linear-gradient(to right, transparent 0, #000 24px); }
+  .sc-tabs.is-cut-r{ -webkit-mask-image:linear-gradient(to left, transparent 0, #000 24px); mask-image:linear-gradient(to left, transparent 0, #000 24px); }
+  .sc-tabs.is-cut-l.is-cut-r{
+    -webkit-mask-image:linear-gradient(to right, transparent 0, #000 24px, #000 calc(100% - 24px), transparent 100%);
+    mask-image:linear-gradient(to right, transparent 0, #000 24px, #000 calc(100% - 24px), transparent 100%);
+  }
+  /* The list of every scenario behind the strip's "All scenarios" button: up to 50 names, so it scrolls. */
+  .sc-list{ max-height:min(60vh, 440px); overflow-y:auto; }
+  .sc-list-tick{ display:inline-flex; width:13px; color:var(--mantine-primary-color-filled); }
+  .sc-list-item[aria-current="true"] .sc-list-name{ font-weight:600; }
   /* The key facts band (KEY-FACTS-PLAN.md; owner, 23 Oct 2026: "lets go for C", the tinted band). Fixed like the
      strip, 8px above it (the strip's 8px + 28px + 8px). The calendar's edges, measured off .preview-panel as the
      strip's `left` is, bound it (below). Each fact is a STAT TILE, a small label over its
@@ -4814,6 +5165,9 @@
 .month-sel-box{ position:fixed; z-index:48; box-sizing:border-box; pointer-events:none; border-radius:3px;
   border:1.5px solid rgba(255,255,255,.95); box-shadow:0 0 0 1.5px #7030A0; background:rgba(112,48,160,.10); }
 .month-sel-box.is-active{ box-shadow:0 0 0 2.5px #7030A0; }
+/* The grid's short message in the month view (drawMvSelFlash): the waterfall's .text-sel-chip, body-level and fixed like
+   the outlines above, and over them. */
+.text-sel-chip.month-sel-chip{ position:fixed; z-index:49; }
 /* N1: a pill keeps its own text colour, so the bar's colour well greys while only pills are picked. */
 .style-bar .hf-swatch.is-disabled{ opacity:.35; pointer-events:none; }
 /* ...and its alignment control while only the month name is picked: centred between the arrows, it cannot move. */
@@ -4845,3 +5199,17 @@
   filter:drop-shadow(0 4px 10px rgba(0,0,0,.28)); will-change:transform;
 }
 .mv-drag-shield{ position:fixed; inset:0; z-index:300; cursor:grabbing; }
+
+/* ⛔ FROZEN-SURFACE EDIT FC1 -- OWNER-APPROVED by picker, 16 Nov 2026, "Keep colours (contrast)" (audit 2026-11, item
+   W.2, WIN-5: "A Windows contrast theme removes the phase colours on screen"). In forced-colors mode (Windows
+   Settings > Accessibility > Contrast themes) Chrome replaces every background with the theme's, so the on-screen
+   waterfall and month view lose every phase fill, hiatus band and coloured note: the colours ARE the calendar's
+   information. forced-color-adjust:none keeps the calendar's own colours there and nowhere else; outside
+   forced-colors mode this block matches nothing, so the screen, both PDFs and the workbook are unchanged byte for
+   byte. #table-wrap is the frozen container (CLAUDE.md), hence the owner's sign-off. The chrome swatches that show
+   the same colours (the phase cards' colour buttons .pc-sw, the phase map, the side boxes' colour keys) follow, so
+   the key and the calendar never disagree. Leg `forcedcolors` (rtleg.mjs emulates the contrast theme over CDP with
+   ?forced=active; run.sh is the control). */
+@media (forced-colors: active){
+  #table-wrap, .month-map, .side-col, .pc-sw{ forced-color-adjust:none; }
+}

@@ -239,7 +239,9 @@ window.addEventListener('load', function () { (async function () {
       kase('C1', 'Copy Stunt rehearsal, Paste on 10/26: a plain note there with the size (9) and row height (60) the note lent its cell; the linked note stays and moves with Production (to 7/13) while the copy stays',
         o.clip === 'Stunt rehearsal\n' && o.pasted === 'Stunt rehearsal' && o.rh === '60px' && same(o.user, { text: 'Stunt rehearsal' }) &&
         o.size === 9 && o.height === 60 && same(o.note, pn(S0)['production@2']) &&
-        /Stunt rehearsal/.test(o.t713) && o.t1026 === 'Stunt rehearsal' && !/Stunt/.test(o.t76), o);
+        // ⭐ Re-expected 13 Nov 2026 (audit AUD2-001, owner's D1 (a)): Production one week later moves the WRAP into 10/26, so
+        // its automatic line now joins the pasted copy there. Before, the typed copy hid the wrap in every output.
+        /Stunt rehearsal/.test(o.t713) && o.t1026 === 'Principal Photography Wraps 10/26/26\nStunt rehearsal' && !/Stunt/.test(o.t76), o);
       await load(S0text);
     });
     await step('C2', async function () {

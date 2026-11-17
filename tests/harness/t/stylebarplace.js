@@ -2,9 +2,13 @@
 // Build Around, the text style bar, the page tools (Fill Gaps, Side Boxes, Header: each its own grey button) and Undo /
 // Redo. In the month view the month stepper (no Today) takes Fill Gaps' and Side Boxes' place, in the same grid cell, so
 // nothing moves between views. ONE equal gap after every item, Redo's to the edge included, solved to fill the row
-// (useStyleBarFit, --tb-gap-fit on .preview-panel), never under 10 px. Nothing moves as you click around: Highlight is
-// always in the bar (greyed until a header or side-box line is picked), Header has a fixed width, Fill Gaps never leaves.
-// Where the line cannot fit, the text bar alone drops to its own line directly under it (`.style-own-line` on the host).
+// (useToolbarFit, --tb-gap-fit on .preview-panel), never under 10 px and, since 16 Nov 2026, never over 14 px: on a wide
+// window the line stays at its laptop size, packed LEFT, the spare room after Redo (owner's picker "On the right").
+// Nothing moves as you click around: Highlight is always in the bar (greyed until a header or side-box line is picked),
+// Header has a fixed width, Fill Gaps never leaves.
+// Where the line cannot fit it FOLDS, always one line (owner's picker, 16 Nov 2026, "Icons, then a More menu"): classes
+// tbf1-tbf5 on .preview-panel, cumulative. Until then the text bar alone dropped to its own line (`.style-own-line`).
+// The real-window side (window widths, the menus, the 960 px minimum) is toolbarfit.mjs.
 //
 //   HARNESS_PAGE=/dist/index.html HARNESS_STATE=fill-intent ./run.sh stylebarplace 300
 //
@@ -12,12 +16,17 @@
 // harness window is fixed (1600 x 1200), so the leg sets the ROW's width to put the line either side of the fit.
 //
 // CASES
-//   P0  the order: view toggle | date tools | text bar's host | tools [page tools (slot [pair, stepper], Header), Undo]
+//   P0  the order: view toggle | date tools | Text button | text bar's host | tools [More [⋯, page tools (slot [pair,
+//       stepper], Header)], Undo]
 //   P1  the text bar's controls are Shift's height (30 px); the Size box draws its own arrow 8 px in
-//   P2  room for everything: one line, centred; all eight gaps equal (within 0.5 px), none under --tb-gap-min
+//   P2  a wide row: one line, nothing folded, packed left; the seven gaps between items all --tb-gap-max (14 px) and
+//       the spare room after Redo
+//   P2b just over the fit: all eight gaps equal (within 0.5 px), between --tb-gap-min and --tb-gap-max
 //   P3  nothing moves when a header line is picked: Highlight comes on (it was greyed), every shared box stays put
-//   P4  no room: the text bar alone on its own line directly under the first, at the row's left; the first line intact
-//   P5  the fit holds still: the class does not change once settled
+//   P4  no room: the line FOLDS instead of wrapping. Narrowing the row step by step, the level never goes back down, it
+//       reaches 5, every control on show stays level with the view toggle and inside the row, nothing drops to a
+//       second line, and no `.style-own-line`
+//   P5  the fit holds still: the level does not change once settled, wide or narrow
 //   P6  the month view: the stepper covers the slot's span exactly, no Today; every shared box at the same place and size
 //   P7  the hint is the bar's tooltip while nothing is picked, and goes once something is
 //   P8  one value: the row's, the date tools', the page tools', the pair's and the tools' gaps are all --tb-gap; the solved
@@ -26,7 +35,8 @@
 //   P10 the looks: the view toggle, the text bar and Undo / Redo are one well look; Fill Gaps, Side Boxes and Header are grey
 //       34 px buttons with no border; the date tools have no well
 //   P11 the switch reads "Fill Gaps"; Header keeps one width in every mode, and Manual wears the navy outline, moving nothing
-//   P12 the month view, no room: the text bar's own line sits directly under the first line, above the phase map
+//   P12 the month view, folded (level 2+): the stepper is not on the line but in the More panel, the line is one line
+//       above the phase map, and the ⋯ button opens the panel with the stepper in it
 //   Z   no console error (a ResizeObserver loop would land here)
 window.__T.memoryIDB();
 window.addEventListener('load', function () { (async function () {
@@ -39,6 +49,13 @@ window.addEventListener('load', function () { (async function () {
   function rnd(r){ return [Math.round(r.left), Math.round(r.top), Math.round(r.right), Math.round(r.bottom)]; }
   var row, host, bar, tog, tools, panel;
   function own(){ return host.classList.contains('style-own-line'); }
+  function lvl(){ return [1, 2, 3, 4, 5].filter(function (k) { return panel.classList.contains('tbf' + k); }).length; }
+  // The controls on show on the first line, whatever the level.
+  function onLine(){
+    return [tog, $id('shift-group'), $id('pop-solve-btn'), q('.tb-text-btn', row), bar, $id('tb-fill-space-btn'), $id('tb-side-boxes-btn'),
+            $id('tb-hdr-mode-btn'), q('.tb-more-btn', row), q('.undo-redo-group', row)]
+      .filter(function (e) { return e && e.getClientRects().length && R(e).width > 0 && !e.closest('.tb-more.is-open .tb-page'); });
+  }
   function $id(id){ return document.getElementById(id); }
   // The first line's items, in order, and what the fit needs (the eight items at the smallest gap).
   function items(){ return [tog, $id('shift-group'), $id('pop-solve-btn'), bar, $id('tb-fill-space-btn'), $id('tb-side-boxes-btn'), $id('tb-hdr-mode-btn'), q('.undo-redo-group', row)]; }
@@ -59,7 +76,7 @@ window.addEventListener('load', function () { (async function () {
   }
   function moved(a, b){ var w = 0; Object.keys(a).forEach(function (k) { if(b[k]) for(var j = 0; j < 3; j++) w = Math.max(w, Math.abs(a[k][j] - b[k][j])); }); return +w.toFixed(2); }
   async function setRowWidth(w){ row.style.width = w == null ? '' : w + 'px'; window.dispatchEvent(new Event('resize')); await T.sleep(300); }
-  async function steady(){ var seen = [own()]; for(var i = 0; i < 8; i++){ await T.sleep(60); seen.push(own()); } return seen.every(function (v) { return v === seen[0]; }); }
+  async function steady(){ var seen = [lvl()]; for(var i = 0; i < 8; i++){ await T.sleep(60); seen.push(lvl()); } return seen.every(function (v) { return v === seen[0]; }); }
   async function view(v){ $id('view-' + v + '-btn').click(); await T.until(function () { return v === 'month' ? !!q('#table-wrap .month-view') : !q('#table-wrap .month-view'); }, 'the ' + v + ' view', 100, 50); await T.sleep(400); }
   try {
     await T.appReady();
@@ -70,15 +87,17 @@ window.addEventListener('load', function () { (async function () {
 
     // ---- P0: the order ----
     var kids = Array.from(row.children).map(function (e) { return e.classList.contains('tb-dates') ? 'tb-dates' : e.className.split(' ')[0]; });
-    var tkids = Array.from(tools.children).map(function (e) { return e.classList.contains('tb-page') ? 'tb-page' : e.classList.contains('undo-redo-group') ? 'undo-redo-group' : e.className; });
-    var page = q('.tb-page', tools), slots = page && q(':scope > .tb-slots', page), pair = slots && q(':scope > .tb-pair', slots);
-    var ok0 = kids.indexOf('tb-dates') === kids.indexOf('view-toggle') + 1 && kids.indexOf('style-bar-host') === kids.indexOf('tb-dates') + 1 &&
-      kids.indexOf('preview-tools') === kids.indexOf('style-bar-host') + 1 && JSON.stringify(tkids) === JSON.stringify(['tb-page', 'undo-redo-group']) &&
+    var tkids = Array.from(tools.children).map(function (e) { return e.classList.contains('tb-more') ? 'tb-more' : e.classList.contains('undo-redo-group') ? 'undo-redo-group' : e.className; });
+    var more = q(':scope > .tb-more', tools), page = more && q(':scope > .tb-page', more), slots = page && q(':scope > .tb-slots', page), pair = slots && q(':scope > .tb-pair', slots);
+    var ok0 = kids.indexOf('tb-dates') === kids.indexOf('view-toggle') + 1 && kids.indexOf('tb-text-btn') === kids.indexOf('tb-dates') + 1 &&
+      kids.indexOf('style-bar-host') === kids.indexOf('tb-text-btn') + 1 &&
+      kids.indexOf('preview-tools') === kids.indexOf('style-bar-host') + 1 && JSON.stringify(tkids) === JSON.stringify(['tb-more', 'undo-redo-group']) &&
+      more.firstElementChild === q('.tb-more-btn', more) && !q('.tb-more-btn', more).id && !q('.tb-text-btn', row).id &&
       !!pair && !!q('#tb-fill-space-btn', pair) && !!q('#tb-side-boxes-btn', pair) && page.lastElementChild === $id('tb-hdr-mode-btn') &&
       !!q('#shift-group', q('.tb-dates', row)) && !!q('#pop-solve-btn', q('.tb-dates', row)) && !qa('[id]', host).length &&
       row.nextElementSibling === $id('table-wrap');
-    add('P0', 'the order: view toggle | date tools | text bar | tools [page tools (slot [Fill Gaps, Side Boxes | stepper], Header), Undo / Redo]',
-        ok0, {row: kids, tools: tkids, pair: !!pair}, 'view-toggle | tb-dates | style-bar-host | preview-tools [tb-page, undo-redo-group] | …');
+    add('P0', 'the order: view toggle | date tools | Text button | text bar | tools [More [⋯, page tools (slot [Fill Gaps, Side Boxes | stepper], Header)], Undo / Redo]',
+        ok0, {row: kids, tools: tkids, pair: !!pair}, 'view-toggle | tb-dates | tb-text-btn | style-bar-host | preview-tools [tb-more, undo-redo-group] | …');
 
     // ---- P1: the text bar's controls ----
     var shiftH = Math.round(R($id('shift-group')).height);
@@ -90,14 +109,22 @@ window.addEventListener('load', function () { (async function () {
 
     var hintIdle = bar.title;
 
-    // ---- P2: room for everything ----
-    await setRowWidth(Math.ceil(need()) + 60);
+    // ---- P2: a wide row: the laptop size, packed left ----
+    function maxGap(){ return parseFloat(getComputedStyle(row).getPropertyValue('--tb-gap-max')); }
+    await setRowWidth(2400);
+    var NEED = need();   // measured with nothing folded
     var s2 = await steady(), rowClassWide = row.className, rowStyleWide = row.getAttribute('style');
-    var g2 = gaps(), mids2 = items().map(function (e) { return mid(R(e)); });
-    var spread = Math.max.apply(null, g2) - Math.min.apply(null, g2);
-    add('P2', 'room for everything: one line, centred; all eight gaps equal, Redo to the edge included, none under the minimum',
-        !own() && s2 && spread < 0.5 && Math.min.apply(null, g2) >= minGap() - 0.01 && Math.max.apply(null, mids2) - Math.min.apply(null, mids2) < 1,
-        {own: own(), gaps: g2, min: minGap()}, 'eight equal gaps');
+    var g2 = gaps(), inner2 = g2.slice(0, 7), mids2 = items().map(function (e) { return mid(R(e)); });
+    add('P2', 'a wide row: nothing folded, one line, packed left; the seven gaps between items all --tb-gap-max, the spare room after Redo',
+        lvl() === 0 && s2 && maxGap() === 14 && inner2.every(function (g) { return Math.abs(g - maxGap()) < 0.5; }) && g2[7] > 300 &&
+          Math.abs(R(tog).left - R(row).left) < 1 && Math.max.apply(null, mids2) - Math.min.apply(null, mids2) < 1,
+        {level: lvl(), gaps: g2, max: maxGap(), toggleLeft: Math.round(R(tog).left - R(row).left)}, 'seven gaps of 14, spare after Redo');
+    // ---- P2b: just over the fit ----
+    await setRowWidth(Math.ceil(NEED) + 16);
+    var g2b = gaps(), spread = Math.max.apply(null, g2b) - Math.min.apply(null, g2b);
+    add('P2b', 'just over the fit: nothing folded; all eight gaps equal, Redo to the edge included, between the minimum and the maximum',
+        lvl() === 0 && !own() && spread < 0.5 && Math.min.apply(null, g2b) >= minGap() - 0.01 && Math.max.apply(null, g2b) <= maxGap() + 0.01,
+        {level: lvl(), gaps: g2b, min: minGap(), max: maxGap()}, 'eight equal gaps, 10-14');
 
     // ---- P8: one value ----
     var tbGap = getComputedStyle(row).getPropertyValue('--tb-gap').trim();
@@ -156,24 +183,35 @@ window.addEventListener('load', function () { (async function () {
           getComputedStyle($id('tb-side-boxes-btn')).visibility === 'hidden' && getComputedStyle($id('tb-fill-space-btn')).visibility === 'hidden',
         {stepper: stR && rnd(stR), slot: [Math.round(fR.left), Math.round(sR.right)], today: !!(st && q('.ms-today', st)), moved: mM}, {moved: 0, today: false});
 
-    // ---- P12: the month view, no room ----
-    await setRowWidth(Math.floor(need()) - 60);
-    var b12 = R(bar), sh12 = R($id('shift-group')), map12 = q('.view-toggle-row > .month-map');
-    add('P12', 'the month view, no room: the text bar\'s own line sits directly under the first line, above the phase map, at the row\'s left',
-        own() && b12.top >= sh12.bottom && !!map12 && b12.bottom <= R(map12).top && Math.abs(b12.left - R(row).left) < 1,
-        {own: own(), bar: rnd(b12), mapTop: map12 && Math.round(R(map12).top)}, 'under the first line, above the map');
+    // ---- P12: the month view, folded ----
+    await setRowWidth(Math.floor(NEED) - 260);
+    var lv12 = lvl(), st12 = q('.tb-slots > .month-step', row), sh12 = R($id('shift-group')), map12 = q('.view-toggle-row > .month-map');
+    var line12 = onLine().every(function (e) { return Math.abs(mid(R(e)) - mid(sh12)) < 1; });
+    var offLine = !!st12 && !st12.getClientRects().length;
+    q('.tb-more-btn', row).click(); await T.sleep(300);
+    var inPanel = !!st12 && st12.getClientRects().length > 0 && !!st12.closest('.tb-more.is-open .tb-page') && R(st12).width > 150;
+    document.body.dispatchEvent(new KeyboardEvent('keydown', {key: 'Escape', bubbles: true, cancelable: true})); await T.sleep(250);
+    add('P12', 'the month view, folded: the stepper leaves the line for the More panel, the line stays one line above the phase map, and ⋯ shows the stepper',
+        lv12 >= 2 && offLine && line12 && !!map12 && R(map12).top >= sh12.bottom && inPanel && !q('.tb-more', row).classList.contains('is-open'),
+        {level: lv12, offLine: offLine, oneLine: line12, inPanel: inPanel}, 'level 2+, stepper in the panel');
     await setRowWidth(null);
     await view('sheet');
 
-    // ---- P4 + P5: no room ----
-    await setRowWidth(Math.floor(need()) - 60);
+    // ---- P4 + P5: no room: it folds ----
+    var ladder = [], bad = [], prev = 0;
+    for(var w = Math.floor(NEED) - 1; w >= 540; w -= 40){
+      await setRowWidth(w);
+      var L = lvl(), shown = onLine(), tgm = mid(R(tog)), rr = R(row).right;
+      var level = shown.every(function (e) { return Math.abs(mid(R(e)) - tgm) < 1; });
+      var inside = shown.every(function (e) { return R(e).right <= rr + 0.5; });
+      ladder.push(w + ':' + L);
+      if(L < prev || !level || !inside || own() || bar.getBoundingClientRect().top > R(tog).bottom) bad.push({w: w, level: L, oneLine: level, inside: inside, own: own()});
+      prev = L;
+    }
     var s4 = await steady(), rowClassNarrow = row.className, rowStyleNarrow = row.getAttribute('style');
-    var b4 = R(bar), tl4 = R(tools), dt4 = R(q('.tb-dates', row)), tg4 = R(tog);
-    add('P4', 'no room: the text bar alone on its own line directly under the first, at the row\'s left; the first line intact at the minimum gap',
-        own() && b4.top >= tl4.bottom && Math.abs(b4.left - R(row).left) < 1 && Math.abs(mid(tg4) - mid(tl4)) < 1 && Math.abs(mid(dt4) - mid(tl4)) < 1 &&
-          Math.abs(tl4.left - dt4.right - minGap()) < 0.5 && !panel.style.getPropertyValue('--tb-gap-fit'),
-        {own: own(), bar: rnd(b4), tools: rnd(tl4), datesToTools: +(tl4.left - dt4.right).toFixed(2)}, 'bar under the first line');
-    add('P5', 'the fit holds still: the class does not change once settled, on either side of it', s2 && s4, {wide: s2, narrow: s4}, 'steady');
+    add('P4', 'no room: it folds instead of wrapping; narrowing step by step the level never goes back, reaches 5, and every control on show stays on one line inside the row',
+        !bad.length && prev === 5 && ladder.length > 10, {ladder: ladder.join(' '), bad: bad.slice(0, 4)}, 'monotonic 0 to 5, one line');
+    add('P5', 'the fit holds still: the level does not change once settled, wide or narrow', s2 && s4, {wide: s2, narrow: s4}, 'steady');
     await setRowWidth(null);
 
     // ---- P9: the row carries nothing ----

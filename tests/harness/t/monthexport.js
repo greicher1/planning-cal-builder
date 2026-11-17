@@ -24,7 +24,7 @@
 //       slot shows its own text instead: mvheaderlegacy's is "{version}")
 //   X1  a build that FAILS offers the print path (owner ruling 2): Cancel prints nothing and writes nothing; "Print
 //       instead" runs the print path, one page per month; nothing is written either way
-//   X2  ⭐ Export PDF writes the month PDF through the Save dialog: one call, named "<title> Month Calendar.pdf", PDF
+//   X2  ⭐ Export PDF writes the month PDF through the Save dialog: one call, named "<title> <season> Month Calendar <yyyy-mm-dd> <version>.pdf", PDF
 //       typed, one write, closed; a PDF with one page per month; no print; the button busy, then not. And its bytes
 //       ARE the sliced source's for the same calendar
 //   X3  a cancelled dialog (AbortError) is silent: no file, no dialog of the app's own, no print, the button free
@@ -33,7 +33,7 @@
 //   X5  a soft hyphen is dropped (step 5): a note typed with one gives no warning, and its lines carry none
 //   X6  characters the PDF cannot set are NAMED first (owner ruling 4): the warning lists each one and where it is,
 //       names the ones that print as a box; Cancel writes nothing; Export anyway writes the slice's bytes
-//   X7  (phase 2) without the File System Access API the PDF DOWNLOADS: "<title> Month Calendar.pdf", application/pdf,
+//   X7  (phase 2) without the File System Access API the PDF DOWNLOADS: "<title> <season> Month Calendar <yyyy-mm-dd> <version>.pdf", application/pdf,
 //       the same bytes as phase 1's
 //   T0  the build fits well inside a click's activation (Chrome allows 5 s): real-clock runs only (?realtime=1)
 //   E0  no console errors but the one X1 caused on purpose
@@ -99,6 +99,32 @@ window.addEventListener('load', function () { (async function () {
     return T.modalText();
   }
   async function clickExport(){ await T.sleep(700); btn().click(); }   // past the button's 600 ms re-click guard
+  // ⭐ THE SMALL-TYPE NOTICE (audit AUD2-043, item 3.1, the owner's D4 = a, 14 Nov 2026): Export now stops before the Save
+  // dialog on a calendar with a month whose notes and bars print below 6 pt (monthscale's, month-dense60's and
+  // month-lanecap's Augusts), naming those months. t/textfit.js holds the notice; here it is answered "Export anyway" the
+  // moment it opens, as a user exporting such a calendar answers it, and an answered one is invisible to modalText() and
+  // clickModalButton() while it closes, so every case below meets exactly the dialogs it met before. The file is the same
+  // either way (the notice changes no byte). info.smallNotices counts the answers.
+  info.smallNotices = 0;
+  new MutationObserver(function(){
+    Array.prototype.forEach.call(document.querySelectorAll('.mantine-Modal-content'), function(d){
+      if(d.__smallAnswered || !/prints? very small/.test(d.textContent || '')) return;
+      var b = Array.prototype.find.call(d.querySelectorAll('button'), function(x){ return (x.textContent || '').trim() === 'Export anyway'; });
+      if(b){ d.__smallAnswered = true; info.smallNotices++; b.click(); }
+    });
+  }).observe(document.documentElement, {childList: true, subtree: true});
+  T.modalText = (function(base){ return function(){
+    return Array.from(document.querySelectorAll('.mantine-Modal-content'))
+      .filter(function(d){ return !d.__smallAnswered && !d.closest('.export-pdf-dlg'); })
+      .map(function(d){ return (d.innerText || d.textContent || '').replace(/\s+/g, ' ').trim(); }).filter(Boolean).join(' || ');
+  }; })(T.modalText);
+  T.clickModalButton = function(label){
+    var b = Array.from(document.querySelectorAll('.mantine-Modal-content')).filter(function(d){ return !d.__smallAnswered; })
+      .reduce(function(a, d){ return a.concat(Array.from(d.querySelectorAll('button'))); }, [])
+      .find(function(x){ var t = (x.innerText || x.textContent || '').trim(); return label instanceof RegExp ? label.test(t) : t === label; });
+    if(b) b.click();
+    return !!b;
+  };
   try {
     await T.appReady();
     if(!fromState){
@@ -114,7 +140,17 @@ window.addEventListener('load', function () { (async function () {
     if(await T.applyNoteSizeQuery()) await settle('the calendar at its note size');   // MONTH-NOTE-SIZE-PLAN.md step 3
     info.barSize = T.barSizeShown();
     var title = (document.getElementById('show-title').value || '').trim();
-    var wantName = (title ? title.replace(/[\\/:*?"<>|]/g, '-').replace(/\s+/g, ' ').trim() + ' ' : '') + 'Month Calendar.pdf';
+    // Since audit 2026-11 AUD2-025 (D8 = c) the name carries the season, the Date Last Edited (yyyy-mm-dd, the stamp
+    // this leg cannot read, so any date) and the Version as typed; since 16 Nov 2026 the season sits beside the title
+    // (owner-approved, exportFileName): "<title> S2 Month Calendar 2026-11-13 v3.pdf". Re-expected then (it was
+    // "<title> Month Calendar S2 …"), and tightened: a calendar with a season must carry it, "S<n>" or "S<n> & S<m>".
+    var reEsc = function (s) { return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); };
+    var verTyped = ((document.getElementById('show-version') || {}).value || '').replace(/[\\/:*?"<>|]/g, '-').replace(/\s+/g, ' ').trim();
+    var seasonNum = parseInt(((document.getElementById('season-num') || {}).value || '').trim(), 10);
+    var wantName = '^' + reEsc(title ? title.replace(/[\\/:*?"<>|]/g, '-').replace(/\s+/g, ' ').trim() + ' ' : '')
+                 + (seasonNum >= 1 ? 'S' + seasonNum + '(?:(?:, S\\d+)* & S\\d+)? ' : '')
+                 + 'Month Calendar \\d{4}-\\d{2}-\\d{2}' + (verTyped ? ' ' + reEsc(verTyped) : '') + '\\.pdf$';
+    var nameOk = function (n) { return new RegExp(wantName).test(n || ''); };
     info.window = [window.innerWidth, window.innerHeight];
     info.tz = {zone: Intl.DateTimeFormat().resolvedOptions().timeZone, offsetMin: new Date().getTimezoneOffset()};
 
@@ -134,8 +170,8 @@ window.addEventListener('load', function () { (async function () {
       URL.createObjectURL = realURL; HTMLAnchorElement.prototype.click = realClick;
       var dlBytes = dl ? new Uint8Array(await dl.arrayBuffer()) : null;
       var want = keep.built ? unb64(keep.built) : null;
-      add('X7', 'without the File System Access API the month PDF DOWNLOADS: "<title> Month Calendar.pdf", application/pdf, the same bytes as with the Save dialog',
-          window.__NOFSA === 'undefined' && !!dl && dl.type === 'application/pdf' && name === wantName && sameBytes(dlBytes, want),
+      add('X7', 'without the File System Access API the month PDF DOWNLOADS: "<title> <season> Month Calendar <date> <version>.pdf", application/pdf, the same bytes as with the Save dialog',
+          window.__NOFSA === 'undefined' && !!dl && dl.type === 'application/pdf' && nameOk(name) && sameBytes(dlBytes, want),
           {api: window.__NOFSA, type: dl && dl.type, name: name, wantName: wantName, bytes: dlBytes && dlBytes.length, sameAsPhase1: sameBytes(dlBytes, want)},
           'undefined; that name; application/pdf; identical');
       var errs = (T.appHealth().errors || []).filter(function (e) { return !/font-inter-600/.test(e); });
@@ -255,7 +291,7 @@ window.addEventListener('load', function () { (async function () {
     var call = sp2.calls[0] || {};
     var types = call.types || [];
     add('X2', 'Export PDF writes the month PDF through the Save dialog, one page per month, and its bytes ARE the sliced source\'s, then the SPTCal mark',
-        sp2.calls.length === 1 && call.suggestedName === wantName &&
+        sp2.calls.length === 1 && nameOk(call.suggestedName) &&
         same(types, [{description: 'PDF document', accept: {'application/pdf': ['.pdf']}}]) &&
         !!f2 && f2.closed && f2.parts.length === 1 && T.pdfPages(built) === ref.months && prints2 === 0 && busySeen && !busy() &&
         sameBytes(writerOf(built), ref.bytes),

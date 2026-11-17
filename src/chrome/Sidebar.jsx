@@ -22,6 +22,7 @@ import { TextInput, NativeSelect, NumberInput, Input, Button, Text, Group, Stack
 import { IconTv, IconMapPin, IconCalendarDot, IconCalendarRange, IconShare, IconHeading, IconNote, IconRows, IconCalendarPlain, IconPause } from './icons.jsx'
 import { InfoHint } from './InfoHint.jsx'
 import { installChrome } from './bridge.js'
+import { keyLabel } from './keys.js'
 import { useSeasons, seasonsText } from './SeasonPop.jsx'
 
 const SEASONS = [
@@ -501,8 +502,10 @@ export function WaterfallCard() {
         <Divider my="sm" />
         <SettingRow htmlFor="wf-date-format" label="Dates">
           <NativeSelect id="wf-date-format" size="xs" w={132} aria-label="Dates"
-                        title="How the waterfall’s Date column reads, on screen, in Excel and in the PDF">
-            {/* Owner, 11 Nov 2026: the four in this order, named by pattern. Unpadded output (owner's
+                        title="How the waterfall’s Date column reads, on screen, in Excel and in the PDF. DD/MM puts every date in the calendar day first, notes and header included, and reads dates you type or paste day first">
+            {/* Since 13 Nov 2026 (audit item 2.4, the owner's decision D3 (a)) DD/MM is the calendar's ORDER: every
+                date the app writes or reads follows it (datesDayFirst in app.js). MM/DD/YYYY is the Date column only.
+                Owner, 11 Nov 2026: the four in this order, named by pattern. Unpadded output (owner's
                 picker): MM/DD/YY still draws 1/6/25. The values are the save format: '' is the absent
                 key, the others are permanent (WEEK_DATE_FORMATS in app.js). */}
             <option value="m/d/yyyy">MM/DD/YYYY</option>
@@ -912,7 +915,8 @@ export function HiatusPrefsCard() {
         <InfoHint label="Ripple Hiatus Periods" width={300}>
           On: when a hiatus is added, removed, lengthened, shortened or moved, every phase that starts on or
           after it moves by the same number of weeks, so the gaps between phases stay as they were. Locked
-          hiatuses, holidays and notes with a date stay put. ⌘Z takes back the push and keeps your hiatus change.
+          hiatuses, holidays and notes with a date stay put. {keyLabel('Mod+Z')} takes back your hiatus change and its push
+          together. To change a hiatus without moving anything else, turn this off first.
         </InfoHint>
       </h2>
       <div className="side-block">

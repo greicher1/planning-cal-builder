@@ -1,8 +1,18 @@
 # AUTONOTE-FOLLOW-PLAN.md: an edited auto-note follows EVERY schedule change, not only drags and shifts
 
-**Status: PLANNED AND RULED, NOT BUILT.** The owner approved all three recommendations by picker (§7). The build
-waits for `autonote-grips` to be merged into `main` (§6). Written 19 Oct 2026 as the follow-up to branch
-`autonote-grips` (`5e487d1`, `932badf`), which fixed the month-view drags. No frozen code. No save-format change.
+**Status: BUILT 13 Nov 2026, WIDENED** (branch `audit-1-1`; the November audit's Batch 1 item 1.1, AUD2-001/002/003).
+The owner's decision D1 (a), 13 Nov 2026, widened this plan: a line is also ADDED when its holiday or milestone arrives
+in a typed week (moved in, ticked into the waterfall, switched on), TAKEN OUT when switched off, hidden or removed, and
+matched ANYWHERE in the note by what it is (its kind or holiday id), not only when the note opens with it (§3.5's
+"known limit" is gone). As built: `followAutoNotes` in `src/legacy/app.js`, run by `update()` (where §3.2 put it) and
+by `markDirty()` (a holiday's Waterfall box only repaints). The memory is a session-only WeakMap keyed by the note
+OBJECT rather than §3.1's per-week table, so a Shift's re-key carries it and no hold is needed (§3.3's
+`noteFollowHold`); `shiftCalendarDates` primes it before the re-key. §3.4 as written: `autoNoteBaseline()` is inert.
+§3.5's rules hold: the user's lines stay on their week, nothing is rewritten on Load, no frozen code, no save-format
+change. Leg `autonotefollow` (this plan's §5 cases, in its own shape). HANDOFF's 13 Nov 2026 entry is the record.
+
+*Original status:* PLANNED AND RULED, NOT BUILT. The owner approved all three recommendations by picker (§7). Written
+19 Oct 2026 as the follow-up to branch `autonote-grips` (`5e487d1`, `932badf`), which fixed the month-view drags.
 
 ---
 

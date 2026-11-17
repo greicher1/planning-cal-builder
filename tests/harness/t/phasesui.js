@@ -282,6 +282,10 @@ window.addEventListener('load', function () { (async function () {
     // ===== P7: the all-phase hiatus card ============================================================================
     await step('P7', async function () {
       var row = document.querySelector('#hiatus-list > .hiatus-entry');
+      // ⚠️ Since 13 Nov 2026 (audit 2.14, AUD2-036, approved) a calendar opens with its all-phase hiatus cards FOLDED to
+      // their head, so the card is opened by its caret first, as a user would, to see its switches.
+      var caret = row.querySelector('.hiatus-collapse-btn');
+      if (row.classList.contains('is-collapsed') && caret) { caret.click(); await T.sleep(150); }
       var range = txt(row.querySelector('.hiatus-range')), name = row.querySelector('.hiatus-head .hiatus-name');
       var lock = row.querySelector('.hiatus-lock.sw-row > .hiatus-locked'), num = row.querySelector('.hiatus-numbered.sw-row > .hiatus-num');
       var head = rgb(getComputedStyle(row.querySelector('.hiatus-head')).backgroundColor);

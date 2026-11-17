@@ -68,7 +68,19 @@ is a global — see §11).
 **Google Fonts** (two `preconnect`s plus a `css2` stylesheet for Inter and IBM Plex Mono). ⚠️ The
 build has neither font dependency: IBM Plex Mono was dropped and Inter is embedded
 (`src/styles/inter.css`), so `dist/index.html` fetches nothing but ExcelJS. Everything else
-is inline. The app is otherwise fully offline-capable and makes no network requests.
+is inline, and apart from ExcelJS and the update check's `version.json` the build makes no network
+requests.
+
+⚠️ **That does NOT make the installed app work offline** (corrected 14 Nov 2026, November 2026 audit
+AUD2-063; it said "fully offline-capable" until then, which was true only of the old single file and
+of shareable copies opened from disk). The installed app is the hosted page with **no service worker**
+(deliberate since v1.2.0: an earlier one served a stale app), so it needs an internet connection to
+START; a launch with no connection gets the browser's offline page. The owner's decision D7 (a)
+(13 Nov 2026) keeps it that way and has the app say so (Help) rather than add an offline cache.
+Excel export needs the network too: ExcelJS is fetched at launch, and since the same audit (AUD2-064)
+a press of Export to Excel with it missing fetches it again and says plainly what happened
+(`loadExcelLib` / `ensureExcelLib` in `src/legacy/app.js`). A shareable copy opened from disk starts
+offline, but its Excel export still needs the network.
 
 **The DEPLOYED FILE has no build step.** ⚠️ The repo now has all four of the things this line used
 to deny: Vite + React 19 + Mantine 9.5.2 (`npm run dev` / `npm run build` → `dist/index.html`), a
@@ -644,8 +656,9 @@ id, everything is inside `.tools-menu`, never saved.
   small buttons stacked inside each card's date box, in the waterfall only, each moving THAT phase one week (`nudgePhase`). It is
   the `part` move above with one phase and an **empty** week window (`fromWeek` after `toWeek`; null bounds would be
   open, and carry every note). So the phase's own hiatus and every `<week>|<key>` store travel; typed notes, all-phase
-  hiatuses, the range and (`opts.keepView`) the month view's cursor stay. An edited automatic note sheds its standard
-  line, as on the month drag (`autoNoteBaseline`, from the burst's first click). The gaps either side change.
+  hiatuses, the range and (`opts.keepView`) the month view's cursor stay. A typed note's automatic lines follow the
+  calendar, as on every mover since 13 Nov 2026 (`followAutoNotes`, below; `autoNoteBaseline` is inert). The gaps either
+  side change.
   - **A burst is one undo step**, ended by a 1.6 s pause or any other press or key (capture listeners), and its
     label reads "Pushed 2 wks" / "Pulled 1 wk" / "Back where it was".
   - **Production's day marks are bound for the whole burst** (`beginShootDayMove()` at the first click, ended by
@@ -659,6 +672,14 @@ id, everything is inside `.tools-menu`, never saved.
   preview is the real solvers run and put back (`trialBuild`, which also applies the typed lengths).
   **Lengths are typed in the list** (`solveLens`, saved on Build through the phase's own field, one undo
   step); Production's is read-only (Show info).
+  - **It carries each placed phase's own hiatus and its `<week>|<key>` stores** (13 Nov 2026, audit AUD2-009) by
+    the weeks the phase's start moved, as every other mover does: through the card arrows' mover (`shiftCalendar`,
+    `part` = the phases, an empty week window, `carryOnly`) inside the build's undo step (`placeBuilt` /
+    `carryBuilt`). The solvers place a phase with its hiatus where it will land (`startForWeeksEndingAtCarried`,
+    `customStartEndingByCarried`, Production's trials inside `searchCarried`). Typed notes still stay on their
+    weeks; the result line counts them ("6 typed notes stayed on their weeks."). "Ends by" on a SNAPPED Production
+    searches whole Mondays (`productionMondayEndingBy`, AUD2-010): the day search stalled two weeks short just
+    before the Christmas break.
   - **Shift's look and feel since 10 Nov 2026** (`mockups/build-around-like-shift.html`): "Phases", the list
     in `.shift-box` with the header strip (`[data-solve-all]`, the count "N of M build"), the line that says
     why a phase was left unticked (`[data-solve-left]`), then "Pin to a date": `#tool-solve-phase` above
@@ -713,10 +734,14 @@ in the result line. ⚠️ Half/off round-trip exactly; a worked day off need no
 or holiday at the matching place). Typing a start date is not a mover. `'onhalf'` (a weekend or
 holiday worked as a half day, 29 Sep 2026) pins and travels exactly as a worked day does.
 
-**An edited auto-note is rewritten on a shift** (v1.3.1, owner ruling R5, audit M-10): a moving note
-that still opens with the auto text of the week it left has that text swapped for the new week's
-(`weekAutoTexts` → `rewriteMovedAutoNotes`), keeping the user's own lines. Only a shift re-keys notes
-at all; Build Around and the month drag leave every note on its week, as before.
+**A typed note's automatic and holiday lines follow the calendar** (13 Nov 2026, the November audit's AUD2-001/002/003,
+owner's decision D1 (a); widens v1.3.1's R5 / audit M-10). After every `update()` and `markDirty()`, `followAutoNotes`
+rebuilds each typed note from the note as the user left it, against its week's automatic lines then and now, matched by
+kind or holiday id: re-dated in place, taken out when gone, added when arrived, a line the user took out stays out, the
+user's own lines kept on their week. This covers every mover (Shift, the arrows, the ripple, Build Around, the month
+drags, a typed date) and every switch (a holiday's boxes, the Automatic notes card, the Region). Only a shift re-keys
+notes at all, and the memory rides on the note object through it. `rewriteMovedAutoNotes` (R5's opens-with rule) still
+runs after a shift and now finds nothing left to do.
 
 | Stays put | Why |
 |---|---|

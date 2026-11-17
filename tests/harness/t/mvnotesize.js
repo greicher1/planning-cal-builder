@@ -22,7 +22,9 @@
 //   N1-<px>  after a pick of 11, 12, 13, 14 px: the dropdown and the class follow, the file is dirty, Undo on; in every
 //        month every note is at the size (font and whole-px line), exactly its one- or two-line height, clamped at
 //        two lines, given exactly min(2, its natural lines) lanes (the element itself, unclamped, in a second pass);
-//        every lane without a sized note exactly 17 px or its bar's height; every bar, 10 px note and "+" as before
+//        every lane without a sized note exactly 17 px or its bar's height; every bar, 10 px note and "+" as before.
+//        ⭐ Since frozen edit D1 (audit 3.1, AUD2-045) a WATERFALL line ending in its date takes up to FOUR: its three-
+//        and four-line boxes, clamped at 3 and 4, min(4, its natural lines) lanes
 //   N2   R4: in a 10 px calendar, a day note picked with a click and set to 14 px in the text style bar is the ONLY
 //        sized note: it is drawn at 14 px in its own taller lanes, the class goes on, and every other week of the month
 //        keeps exactly its 10 px lanes; the style bar's note sizes run 6-14; picking 10 (the calendar's size) stores
@@ -148,7 +150,11 @@ window.addEventListener('load', function () { (async function () {
       }).map(function (b) {
         var gr = String(b.style.gridRow || '').match(/^\s*(\d+)(?:\s*\/\s*span\s*(\d+))?/);
         var cs = getComputedStyle(b), tag = b.querySelector('.mv-pill-block');
+        // `dated`: a waterfall line ending in its date (the engine's MV_NOTE_DATED), which frozen edit D1 lets take 3 or 4
+        // lanes at a note size (below, judge).
+        var full = (b.textContent || '').replace(/\s+/g, ' ').trim();
         return { el: b, kind: kindOf(b), lane: gr ? +gr[1] - 1 : -1, span: gr && gr[2] ? +gr[2] : 1, h: r2(hOf(b)),
+                 dated: b.getAttribute('data-note-kind') === 'wf' && /\s\d{1,2}\/\d{1,2}\/\d{2}(?:\d{2})?$/.test(full),
                  font: parseFloat(cs.fontSize), lineH: parseFloat(cs.lineHeight), tagFont: tag ? parseFloat(getComputedStyle(tag).fontSize) : null,
                  twoLine: b.classList.contains('mv-pill-2l'), sized: (b.getAttribute('style') || '').indexOf('--mvn-h1') >= 0,
                  clamp: String(cs.webkitLineClamp), display: cs.display,
@@ -197,16 +203,23 @@ window.addEventListener('load', function () { (async function () {
           if (!G) { miss('sizedFont', where + ': ' + it.font); return; }
           if (px && it.font !== +px) miss('atSize', where + ': ' + it.font + ' vs ' + px);
           if (it.lineH !== G.line) miss('lineH', where + ': ' + it.lineH + ' vs ' + G.line);
-          if (it.span > 2) miss('span', where + ': ' + it.span);
+          // ⭐ FROZEN EDIT D1 (audit item 3.1, AUD2-045; owner's picker 14 Nov 2026, "Month notes keep date"): a waterfall
+          // line ending in its date may take 3 or 4 lanes at 11-14 px, so the date is never what the cut takes. Its 3- and
+          // 4-line boxes are a line more each (legacy.css: 2*h2 - h1, 3*h2 - 2*h1), clamped at 3 and 4. The release gate
+          // (15 Nov) went red at 13 and 14 px on exactly those lines ("Day After Thanksgiving 11/27/26": 3 lanes, 3 lines,
+          // 57 px at 13), which is D1 doing what was approved; every other note still cuts at two.
+          var most = it.dated ? 4 : 2;
+          if (it.span > most) miss('span', where + ': ' + it.span);
           if (it.span === 2) R.counts.twoLane++;
-          var wantH = it.span === 2 ? G.h2 : G.h1;
+          if (it.span > 2) R.counts.dated34 = (R.counts.dated34 || 0) + 1;
+          var wantH = it.span === 1 ? G.h1 : G.h2 + (it.span - 2) * (G.h2 - G.h1);
           if (Math.abs(it.h - wantH) > 0.02) miss('noteH', where + ': ' + it.h + ' vs ' + wantH);
           if (it.h > lanes + 0.02) miss('noteFit', where + ': ' + it.h + ' in ' + r2(lanes));
           // Chrome 156 reports a clamped -webkit-box as flow-root; the clamp is what matters.
-          if (it.clamp !== '2' || (it.display !== '-webkit-box' && it.display !== 'flow-root')) miss('clamp', where + ': ' + it.clamp + ' ' + it.display);
+          if (it.clamp !== String(Math.max(2, it.span)) || (it.display !== '-webkit-box' && it.display !== 'flow-root')) miss('clamp', where + ': ' + it.clamp + ' ' + it.display);
           if (it.natural != null) {
-            if (it.span !== Math.min(2, Math.max(1, it.natural))) miss('measure', where + ': ' + it.span + ' lanes, ' + it.natural + ' lines');
-            if (it.natural > 2) R.counts.cut++;
+            if (it.span !== Math.min(most, Math.max(1, it.natural))) miss('measure', where + ': ' + it.span + ' lanes, ' + it.natural + ' lines');
+            if (it.natural > most) R.counts.cut++;
           }
         } else if (it.kind === 'pill' || it.kind === 'band') {
           var wb = it.twoLine ? B.h2 : B.h;
@@ -250,7 +263,7 @@ window.addEventListener('load', function () { (async function () {
       var months = await walk(true);
       htmlAt[px] = months[months.length - 1].html;
       J[px] = judge(months, '', px);
-      kase('N1-' + px, px + ' px: the dropdown and the class follow, dirty, Undo on; every note at ' + px + ' px, exactly its one- or two-line height, clamped at two, given min(2, its natural lines) lanes; every other lane and box as at 10 px',
+      kase('N1-' + px, px + ' px: the dropdown and the class follow, dirty, Undo on; every note at ' + px + ' px, exactly its one- or two-line height, clamped at two, given min(2, its natural lines) lanes (a line ending in a date: up to 4, D1); every other lane and box as at 10 px',
            picked.ctl === px && picked.sized && picked.dirty && picked.undoOn && J[px].ok && J[px].counts.sizedNotes > 0,
            { picked: picked, counts: J[px].counts, misses: J[px].n, first: J[px].bad });
     }

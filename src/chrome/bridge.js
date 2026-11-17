@@ -48,6 +48,11 @@ export const chrome = {
   // the SAME data-id / data-remove / data-action attributes the engine's delegated click handler
   // matches on, so that handler ports across untouched.
   fileMenu: noop,
+  // { items } — items are [{id, name}]: the recent calendars an empty, Untitled start lists in the preview panel
+  // (StartRecents.jsx, audit 2026-11 AUD2-030). WHEN they show is the engine's (reflectStartRecents sets the host's
+  // `hidden`); this is only what the rows say. Each row carries data-id, and Load… data-action="open", so a click is
+  // the file menu's own delegated handler.
+  startRecents: noop,
   // (which, { visible, text, fileName }) — which is 'legacy' | 'update'.
   notice: noop,
   // { undo, redo } booleans — TRUE means disabled, matching `u.disabled = !undoStack.length`.
@@ -145,6 +150,10 @@ export const chrome = {
   // ({ scenarios: [{ id, name, values }], currentId, rows }) — open the Compare window (CompareDialog.jsx).
   // Its exports go back as 'sptcal-compare-export' {kind: 'xlsx' | 'pdf', model}; the engine writes the files.
   compareDialog: noop,
+  // ({ state, since, lines }) — open File menu ▸ "Changes since last save…" (ChangesDialog.jsx, audit AUD2-103). state is
+  // 'ok' | 'none' | 'newtab' | 'failed'; `lines` are the changes in words, `since` the line under the title. Nothing
+  // goes back: Copy writes the clipboard itself.
+  changesDialog: noop,
   // ({ paper, orientation, gridlines, papers, fits }) → Promise<{ paper, orientation, gridlines } | null> —
   // the Export PDF dialog (src/chrome/ExportPdfDialog.jsx, PAPER-SIZE-PLAN.md §5a). The default, for a
   // chrome that failed to mount, EXPORTS WITH WHAT IS ALREADY CHOSEN rather than cancelling: the PDF comes
@@ -154,6 +163,10 @@ export const chrome = {
     orientation: opts.orientation || ((opts.fits || {})[opts.paper] || {}).recommended || '',
     gridlines: opts.gridlines,
   }),
+  // ({ months: [{ value: 'YYYY-MM', label, short }], current: 'YYYY-MM' | '' }) → Promise<{ all: true } |
+  // { from, to } | null> — the month view's Export PDF dialog (src/chrome/MonthPdfDialog.jsx; audit AUD2-026). The
+  // default, for a chrome that failed to mount, writes EVERY month, exactly as before the dialog existed.
+  monthPdfDialog: () => Promise.resolve({ all: true }),
 }
 
 export function installChrome(impl) {

@@ -333,11 +333,18 @@ window.__T = (function(){
   // file is opened. That was the first attempt at this fix and it timed out for a reason that
   // looks identical to the bug it was fixing. It is the right probe for base.js, which builds a
   // fixture first; it is the wrong one here.
+  // ⚠️ LATCHED (13 Nov 2026, the loadsparse leg). The hiatus rows are the sign that the engine BOOTED, and a boot
+  // always builds the four default ones. They are not a fact about every calendar: one with no all-phase hiatus has
+  // no row, and openViaFakePicker() calls this before every load, so the load AFTER such a calendar waited out the
+  // whole 20 s and threw. Once the boot has been seen it stays seen.
+  var appBooted = false;
   async function appReady(){
+    if(appBooted) return;
     await until(function(){
       return !!document.getElementById('start-production') &&
              document.querySelectorAll('#hiatus-list .hiatus-entry').length > 0;
     }, 'the engine to build the sidebar (IndexedDB-free; see the note above)', 200, 100);
+    appBooted = true;
   }
   // opts (optional, added 25 Sep 2026 for the audit-fix legs):
   //   opts.writes -- an array. The handle then gets a createWritable() that RECORDS every write as
@@ -458,7 +465,56 @@ window.__T = (function(){
   // BEFORE the engine boots -- and idbOpen() re-opens the database on every call, so everything after
   // boot goes through the fake. Values are stored by reference (no structured clone), which is what
   // lets a fake FileSystemFileHandle (an object with functions) sit in the recents list.
+  //
+  // ⚠️ IT FAKES navigator.locks TOO (14 Nov 2026, audit AUD2-074). The
+  // engine now tells an OPEN window's crash backup from a closed one by Web Locks (liveBackupSlots), and asks
+  // navigator.locks.query() before it offers, lists or retires any backup. That query is a real round trip to the
+  // browser process, and --virtual-time-budget does not wait for one: a leg polling for the recovery question with
+  // virtual sleeps could run out of polls before the answer came back (backuplink did, the one time it ran so). The fake answers
+  // on a microtask, as this IndexedDB does, so every leg that seeds a backup stays deterministic. It is one page's
+  // LockManager: a leg plays "another open window" by requesting that window's slot name itself before boot.
+  // ⛔ Never the real API under run.sh. Tried (backuplive, 14 Nov 2026): a leg that awaits the real query has, for that
+  // moment, no timer of its own pending, so virtual time jumps straight to the engine's next one (autosave, 10
+  // minutes) and the whole budget is gone: "exited after 1.6s wall-clock", no result, one run in four. The real API is
+  // proved over CDP in real time instead, by backuptwowin.mjs (two windows of one profile). memoryLocks() alone is
+  // exported for a leg that fakes IndexedDB its own way (backupblocked).
+  function memoryLocks(){
+    var held = {}, waiting = {};
+    function grant(name, cb, resolve, reject){
+      held[name] = true;
+      Promise.resolve().then(function(){ return cb({name: name, mode: 'exclusive'}); })
+        .then(function(v){ release(name); resolve(v); }, function(e){ release(name); reject(e); });
+    }
+    function release(name){
+      delete held[name];
+      var q = waiting[name];
+      if(q && q.length){ var next = q.shift(); grant(name, next.cb, next.resolve, next.reject); }
+    }
+    var fake = {
+      request: function(name, opts, cb){
+        if(typeof opts === 'function'){ cb = opts; opts = {}; }
+        opts = opts || {};
+        return new Promise(function(resolve, reject){
+          Promise.resolve().then(function(){
+            if(!held[name]) grant(name, cb, resolve, reject);
+            else if(opts.ifAvailable) Promise.resolve().then(function(){ return cb(null); }).then(resolve, reject);
+            else (waiting[name] = waiting[name] || []).push({cb: cb, resolve: resolve, reject: reject});
+          });
+        });
+      },
+      query: function(){
+        return Promise.resolve({
+          held: Object.keys(held).map(function(n){ return {name: n, mode: 'exclusive', clientId: 'harness'}; }),
+          pending: Object.keys(waiting).reduce(function(a, n){ return a.concat(waiting[n].map(function(){ return {name: n, mode: 'exclusive', clientId: 'harness'}; })); }, [])
+        });
+      }
+    };
+    try { Object.defineProperty(navigator, 'locks', {configurable: true, get: function(){ return fake; }}); }
+    catch(e){ window.__MEMLOCKS_FAILED = String(e); }
+    return fake;
+  }
   function memoryIDB(){
+    memoryLocks();
     var dbs = {};
     function later(fn){ Promise.resolve().then(fn); }
     function request(){ return {result: undefined, error: null, onsuccess: null, onerror: null, onupgradeneeded: null}; }
@@ -872,9 +928,10 @@ window.__T = (function(){
     await sleep(120);
   }
   // closePops(): close every open tool panel (Shift, Build Around) and any menu that closes on a click outside.
-  // ⚠️ Since 11 Nov 2026 a tool panel does NOT close on a click outside it (owner: "keep it open"), so a leg's old
-  // `document.body.click()` left it up, and the next press of its button then CLOSED it instead of opening it. Press
-  // each open panel's ✕ instead; the page click stays for everything else.
+  // ⚠️ From 11 Nov 2026 a tool panel did NOT close on a click outside it (owner: "keep it open"), so a leg's old
+  // `document.body.click()` left it up, and the next press of its button then CLOSED it instead of opening it. Since
+  // 16 Nov 2026 a click outside closes it again UNLESS it has been dragged, so the ✕ is still the one sure way: press
+  // each open panel's ✕; the page click stays for everything else.
   function closePops(){
     document.querySelectorAll('.tools-menu.open [data-tools-close]').forEach(function(b){ b.click(); });
     document.body.click();
@@ -886,7 +943,7 @@ window.__T = (function(){
           formSignature:formSignature,appHealth:appHealth,until:until,appReady:appReady,
           clippedCells:clippedCells,gridWidthPt:gridWidthPt,colList:colList,
           gridSignature:gridSignature,captureDownload:captureDownload,captureExport:captureExport,b64:b64,done:done,
-          memoryIDB:memoryIDB,modalText:modalText,clickModalButton:clickModalButton,scrubSurrogates:scrubSurrogates,
+          memoryIDB:memoryIDB,memoryLocks:memoryLocks,modalText:modalText,clickModalButton:clickModalButton,scrubSurrogates:scrubSurrogates,
           latestBackup:latestBackup,altSwap:altSwap,monthPrintPath:monthPrintPath,fakeSavePicker:fakeSavePicker,reloadWith:reloadWith,pdfPages:pdfPages,pdfUnmark:pdfUnmark,pdfStreams:pdfStreams,pdfInflated:pdfInflated,pdfRuns:pdfRuns,
           openSettings:openSettings,closeSettings:closeSettings,settingsTabOf:settingsTabOf,shownInSettings:shownInSettings,
           pdfDialog:pdfDialog,pdfDialogPick:pdfDialogPick,applyBarSizeQuery:applyBarSizeQuery,barSizeShown:barSizeShown,
