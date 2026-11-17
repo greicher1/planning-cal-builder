@@ -4,6 +4,32 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### 🛑 16 Nov 2026: AUDIT ITEM W.1 (WIN-1) — A MARKED MONTH NOTE CUT OFF ON WINDOWS: CAUSE FOUND, FIX PROPOSED, NOT APPLIED. Branch `audit-w-1` (worktree `.claude/worktrees/audit-w-1`, from `origin/main` `ad48e11`). **One WIP commit: the acceptance case `autonoterename` S5, RED on this branch until the owner signs off the frozen-look patch.** Not merged, not pushed. Built unattended on the owner's "work on it now".
+- **The finding** (WIN-1): on Windows "Writer's Room Opens 1/5/26" (↻, January 2026) loses its second line in the
+  month view; whole on a Mac. The audit guessed Windows draws text wider. **It does not** (Inter's advances match to
+  under 0.5 font units, `interfonts` F5-F7 in CI run 43536808376).
+- **The cause, reproduced on this Mac** (`autonoterename` at `HARNESS_WINDOW=1584,1200`, Windows' page width, fails S2
+  exactly as Windows did): a month note's lanes are decided at render time from frozen `mvNoteBoxWidth()`, which reads
+  the day column ON SCREEN THEN, and the note is drawn in the new month's column. Four gaps: (1) `#table-wrap` scrolls
+  in the month view, and where a scroll bar takes room (Windows; a Mac set to show them) a five-week month is 15/7 px
+  narrower than the four-week month it was paged from; (2) from the waterfall it estimates `(clientWidth - 30) / 7`,
+  ~1.45 px too wide; (3) the drawn box is 6/7 px narrower than `mvNoteBoxWidth()` (E2 fixed that above 10 px only);
+  (4) counts are cached under `Math.round(width)`. The note needs 134.13 px; measured in 135.57-136.25, drawn in 133.27.
+- **The proposal** (`/Users/apple/Desktop/SPTCal Audit 2026-11/work/overnight/W1-frozen.patch` + `.md`, `app.js` only):
+  group 1, a `MutationObserver` on `#table-wrap` renders a month once more when the column it was measured in is not
+  the one it is drawn in (no frozen symbol edited, but it changes the frozen look); group 2, a MARKED note is measured
+  in its drawn box at an exact width (one-line frozen edit to NS1, `mvNoteMarkSpan`, `mvNoteMarkFits` reworked).
+  Screen only: marks never print, and the print paths read the screen column as before.
+- **Measured with the patch:** `autonoterename` 25/25 at 1600 and 1584 (branch 24/25 and 23/25); a 21-width sweep 22
+  cuts → 0, no spare lanes; `textfit-dense` 11 widths, marked cuts 9 → 0, unmarked cuts unchanged; `softlines` 6/6 ×2;
+  gate 10 (11 calendars, 66/66) and gate 13 (22 PDFs byte-identical), by hand; `npm run check` 42/42; 25 of the
+  nearest month legs green (`calzoom` M3 red on the branch too, the same numbers; `monthpick` flaked once, 10/10
+  alone). Cost: one extra render (~+8-17 ms) when the column moves.
+- ⚠️ **Not fixed, pre-existing:** unmarked 10 px notes keep gaps 3 and 4 (shared with the print rollback, so a
+  print-path frozen edit). `textfit-dense` shows such cuts on both builds.
+- **Windows check** (needs a test-branch push, owner's call): `autonoterename` S2 and S5 `cut: []` on windows-latest,
+  `softlines` 6/6, `monthexport` bytes unchanged. Details in the .md.
+
 ### 🧊 16 Nov 2026: THE SEASON SITS BESIDE THE TITLE IN EXPORT NAMES (audit 2.10's frozen edit). Branch `frozen-2-10-name` (worktree `.claude/worktrees/frozen-2-10-name`, from `origin/main` `ad48e11`). One commit. ⛔ NOT merged, NOT pushed; waits for the release train's one full gate
 - **Owner's approval:** the picker *"Work on it now"* (16 Nov 2026) on the question "2.10's unapplied frozen edit: put the
   season right after the show title in export names … It edits the file-name line in the two frozen exporters". The
