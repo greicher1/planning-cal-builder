@@ -2582,8 +2582,9 @@ PYMR
 # laptopfit (2.14, AUD2-034/035, WIN-4, on laptopstrips) at the three windows it is about (1280,800 = a 1080p laptop at
 #   150%; 1366,768; 1280,943 = the audit's 1280 x 800 page): the toolbar holds still between the views, one notice strip
 #   at a time on one line (T9, T10: all eleven strips, in priority order), the open tool panels fit; red before at
-#   T1-T8 (1280,800) and T4-T8 (1366,768), T9-T10 before the 16 Nov change. phasesmore (2.14, AUD2-036): rare phase
-#   switches wait behind More options, hiatus cards open folded; red before at M1.
+#   T1-T8 (1280,800) and T4-T8 (1366,768), T9-T10 before the 16 Nov change. phasesmore (2.14, AUD2-036): hiatus cards
+#   open folded; and, since the owner removed 2.14's More options on 16 Nov 2026 ("get rid of the entire hiding menu"),
+#   every phase card shows every switch, on or off, with no More options line (M1, M5, M8; red on v1.15.0 at those).
 for V15SPEC in "textfit:textfit-shared:g=small::300" "textfit:textfit-dense:g=date&notesize=12::300" \
                "textfit:textfit-dense:g=date&notesize=14::300" "textfit:textfit-shared:g=lines::120" \
                "textfit:textfit-heavy:g=wf::60" "textfit:textfit-dense:g=screen&notesize=14::300" \

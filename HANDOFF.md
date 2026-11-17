@@ -110,6 +110,28 @@
 - **Not verified:** the month PDF's placement of a day-first typed line on a DD/MM calendar was not read out of a PDF
   (both month PDFs draw what `renderMonthView` draws, which is what the leg reads on screen; `dayfirstin` K1 exports one).
 
+### ✅ 16 Nov 2026: "MORE OPTIONS" IS GONE: EVERY PHASE CARD SHOWS ALL ITS SWITCHES AGAIN (undoes half of audit 2.14's AUD2-036). Branch `no-more-options` (worktree `.claude/worktrees/more-options-toggle`, from `origin/main` `7e1d8b4`; `node_modules` is a symlink, unlink it before `git worktree remove`): committed locally, NOT pushed (the push is the owner's picker). No version cut (README: Unreleased). Tracker card `remove-phase-more-options`; `more-options-toggle` is rejected (superseded).
+- **How it went:** the owner first asked for the line to read "More Options" with a right-pointing arrow and open IN
+  PLACE to "Hide Options" (mockup `mockups/more-options-toggle.html`, untracked in the main checkout; arrow "Before
+  the words"). That was built and tried on localhost (flex-ordered open card, a measured `--more-hold` to keep the line
+  still), and the owner said *"Yes, finish it"*; mid-finish they changed course: *"Nevermind get rid of the entire hiding
+  menu - leave the options as they were before"*. That build was discarded (never pushed); this branch starts again
+  from `origin/main`.
+- **Removed** (app.js, legacy.css, src/index.html; everything AUD2-036 added for the phase cards): `phaseMoreOpen`,
+  `PHASE_MORE_BTN` on both card templates, `reflectPhaseMore` and its click handler and six callers, the closed-card
+  `display:none` rule and `.phase-more-btn` CSS; the hiatus hairline rule is back to `.phase-hiatus:last-child`; the
+  help's More options item is gone and Phase hiatus / Hide in waterfall read byte for byte as before v1.15.0. A
+  `⛔ NO "MORE OPTIONS" ON A PHASE CARD` comment after `setPhaseCollapsed` says why, so nobody re-adds it.
+- **Kept, deliberately:** AUD2-036's OTHER half, the all-phase hiatus cards opening FOLDED on New, launch, Load and
+  recovery (`foldAllHiatuses`, "FOLDED WHEN A CALENDAR OPENS"). The owner's words named the phase cards' menu; if
+  they meant the hiatus folds too, that is `foldAllHiatuses()`'s four callers plus `hiatusfold` / `phasesmore` M3, M6.
+- **Tests:** `phasesmore` re-premised to the opposite rule (M1 every switch on show + no More options line; M5 a switch
+  stays on show turned on and undone; M8 the loaded calendar; M3, M6 the hiatus folds kept; M2, M4, M7 retired). The
+  More options clicks the audit added to `hidewf`, `undokeys`, `endsdate`, `builtindates` and `hiatusripple.mjs` are
+  removed (they were guarded no-ops). Results: README's entry. Chrome only, so no full gate.
+- ⚠️ **Local `main` in the main checkout is BEHIND `origin/main`** (at `5f1b67a`, v1.13.0, with uncommitted HANDOFF edits
+  and two untracked files from another session): this branch was cut from `origin/main`, not from it.
+
 ### ✅ 16 Nov 2026: UI SCALING AT EVERY WINDOW SIZE (toolbar folds, sidebar never stacks). FINISHED on branch `ui-scaling` (worktree `.claude/worktrees/ui-scaling`, from `origin/main` `ad48e11`): committed locally, NOT merged, NOT pushed (the push is the owner's picker). Tracker card `ui-scaling-screen-sizes`; takes over audit 3.12 (AUD2-065), dropped from wave 4 on the owner's picker. Owner tried it on localhost and said *"Looks good, finish it"*.
 - **Owner:** the toolbar "only looks right on a normal sized laptop screen"; on a big monitor it "should stay the same
   size and just have extra space on the sides rather than adding a bunch of space between the buttons"; on smaller

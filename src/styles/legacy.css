@@ -1323,34 +1323,12 @@
   .form-panel .sw-row > input[type=checkbox]:hover:not(:disabled){ border:0; }
   .form-panel .sw-row > input[type=checkbox]:focus-visible{ outline:2px solid var(--mantine-primary-color-filled); outline-offset:2px; }
 
-  /* ⭐ MORE OPTIONS (audit 2.14, AUD2-036; app.js "MORE OPTIONS ON EVERY PHASE CARD"). A card's rarely used switches
-     show only while SET (away from a new phase's own value) or while the card's More options is open: Snap to Monday
-     and Number weeks while off, Hide in waterfall, Hiatus and Simultaneous Post while on. Off each switch's own
-     :checked, so a value the engine writes without an event is followed at once. Hidden, never removed: every id
-     stays in the document. Then the card's last line, the More options button (no id), a quiet text button like
-     "Start after previous phase". */
-  .phase-row:not(.more-open) > .phase-switches > :is(.phase-snap, .phase-wknum):has(> input:checked),
-  .phase-row:not(.more-open) > .phase-switches > .phase-hidewf:not(:has(> input:checked)),
-  .phase-row:not(.more-open) > .phase-hiatus > .phase-hiatus-toggle:not(:has(> input:checked)),
-  .phase-row:not(.more-open) > .simpost-panel > .simpost-toggle:not(:has(> input:checked)){ display:none; }
-  .phase-more-btn{
-    display:inline-flex; align-items:center; gap:4px; margin:6px 12px 2px; padding:1px 0; background:none; border:none;
-    font:inherit; font-size:var(--mantine-font-size-xs); color:var(--mantine-color-gray-6); cursor:pointer;
-  }
-  .phase-more-btn::after{
-    content:''; width:0; height:0; border-left:3.5px solid transparent; border-right:3.5px solid transparent;
-    border-top:4.5px solid currentColor; opacity:.8; transition:transform 150ms ease;
-  }
-  .phase-more-btn[aria-expanded="true"]::after{ transform:rotate(180deg); }
-  .phase-more-btn:hover{ color:var(--mantine-color-black); text-decoration:underline; }
-  .phase-more-btn:focus-visible{ outline:2px solid var(--accent); outline-offset:1px; border-radius:3px; }
-
   /* ---- An optional block (a phase's hiatus, Sim Post): a switch row that opens its fields underneath, indented
      and ruled in the phase colour. The hiatus's fields are shown by the engine (style.display), Sim Post's by CSS
      off its own box below, so neither can disagree with its switch. */
   .phase-hiatus{ padding:0 12px; }
   /* The last row of a card has no hairline: the hiatus's switch while it is off, the block's last row when on. */
-  .phase-row > .phase-hiatus:is(:last-child, :has(+ .phase-more-btn:last-child)) > .phase-hiatus-toggle:not(:has(input:checked)){ border-bottom:none; }
+  .phase-row > .phase-hiatus:last-child > .phase-hiatus-toggle:not(:has(input:checked)){ border-bottom:none; }
   .phase-hiatus-fields{
     flex-direction:column; gap:8px; margin:2px 0 8px 2px; padding:6px 0 0 12px;
     border-left:3px solid var(--phase-color);

@@ -139,10 +139,6 @@ window.addEventListener('load', function () { (async function () {
     // ---- K1: a phase's Hiatus box -----------------------------------------------------------------------
     $('sidetab-phases').click();
     await T.sleep(300);
-    // ⚠️ Since 13 Nov 2026 (audit 2.14, AUD2-036, approved) a phase's Hiatus switch that is off waits behind its card's
-    // "More options": a user opens that first, and it stays open through the undo below (session UI).
-    var more = $('swatch-writersRoom').parentElement.querySelector(':scope > .phase-more-btn');
-    if (more && more.getAttribute('aria-expanded') === 'false') { more.click(); await T.sleep(150); }
     var cb = $('phiatus-en-writersRoom');
     var k1 = { box: !!cb, before: cb && cb.checked };
     if (cb) { cb.focus(); cb.click(); }

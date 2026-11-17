@@ -8994,39 +8994,11 @@ export function initLegacyApp() {
     if(on) collapsedPhaseKeys.add(key); else collapsedPhaseKeys.delete(key);
     reflectPhaseCollapse();
   }
-  // ⭐ MORE OPTIONS ON EVERY PHASE CARD (audit 2.14, AUD2-036). Every card repeated the same rarely used switches
-  // (Snap to Monday, Number weeks, Hide in waterfall, Hiatus, and on Production Simultaneous Post), so the Phases tab
-  // was a wall of controls and three cards filled a laptop screen. A switch now shows on its card only while it is
-  // SET, away from what a new phase starts with (Snap to Monday or Number weeks off; Hide in waterfall, Hiatus or
-  // Simultaneous Post on), so nothing a calendar has switched on is ever out of sight; the rest wait behind the card's
-  // last line, "More options", which shows them all and reads "Fewer options" while open.
-  //   - Which switch shows is PURE CSS off each switch's own :checked (legacy.css, "More options"), so a switch the
-  //     engine flips without an event (Snap to Monday coming off under a month-view drag) follows at once.
-  //   - ⛔ NOT STATE, exactly as the caret: which cards have More open is session UI, keyed by phase key, never in
-  //     captureSnapshot() and never an undo step. The button is a <button> with NO id. Every switch keeps its id,
-  //     its place in the document and its value: hidden is display:none, never removed and never cleared.
-  //   - A Load, a recovery or New is a different calendar and closes them all, beside collapsedPhaseKeys.clear().
-  const phaseMoreOpen = new Set();
-  const PHASE_MORE_BTN = '<button type="button" class="phase-more-btn" aria-expanded="false">More options</button>';
-  function reflectPhaseMore(){
-    document.querySelectorAll('#phase-rows > .phase-row, #custom-phase-rows > .phase-row').forEach(row=>{
-      const on = phaseMoreOpen.has(phaseRowKey(row));
-      if(row.classList.contains('more-open') !== on) row.classList.toggle('more-open', on);
-      const btn = row.querySelector(':scope > .phase-more-btn');
-      if(!btn) return;
-      const want = on ? 'true' : 'false', label = on ? 'Fewer options' : 'More options';
-      if(btn.getAttribute('aria-expanded') !== want) btn.setAttribute('aria-expanded', want);
-      if(btn.textContent !== label) btn.textContent = label;
-    });
-  }
-  document.addEventListener('click', e=>{
-    const btn = e.target.closest && e.target.closest('.phase-more-btn');
-    if(!btn) return;
-    const key = phaseRowKey(btn.closest('.phase-row'));
-    if(!key) return;
-    if(phaseMoreOpen.has(key)) phaseMoreOpen.delete(key); else phaseMoreOpen.add(key);
-    reflectPhaseMore();
-  });
+  // ⛔ NO "MORE OPTIONS" ON A PHASE CARD (owner, 16 Nov 2026: "get rid of the entire hiding menu - leave the options
+  // as they were before"). Audit item 2.14 (AUD2-036, v1.15.0) hid each card's rarely used switches (Snap to Monday,
+  // Number weeks, Hide in waterfall, Hiatus, Simultaneous Post) behind a "More options" line; the owner removed it the
+  // day it went live. Every switch shows on every card, as before v1.15.0. The all-phase hiatus cards still open folded
+  // (AUD2-036's other half, "FOLDED WHEN A CALENDAR OPENS"), which this ruling did not name.
   document.addEventListener('click', e=>{
     const btn = e.target.closest && e.target.closest('.phase-collapse-btn');
     if(!btn) return;
@@ -9395,7 +9367,6 @@ export function initLegacyApp() {
             <label class="simpost-count-row sw-row" id="simpost-count-row" title="On: the flagged weeks read &quot;Simultaneous Post wk 1, 2...&quot; and the regular Post phase carries on from there (Post wk 3, 4...). Off: every flagged week reads just &quot;Simultaneous Post&quot; and Post starts over at wk 1."><span class="sw-label">Number these weeks and continue Post&rsquo;s count</span><input type="checkbox" id="simpost-count"></label>
           </div>
         </div>` : ''}
-        ${PHASE_MORE_BTN}
       `;
       // The Prep row goes straight ABOVE Production (owner, 19 Oct 2026: "the prep phase … should
       // come before production phase in the left side bar"), where prep falls in time. It was under
@@ -9999,7 +9970,6 @@ export function initLegacyApp() {
         ${HIDEWF_HTML}
       </div>
       ${phaseHiatusBlockHtml(key, 'Phase')}
-      ${PHASE_MORE_BTN}
     `;
     // ⭐ CUSTOM-PHASE-UNITS-PLAN.md: a custom phase's length is Weeks (as always), Days or Dates.
     // ⛔ `unit-<key>`, `days-<key>` and `end-<key>` are SAVE FORMAT from the first calendar saved with
@@ -14010,7 +13980,6 @@ export function initLegacyApp() {
       addCustomPhaseRow();
       const key = customPhaseDefs[customPhaseDefs.length - 1].key;
       collapsedPhaseKeys.delete(key);   // a new phase opens unfolded (see #add-phase-btn)
-      phaseMoreOpen.delete(key); reflectPhaseMore();
       const field = id=> document.getElementById(id + '-' + key);
       if(len === 'day'){
         field('unit').value = 'dates';
@@ -31412,8 +31381,6 @@ export function initLegacyApp() {
     // A new phase opens unfolded, even on a key an undone phase was folded under (an undo can lower
     // customPhaseCounter, so the next Add mints that key again).
     collapsedPhaseKeys.delete(customPhaseDefs[customPhaseDefs.length - 1].key);
-    phaseMoreOpen.delete(customPhaseDefs[customPhaseDefs.length - 1].key);   // ...with More options closed
-    reflectPhaseMore();
     update();
   });
   // The actual reset. New is its only caller since Reset All went (owner ruling 3, 30 Sep 2026):
@@ -31421,7 +31388,6 @@ export function initLegacyApp() {
   function resetAll(){
     monthCursorRecheck = true;   // a different (empty) calendar: see update() (L-17)
     collapsedPhaseKeys.clear(); reflectPhaseCollapse();   // every phase card unfolded
-    phaseMoreOpen.clear(); reflectPhaseMore();             // ...with its More options closed (AUD2-036)
     hideLegacyNotice();
     phaseColorOverride = {};
     PHASES.forEach(p=>{
@@ -36365,7 +36331,6 @@ export function initLegacyApp() {
     }
     monthCursorRecheck = true;   // a different calendar: see update() (L-17)
     collapsedPhaseKeys.clear();  // ...so every phase card unfolds (refreshAfterRestore reflects it)
-    phaseMoreOpen.clear();       // ...with its More options closed (AUD2-036)
     foldAllHiatuses();           // ...and every all-phase hiatus card folds to its one-line head (AUD2-036)
     refreshAfterRestore();
     suppressDirty = false;
@@ -36992,7 +36957,6 @@ export function initLegacyApp() {
     adoptScenarios(parsed.scenarios);   // the file's tabs (one tab for a one-calendar file)
     monthCursorRecheck = true;   // a different calendar: see update() (L-17)
     collapsedPhaseKeys.clear();  // ...so every phase card unfolds (refreshAfterRestore reflects it)
-    phaseMoreOpen.clear();       // ...with its More options closed (AUD2-036)
     foldAllHiatuses();           // ...and every all-phase hiatus card folds to its one-line head (AUD2-036)
     refreshAfterRestore();
     suppressDirty = false;
@@ -44394,7 +44358,6 @@ export function initLegacyApp() {
     setSidebarTab(sidebarTab);
     syncRegionTracking();
     reflectPhaseCollapse();   // the folds onto the rebuilt custom rows (undo, redo), or none after a Load
-    reflectPhaseMore();       // ...and each card's More options (AUD2-036), the same way
     reflectPhaseHidden();     // the Hide in waterfall ticks and tags onto every row (PHASES-TAB-PLAN.md §2.3)
     refreshEpisodesUI();
     refreshSimPostUI();
