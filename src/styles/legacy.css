@@ -1975,6 +1975,9 @@
   .preview-panel.tbf2 .tb-more .tb-solo .caret::after{ content:'\203A'; font-size:18px; color:var(--mantine-color-gray-6); }
   /* ...and does not turn when its menu is open (every other caret flips to point up, which made this one point left). */
   .preview-panel.tbf2 .tb-more .tb-solo[aria-expanded="true"] .caret{ transform:none; }
+  /* It points LEFT where its menu will open on the left (owner's picker, "Arrow follows the side"): app.js measures each
+     menu when the panel opens and writes the side on the row (data-cascade). */
+  .preview-panel.tbf2 .tb-more .tb-solo[data-cascade="left"] .caret::after{ content:'\2039'; }
   .preview-panel.tbf2 .tb-more .tb-solo:hover:not([data-disabled]),
   .preview-panel.tbf2 .tb-more .tb-solo[aria-expanded="true"]{ background:var(--mantine-color-gray-1); }
   .preview-panel.tbf2 .tb-more .tb-solo[data-disabled]{ background:transparent; }

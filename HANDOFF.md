@@ -31,6 +31,12 @@
   (a capture-phase click: Side Boxes' items stop propagation), Escape or a press outside closes everything. A second
   click on an open row keeps it open (`inMorePanel`). Trusted mouse (`clicks6`, scratch): 17/17 at 1280 and 1470 and the
   month view; the labelled toolbar buttons unchanged (drop under, a second click closes).
+- **Then: *"why does side boxes appear on the left when the arrow points to the right"*.** Measured: Side Boxes' menu is
+  230 px, Header's 170, and the room right of the panel 151-230 px, so Side Boxes nearly always flipped left under a ›.
+  Owner's picker **"Arrow follows the side"**: when the panel opens the chrome dispatches `sptcal:measure-tool-menus`;
+  the engine builds each menu off screen (`buildSideMenu` / `buildHeaderModePop`, split out of the openers), measures it
+  (`cascadeSide`) and writes `data-cascade="left|right"` on the row; CSS draws ‹ for left, and `cascadeFrom` follows the
+  same value. Checked (`clicks7`, scratch): arrow = opened side for both rows at 1470, 1366, 1100, 960 and the month view.
 - **Measured (sideboxes.sptcal, both views):** level 0 at 2560 (809 px spare on the right) and 1728; 1 at 1600; 2 at
   1470 / 1366; 3 at 1280; 4 at 1100; 5 at 960; 820 scrolls sideways to 960. One line, header never overflows. 22 trusted
   CDP click checks green (More: Side Boxes menu under its button, a box added, Header Off, Escape; Build Around icon;

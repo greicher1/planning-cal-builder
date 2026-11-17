@@ -21794,8 +21794,8 @@ export function initLegacyApp() {
     const t = sideCols[side] && sideCols[side].querySelector(`.sb-box[data-i="${idx}"] .sb-title`);
     if(t){ t.focus(); const r = document.createRange(); r.selectNodeContents(t); const s = getSelection(); s.removeAllRanges(); s.addRange(r); }
   }
-  function openSideMenu(anchor){
-    closeSideMenu();
+  // Built apart from opening since 16 Nov 2026, so the More panel can measure the menu before it opens (cascadeSide).
+  function buildSideMenu(){
     const pop = document.createElement('div');
     pop.className = 'sb-menu';
     pop.setAttribute('role', 'menu');
@@ -21812,6 +21812,11 @@ export function initLegacyApp() {
       it.addEventListener('click', ev=>{ ev.stopPropagation(); addSideBox(side, kind); });
       pop.appendChild(it);
     });
+    return pop;
+  }
+  function openSideMenu(anchor){
+    closeSideMenu();
+    const pop = buildSideMenu();
     document.body.appendChild(pop);
     sideMenu = pop; sideMenuAnchor = anchor;
     anchor.setAttribute('aria-expanded', 'true');
@@ -21835,14 +21840,34 @@ export function initLegacyApp() {
   // the open More panel, sit BESIDE the panel with their first row level with the row: on the right where they fit,
   // else on the left. The panel stays open, as a menu's parent does. (Dropped under the row, as on the toolbar, the menu
   // first opened under the panel, its first row hidden behind Header.) Opened anywhere else, nothing changes.
+  // ⭐ THE ARROW POINTS THE WAY ITS MENU OPENS (owner's picker, 16 Nov 2026, "Arrow follows the side", after asking "why
+  // does side boxes appear on the left when the arrow points to the right"): Side Boxes' menu is 230 px and the room
+  // right of the panel is 150-230 px, so it nearly always opened left under a › arrow. When the panel opens, the chrome
+  // asks for each row's side (sptcal:measure-tool-menus): the menu is built off screen, measured and removed, and the
+  // side is written on the row as data-cascade, which the CSS draws as › or ‹ and cascadeFrom then follows.
   function inMorePanel(b){ return !!(b && b.closest && b.closest('.tb-more.is-open .tb-page')); }
+  function cascadeSide(anchor, width){
+    const panel = anchor.closest('.tb-page').getBoundingClientRect();
+    return panel.right + 4 + width <= window.innerWidth - 8 ? 'right' : 'left';
+  }
+  document.addEventListener('sptcal:measure-tool-menus', ()=>{
+    [['#tb-side-boxes-btn', ()=> buildSideMenu()], ['#tb-hdr-mode-btn', ()=> buildHeaderModePop(viewMode === 'month')]].forEach(([sel, build])=>{
+      const row = document.querySelector(sel);
+      if(!inMorePanel(row)) return;
+      const pop = build();
+      pop.style.visibility = 'hidden'; pop.style.left = '0px'; pop.style.top = '0px';
+      document.body.appendChild(pop);
+      row.dataset.cascade = cascadeSide(row, pop.getBoundingClientRect().width);
+      pop.remove();
+    });
+  });
   function cascadeFrom(anchor, pop){
     if(!inMorePanel(anchor)) return false;
     const panel = anchor.closest('.tb-page').getBoundingClientRect();
     const ar = anchor.getBoundingClientRect(), r = pop.getBoundingClientRect();
     const padTop = parseFloat(getComputedStyle(pop).paddingTop) || 0;
-    let left = panel.right + 4;
-    if(left + r.width > window.innerWidth - 8) left = panel.left - r.width - 4;
+    const side = anchor.dataset.cascade || cascadeSide(anchor, r.width);
+    let left = side === 'right' ? panel.right + 4 : panel.left - r.width - 4;
     let top = ar.top - padTop - 1;
     if(top + r.height > window.innerHeight - 8) top = window.innerHeight - 8 - r.height;
     pop.style.left = (window.scrollX + Math.max(8, left)) + 'px';
@@ -28088,8 +28113,8 @@ export function initLegacyApp() {
   ];
   // `mv` selects which header the menu drives. The rows and the bake warning are the same in both
   // views -- the modes mean the same thing -- so this is one menu, not two.
-  function openHeaderModePop(anchorEl, mv){
-    closeHeaderModePop();
+  // Built apart from opening since 16 Nov 2026, so the More panel can measure the menu before it opens (cascadeSide).
+  function buildHeaderModePop(mv){
     const current = headerModeKey(mv);
     const pop = document.createElement('div');
     pop.className = 'hdr-mode-pop';
@@ -28139,6 +28164,11 @@ export function initLegacyApp() {
       }
       pop.appendChild(row);
     });
+    return pop;
+  }
+  function openHeaderModePop(anchorEl, mv){
+    closeHeaderModePop();
+    const pop = buildHeaderModePop(mv);
     document.body.appendChild(pop);
     activeHdrModeAnchor = anchorEl;
     if(anchorEl.hasAttribute('aria-haspopup')) anchorEl.setAttribute('aria-expanded', 'true');

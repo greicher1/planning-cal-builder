@@ -249,6 +249,8 @@ export function PreviewToolbar() {
       document.dispatchEvent(new Event('sptcal:close-tool-menus'))
       return
     }
+    // Which side each row's menu will open, so its arrow points that way before the first paint (app.js, cascadeSide).
+    document.dispatchEvent(new Event('sptcal:measure-tool-menus'))
     const onChoose = (e) => {
       const t = e.target
       if (t.closest && t.closest(SUBMENUS) && t.closest('button:not([disabled])')) setTimeout(() => setMoreOpen(false), 0)
