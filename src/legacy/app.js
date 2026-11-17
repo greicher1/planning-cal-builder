@@ -19301,9 +19301,11 @@ export function initLegacyApp() {
     const titleRaw = (document.getElementById('show-title').value || '').trim();
     const safeTitle = titleRaw.replace(/[\\/:*?"<>|]/g,'-').replace(/\s+/g,' ').trim();
     // ⛔ FROZEN EDIT S1 (owner ruling D6, approved in principle 22 Oct 2026, SCENARIOS-PLAN.md §7): the download's
-    // NAME only. scenarioFileSuffix() is '' with one scenario, so a calendar without scenarios is named as before,
-    // and no byte of the workbook moves (gate 2 compares every part).
-    const xlsxName = (safeTitle ? safeTitle + ' ' : '') + 'Planning Calendar' + scenarioFileSuffix() + '.xlsx';
+    // NAME only, and no byte of the workbook moves (gate 2 compares every part).
+    // ⛔ FROZEN EDIT S1b (owner, 16 Nov 2026, "Work on it now" on audit 2.10's frozen edit, AUD2-025): the season
+    // beside the title, "<title> S3 Planning Calendar 2026-10-01 v2 – Plan B.xlsx". exportFileName() builds it from
+    // this function's own safeTitle; until then this line was '<safeTitle> Planning Calendar' + scenarioFileSuffix().
+    const xlsxName = exportFileName(safeTitle, 'Planning Calendar', '.xlsx');
     a.href = url; a.download = xlsxName;
     document.body.appendChild(a); a.click(); a.remove();
     URL.revokeObjectURL(url);
@@ -31474,11 +31476,14 @@ export function initLegacyApp() {
   function scenarioNameSuffix(){
     return (scenarioTabs && scenarioTabs.length > 1) ? ' \u2013 ' + currentScenario().name.replace(/[\\/:*?"<>|]/g, '-') : '';
   }
-  // ⭐ WHAT AN EXPORT'S NAME SAYS AFTER ITS WORDS (audit 2026-11 AUD2-025; decision D8 = c, default approved 13 Nov
-  // 2026): the season, the Date Last Edited as yyyy-mm-dd, and the Version when one is set, so a revised plan never
-  // downloads under yesterday's name, and S3's and S4's never collide. "Harbor Lights Planning Calendar S3 2026-11-12
-  // v3 – Plan B.pdf". The words ("Planning Calendar", ruled 18 Sep 2026) and the scenario (D6) stay.
-  //  - The season is seasonLabel(), the header's own ("S3", "S3 & S4"); no season, nothing.
+  // ⭐ WHAT AN EXPORT'S NAME SAYS (audit 2026-11 AUD2-025; decision D8 = c, default approved 13 Nov 2026; the season
+  // beside the title by the owner's "Work on it now", 16 Nov 2026): "<title> <season> <words> <date> <version> –
+  // <scenario><ext>", e.g. "Harbor Lights S3 Planning Calendar 2026-11-12 v3 – Plan B.pdf", so a revised plan never
+  // downloads under yesterday's name, and S3's and S4's never collide. The words ("Planning Calendar", ruled 18 Sep
+  // 2026) and the scenario (D6) stay.
+  //  - The season is seasonLabel(), the header's own ("S3", "S3 & S4"), BESIDE THE TITLE as the header's
+  //    {titleSeason} line has it (exportNameHead). No season, nothing. From 13 to 16 Nov 2026 it came after the words
+  //    ("… Planning Calendar S3 2026-11-12 …"): the frozen name lines could only append, until edits S1b / S2b.
   //  - The date is the header's Date Last Edited (lastEditedDate(): the stamp in the reader's zone, today without one),
   //    so the name and the page it names agree. noteLastEdited() first, as a header does, so a change no render has
   //    drawn yet still dates the name.
@@ -31491,18 +31496,24 @@ export function initLegacyApp() {
     if(!opts.date) noteLastEdited();
     const d = opts.date || lastEditedDate();
     const ymd = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
-    const marks = [seasonLabel(), ymd, opts.noVersion ? '' : versionLabel()]
+    const marks = [ymd, opts.noVersion ? '' : versionLabel()]
       .map(s => String(s || '').replace(/[\\/:*?"<>|]/g, '-').replace(/\s+/g, ' ').trim()).filter(Boolean);
     return marks.length ? ' ' + marks.join(' ') : '';
   }
-  // ⛔ THE NAME FROZEN CODE CALLS. Frozen exportExcel (edit S1) and exportWaterfallPdfDirect (edit S2) name their
-  // download '<title> Planning Calendar' + scenarioFileSuffix() + ext, so this is where the marks reach them: the
-  // sanctioned way to change frozen behaviour from outside (CLAUDE.md, pattern 1: change the declaration, not the call
-  // sites), and no byte of either writer's output moves, only the download's name (audit AUD2-025). Their comments
-  // still describe it as the scenario alone, as it was when they were written (22 Oct 2026). monthPdfFileName() calls
-  // it too, so all three exports read alike. ⛔ Keep the NAME: the frozen call sites say it.
-  function scenarioFileSuffix(){
-    return exportNameMarks() + scenarioNameSuffix();
+  // "<title> <season> <words>": the title as the caller made it safe (the frozen writers keep their own sanitising),
+  // then the season, then the words; whichever is empty leaves no space behind.
+  function exportNameHead(safeTitle, words){
+    const season = seasonLabel().replace(/[\\/:*?"<>|]/g, '-').replace(/\s+/g, ' ').trim();
+    return [safeTitle, season, words].filter(Boolean).join(' ');
+  }
+  // ⛔ THE NAME FROZEN CODE CALLS. Frozen exportExcel and exportWaterfallPdfDirect name their download
+  // exportFileName(<their safe title>, 'Planning Calendar', ext) (owner-approved frozen edits S1b / S2b, 16 Nov 2026;
+  // until then '<title> Planning Calendar' + scenarioFileSuffix() + ext, edits S1 / S2, and scenarioFileSuffix() is
+  // gone with them). Both run after the writer has made its bytes and set only the anchor's `download`, so no byte of
+  // either output moves (gates 2 and 3). monthPdfFileName() calls it too, so the three exports read alike.
+  // ⛔ Keep the NAME and the arguments: the frozen call sites say them.
+  function exportFileName(safeTitle, words, ext){
+    return exportNameHead(safeTitle, words) + exportNameMarks() + scenarioNameSuffix() + ext;
   }
   // The shareable copy holds the tab on screen only (ruling D6), so with two or more its name says which one. Its name
   // is a SAVE's (the title and today's date, buildSavedFileName), so it takes the scenario alone, never the marks.
@@ -32359,7 +32370,7 @@ export function initLegacyApp() {
       dayFirst: datesDayFirst(),   // the dates in the calendar on screen's order (audit item 2.4, D3 (a))
     });
   }
-  // "<title> Scenario Comparison S3 2026-11-12" (audit 2026-11 AUD2-025): the season and a Date Last Edited, as every
+  // "<title> S3 Scenario Comparison 2026-11-12" (audit 2026-11 AUD2-025): the season and a Date Last Edited, as every
   // export's name has (exportNameMarks), so a comparison of revised plans never downloads under the last one's name.
   // The date is the NEWEST of every tab's, since a change to any of them changes the comparison (a tab never edited
   // counts as today, as its header reads); no Version, since each tab has its own and the table has a Version row; no
@@ -32374,7 +32385,7 @@ export function initLegacyApp() {
       const d = lastEditedValid(t.snapshot.lastEdited) ? new Date(t.snapshot.lastEdited) : new Date();
       if(d > newest) newest = d;
     });
-    return (safe ? safe + ' ' : '') + 'Scenario Comparison' + exportNameMarks({ date: newest, noVersion: true });
+    return exportNameHead(safe, 'Scenario Comparison') + exportNameMarks({ date: newest, noVersion: true });
   }
   function downloadBlob(blob, name){
     const url = URL.createObjectURL(blob), a = document.createElement('a');
@@ -40124,9 +40135,9 @@ export function initLegacyApp() {
     }
     const titleRaw = (document.getElementById('show-title').value || '').trim();
     const safe = titleRaw.replace(/[\\/:*?"<>|]/g,'-').replace(/\s+/g,' ').trim();
-    // ⛔ FROZEN EDIT S2 (D6, as S1 in exportExcel): the download's NAME only; '' with one scenario, and gate 1
-    // compares the PDF's bytes.
-    const name = (safe ? safe + ' ' : '') + 'Planning Calendar' + scenarioFileSuffix() + '.pdf';
+    // ⛔ FROZEN EDIT S2 (D6, as S1 in exportExcel): the download's NAME only, and gate 2 compares the PDF's bytes.
+    // ⛔ FROZEN EDIT S2b (owner, 16 Nov 2026, as S1b): the season beside the title, through exportFileName().
+    const name = exportFileName(safe, 'Planning Calendar', '.pdf');
     // ⛔ FROZEN EDIT MK1 (owner, 2 Nov 2026: "Add hidden text too"): the SPTCal mark, APPENDED after the writer's
     // bytes (markPdf), so out.bytes is still the file's prefix byte for byte and gate 2 compares it unchanged.
     const url = URL.createObjectURL(new Blob([markPdf(out.bytes)], {type:'application/pdf'}));
@@ -42044,14 +42055,14 @@ export function initLegacyApp() {
   // ⚠️ The waterfall PDF still downloads with no dialog: matching it would be a frozen edit
   // (exportWaterfallPdfDirect), and the owner chose the dialog here knowing the two will differ.
   const MONTH_PDF_TYPES = [{ description: 'PDF document', accept: { 'application/pdf': ['.pdf'] } }];
-  // `<title> Month Calendar S3 2026-11-12 v3.pdf`, beside the other exports' `<title> Planning Calendar … .xlsx` /
+  // `<title> S3 Month Calendar 2026-11-12 v3.pdf`, beside the other exports' `<title> S3 Planning Calendar … .xlsx` /
   // `.pdf`, and made the same way.
   function monthPdfFileName(){
     const titleRaw = (document.getElementById('show-title').value || '').trim();
     const safe = titleRaw.replace(/[\\/:*?"<>|]/g,'-').replace(/\s+/g,' ').trim();
-    // The season, the Date Last Edited and the Version (audit AUD2-025, exportNameMarks), then, with two or more
-    // scenarios, which one it is (SCENARIOS-PLAN.md D6): scenarioFileSuffix() carries both, as for the other exports.
-    return (safe ? safe + ' ' : '') + 'Month Calendar' + scenarioFileSuffix() + '.pdf';
+    // The season beside the title, then the Date Last Edited and the Version (audit AUD2-025), then, with two or more
+    // scenarios, which one it is (SCENARIOS-PLAN.md D6): exportFileName(), as for the other exports.
+    return exportFileName(safe, 'Month Calendar', '.pdf');
   }
   // Where a place is, in words (mvlUnprintable's places).
   function monthPdfPlaceText(p){

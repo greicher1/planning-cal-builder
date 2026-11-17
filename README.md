@@ -31,6 +31,35 @@ way a user would notice or a future session would need to return to. See
 
 ## Unreleased
 
+### Unreleased — The season sits beside the title in every export's name (16 Nov 2026)
+
+The owner's picker, 16 Nov 2026: *"Work on it now"* on audit item 2.10's frozen edit (AUD2-025), which puts the season
+right after the show title in export names. v1.15.0 gave every export a season, a Date Last Edited and a Version, but the
+season came after the words: "Harbor Lights Planning Calendar S3 2026-11-12 v3 – Plan B.pdf". It could only be added at
+the end, because the line that names the workbook and the waterfall PDF sits inside the two frozen exporters. It now
+reads as the header's title line does, and as Help's older example did: "Harbor Lights S3 Planning Calendar 2026-11-12 v3
+– Plan B.pdf".
+
+- **What changes.** Every export that names a file: the workbook and the waterfall PDF ("Harbor Lights S3 Planning
+  Calendar …"), the month PDF ("Harbor Lights S3 Month Calendar …") and Compare's PDF and workbook ("Harbor Lights S3
+  Scenario Comparison 2026-11-12"). Two seasons read "S3 & S4", as the header does. The date, the Version and the
+  scenario stay where they were; a calendar with no season, title or Version leaves nothing behind for it. Save, Save As
+  and Export shareable copy keep a save's name (the title and today's date), which never carried the season.
+- **How.** Owner-approved frozen edits S1b and S2b: the name line in `exportExcel` and `exportWaterfallPdfDirect` now
+  calls `exportFileName(<its own safe title>, 'Planning Calendar', ext)`. Both lines run after the writer has made its
+  bytes and set only the download's name, so neither file changes by a byte. `exportNameHead()` puts the season beside
+  the title, `exportNameMarks()` no longer carries it, and `scenarioFileSuffix()` is gone. The month PDF and Compare use
+  the same helpers. Help's two examples read "Show Title S1 Planning Calendar 2026-11-12 v3.xlsx". CLAUDE.md lists the
+  edit beside the other owner-approved exceptions to the freeze.
+- **Verified.** `exportnames` 8/8: X1-X5 and X7 re-expected to the new order, and X8 new (Season 3 and 4 ticked in the
+  Season dropdown: "Harbor Test S3 & S4 Planning Calendar …"). 7 of the 8 fail on the v1.15.0 build (X6 has no season,
+  so its name is the same either way). Gate.sh's base section by hand: 0 clipped cells, the waterfall PDF identical to
+  its baseline, the Excel parts identical (gates 1-3). Its monthexport and gate 13 section by hand: `monthexport` green
+  on all 24 calendars and on the real clock, and every written month PDF byte-identical to its baseline (gate 13), so
+  neither writer's bytes moved. Re-expected for the new order, each red on the v1.15.0 build only where the name is
+  checked, and green now: `monthpick` 10/10 (M2), `scenarios` 23/23 (S16, S17) and `monthexport` 9/9 (X2, X7, now also
+  requiring the season when the calendar has one). `pdfdialog` 15/15, `firstrun` 22/22, `npm run check` 42/42.
+
 ### The recent calendars on an empty start are two cards (16 Nov 2026)
 
 The owner, on a screenshot of the list v1.15.0 put under the empty preview: *"this recent calendars UI is ugly. Mockup

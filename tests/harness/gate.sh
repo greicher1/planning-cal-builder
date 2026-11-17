@@ -2265,7 +2265,9 @@ done
 #   O2. (S6-S8 reach their first year by <- 1 wk: under v1.14.0's sticky columns a typed start is a remembered move.)
 # comparebreaks, exportnames (2.10, AUD2-023/024/025, on compare-send): Compare's All-phase hiatus row and "Baseline:"
 #   heading, and every export's name carrying the season, the Date Last Edited and the Version; red before at B1-B4 N1
-#   N2 N4 N5 and X1-X7.
+#   N2 N4 N5 and X1-X7. ⭐ exportnames RE-EXPECTED 16 Nov 2026 for the season beside the title (owner-approved frozen
+#   edits S1b / S2b, exportFileName: "Harbor Test S3 Planning Calendar 2026-10-01 v2 – Scenario A.pdf"), with X8 new
+#   (two seasons, "S3 & S4", ticked in the Season dropdown); 7 of 8 red on the v1.15.0 build (X6 has no season).
 # firstrun (2.13, AUD2-030 to -033, WIN-2): recents on an empty start, Production's Season message, the File menu's
 #   keys and New, Help with nothing stale; 21 of 22 red before (H1 also caught a lost Help correction at the merge).
 # startrecents (owner, 16 Nov 2026, version 7 of mockups/start-recents.html): the recents on an empty start as two cards,
