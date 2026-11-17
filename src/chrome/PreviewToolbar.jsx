@@ -83,10 +83,23 @@ import { MonthMap, MonthStepper } from './MonthMap.jsx'
 //   makes Chrome report "ResizeObserver loop completed with undelivered notifications" as a page error, which legs
 //   count. ⛔ Not requestAnimationFrame: a hidden page never gets one, and under the harness's --virtual-time-budget
 //   it may never fire (monthmap.js says the same), so the level would never be set there.
+// * ⛔ A WINDOW RESIZE IS FITTED AT ONCE, in the resize event itself, never a task later (owner, 16 Nov 2026: "There's a
+//   CSS wrap glitch as i change the size of the window", "at width 1258 px and several other 1 pixel gaps"). The event
+//   fires before that frame is laid out and painted. While the fit waited for its timer, the frame was painted with the
+//   NEW width and the OLD gap: one pixel narrower and the line was too long, so More and Undo / Redo dropped to a second
+//   line for one frame and the calendar under them jumped 44 px, at EVERY pixel of the two bands where the gap is solved
+//   (measured: 1317-1293 and 1271-1247 px on the month view, level 2 and level 3). The resize event is not a
+//   ResizeObserver callback, so fitting inside it cannot raise the loop error the timer exists for. Everything else
+//   (the observers, the fonts) still goes through the timer.
+// * ⛔ THE GAP IS ROUNDED DOWN, to a whole 1/64 px (Chrome lays out in 1/64ths), with one 1/64 kept in hand, and the row
+//   is measured in fractions (getBoundingClientRect, not clientWidth, which rounds to a whole px and so can round UP at a
+//   browser zoom). Until 16 Nov 2026 it was written with toFixed(2), which rounds up half the time: the line then had
+//   as little as 1/64 px to spare (measured at 1258 px) and at some widths less than nothing on paper.
 // * The classes and the gap are on .preview-panel, never on .view-toggle-row: the shareable copy is a clone of the page
 //   whose builder empties the row but keeps the row's own attributes (sharecopy2 caught a class riding there).
 //   .preview-panel already carries the grid fit's --header-h the same way, and a copy solves both again when it opens.
 const TB_LEVELS = 5
+const LU = 1 / 64   // Chrome's layout unit
 function useToolbarFit() {
   useLayoutEffect(() => {
     const row = document.querySelector('.view-toggle-row')
@@ -121,7 +134,8 @@ function useToolbarFit() {
       const rowCs = getComputedStyle(row)
       const min = parseFloat(rowCs.getPropertyValue('--tb-gap-min')) || 10
       const max = parseFloat(rowCs.getPropertyValue('--tb-gap-max')) || 14
-      const inner = row.clientWidth - (parseFloat(rowCs.paddingLeft) || 0) - (parseFloat(rowCs.paddingRight) || 0)
+      const inner = row.getBoundingClientRect().width - (parseFloat(rowCs.paddingLeft) || 0) - (parseFloat(rowCs.paddingRight) || 0)
+        - (parseFloat(rowCs.borderLeftWidth) || 0) - (parseFloat(rowCs.borderRightWidth) || 0)
       let level = 0, content = 0, n = 1
       for (; level <= TB_LEVELS; level++) {
         setLevel(level)
@@ -130,25 +144,28 @@ function useToolbarFit() {
         n = parts.length
         if (content + n * min <= inner || level === TB_LEVELS) break
       }
-      const gap = Math.max(min, Math.min(max, (inner - content) / n))
-      panel.style.setProperty('--tb-gap-fit', gap.toFixed(2) + 'px')
+      const gap = Math.max(min, Math.min(max, Math.floor((inner - content - LU) / n / LU) * LU))
+      const value = gap.toFixed(6) + 'px'
+      if (panel.style.getPropertyValue('--tb-gap-fit') !== value) panel.style.setProperty('--tb-gap-fit', value)
     }
     const later = () => { if (!timer) timer = setTimeout(fit, 0) }
+    const now = () => { if (timer) { clearTimeout(timer); timer = 0 } fit() }
     const ro = new ResizeObserver(later)
     ;[row, host, toggle, dates, tools].forEach((el) => ro.observe(el))
     // The engine fills the host after React mounts; a mutation says so even on a page that is not painting.
     const mo = new MutationObserver(later)
     mo.observe(host, { childList: true })
     // A ResizeObserver reports only at a rendering opportunity, which a hidden page never gets (the grid fit in app.js
-    // found that); a window resize arrives regardless.
-    window.addEventListener('resize', later)
+    // found that); a window resize arrives regardless. Fitted in the event itself, so the frame it announces is never
+    // painted with the last width's gap (the comment above the hook).
+    window.addEventListener('resize', now)
     // Inter arrives a moment after the first layout, and every label's width changes with it: a level chosen on the
     // fallback font stuck (seen as fold step 3 on a window that holds step 0) when nothing painted in between.
     const fonts = document.fonts
     if (fonts) { fonts.addEventListener && fonts.addEventListener('loadingdone', later); fonts.ready && fonts.ready.then(later) }
     fit()
     return () => {
-      ro.disconnect(); mo.disconnect(); window.removeEventListener('resize', later)
+      ro.disconnect(); mo.disconnect(); window.removeEventListener('resize', now)
       if (fonts && fonts.removeEventListener) fonts.removeEventListener('loadingdone', later)
       if (timer) clearTimeout(timer)
     }
