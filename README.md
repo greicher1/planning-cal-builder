@@ -31,6 +31,37 @@ way a user would notice or a future session would need to return to. See
 
 ## Unreleased
 
+### Unreleased — A month note is no longer cut off on Windows (audit item W.1, owner-approved frozen look, 16 Nov 2026)
+
+The owner's picker, 16 Nov 2026: *"Approve the fix"* on audit item W.1 (WIN-1). On Windows the month view showed
+"Writer's Room Opens 1/5/26" (an automatic note, with its ↻) as one line and lost its date; a Mac showed it whole. It
+was never the font. A month note's lanes are decided when the month is drawn, from the width of the day column on
+screen at that moment, and the month can then be drawn in a different column: on Windows the month view's scroll bar
+comes and goes with the month's height (15 px over seven columns), a month reached from the Waterfall is measured from
+an estimate about 1.45 px too wide, the box a note is drawn in is 6/7 px narrower than the one it was measured in, and
+counts were remembered by the whole pixel. A note whose wrap point fell in that gap got one lane too few.
+
+- **What you see.** In the month view, on screen, a note gets the lanes its text needs: after paging between a
+  four-week and a five-week month on Windows (or on a Mac set to always show scroll bars), in the first month shown
+  after the Waterfall on every computer, and for a note marked ↻ or ⚑ at any window width. Where a note was cut it is
+  whole, and the week under it moves down by the lane it gained. Nothing changes in the month PDF, the print rollback,
+  Excel, the Waterfall or any saved file.
+- **How.** A month whose column moved between measuring and drawing is drawn once more, in its own column (an observer
+  beside the month paging; nothing frozen is edited, but it changes the frozen look, hence the owner's sign-off). A
+  marked note is measured in the box it is drawn in, at an exact width (frozen edit W1, one line in the note symbol's
+  NS1). The column is watched on the month's first day cell, not on `#table-wrap` as the proposal had it: watching
+  `#table-wrap`, which sits beside the toolbar row at the same depth, made Chrome log "ResizeObserver loop completed
+  with undelivered notifications" now and then (the gate's `monthexport` E0: red in 3 of 4 reference runs of a hand-run
+  gate and in 3 of 16 runs by hand; 0 of 13 on the day cell). Unmarked notes at 10 px keep the last two gaps: closing them changes the print rollback, and is left for the
+  owner.
+- **Verified.** `autonoterename` 25/25 at the harness's 1600 px window and at Windows' 1584 px page width (S2, the
+  Windows cut, and S5, four Windows column widths reached from the Waterfall and from February: no note cut). Gate 10 by
+  hand (the printed month document identical to its baseline, one sheet per month, all 11 calendars) and gate 13 by
+  hand (all 24 written month PDFs byte-identical): the PDFs did not move. `softlines` 6/6 on dayoverrides and halfmarks.
+  The nearest month legs: `mvnotes` 30/30 and on mvnotes 14/14, `mvnotesize` on mvnotes and month-dense60 12/12 each,
+  `mvkeys` g=pick 24/24 and g=enter 16/16. `npm run check` 42/42. Not yet seen on real Windows: the test branch
+  `windows-test-wave4` is prepared for it.
+
 ### Unreleased — The season sits beside the title in every export's name (16 Nov 2026)
 
 The owner's picker, 16 Nov 2026: *"Work on it now"* on audit item 2.10's frozen edit (AUD2-025), which puts the season

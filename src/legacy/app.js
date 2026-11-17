@@ -15474,6 +15474,11 @@ export function initLegacyApp() {
   // The room the symbol takes at the left of a marked note (frozen edit NS1): the note is measured this much narrower,
   // and `.mv-note-mark`'s padding-left is the block's own 4px plus exactly this, so the two agree to the pixel.
   const MV_NOTE_MARK_W = 10;
+  // ⛔ FROZEN LOOK, OWNER-APPROVED (audit WIN-1, item W.1, hunk group 2; owner's picker 16 Nov 2026, "Approve the
+  // fix"): the box a note is DRAWN in is this much narrower than frozen mvNoteBoxWidth(): the bar layer pads 3 px each
+  // side and shares the rest out by 7 (the sized path's `boxW - 6 / 7`, frozen edit E2, found the same). A marked note
+  // is measured in it (mvNoteMarkSpan); an unmarked one is measured as it always was.
+  const MV_NOTE_BAR_INSET = 6 / 7;
   // Armed by the two callers of frozen exportMonthPdf for its first read of the month range; see
   // monthRangeForSchedule (MONTH-NOTES-PLAN.md §3). Declared up here so no early render meets it in its TDZ.
   let mvPrintRangeOnce = false;
@@ -16228,7 +16233,11 @@ export function initLegacyApp() {
               // never sits under the symbol or clips. Unmarked, and in every print or PDF render, both are what they were.
               const mark = b.mark || null;
               // ⛔ FROZEN EDIT D1 (PROPOSED, AUD2-045): a line ending in its date keeps it above 10 px (mvNoteLineCountSized).
-              const span = mvNoteLineCount(n, mark ? noteBoxW - MV_NOTE_MARK_W : noteBoxW, mvTextStyleOf('wfnote', wfKey),
+              // ⛔ FROZEN EDIT W1 (WIN-1 hunk group 2; owner-approved by picker 16 Nov 2026, "Approve the fix"): a
+              // marked line's lanes come from mvNoteMarkSpan(), measured in its DRAWN box less the symbol's room, at
+              // that exact width; it was mvNoteLineCount(n, noteBoxW - MV_NOTE_MARK_W, ...).
+              // An unmarked line is measured by mvNoteLineCount at noteBoxW, exactly as always.
+              const span = (mark ? mvNoteMarkSpan : mvNoteLineCount)(n, noteBoxW, mvTextStyleOf('wfnote', wfKey),
                                            MV_NOTE_DATED.test(String(n).trim()));
               // ⛔ FROZEN EDIT H1 (owner sign-off by picker, 30 Oct 2026, "Just that holiday": a colour picked on one
               // holiday colours that holiday alone). A holiday with its own month colour (holidayColors) is drawn in it;
@@ -19551,21 +19560,41 @@ export function initLegacyApp() {
   // it MV_NOTE_MARK_W narrower, and mvNoteLineCount never gives a note more than three lanes). A line that would need a
   // fourth is drawn WITHOUT its symbol, so the symbol can never cut a line off; a wider window gives it back. Measured
   // with mvNoteLineCount's own hidden measurer and rules, unclamped. The box is the renderer's own (mvNoteBoxWidth).
+  // ⛔ OWNER-APPROVED (audit WIN-1, item W.1, hunk group 2; owner's picker 16 Nov 2026, "Approve the fix"), three
+  // changes, marked lines only:
+  //  - the box is the note's DRAWN box less the symbol's room, MV_NOTE_BAR_INSET (6/7 px) narrower than it was. Measured
+  //    at mvNoteBoxWidth() - MV_NOTE_MARK_W, a marked line whose wrap point fell in those 6/7 px got one lane too few and
+  //    lost its end on every platform ("Writer's Room Opens 1/5/26" in a 156.4-156.7 px day column);
+  //  - its cache key is the width to 1/100 px, as the sized path's is, never Math.round(): a count measured in one column
+  //    was handed to a column up to a pixel narrower (a window resized, a month paged) and the line lost its end;
+  //  - NS1 takes the marked line's lanes from here (mvNoteMarkSpan) instead of frozen mvNoteLineCount's whole-pixel cache,
+  //    so a marked width is never cached where the print path's unmarked counts are.
+  // Screen only, as NS1 is: printingCursor is null whenever a line is marked, so neither month PDF can move.
   const _mvMarkFitCache = new Map();
-  function mvNoteMarkFits(text, fmt){
-    const boxW = mvNoteBoxWidth() - MV_NOTE_MARK_W;
+  function mvNoteMarkLinesAt(text, boxW, fmt){            // a marked line's lines in boxW (border box), unclamped
     const sig = mvMeasureSig(fmt);
-    const key = Math.round(boxW) + '|' + text + (sig ? '|' + sig : '');
+    const key = boxW.toFixed(2) + '|' + text + (sig ? '|' + sig : '');
     if(_mvMarkFitCache.has(key)) return _mvMarkFitCache.get(key);
-    mvNoteLineCount('x', boxW);                           // makes the measurer, once
-    const el = _mvNoteMeasureEl;
+    const el = mvNoteMeasurer();
     el.style.width = Math.max(24, boxW) + 'px';
     mvMeasureFont(el, fmt, 500, 1.3, MV_TEXT_LINE_PX.note);
     el.textContent = String(text || '');
-    const fits = Math.round((el.offsetHeight - 6) / 13) <= 3;
+    const lines = Math.round((el.offsetHeight - 6) / 13);
     if(_mvMarkFitCache.size > 800) _mvMarkFitCache.clear();
-    _mvMarkFitCache.set(key, fits);
-    return fits;
+    _mvMarkFitCache.set(key, lines);
+    return lines;
+  }
+  function mvNoteMarkFits(text, fmt){
+    return mvNoteMarkLinesAt(text, mvNoteBoxWidth() - MV_NOTE_MARK_W - MV_NOTE_BAR_INSET, fmt) <= 3;
+  }
+  // The lanes NS1 gives a MARKED line (mvDayNotePlan marks only lines mvNoteMarkFits passed). Above 10 px the sized path
+  // already measures in the drawn box (it takes the 6/7 px off itself) at an exact width, so it is asked as before; at
+  // 10 px, mvNoteLineCount's rule (one to three lanes) at the drawn box less the symbol's room.
+  function mvNoteMarkSpan(text, noteBoxW, fmt, keep){
+    const px = mvNoteEffPx(fmt);
+    if(px > 10 && MV_NOTE_SIZES[px]) return mvNoteLineCount(text, noteBoxW - MV_NOTE_MARK_W, fmt, keep);
+    if(!String(text == null ? '' : text).trim()) return 1;
+    return Math.min(3, Math.max(1, mvNoteMarkLinesAt(text, noteBoxW - MV_NOTE_MARK_W - MV_NOTE_BAR_INSET, fmt)));
   }
   // One day's notes, in order, each with its group. With `legacy` (no order or place anywhere, or the untouched
   // layout being drawn) every note is 'below': the waterfall's lines, then the day's own in array order -- the
@@ -30889,6 +30918,54 @@ export function initLegacyApp() {
     monthCursor = target;
     render(currentSchedule);
   });
+
+  // ⛔ FROZEN LOOK, OWNER-APPROVED (audit WIN-1, item W.1, hunk group 1; owner's picker 16 Nov 2026, "Approve the
+  // fix"): A MONTH IS MEASURED IN THE DAY COLUMN IT IS DRAWN IN. Frozen renderMonthView gives each note its lanes
+  // from frozen mvNoteBoxWidth(), which reads the day column on screen WHEN IT RUNS: the outgoing month's, or, coming
+  // from the waterfall, an estimate, (#table-wrap's width - 30) / 7. The incoming month can be drawn in another column:
+  //  - #table-wrap is the month view's scroller (legacy.css, "the app shell"), and where a scrollbar takes room
+  //    (Windows; a Mac set to always show scroll bars) it comes and goes with the month's height, so a five-week
+  //    January paged from a four-week February is drawn 15/7 px narrower than it was measured;
+  //  - the waterfall's estimate runs about 1.45 px wide (measured at 1584 and 1600 px windows).
+  // A note whose wrap point falls in between gets one lane too few and loses its end: "Writer's Room Opens 1/5/26",
+  // marked, on Windows (autonoterename S2 there; S5 here). So a month render whose column moved is followed by one
+  // more, which measures in the month's own column. Nothing frozen is edited: render() and mvNoteBoxWidth() are
+  // called, never changed, and a month whose column did not move is drawn once, as always. Screen only: the print
+  // rollback draws into #print-root and the month-PDF writer into no DOM, and both read mvNoteBoxWidth() off the
+  // screen exactly as before.
+  (function(){
+    const tw = document.getElementById('table-wrap');
+    let drawnW = null;     // mvNoteBoxWidth() of the month on screen, laid out; null while no month is on screen
+    const colNow = ()=> (viewMode === 'month' && !printingCursor && document.querySelector('#table-wrap .mv-daycell'))
+      ? mvNoteBoxWidth() : null;
+    // A resize moves the column the next render will measure in without a render, so the record follows it.
+    // ⚠️ The resize is watched on the month's first DAY CELL (its width is the column), re-attached after every render,
+    // never on #table-wrap as the approved patch had it (adapted at the release-wave4 merge, 16 Nov 2026, same intent):
+    // #table-wrap sits at the same DOM depth (4) as .view-toggle-row, which the app shell's grid fit observes and
+    // resizes the grid from, so a toolbar change made in that callback resized #table-wrap at a depth the browser had
+    // already passed, and Chrome logged "ResizeObserver loop completed with undelivered notifications" now and then
+    // (monthexport E0: red in 3 of 4 reference runs of a hand-run gate and 3 of 16 runs by hand; 0 of 6 without the
+    // patch, 0 of 4 with the patch less this observer, 0 of 13 on the day cell, depth 9, deeper than every observer
+    // that can resize the grid).
+    const ro = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(()=>{ if(drawnW != null) drawnW = colNow(); }) : null;
+    const watch = ()=>{
+      if(!ro) return;
+      ro.disconnect();
+      const cell = drawnW != null && tw.querySelector('.mv-daycell');
+      if(cell) ro.observe(cell);
+    };
+    const mo = new MutationObserver(()=>{
+      const measuredAt = drawnW;   // the column the render that just ran measured in: the outgoing month's (null: the estimate)
+      drawnW = colNow();           // reading it lays the new month out, its scrollbar decided
+      if(drawnW == null || !currentSchedule){ watch(); return; }
+      if(measuredAt != null && Math.abs(measuredAt - drawnW) < 0.01){ watch(); return; }
+      render(currentSchedule);     // measures in drawnW, the column now on screen
+      mo.takeRecords();            // that render's own records: seen here, never again, so it is one render more at most
+      drawnW = colNow();
+      watch();
+    });
+    mo.observe(tw, {childList: true});
+  })();
 
   buildPhaseRows();
   // Production's meta line under a half total (reflectHalfDayTotal), and every Weeks phase's ending on its Friday

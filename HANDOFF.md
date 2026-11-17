@@ -4,7 +4,14 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### 🛑 16 Nov 2026: AUDIT ITEM W.1 (WIN-1) — A MARKED MONTH NOTE CUT OFF ON WINDOWS: CAUSE FOUND, FIX PROPOSED, NOT APPLIED. Branch `audit-w-1` (worktree `.claude/worktrees/audit-w-1`, from `origin/main` `ad48e11`). **One WIP commit: the acceptance case `autonoterename` S5, RED on this branch until the owner signs off the frozen-look patch.** Not merged, not pushed. Built unattended on the owner's "work on it now".
+### ✅ 16 Nov 2026: AUDIT ITEM W.1 (WIN-1) — A MARKED MONTH NOTE CUT OFF ON WINDOWS: FIX APPLIED ON `release-wave4` (owner's picker "Approve the fix"). Branch `audit-w-1` (worktree `.claude/worktrees/audit-w-1`, from `origin/main` `ad48e11`). **One WIP commit: the acceptance case `autonoterename` S5, RED on this branch until the owner signs off the frozen-look patch.** Not merged, not pushed. Built unattended on the owner's "work on it now".
+- **APPLIED (16 Nov 2026, owner's picker *"Approve the fix"*) on `release-wave4`**, the patch's code as written, with ONE
+  adaptation found by the hand-run gate: its `ResizeObserver` watched `#table-wrap`, which sits at the same DOM depth (4)
+  as `.view-toggle-row` (observed by the app shell's grid fit), and Chrome logged "ResizeObserver loop completed with
+  undelivered notifications" now and then: `monthexport` E0 red in 3 of 4 reference runs of the hand gate and 3 of 16
+  runs by hand (0 of 6 on the merged build without the patch, 0 of 4 with the patch less its observer). It now watches
+  the month's first `.mv-daycell` (depth 9, re-attached after each render): 0 of 13. CLAUDE.md lists it as the sixth
+  owner-approved exception; README has the entry. The Windows check below is prepared on `windows-test-wave4`.
 - **The finding** (WIN-1): on Windows "Writer's Room Opens 1/5/26" (↻, January 2026) loses its second line in the
   month view; whole on a Mac. The audit guessed Windows draws text wider. **It does not** (Inter's advances match to
   under 0.5 font units, `interfonts` F5-F7 in CI run 43536808376).

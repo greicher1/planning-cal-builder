@@ -140,6 +140,27 @@ there for a specific, measured reason, and the reasons are not visible from the 
   `download`, so no byte of either output moves: gates 1-3 (base) and 13 identical. `exportFileName` / `exportNameHead` /
   `exportNameMarks` are not frozen and also name the month PDF (`monthPdfFileName`) and Compare (`compareFileBase`). ⛔
   Keep `exportFileName`'s name and argument order: the frozen lines call it. Leg `exportnames` (X1-X8).
+- ⚠️ **A sixth, audit item W.1 (WIN-1), the month view ON SCREEN ONLY (owner's picker, 16 Nov 2026: *"Approve the
+  fix"*; the proposal and its measurements are the audit's `work/overnight/W1-frozen.md`): a month note gets the lanes
+  its text needs in the column it is DRAWN in.** "Writer's Room Opens 1/5/26" (↻) lost its second line on Windows: not
+  the font, the column. A note's lanes are decided from frozen `mvNoteBoxWidth()` when the month renders, and the month
+  can be drawn in another column (`#table-wrap`'s scroll bar comes and goes with the month's height where scroll bars
+  take room; from the waterfall the column is an estimate ~1.45 px wide; the drawn box is 6/7 px narrower; counts were
+  cached by the whole pixel).
+  - **Hunk group 1** (no frozen symbol edited): a `MutationObserver` on `#table-wrap`, after the month paging handler,
+    calls frozen `render(currentSchedule)` ONCE more when the column a month was measured in is not the one it is drawn
+    in (0.01 px), month view only, never while `printingCursor` is set; a `ResizeObserver` keeps the record current.
+    ⚠️ It watches the month's first DAY CELL (re-attached after each render), never `#table-wrap` as the proposal had
+    it: `#table-wrap` is at the same DOM depth (4) as `.view-toggle-row`, and observing it made Chrome log
+    "ResizeObserver loop completed with undelivered notifications" now and then (`monthexport` E0). Keep the target
+    deeper than every observer that can resize the grid.
+  - **Hunk group 2, frozen edit W1 in NS1** (`renderMonthView`): a MARKED line's lanes come from `mvNoteMarkSpan()`,
+    measured at `mvNoteBoxWidth() - MV_NOTE_MARK_W - MV_NOTE_BAR_INSET` (6/7 px) at an exact width (`mvNoteMarkLinesAt`,
+    keyed to 1/100 px); `mvNoteMarkFits` measures the same way. An unmarked line is unchanged.
+  - ⛔ Screen only: marks are set only while `printingCursor` is null, the print rollback draws into `#print-root` and
+    the writer into no DOM, so gates 10 and 13 are byte-identical (all 11 and all 24). Unmarked 10 px notes keep the
+    6/7 px and whole-pixel gaps: fixing them is a print-path frozen edit the owner has not been asked for. Legs
+    `autonoterename` S2 + S5 (also at `HARNESS_WINDOW=1584,1200`, Windows' page width), `softlines`.
 
 **Why, concretely.** These three cost weeks and are each invisible without measurement:
 
