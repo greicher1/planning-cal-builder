@@ -31,6 +31,33 @@ way a user would notice or a future session would need to return to. See
 
 ## Unreleased
 
+### Unreleased — On a DD/MM calendar the month view's own reader reads a typed note's date day first (frozen edit D3, 16 Nov 2026)
+
+Audit item 2.4 (AUD2-066, the owner's decision D3 (a): *"typed or pasted dates are read day first too"*) left one
+frozen edit unapplied: the owner's picker on 16 Nov 2026 said *"Work on it now"*. Nothing a user sees changes. v1.15.0
+already put "Table read 17/7/26" on 17 July in the month view, but through a stand-in. This edit does it in the frozen
+code itself.
+
+- **Before.** Frozen `notesForWaterfallDate` places each line of a typed waterfall note on its trailing date, and it
+  read that date month first. So v1.15.0 wrapped it in `wfLinesOnDay`: on a DD/MM calendar it handed the frozen
+  function a rewritten copy of the week's note for one call, with each day-first line pinned to its own day.
+- **Now (frozen edit D3).** The typed-line loop reads the date with `slashDateInWeek()`, 2.4's own helper, in place of
+  the three lines that built it month first. On DD/MM a date is read day first, and one that reads inside its week only
+  month first (typed before the switch) still places its line. `wfLinesOnDay` is gone, and the month view, both month
+  PDFs and the holiday tint call the frozen reader directly again. On a month-first calendar the helper returns exactly
+  the date the old lines built, or nothing where they fell through to the pinned day or Monday, so nothing changes there.
+- **Verified.** New leg `dayfirstwf` 11/11 on a DD/MM/YY calendar: one dated line, three lines in one note, a
+  month-first line beside a day-first one, a typed holiday line and its tint, each on its own day; re-dated by
+  Production's start (the typed note's automatic line follows), by the month drag inside its week and into another
+  week's note, with one Undo; and the month-first control. It is green on v1.15.0 too (the stand-in did the same job).
+  A v1.15.0 mutant with neither the stand-in nor D3 is red at 10 of the 11, so the leg holds D3 alone.
+- **Month-first calendars unchanged byte for byte.** Gates 1-3 (`base` with 0 clipped cells, the waterfall PDF, its
+  seams, the workbook), gate 10 (11 calendars) and gate 13 (all 24 runs), run by hand from `gate.sh`'s own sections:
+  334 PASS / 6 FAIL, every baseline identical. The six are `monthexport`'s timed dialog cases X4-X6 at a load average
+  of 18 (a known flake); the four runs that had them are 9/9 re-run alone. Also `dayfirst` 14/14, `dayfirstin` 13/13,
+  `wfnotelines` (all six groups) 32/32, `autonotefollow` (all four) 24/24, `softlines` 6/6 on both its calendars,
+  `npm run check` 42/42.
+
 ### The toolbar keeps its laptop size and folds on narrow windows; the app never stacks (16 Nov 2026)
 
 The owner: *"Ok we really need to work on UI scaling at differnt screen sizes. Its mostly an issue with the tool bar.

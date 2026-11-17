@@ -2258,6 +2258,12 @@ done
 #   each red on the unfixed build (backupblocked's K3 was green on both).
 # dayfirst, dayfirstin (2.4, AUD2-012/066, D3 (a)): on DD/MM every date the app writes reads day first, and typed and
 #   pasted dates are read day first; 10 of 14 and 8 of 13 red before.
+# dayfirstwf (⭐ ADDED 16 Nov 2026, frozen edit D3, owner-approved by picker "Work on it now"): on DD/MM a typed waterfall
+#   line is placed by its day-first date by frozen notesForWaterfallDate itself (slashDateInWeek), where v1.15.0 had a
+#   stand-in (wfLinesOnDay): one line, three in a note, a month-first line beside a day-first one, a typed holiday line
+#   and its tint, re-dated by Production's start, by the month drag inside and across weeks (one Undo), and the
+#   month-first control. Green on v1.15.0 too (the stand-in); a mutant without the stand-in or D3 is red at T1-T3, H1,
+#   H2, R1-R4, M1.
 # swapnoop, swapwords, swapplain, weekswapholds, swapsharenotice (2.12, AUD2-027/028/041/042, D5 (b)): no move that
 #   changes nothing, plain refusals, a plain click + Alt+arrow, a part-column swap that holds when a phase moves, and a
 #   shareable copy without the purple strip; each red on 2089aa5's build at its new cases.
@@ -2381,7 +2387,7 @@ for AFSPEC in pwagate:-:120 pwagatelogic:-:120 settingswin:-:240 newtab:-:120 \
               prefsguard:-:200 sharecopyguard:show-a:200 \
               notelook:autonoterename:300 monthpick:-:300 \
               backupdecline:-:150 backuplive:-:120 launchrecover:-:180 backupblocked:-:150 backupswept:-:120 \
-              dayfirst:-:300 dayfirstin:-:300 \
+              dayfirst:-:300 dayfirstin:-:300 dayfirstwf:-:300 \
               swapnoop:swapnoop-three:200 swapnoop:swapnoop-alone:200 swapwords:swapnoop-three:200 swapwords:-:200 \
               swapplain:colswap-gesture:200 weekswapholds:colswap-widened:400 weekswapholds:weekswap-apart:200 \
               swapsharenotice:colswap-simpost-refuse:200 \
