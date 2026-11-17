@@ -5199,3 +5199,17 @@
   filter:drop-shadow(0 4px 10px rgba(0,0,0,.28)); will-change:transform;
 }
 .mv-drag-shield{ position:fixed; inset:0; z-index:300; cursor:grabbing; }
+
+/* ⛔ FROZEN-SURFACE EDIT FC1 -- OWNER-APPROVED by picker, 16 Nov 2026, "Keep colours (contrast)" (audit 2026-11, item
+   W.2, WIN-5: "A Windows contrast theme removes the phase colours on screen"). In forced-colors mode (Windows
+   Settings > Accessibility > Contrast themes) Chrome replaces every background with the theme's, so the on-screen
+   waterfall and month view lose every phase fill, hiatus band and coloured note: the colours ARE the calendar's
+   information. forced-color-adjust:none keeps the calendar's own colours there and nowhere else; outside
+   forced-colors mode this block matches nothing, so the screen, both PDFs and the workbook are unchanged byte for
+   byte. #table-wrap is the frozen container (CLAUDE.md), hence the owner's sign-off. The chrome swatches that show
+   the same colours (the phase cards' colour buttons .pc-sw, the phase map, the side boxes' colour keys) follow, so
+   the key and the calendar never disagree. Leg `forcedcolors` (rtleg.mjs emulates the contrast theme over CDP with
+   ?forced=active; run.sh is the control). */
+@media (forced-colors: active){
+  #table-wrap, .month-map, .side-col, .pc-sw{ forced-color-adjust:none; }
+}

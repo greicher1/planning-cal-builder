@@ -31,6 +31,30 @@ way a user would notice or a future session would need to return to. See
 
 ## Unreleased
 
+### Unreleased — A Windows contrast theme keeps the calendar's colours (frozen-surface edit FC1, 16 Nov 2026)
+
+The owner's picker, 16 Nov 2026: *"Keep colours (contrast)"* on audit item W.2's frozen proposal FC1 (WIN-5). With a
+Windows contrast theme on (Settings > Accessibility > Contrast themes), Chrome paints every background in the theme's
+own colours, so the waterfall and the month view lost every phase fill, hiatus band and coloured note, and the colours
+are the calendar's information.
+
+- **What you see.** Under a contrast theme the calendar keeps its own colours, in both views, and so do the swatches
+  that show them (the phase map, the phase cards' colour buttons, the side boxes' colour keys), so the key and the
+  calendar never disagree. The rest of the app follows the theme as before. Without a contrast theme nothing changes.
+- **How.** One block at the end of `legacy.css`: `@media (forced-colors: active){ #table-wrap, .month-map, .side-col,
+  .pc-sw{ forced-color-adjust:none } }`. `#table-wrap` is the frozen container, hence the owner's sign-off; CLAUDE.md
+  lists it as the seventh owner-approved exception. Outside forced-colors mode it matches nothing; the workbook and both
+  written PDFs read no paint, and `#print-root` is not in it.
+- **Verified.** New leg `forcedcolors`, in the gate: `rtleg.mjs` emulates the contrast theme over CDP when the query holds
+  `forced=active` (no page can switch it on for itself). Forced: 7/7, every one of 72 coloured waterfall cells and the
+  coloured month bars keep their fills, and with the block deleted the theme paints them black (so the emulation bites
+  and the block is what keeps them); the block opts out the calendar and the phase map only. Control (no theme): 7/7, the
+  block changes nothing. On the build before FC1 the forced run is red at B0, F1, F3 and F4. Gates 1-3 (base section) and
+  gate 13 by hand: 0 clipped cells, the waterfall PDF and every Excel part identical to their baselines, the seam check green, and all
+  24 written month PDFs byte-identical (gate 13), with the printed month document unchanged on all 11 calendars (gate
+  10): a partial gate cut from gate.sh's own sections, 368 PASS / 0 FAIL, on the build carrying all three of today's
+  frozen edits. `npm run check` 42/42.
+
 ### Unreleased — A month note is no longer cut off on Windows (audit item W.1, owner-approved frozen look, 16 Nov 2026)
 
 The owner's picker, 16 Nov 2026: *"Approve the fix"* on audit item W.1 (WIN-1). On Windows the month view showed

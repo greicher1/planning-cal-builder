@@ -3161,6 +3161,29 @@ for c in cases:
 sys.exit(0 if cases and all(c.get('pass') is True for c in cases) else 1)
 PYRT
 done
+# forcedcolors (⭐ ADDED 16 Nov 2026, frozen-surface edit FC1, audit item W.2 / WIN-5, owner's picker "Keep colours
+# (contrast)"): a Windows contrast theme, EMULATED over CDP by rtleg.mjs when the query holds forced=active (no page can
+# switch forced-colors on for itself), keeps the calendar's own fills in the waterfall (F1) and the month view (F3), and
+# deleting FC1's block lets the theme replace them (F2, F3: the emulation bites, and FC1 is what keeps them); the control
+# run (no emulation) proves the block changes nothing outside forced colours. F4: the block is fenced to the calendar
+# and its swatches. On the build before FC1 the forced run is red at B0, F1 (the theme's colours in all 72 cells), F3, F4.
+for FCQ in forced=active -; do
+  FCLABEL="forcedcolors (${FCQ/-/control})"; [[ $FCQ == - ]] && FCQ=""
+  HARNESS_PAGE="$PAGE" HARNESS_STATE="" node "$HERE/rtleg.mjs" --leg forcedcolors --secs 120 --query "$FCQ" >/dev/null 2>&1
+  python3 - "$HERE/forcedcolors.json" "$FCLABEL" <<'PYFC' || FAIL=1
+import json,sys
+path, label = sys.argv[1], sys.argv[2]
+try: a=json.load(open(path))
+except Exception as e:
+    print('  FAIL  '+label+' produced no result: '+str(e)); sys.exit(1)
+if a.get('EX'):
+    print('  FAIL  '+label+' threw: '+str(a['EX'])[:200]); sys.exit(1)
+cases = a.get('cases') or []
+for c in cases:
+    print(('  PASS  ' if c.get('pass') is True else '  FAIL  ')+label+' '+str(c.get('id'))+': '+str(c.get('title',''))[:110])
+sys.exit(0 if len(cases) >= 7 and all(c.get('pass') is True for c in cases) else 1)
+PYFC
+done
 
 # ---- printpaper (audit L-3, FIX-PLAN 3.5): the month PDF's PAPER is pinned to Letter -------------
 # ⭐ ADDED 29 Sep 2026 (batch 3). The month fit is computed in JS for Letter, and the print CSS used

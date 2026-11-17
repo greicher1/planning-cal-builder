@@ -6,6 +6,9 @@
 // Writes <leg>.json beside this script, in exactly the shape run.sh + parse.js produce (the leg's
 // own T.done() object), so gate.sh judges it with the same block as every other leg.
 //
+// A query holding forced=active also has Chrome EMULATE forced-colors (a Windows contrast theme) before the page loads,
+// over CDP: the forcedcolors leg (frozen edit FC1, 16 Nov 2026).
+//
 // ⛔ WHY THIS EXISTS (30 Sep 2026). run.sh drives Chrome with --virtual-time-budget, and two things
 // do not work under that clock:
 //   - A service worker's register() never settles: the page goes idle, virtual time fast-forwards
@@ -88,6 +91,9 @@ try {
   const send = (method, params = {}) => new Promise((res, rej) => { const id = ++seq; waiting.set(id, { res, rej }); ws.send(JSON.stringify({ id, method, params })); });
   const evaluate = async expr => (await send('Runtime.evaluate', { expression: expr, returnByValue: true })).result.value;
   await send('Page.enable');
+  // forced=active in the query: a Windows contrast theme, emulated (forced-colors), which no page can switch on for
+  // itself. The forcedcolors leg (frozen edit FC1, 16 Nov 2026) reads the same word to know which look to expect.
+  if (/(^|&)forced=active(&|$)/.test(QUERY)) await send('Emulation.setEmulatedMedia', { features: [{ name: 'forced-colors', value: 'active' }] });
   await send('Page.navigate', { url: `http://localhost:${PORT}${PAGE}?test=${LEG}${STATE ? '&state=' + STATE : ''}${QUERY ? '&' + QUERY : ''}` });
   const t0 = Date.now();
   while (!out && Date.now() - t0 < SECS * 1000) {

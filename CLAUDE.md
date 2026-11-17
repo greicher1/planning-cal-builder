@@ -161,6 +161,16 @@ there for a specific, measured reason, and the reasons are not visible from the 
     the writer into no DOM, so gates 10 and 13 are byte-identical (all 11 and all 24). Unmarked 10 px notes keep the
     6/7 px and whole-pixel gaps: fixing them is a print-path frozen edit the owner has not been asked for. Legs
     `autonoterename` S2 + S5 (also at `HARNESS_WINDOW=1584,1200`, Windows' page width), `softlines`.
+- ⚠️ **A seventh, frozen-surface edit FC1 (audit item W.2, WIN-5; owner's picker, 16 Nov 2026: *"Keep colours
+  (contrast)"*): a Windows contrast theme keeps the calendar's colours, ON SCREEN ONLY.** In forced-colors mode Chrome
+  paints every background in the theme's colours, so the waterfall and the month view lost every phase fill, hiatus band
+  and coloured note. One block at the end of `legacy.css`, `@media (forced-colors: active){ #table-wrap, .month-map,
+  .side-col, .pc-sw{ forced-color-adjust:none } }`: the calendar, and the chrome swatches that show its colours, opt out
+  of the theme; the rest of the chrome follows it. ⛔ Outside forced-colors mode it matches nothing; the workbook and
+  both written PDFs read no paint, and `#print-root` is not in the block, so gates 2, 3 and 13 are byte-identical and the
+  print rollback is as it was. Leg `forcedcolors`: `rtleg.mjs --query forced=active` emulates
+  the theme over CDP (`Emulation.setEmulatedMedia`, which no page can do for itself), and the leg deletes the block to
+  show the theme does replace the fills without it; `run.sh forcedcolors` is the control (the block changes nothing).
 
 **Why, concretely.** These three cost weeks and are each invisible without measurement:
 
