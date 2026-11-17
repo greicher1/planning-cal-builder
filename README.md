@@ -29,9 +29,9 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
-## Unreleased
+## v1.16.0 — wave 4: day marks and a break's own notes stay put when a hiatus ripples, Changes since last save, keys named for your computer, a month note no longer cut off on Windows, a contrast theme keeps the calendar's colours, long titles fit a file name, the season beside the title in export names; plus everything since v1.15.0: a toolbar that keeps its size and folds, a click outside closes Shift, the recents as cards, every phase switch on show again (16 Nov 2026)
 
-### Unreleased — A very long show title is cut to fit the workbook's and the waterfall PDF's file names too (16 Nov 2026)
+### A very long show title is cut to fit the workbook's and the waterfall PDF's file names too (16 Nov 2026)
 
 The owner's picker, 16 Nov 2026: *"Cut long titles"* (audit WIN-5). Windows refuses a file name over 255 characters.
 Audit item W.2 (its own entry below) already cuts a show title over
@@ -53,7 +53,7 @@ code, so a 400-character title still reached their names.
   10): a partial gate cut from gate.sh's own sections, 368 PASS / 0 FAIL, on the build carrying all three of today's
   frozen edits. `npm run check` 42/42.
 
-### Unreleased — A Windows contrast theme keeps the calendar's colours (frozen-surface edit FC1, 16 Nov 2026)
+### A Windows contrast theme keeps the calendar's colours (frozen-surface edit FC1, 16 Nov 2026)
 
 The owner's picker, 16 Nov 2026: *"Keep colours (contrast)"* on audit item W.2's frozen proposal FC1 (WIN-5). With a
 Windows contrast theme on (Settings > Accessibility > Contrast themes), Chrome paints every background in the theme's
@@ -77,7 +77,7 @@ are the calendar's information.
   10): a partial gate cut from gate.sh's own sections, 368 PASS / 0 FAIL, on the build carrying all three of today's
   frozen edits. `npm run check` 42/42.
 
-### Unreleased — A month note is no longer cut off on Windows (audit item W.1, owner-approved frozen look, 16 Nov 2026)
+### A month note is no longer cut off on Windows (audit item W.1, owner-approved frozen look, 16 Nov 2026)
 
 The owner's picker, 16 Nov 2026: *"Approve the fix"* on audit item W.1 (WIN-1). On Windows the month view showed
 "Writer's Room Opens 1/5/26" (an automatic note, with its ↻) as one line and lost its date; a Mac showed it whole. It
@@ -109,7 +109,7 @@ counts were remembered by the whole pixel. A note whose wrap point fell in that 
   from the test branch `windows-test-wave4`): `autonoterename` at the default window and at 1584 x 1200, and `softlines`,
   green; all 48 month-PDF runs (`monthexport`, `monthwriter`) green, so the PDFs did not move there either.
 
-### Unreleased — Keys are named for your computer, Load lists older .html calendars, and a long title fits a file name (audit item W.2, 16 Nov 2026)
+### Keys are named for your computer, Load lists older .html calendars, and a long title fits a file name (audit item W.2, 16 Nov 2026)
 
 The November audit's Windows review, item W.2 (WIN-3, WIN-5). On Windows the app named a Mac's keys: Undo's hint read
 "Undo (⌘Z)", Redo's "Redo (⌘⇧Z)", the Ripple Hiatus hint said ⌘Z, and Help named every shortcut with ⌘ under one line
@@ -140,7 +140,7 @@ missing; and a 420-character show title made a Save As name of 438 characters, p
   `oskeys` and every `win-*` leg were green but `win-keys` K5, red since 14 Nov: Chrome keeps Ctrl+N for a new window,
   which Help now says. `npm run check` 42/42.
 
-### Unreleased — File ▸ Changes since last save… lists what moved, ready to paste into an email (audit AUD2-103, idea I.3, 16 Nov 2026)
+### File ▸ Changes since last save… lists what moved, ready to paste into an email (audit AUD2-103, idea I.3, 16 Nov 2026)
 
 The owner: *"work on it now"* (16 Nov 2026). A studio coordinator sending this week's calendar had to work out by eye
 what had moved since last week's file, and type it into the email.
@@ -169,7 +169,7 @@ what had moved since last week's file, and type it into the email.
   `startrecents`, `firstrun`, `filekeys`, `lastedited`, `scenarios`, `scenariofacts`, `comparehiatus`, `recoverfail`
   (scen), `nofsa`, `backuplink`, `conflict`. Green on real Windows too (run 44028047067). `npm run check` 42/42.
 
-### Unreleased — Ripple Hiatus leaves day marks and a break's own notes on their dates, and says so (audit item 2.5: AUD2-016, AUD2-037, 16 Nov 2026)
+### Ripple Hiatus leaves day marks and a break's own notes on their dates, and says so (audit item 2.5: AUD2-016, AUD2-037, 16 Nov 2026)
 
 The owner's decision D2 = b, 16 Nov 2026: *"marks stay on their dates when a hiatus is edited ... the result line says
 so, and warns when a mark lands under the break. Notes stay; one Undo"*. With Ripple Hiatus Periods on (the default), a
@@ -199,7 +199,7 @@ the break was shortened or switched off, deeper in when it was lengthened, out o
   `phasearrowsripple` 10/10, `hiatusdrag.mjs` 14/14, `mvdragcarry` 15/15, `overrides` 20/20, `snaptools` 14/14,
   `halfworked` 24/24, `hiatussidebar` 16/16; green on real Windows too (run 44028047067). `npm run check` 42/42.
 
-### Unreleased — The season sits beside the title in every export's name (16 Nov 2026)
+### The season sits beside the title in every export's name (16 Nov 2026)
 
 The owner's picker, 16 Nov 2026: *"Work on it now"* on audit item 2.10's frozen edit (AUD2-025), which puts the season
 right after the show title in export names. v1.15.0 gave every export a season, a Date Last Edited and a Version, but the
@@ -228,7 +228,7 @@ reads as the header's title line does, and as Help's older example did: "Harbor 
   checked, and green now: `monthpick` 10/10 (M2), `scenarios` 23/23 (S16, S17) and `monthexport` 9/9 (X2, X7, now also
   requiring the season when the calendar has one). `pdfdialog` 15/15, `firstrun` 22/22, `npm run check` 42/42.
 
-### Unreleased — On a DD/MM calendar the month view's own reader reads a typed note's date day first (frozen edit D3, 16 Nov 2026)
+### On a DD/MM calendar the month view's own reader reads a typed note's date day first (frozen edit D3, 16 Nov 2026)
 
 Audit item 2.4 (AUD2-066, the owner's decision D3 (a): *"typed or pasted dates are read day first too"*) left one
 frozen edit unapplied: the owner's picker on 16 Nov 2026 said *"Work on it now"*. Nothing a user sees changes. v1.15.0

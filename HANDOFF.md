@@ -68,6 +68,12 @@
   `dayfirstwf`, `exportnames` and `forcedcolors` were wired by their branches. `zsh -n` clean; three of the new specs
   (ripplemarks, oskeys os=linux, autonoterename 1584) run through the loop's own body by hand, 70/70, and a missing
   result judged FAIL.
+- **The cut** (the commit "v1.16.0 release: …", after the docs and the wiring): `APP_VERSION` in `src/legacy/app.js`,
+  `version.json` and `package.json` at 1.16.0 (`npm run check` 42/42 holds the three; the root `index.html` untouched);
+  README's `## Unreleased` block (8 wave-4 entries + the 5 live since v1.15.0) under `## v1.16.0`; `releases/v1.16.0.html`
+  cmp-identical to `dist/index.html`, sha256 `ab9ba0a970e619a7…`; `tests/fixtures/v1.16.0-saved.sptcal` a real Save
+  (mintfixture): 46 keys, 77 field ids, 0 clipped cells, byte-identical to v1.15.0's but the `lastEdited` line, so a
+  calendar saves exactly as before. NOT tagged (the tag goes with the push).
 - **Not verified here:** the full gate (the main session's); a real download dialog on Windows for a long title.
 
 ### ✅ 16 Nov 2026: AUDIT ITEM W.1 (WIN-1) — A MARKED MONTH NOTE CUT OFF ON WINDOWS: FIX APPLIED ON `release-wave4` (owner's picker "Approve the fix"). Branch `audit-w-1` (worktree `.claude/worktrees/audit-w-1`, from `origin/main` `ad48e11`). **One WIP commit: the acceptance case `autonoterename` S5, RED on this branch until the owner signs off the frozen-look patch.** Not merged, not pushed. Built unattended on the owner's "work on it now".
