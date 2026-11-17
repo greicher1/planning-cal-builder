@@ -95,6 +95,11 @@
   `MVL_GEOMETRY`, `mvlMonthLayout`, `mvlFitMonth`, beside `mvlFitNumbers`) ⚠️ those two legs are RED on this branch
   until then, by design; the full gate (gates 10 and 13 byte-identical is SK1's gate); README, CLAUDE.md,
   UI-CONVENTIONS §7, this entry; the commit and push pickers.
+- **Traps paid for here:** ⛔ a new worktree can ALREADY hold a real `node_modules` (this one did): `ln -s` then
+  makes `node_modules/node_modules`, the build bundles two Reacts and every leg dies with "Cannot read properties of
+  null (reading 'useState')"; `ls -ld node_modules` first. A test edit made in the pane leaves a crash backup in that
+  localhost origin's IndexedDB, and the next load asks to "Recover unsaved work": delete the `unsavedBackup:*` keys
+  before handing the link over.
 - **Try it:** launch entry `month-shrink-8872` (this worktree's `.claude/launch.json`, `srv.js` on port 8872):
   `http://localhost:8872/dist/index.html?state=monthscale`, Month, page to August 2026 (also `?state=month-dense60`,
   `?state=month-lanecap`). `tests/harness/zzbase.html` (untracked, ignored) is `origin/main`'s build for side by side.
