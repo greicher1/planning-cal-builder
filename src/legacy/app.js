@@ -30725,8 +30725,9 @@ export function initLegacyApp() {
   // auto), so its lines are always at their own height, whatever basis the week still carries from the last render.
   // A month the PDF has to shrink is shrunk here too since 17 Nov 2026, at the PDF's own factor ("THE MONTH PAGE
   // SHRINKS A CROWDED MONTH", under fitMonthPage): there the weeks share the page by the writer's own numbers, and
-  // from here come only `min` and `need` (the floor no week goes under, so nothing drawn is ever cut). 16 to 17 Nov
-  // 2026 such a month stayed full size and its card grew.
+  // from here comes only `need` (the floor no week goes under, so no bar or note is ever cut); `min` is not used
+  // there (owner, "Stay one page": an added blank line does not make the card taller). 16 to 17 Nov 2026 such a
+  // month stayed full size and its card grew.
   // With no numbers (a week it cannot read) the CSS falls back to equal growth, still page-shaped.
   const MV_PAGE_WEEKS = 6;   // a month never spans more; legacy.css names exactly this many :nth-child rules
   function monthPageNumbers(tw){
@@ -30809,7 +30810,12 @@ export function initLegacyApp() {
         f = (Math.round(fit.grow[i] * 1000) / 10) + ' 0 ' + Math.max(fit.basis[i], nums[i].need + top).toFixed(3) + 'px';
       }
       put('--mvp-f' + (i + 1), f);
-      put('--mvp-m' + (i + 1), nums && nums[i] ? nums[i].m : '');
+      // ⛔ A LINE THE USER ADDED TO A WEEK (the row's "+") DOES NOT HOLD A SHRUNK MONTH'S WEEK OPEN (owner's picker,
+      // 17 Nov 2026, "Stay one page"). In a fitting month `min` keeps that line inside the week. In a shrunk one the
+      // card stays one page: the week keeps the PDF's row (the PDF draws no blank lines), and a blank line with no
+      // room is clipped below the week's edge. Measured before the ruling, on monthscale's August: one "+" on its
+      // first week made that week 73 px instead of 39 and the card 812 px instead of 788.
+      put('--mvp-m' + (i + 1), nums && nums[i] ? (shrunk ? '0.000px' : nums[i].m) : '');
     }
     if(tw.getAttribute('style') === '') tw.removeAttribute('style');
   }

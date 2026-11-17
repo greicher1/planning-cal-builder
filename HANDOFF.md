@@ -13,7 +13,9 @@
   month's bars and text shrink by the PDF's own factor and notes wrap where the PDF wraps them; replaces "Full size,
   taller page") and *"Approve with that gate"* (ONE frozen edit: on screen, in a shrunk month, a note's lines are
   counted at the smaller size; gate: gates 10 and 13 byte-identical and the screen's weeks equal the PDF's rows on the
-  shrunk test months). Any other frozen edit needs a new approval.
+  shrunk test months). Any other frozen edit needs a new approval. Later the same day, after trying the question on
+  the build, *"Stay one page"*: a line the user adds to a week (the row's "+") does NOT make a shrunk month's card
+  taller; the week keeps the PDF's row and a blank line with no room is hidden below its edge.
 - ⛔ The owner's two images are a real show's calendar: nothing from them goes into the repo. The fixtures with a
   shrunk month are `monthscale` (k = 39/64), `month-dense60` (49/64) and `month-lanecap` (30/64), August 2026 in each.
 - **Built** (`src/legacy/app.js`, `src/styles/legacy.css`; the one approved frozen edit, no other frozen line):
@@ -80,8 +82,13 @@
     up to 2 px (narrower zoomed out, wider zoomed in), as it already does in every month. Zoomed in, some notes draw a
     line fewer than their lanes; zoomed out, a line more, and that week and the card grow (`monthscale` at 75%: ten of
     its near-identical notes, card 823 px; `month-dense60` at 75% and `month-lanecap` at 125%: one page). Nothing is cut.
-  - A line the user added to a week (the row's "+") is kept inside the week in a shrunk month too, so that week can be
-    taller than the PDF's while the line is empty (the PDF has no empty lines). Unchanged rule; say if it should give way.
+  - **A line added with the row's "+" in a shrunk month** (owner's picker, *"Stay one page"*): `fitMonthPage` writes
+    `--mvp-m<i>` as 0 there, so the week keeps the PDF's row. Measured on `monthscale`'s August, first week: before the
+    ruling one "+" made the week 73 px instead of 39 and the card 812 px instead of 788; now the week stays 38.95 px
+    and the card 788.02 px, the added line is in the DOM (5 lines, 30 slots) and 9 slots show, as before the click.
+    A fitting month is unchanged (July: the added line stays inside its week, all 26 slots showing). ⚠️ So in a
+    crowded month "+" can look as if it did nothing; the owner chose that knowingly. ⚠️ In a shrunk month a light
+    week is as short as in the PDF, so only some of its blank "+" note slots show at all (9 of 23 in that week).
   - **Chrome breaks a line after a hyphen** ("2026-" / "08-10", "Scale-" / "mode"); the writer breaks only at
     spaces. So a note holding such a word can wrap to fewer lines on screen than in the PDF, at every size and in
     every month, shrunk or not (not new; seen here on `monthscale`'s notes at 12 px, three lines against four, the
@@ -100,9 +107,12 @@
   null (reading 'useState')"; `ls -ld node_modules` first. A test edit made in the pane leaves a crash backup in that
   localhost origin's IndexedDB, and the next load asks to "Recover unsaved work": delete the `unsavedBackup:*` keys
   before handing the link over.
-- **Try it:** launch entry `month-shrink-8872` (this worktree's `.claude/launch.json`, `srv.js` on port 8872):
-  `http://localhost:8872/dist/index.html?state=monthscale`, Month, page to August 2026 (also `?state=month-dense60`,
-  `?state=month-lanecap`). `tests/harness/zzbase.html` (untracked, ignored) is `origin/main`'s build for side by side.
+- **Try it:** `http://localhost:8874/dist/index.html?state=monthscale`, Month, page to August 2026 (also
+  `?state=month-dense60`, `?state=month-lanecap`). Port 8874 is `srv.js` run in the background with Bash. ⚠️ The
+  launch entry `month-shrink-8872` (this worktree's `.claude/launch.json`, port 8872) also works, but the app STOPPED
+  that preview server about fifteen minutes after the turn that started it ended, and the owner's link was dead until
+  the next turn: hand over the Bash-run port. `tests/harness/zzbase.html` (untracked, ignored) is `origin/main`'s
+  build for side by side.
 
 ### 🚂 v1.16.0 — wave 4. Branch `release-wave4` (worktree `.claude/worktrees/release-wave4`), cut from `origin/main` `7e1d8b4`; `origin/main` `8af4298` merged in at `91619e1`. The owner said *"Yes, prep it"* (16 Nov 2026): merge the newest live changes, write the owed docs and test wiring, cut v1.16.0. Tagged v1.16.0 and pushed to `main` on 17 Nov 2026 (owner's picker *"Push v1.16.0 now"*), after two full gates and the merges of `d44a52e` and `b8f4ccf`.
 - ⛔ **This section SUPERSEDES the "WIP", "NOT merged, NOT pushed", "the owner tries it first", "not in gate.sh yet" and

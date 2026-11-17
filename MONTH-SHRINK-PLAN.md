@@ -36,6 +36,10 @@ synthetic fixtures that already hold a shrunk month: `monthscale` (August 2026),
   the smaller text size. Inert at full size and while printing. **Gate:** gates 10 and 13 byte-identical, and the
   screen's week heights match the written PDF's rows on the shrunk test months.
 
+- **R3 "Stay one page"** (picker, 17 Nov 2026, on the stage 1 build). A line the user adds to a week with the row's
+  "+" does not make a shrunk month's card taller: the week keeps the PDF's row, and a blank line with no room is hidden
+  below the week's edge. (A fitting month still keeps an added line inside its week.)
+
 ## 3. What the PDF does (read from the writer, `mvlFitMonth` and the comment above `mvlFitNumbers`)
 
 - A month fits when the weeks' needs add up to no more than the room under the header. Otherwise ONE factor `k` for
