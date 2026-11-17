@@ -4,6 +4,32 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### 🔨 16 Nov 2026: UI SCALING AT EVERY WINDOW SIZE (toolbar folds, sidebar never stacks). TRY BUILD on branch `ui-scaling` (worktree `.claude/worktrees/ui-scaling`, from `origin/main` `ad48e11`), WIP commit, NOT pushed. Tracker card `ui-scaling-screen-sizes`; takes over audit 3.12 (AUD2-065), dropped from wave 4 on the owner's picker.
+- **Owner:** the toolbar "only looks right on a normal sized laptop screen"; on a big monitor it "should stay the same
+  size and just have extra space on the sides rather than adding a bunch of space between the buttons"; on smaller
+  screens it doesn't scale down right; the sidebar "should always stay on the left, I never want the UI to start
+  stacking up and down....the app should basically just force you to use it on a screen size that is wide enough".
+- **Pickers (16 Nov):** extra space **on the right** (packed left, the Excel look); narrow = **icons, then a More menu**,
+  always one line, view toggle and Shift last; below the minimum **stop shrinking, scroll sideways**; this session
+  builds audit 3.12.
+- **Built:** `useToolbarFit` (PreviewToolbar.jsx) caps the one equal gap at `--tb-gap-max` 14 px (was: solved to fill the
+  row, 116 px at 2560) and picks a fold level 0-5, cumulative classes `tbf1`-`tbf5` on `.preview-panel`: 1 Fill Gaps'
+  switch + Header's icon; 2 Fill Gaps / Side Boxes / Header (month: the stepper) into a More menu (`.tb-more`, the same
+  nodes shown in a panel); 3 Build Around's pin icon; 4 the text style buttons behind an "Aa" button (`.tb-text-btn`;
+  the host itself is shown, position:fixed, class `is-dropped`); 5 Waterfall/Month icons only. `.style-own-line` is
+  retired. The app shell (legacy.css) now holds at EVERY width: `body{min-width:960px}`, `html{overflow-x:auto}`, every
+  `max-width:960px` stacked rule removed, the grid fit's media query is `screen`, `fitPopToScreen`'s ≤960 branch gone.
+  Sidebar ≤1280 capped at 320 px (was 340: it grew 13 px one pixel below 1281).
+- **Measured (sideboxes.sptcal, both views):** level 0 at 2560 (809 px spare on the right) and 1728; 1 at 1600; 2 at
+  1470 / 1366; 3 at 1280; 4 at 1100; 5 at 960; 820 scrolls sideways to 960. One line, header never overflows. 22 trusted
+  CDP click checks green (More: Side Boxes menu under its button, a box added, Header Off, Escape; Build Around icon;
+  Text: a picked cell stays picked, Bold applies; the stepper in More steps; min width scrolls).
+- **NOT DONE (after the owner tries it):** legs. `stylebarplace` P0/P2 need re-expecting (order has the new buttons;
+  gaps no longer fill the row); a new leg for the fold levels and the min width. ⚠️ On this machine `hdrcontrols`,
+  `fillspace`, `monthmap`, `calzoom`, `stylebarplace` time out loading calendars on untouched `origin/main` too (A/B
+  16 Nov), so they say nothing either way until that is fixed. Docs: UI-CONVENTIONS §7 (the header ladder note, the
+  shell's "above 960 px", the 1024 floor), CLAUDE.md's 960 mentions, README Unreleased.
+
 ### ✅ 16 Nov 2026: THE RECENT CALENDARS ON AN EMPTY START ARE TWO CARDS. Branch `start-recents-cards` (worktree `.claude/worktrees/start-recents-cards`, from `origin/main` `8f170f9`). One commit, pushed to `main` as a fast-forward on the owner's pickers *"Commit"* and *"Push and deploy"*. No version cut (README: Unreleased). Tracker card `start-recents-look`
 - **Owner, on a screenshot of v1.15.0's list:** *"this recent calendars UI is ugly. Mockup some alternatives that fit in
   better with the UI and look more elegant and natural"*. [`mockups/start-recents.html`](mockups/start-recents.html)

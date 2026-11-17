@@ -37266,8 +37266,8 @@ export function initLegacyApp() {
     // On a laptop the app window is short: 657 px for a 1080p Windows laptop at 150%, 697 for a 1366 x 768 one. Build
     // Around opened 560 px tall from just under its button, and the preview panel (a scroll box: keepPopInPanel's
     // note) cut it off at its own bottom, so the pin date and Build sat out of sight with nothing to say the panel went
-    // on; Shift's To a date row and Go just as well. Two steps, both only above 960 px, where the app is a fixed
-    // window (below it the page scrolls, and a panel's foot is always reachable):
+    // on; Shift's To a date row and Go just as well. Two steps (only above 960 px until 16 Nov 2026; the app is a fixed
+    // window at every width since it stopped stacking):
     //   1. The phase list gives way: it is the one part that scrolls on its own, so it takes the shortfall, down to
     //      POP_LIST_MIN (three rows). Never taller than its CSS cap (276 px), and only ever an inline max-height on
     //      the list, so a panel that fits is exactly as it was.
@@ -37279,7 +37279,6 @@ export function initLegacyApp() {
     function fitPopToScreen(menu){
       if(!menu || !menu.classList.contains('open') || popDrag) return;
       const list = menu.querySelector('.shift-box .solve-list');
-      if(window.innerWidth <= 960){ if(list && list.style.maxHeight) list.style.maxHeight = ''; return; }
       const mr = menu.getBoundingClientRect();
       if(list){
         const lh = list.getBoundingClientRect().height;
@@ -45299,7 +45298,8 @@ export function initLegacyApp() {
   })();
 
   // ⭐ THE APP SHELL'S GRID FIT (owner, 22 Sep 2026: the window itself never scrolls).
-  // Above the 960px stack point the window is a fixed frame (legacy.css, "The app shell") and the
+  // The window is a fixed frame (legacy.css, "The app shell"; above 960 px only until 16 Nov 2026, at every width since
+  // the app stopped stacking) and the
   // waterfall must fill exactly the space left in .preview-panel, so the preview has ONE vertical
   // scroller -- the grid's own -- instead of a grid box nested inside a panel that also scrolls.
   //
@@ -45330,7 +45330,8 @@ export function initLegacyApp() {
     const panel = document.querySelector('main.preview-panel');
     const wrap = document.getElementById('table-wrap');
     if(!panel || !wrap) return;
-    const shell = window.matchMedia('screen and (width > 960px)');
+    // Screen only: print media never sees the shell. (It read `screen and (width > 960px)` while the app stacked below.)
+    const shell = window.matchMedia('screen');
     // A floor, so a very short window still shows some grid. Below it the panel scrolls as well --
     // two scrollers, but everything stays reachable, which beats a grid squeezed to nothing.
     const MIN_GRID_PX = 120;

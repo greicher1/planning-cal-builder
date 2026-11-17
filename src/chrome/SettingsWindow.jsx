@@ -169,7 +169,7 @@ export function SettingsWindow() {
   // block, and an absolutely positioned child of a scroll box scrolls with its content: with the
   // sidebar scrolled down, `top:0` would be off the top of the window. So `top` follows scrollTop,
   // and the sidebar cannot scroll underneath while the window is open (.settings-open, overflow
-  // hidden). Below 960px the window is in flow (legacy.css) and `top` does nothing.
+  // hidden). (Below 960px the window was in flow until 16 Nov 2026, when the app stopped stacking.)
   // ⚠️ THE RAIL'S HEIGHT is measured, never assumed: `top` adds it, and --sw-rail-h takes it off the
   // window's height in legacy.css. It is measured from the rail's bottom edge on screen, so it holds
   // with the sticky rail pinned over a scrolled sidebar, and a ResizeObserver re-measures it.

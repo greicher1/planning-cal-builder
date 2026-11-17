@@ -177,6 +177,18 @@ export function IconPause(props) {
   )
 }
 
+// The toolbar's More button (owner, 16 Nov 2026: on a narrow window the rarely used tools fold into one menu). Three
+// dots, filled, as every "more" button draws them; the stroke family's round caps would read as dashes at this size.
+export function IconDots(props) {
+  return (
+    <svg {...base} {...props} stroke="none" fill="currentColor">
+      <circle cx="3.5" cy="8" r="1.4" />
+      <circle cx="8" cy="8" r="1.4" />
+      <circle cx="12.5" cy="8" r="1.4" />
+    </svg>
+  )
+}
+
 export function IconCalendarPlain(props) {
   return (
     <svg {...base} {...props}>
