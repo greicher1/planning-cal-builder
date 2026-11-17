@@ -114,6 +114,21 @@
   the next turn: hand over the Bash-run port. `tests/harness/zzbase.html` (untracked, ignored) is `origin/main`'s
   build for side by side.
 
+### 📋 17 Nov 2026: REQUESTED, ONE RULING MADE — A LIMIT ON HOW TALL A MONTH ROW CAN GET. No code, no plan yet. Tracker card `month-row-max-height`
+- **Owner, 17 Nov 2026**, while trying the month-shrink build: *"there reall should be a max limit on how tall a
+  calendar row can be"*. Read as a week row in the Month view.
+- **What exists:** `MV_MAX_LANES = 6` caps only the week's "+" strip (frozen `renderMonthView`: "Manual expansion is
+  what's capped", "content is never hidden"). Notes typed onto a day, automatic notes and holidays have no limit, so a
+  week grows as tall as its lines need and the month PDF, and now the screen, shrinks the month to fit.
+- **Ruling (picker, 17 Nov 2026): *"Stop adding notes"*.** A full day or week refuses another note and says it is
+  full; nothing is ever hidden, on screen or in the PDF. (The other choices were a "+N more" collapse and no limit.)
+- **Still to rule, with measurements first:** what the limit counts and its value (phase bars take lines too, and a
+  note can wrap to three, so "6 lines" is already passed by ordinary weeks); what a calendar already over the limit
+  does (it must keep opening and showing everything); notes that arrive on their own (automatic notes, holidays,
+  waterfall notes shown in the month); every way a line is added (the note editor, the day menu, the "+" slots,
+  paste, a drag to another day). Probably doable at those add paths, outside the frozen renderer.
+- Independent of the shrink build above, which does not wait for it.
+
 ### 🚂 v1.16.0 — wave 4. Branch `release-wave4` (worktree `.claude/worktrees/release-wave4`), cut from `origin/main` `7e1d8b4`; `origin/main` `8af4298` merged in at `91619e1`. The owner said *"Yes, prep it"* (16 Nov 2026): merge the newest live changes, write the owed docs and test wiring, cut v1.16.0. Tagged v1.16.0 and pushed to `main` on 17 Nov 2026 (owner's picker *"Push v1.16.0 now"*), after two full gates and the merges of `d44a52e` and `b8f4ccf`.
 - ⛔ **This section SUPERSEDES the "WIP", "NOT merged, NOT pushed", "the owner tries it first", "not in gate.sh yet" and
   "no README / HANDOFF yet" lines in each wave-4 item's own section below and in its branch's commits** (`ripple-marks`,
