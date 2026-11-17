@@ -4,7 +4,7 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### 🚂 v1.16.0 — wave 4. Branch `release-wave4` (worktree `.claude/worktrees/release-wave4`), cut from `origin/main` `7e1d8b4`; `origin/main` `8af4298` merged in at `91619e1`. The owner said *"Yes, prep it"* (16 Nov 2026): merge the newest live changes, write the owed docs and test wiring, cut v1.16.0. NOT tagged or pushed as of this entry; the main session runs the one full gate and asks before the push.
+### 🚂 v1.16.0 — wave 4. Branch `release-wave4` (worktree `.claude/worktrees/release-wave4`), cut from `origin/main` `7e1d8b4`; `origin/main` `8af4298` merged in at `91619e1`. The owner said *"Yes, prep it"* (16 Nov 2026): merge the newest live changes, write the owed docs and test wiring, cut v1.16.0. Tagged v1.16.0 and pushed to `main` on 17 Nov 2026 (owner's picker *"Push v1.16.0 now"*), after two full gates and the merges of `d44a52e` and `b8f4ccf`.
 - ⛔ **This section SUPERSEDES the "WIP", "NOT merged, NOT pushed", "the owner tries it first", "not in gate.sh yet" and
   "no README / HANDOFF yet" lines in each wave-4 item's own section below and in its branch's commits** (`ripple-marks`,
   `idea-changes-since-save`, `audit-w-2`, `audit-w-1`, `frozen-2-4-typed`, `frozen-2-10-name`; and the W.1 section's
@@ -92,7 +92,11 @@
   On the merged build: `monthpage` all seven runs (10/10 x6, 2/2), `autonoterename` 25/25 at 1600 and 1584 x 1200,
   `wfmenu` 39/39, `mvnotes` 30/30 + 14/14, `softlines` 6/6 x2, `calzoom` 26/26, `mvkeys` 24/24 + 16/16, `mvbarsize`
   13/13, `mvnotesize` 12/12, `ripplemarks` 35/35, `changessince` 15/15, `monthmap` 20/20, `npm run check` 42/42. Then a
-  second full gate on the merged build (below, or in the next entry).
+  second full gate on the merged build (`32f6846`, 17 Nov 2026): **5,558 PASS / 5 FAIL, every one a leg that timed out or
+  wrote no result** (`prodspan` waiting for ExcelJS, `launchopen` "harness", `backupswept`, `dayfirst` and `monthpage`
+  monthscale tall=1 with no `.json`), at a load average of 5-6 from other sessions. All five green alone: 8/8, 16/16,
+  4/4, 14/14, 10/10. Gates 1-3, 10 and 13 green: no output moved. Pushed as v1.16.0 on the owner's picker *"Push
+  v1.16.0 now"* (given before `b8f4ccf` landed; the push carries it, already live).
 - **Not verified here:** a real download dialog on Windows for a long title.
 
 ### ✅ 16 Nov 2026: AUDIT ITEM W.1 (WIN-1) — A MARKED MONTH NOTE CUT OFF ON WINDOWS: FIX APPLIED ON `release-wave4` (owner's picker "Approve the fix"). Branch `audit-w-1` (worktree `.claude/worktrees/audit-w-1`, from `origin/main` `ad48e11`). **One WIP commit: the acceptance case `autonoterename` S5, RED on this branch until the owner signs off the frozen-look patch.** Not merged, not pushed. Built unattended on the owner's "work on it now".
