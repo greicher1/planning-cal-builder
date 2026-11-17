@@ -189,6 +189,20 @@ export function IconDots(props) {
   )
 }
 
+// Build Around's icon on a narrow toolbar (owner, 16 Nov 2026: "the build around icon looks like a location pin - make
+// it a hammer/wrench symbol"). A hammer: the head across the top and the handle down, drawn upright and turned 45° so
+// the handle runs to the lower left; the shift puts the turned ink back in the middle of the box.
+export function IconHammer(props) {
+  return (
+    <svg {...base} {...props}>
+      <g transform="translate(-1 1) rotate(45 8 8)">
+        <path d="M4.5 2.6h5.2l2.3 1.4v1.6H4.5a.9.9 0 0 1-.9-.9V3.5a.9.9 0 0 1 .9-.9Z" />
+        <path d="M8 5.6v8.6" strokeWidth="2.1" />
+      </g>
+    </svg>
+  )
+}
+
 export function IconCalendarPlain(props) {
   return (
     <svg {...base} {...props}>

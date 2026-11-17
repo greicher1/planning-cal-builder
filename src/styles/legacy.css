@@ -1920,7 +1920,7 @@
   /* ---------- THE TOOLBAR'S FOLD STEPS (owner's pickers, 16 Nov 2026; PreviewToolbar.jsx, useToolbarFit) ----------
      The first line is always one line. Short of room it gives up width in fixed steps, least-used first, each a
      class on .preview-panel, cumulative: tbf1 (Fill Gaps' switch alone, above, and Header's icon), tbf2 (Fill Gaps,
-     Side Boxes and Header, or the month stepper, fold into the More menu), tbf3 (Build Around's icon), tbf4 (the text
+     Side Boxes and Header, or the month stepper, fold into the More menu), tbf3 (Build Around's hammer), tbf4 (the text
      style buttons fold behind the Text button), tbf5 (Waterfall and Month show their icons alone). Shift never folds.
      Every folded button keeps a hover hint (its title=). ⛔ Nothing here is inside #table-wrap. */
   /* The fold icons are drawn only at the step that hides their label. ⚠️ By CLASS, not id: useFixedHeaderWidth
@@ -1972,9 +1972,11 @@
   .preview-panel.tbf2 .tb-more .tb-solo:hover:not([data-disabled]),
   .preview-panel.tbf2 .tb-more .tb-solo[aria-expanded="true"]{ background:var(--mantine-color-gray-1); }
   .preview-panel.tbf2 .tb-more .tb-solo[data-disabled]{ background:transparent; }
-  /* Step 3: Build Around shows its pin and caret. */
+  /* Step 3: Build Around shows its hammer and caret. */
   .preview-panel.tbf3 #pop-solve-btn .mantine-Button-label{ display:none; }
   .preview-panel.tbf3 #pop-solve-btn .mantine-Button-section[data-position="left"]{ display:flex; }
+  /* Turned 45°, the hammer's ink fills less of its box than the upright icons do, so it is drawn a size up. */
+  #pop-solve-btn .tb-fold-ic{ width:18px; height:18px; }
   /* Step 4: the Text button, in the text style buttons' place, and the buttons themselves in a panel under it. The
      panel IS the host (PreviewToolbar.jsx places it): fixed, so the preview's scroll box cannot clip it. */
   .tb-text-btn{ display:none; }

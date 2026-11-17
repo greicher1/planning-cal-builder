@@ -21828,12 +21828,21 @@ export function initLegacyApp() {
       window.addEventListener('scroll', closeSideMenu, true);
     }, 0);
   }
+  // A page tool clicked inside the toolbar's open More menu (PreviewToolbar.jsx, fold step 2, 16 Nov 2026) has its menu
+  // drop from the More button, where the More panel was, and the chrome closes the panel straight after this click.
+  // Dropped from the clicked row instead, the menu opened UNDER the panel (owner, with a screenshot: Side Boxes' menu
+  // with its first row hidden behind Header). Anywhere else, the button itself. Used by Side Boxes and Header.
+  function toolMenuAnchor(b){
+    const more = b.closest && b.closest('.tb-more.is-open');
+    return (more && more.querySelector('.tb-more-btn')) || b;
+  }
   // React renders #tb-side-boxes-btn, so it is reached by DELEGATION (HANDOFF §2b-3's law).
   document.addEventListener('click', e=>{
     const b = e.target.closest && e.target.closest('#tb-side-boxes-btn');
     if(!b) return;
-    if(sideMenu && sideMenuAnchor === b){ closeSideMenu(); return; }
-    openSideMenu(b);
+    const a = toolMenuAnchor(b);
+    if(sideMenu && sideMenuAnchor === a){ closeSideMenu(); return; }
+    openSideMenu(a);
   });
   document.addEventListener('keydown', e=>{ if(e.key === 'Escape' && sideMenu) closeSideMenu(); });
 
@@ -28368,8 +28377,9 @@ export function initLegacyApp() {
   document.addEventListener('click', e=>{
     const b = e.target.closest && e.target.closest('#tb-hdr-mode-btn');
     if(!b) return;
-    if(activeHdrModePop && activeHdrModeAnchor === b){ closeHeaderModePop(); return; }   // a second click closes
-    openHeaderModePop(b, viewMode === 'month');
+    const a = toolMenuAnchor(b);   // the More button, when Header was clicked inside the More menu (16 Nov 2026)
+    if(activeHdrModePop && activeHdrModeAnchor === a){ closeHeaderModePop(); return; }   // a second click closes
+    openHeaderModePop(a, viewMode === 'month');
   });
 
   // Ruling 4: the notes reset SPLITS BY VIEW, and both keep the old branch's shape -- render(), since

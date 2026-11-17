@@ -47,7 +47,7 @@ import { useState, useLayoutEffect, useRef } from 'react'
 import { InfoHint } from './InfoHint.jsx'
 import { Button, ActionIcon, Tooltip, Group } from '@mantine/core'
 import { installChrome } from './bridge.js'
-import { IconRows, IconCalendarPlain, IconUndo, IconRedo, IconDots, IconHeading, IconMapPin } from './icons.jsx'
+import { IconRows, IconCalendarPlain, IconUndo, IconRedo, IconDots, IconHeading, IconHammer } from './icons.jsx'
 import { MonthMap, MonthStepper } from './MonthMap.jsx'
 
 // THE FIRST LINE'S LAYOUT (owner, 10-11 Nov 2026; reworked 16 Nov 2026 for every window size). One measurement, two jobs.
@@ -62,7 +62,7 @@ import { MonthMap, MonthStepper } from './MonthMap.jsx'
 //      1. Fill Gaps shows its switch alone and Header its icon (both keep a hover hint). Side Boxes keeps its label:
 //         the month stepper shares their slot and needs about that width, so its icon would save nothing.
 //      2. Fill Gaps, Side Boxes and Header (the month stepper in the month view) fold into one More menu (.tb-more).
-//      3. Build Around shows its icon (a pin) and caret.
+//      3. Build Around shows its icon (a hammer; a pin until the owner said it read as a location) and caret.
 //      4. The text style buttons fold behind a Text button and open under it (.tb-text-btn).
 //      5. Waterfall and Month show their icons alone, each with its name as a hover hint (written here, below).
 //    Each step is a class on .preview-panel, cumulative (tbf1 ... tbf5), so CSS draws it; this hook only tries the
@@ -418,10 +418,10 @@ export function PreviewToolbar() {
             owner's picker). ⛔ The ids keep the old names (pop-solve-*, tool-solve-*), as Load kept
             data-action="open": the engine and the legs reach these controls by id, and only what a user reads
             changed. Twelve characters, as "Rebuild From" was, so the toolbar wraps no sooner. */}
-        {/* The pin is drawn only at fold step 3 (useToolbarFit), when the label gives way to it; its title is the hint. */}
+        {/* The hammer is drawn only at fold step 3 (useToolbarFit), when the label gives way to it; its title is the hint. */}
         <Button className="tools-btn has-fold-ic" id="pop-solve-btn" type="button" size="xs" variant="default"
                 title="Build Around: pin one phase to a date and build the others around it" aria-haspopup="true" aria-expanded="false"
-                leftSection={<IconMapPin className="tb-fold-ic" />}
+                leftSection={<IconHammer className="tb-fold-ic" />}
                 rightSection={<span className="caret" aria-hidden="true">▾</span>}>Build Around</Button>
         {/* 400px, the widest panel: each row holds a tick, a colour, the name, a LENGTH box, a date and "Pushed
             3 wks", and only the name gives way.
@@ -525,7 +525,14 @@ export function PreviewToolbar() {
         {/* THE MORE MENU (fold step 2, useToolbarFit). Below that step this wrapper is display:contents and its button
             hidden, so the page tools sit in the line exactly as before; from it, they are SHOWN in a panel under the
             button instead (the same nodes, ids and engine bindings: see useFoldMenu). */}
-        <div className={'tb-more' + (moreOpen ? ' is-open' : '')} ref={moreRef}>
+        {/* A click on Side Boxes or Header in the panel closes it a task later, once the engine has dropped that tool's
+            own menu from the More button (app.js, toolMenuAnchor): until 16 Nov 2026 the menu opened under the panel. A
+            task later, because the engine's listener is on document and must still find the panel open. Fill Gaps and
+            the month stepper leave it open, so a second press can follow. */}
+        <div className={'tb-more' + (moreOpen ? ' is-open' : '')} ref={moreRef}
+             onClick={(e) => {
+               if (moreOpen && e.target.closest && e.target.closest('#tb-side-boxes-btn, #tb-hdr-mode-btn')) setTimeout(() => setMoreOpen(false), 0)
+             }}>
         <button type="button" className="tb-more-btn" title="More tools"
                 aria-label="More tools" aria-haspopup="true" aria-expanded={moreOpen ? 'true' : 'false'}
                 onClick={() => setMoreOpen((o) => !o)}>
