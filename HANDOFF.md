@@ -4,7 +4,7 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### ✅ 18 Nov 2026: FINISH BEFORE — BUILD A CALENDAR BACKWARDS FROM A PHASE ON ENDS. FINISHED on branch `build-backwards` (worktree `.claude/worktrees/build-backwards`, from `origin/main` `f48df5b`; `node_modules` is a symlink, unlink it before `git worktree remove`). Committed on the branch; ⛔ NOT merged, NOT pushed, no version cut (README: Unreleased). Owner tried it on localhost (launch entry `build-backwards-8774`) and said *"Looks good, finish it"*. Tracker card `build-backwards`
+### 🚀 18 Nov 2026: FINISH BEFORE — BUILD A CALENDAR BACKWARDS FROM A PHASE ON ENDS. v1.18.0, built on branch `build-backwards` (worktree `.claude/worktrees/build-backwards`, from `origin/main` `f48df5b`; `node_modules` is a symlink, unlink it before `git worktree remove`), `origin/main` `1c9b008` (the note editor's "No date" / typed dates) merged in, cut as **v1.18.0** and pushed to `main` as a fast-forward with the tag on the owner's picker *"Push as v1.18.0"*. Owner tried it on localhost first (launch entry `build-backwards-8774`): *"Looks good, finish it"*. Local `main` NOT moved (the main checkout has another session's uncommitted work). Tracker card `build-backwards`
 - **The ask (executives' review, 17 Nov 2026):** they often work back from a delivery date (a fiscal year end), and asked
   whether "Start after previous phase" could get a button "that moves it the other direction", obvious without
   training; and when a phase is set by its end, the buttons should switch to the backwards one by themselves.
@@ -45,7 +45,14 @@
     `builtindates`), as `gate.sh` passes it; without it they time out "waiting for the restored calendar".
   - ⚠️ F1 learned: finishing Production right before Post can move its start LATER (Fri 7/10/26 on the fixture), when
     it was wrapping well before Post. That is correct, the gap closes from Production's side, not a bug.
-- **Next:** the owner's picker on commit / merge / push (and whether to cut a version).
+- **The release (v1.18.0):** `origin/main` had moved to `1c9b008` (note dates, pushed without a version): merged in as
+  `3d9ce00`, README / HANDOFF conflicts only (both kept; both Unreleased entries now sit under v1.18.0), `app.js` and
+  `gate.sh` merged clean. On the merged build: `finishbefore` 12/12, `notedates` (phasenotes) 18/18, `endsdate` 17/17,
+  `prodends` 14/14, check 42/42. Cut: `APP_VERSION`, `version.json`, `package.json` at 1.18.0; `releases/v1.18.0.html`
+  cmp-identical to the build; `tests/fixtures/v1.18.0-saved.sptcal` a real Save (`mintfixture`), 46 keys, 77 ids,
+  0 clipped, byte-identical to v1.17.5's but `lastEdited`. On the cut: check 42/42, the waterfall PDF
+  identical bar the date stamp (mark checked), gate 13 reference byte-identical, `monthexport` 9/9, `pdfmark` 6/6,
+  `phaselink` (phasenotes) 14/14. Tagged `v1.18.0`; the push and the live check are in the tracker card.
 
 ||||||| f48df5b
 
