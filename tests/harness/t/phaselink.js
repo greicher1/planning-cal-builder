@@ -9,8 +9,9 @@
 // pinned Thu, 9/14 "Blocker"). The automatic "Start Principal Photography 6/29/26" sits in 6/29's cell.
 //
 //   R1  a cell whose one note is linked opens on its home: "Stays with" + Production wk 2 (the week first, then the phase
-//       cells), "Moves when Production moves. Stays on its week 2.", the Day's empty choice "First day (default)"; the
-//       select has no id, and switched to the week the hint and the Day wording follow
+//       cells), "Moves when Production moves. Stays on its week 2.", the Day's empty choice "No date" (it read "First
+//       day (default)" until 17 Nov 2026); the select has no id, and switched to the week the hint follows and the Day
+//       still reads "No date" (it read "Mon (default)")
 //   R2  a cell with typed text and a visiting linked note opens on the week, names the visitor ("Also here: ... stays
 //       with Production wk 6. Leave the choice alone and it keeps its link."), and committed unchanged keeps both
 //   L1  8/10's typed note linked to Production wk 7: phaseNotes holds it, userNotes no longer does; Production two weeks
@@ -149,11 +150,11 @@ window.addEventListener('load', function () { (async function () {
       var pop = await openWf('2026-07-06'), a = rowInfo(pop);
       choose(pop, ''); var b = rowInfo(pop);
       pop.querySelector('textarea').dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); await settle();
-      kase('R1', 'a cell whose one note is linked opens on its home: Stays with, Production wk 2, "Moves when Production moves. Stays on its week 2.", "First day (default)"; no id; switched to the week, the hint and the Day wording follow',
+      kase('R1', 'a cell whose one note is linked opens on its home: Stays with, Production wk 2, "Moves when Production moves. Stays on its week 2.", Day "No date"; no id; switched to the week, the hint follows and Day still reads "No date"',
         !!a && a.label === 'Stays with' && a.value === 'production@2' && a.id === null && a.shown
           && same(a.options, [['', 'Week of 7/6/26'], ['production@2', 'Production wk 2']])
-          && a.hint === 'Moves when Production moves. Stays on its week 2.' && a.dayDefault === 'First day (default)' && a.also === null
-          && b.hint === 'Stays on the week of 7/6/26, whatever the phases do.' && b.dayDefault === 'Mon (default)',
+          && a.hint === 'Moves when Production moves. Stays on its week 2.' && a.dayDefault === 'No date' && a.also === null
+          && b.hint === 'Stays on the week of 7/6/26, whatever the phases do.' && b.dayDefault === 'No date',
         { opened: a, toWeek: b });
     });
 

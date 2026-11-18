@@ -2366,6 +2366,7 @@ for AFSPEC in pwagate:-:120 pwagatelogic:-:120 settingswin:-:240 newtab:-:120 \
               phaselook:phasenotes:600 \
               phasekeys:phasenotes:900 \
               phasemonth:phasenotes:900 \
+              notedates:phasenotes:900 \
               holidayrename:holidayrename:400 \
               autonoterename:autonoterename:500 \
               autonoteview:autonoterename:500 \

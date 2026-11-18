@@ -47,6 +47,63 @@
     it was wrapping well before Post. That is correct, the gap closes from Production's side, not a bug.
 - **Next:** the owner's picker on commit / merge / push (and whether to cut a version).
 
+||||||| f48df5b
+
+### 🔨 17 Nov 2026: THE NOTE EDITOR'S DAY — "No date", and a TYPED date works like a picked one. Branch `note-day-shift` (worktree `.claude/worktrees/note-day-shift`, from `origin/main` `aa16ffe`). Owner tried it on localhost, then *"Finish it"*, then *"push"* (18 Nov 2026). `origin/main` `f48df5b` (v1.17.0-v1.17.5, Tandem days) merged in first: README / HANDOFF conflicts only, both kept; `app.js` merged clean (main's 56 hunks touch none of the note editor's code). Tracker cards `note-day-default-no-date`, `linked-note-day-follows-phase`
+- **The asks (17 Nov 2026, in order):** *"In waterfall view, the default, for Day should be "No date" rather than Mon
+  (default)"*; *"When you do select a date and ALSO have stays with set to a week of a phase (not a specific week) then
+  when you shift the phase/calendar the date should auto-change to the same day of the week"*; *"what if you hand type
+  7/29/25 as 7/29 or 7-29-25 or 7-29. All should be recognized"*; *"Yes, plain notes too"*.
+- **What was found:** a day PICKED from Day already followed the phase (`phaseNotes[k].dow`, drawn fresh by
+  `placePhaseNotes`). A date TYPED at the end of the note stayed in its text, so after a move the note sat in its new
+  week reading the old date. Reproduced in the browser before any change ("Lens test 7/29/26" in the week of 8/3).
+- **As built** (`src/legacy/app.js`, all in the waterfall note editor; no frozen code, no save-format change):
+  - The Day list's empty choice is "No date" for every cell (`reflectLinkRow` no longer relabels it). Words only.
+  - `typedDateInWeek(line, weekIso)` reads a date at the END of a line: a/b with "/" or "-", with or without a 2- or
+    4-digit year, in the calendar's order (and month first on DD/MM when only that reading is in the week), and ONLY a
+    day of that week, with no rollover. `{at, day, full}`.
+  - `wfTypedDayIso` (the user's last line, skipping `dayForeign`: automatic, holiday, month and visiting linked lines),
+    `wfStandardLineDate` / `wfStandardTypedDate` (a SHORT form rewritten as `fmtShort`; ⛔ a full slashed date stays as
+    typed, slashNamesFlipped's rule), `stripTypedDate` (for a linked note's text), `wfTypedPinOk` (below).
+  - The Day list follows the typing (an `input` listener; `dayBeforeTyped` puts the list back when the date is typed
+    away; a pick from the list ends it). `activeNoteEditor.dayChoice()` is the user's own pick, never the sync's.
+  - `commitActiveNoteEditor`: the box's short date is rewritten first; `linkDay = typedIso || chosenDate` for the two
+    link branches (`dow`); `chosenDate` (a plain note's pin) is the typed day only while the Day row shows AND
+    `wfTypedPinOk`. `renameOfSingle` reads the line as it will be saved.
+  - The Day handler replaces a typed short date in the week rather than adding a second.
+- ⚠️ **`wfTypedPinOk`, found by checking the gate's own base leg before running it:** a pinned plain note's UNDATED lines
+  go to the pinned day in the Month view (frozen `notesForWaterfallDate`: "fall back to the note's pinned day"). So
+  pinning `base.js`'s "Studio Cut Due\nNetwork Cut Due 9/11/26" would have moved Studio Cut Due from Mon to Fri. A
+  typed date pins only when every other line of the box carries its own m/d/yy in the week; otherwise the note keeps
+  its lines where they were, as a typed full date always did. A day PICKED from the list still pins, as before.
+- **Behaviour change, RULED (owner's picker, 17 Nov 2026, *"Pin it"*, asked when three day-first cases went red):** a
+  one-line plain note with a date typed by hand ("Table read 7/29/26") now gets a Day (`userNotes[wk].date`) when
+  saved, as a picked one: Shift keeps it on its date (it moved a week with the old date in its words), a four-digit year
+  places it (it sat on Monday), and a Dates switch leaves it on the day it was typed for (a day-first date went back to
+  Monday on MM/DD). Re-expected: `dayfirstin` W4, F1; `dayfirstwf` M1. Notes already saved change only when edited.
+- **Fixed on the way (`moveWfLine`):** a Month-view drag of a waterfall line to another day IN ITS WEEK now moves the
+  note's pin when the pin was that line's day. It rewrote the date and kept the old pin, which only showed once the date
+  became unreadable (`dayfirstwf` M1: "Table read 15/7/26" back on 17 Jul after a switch to MM/DD). A pinned note
+  dragged ACROSS weeks still lands with no pin, as before (its date is in its text); not changed.
+- **Proof:** new leg `notedates` 18/18 on the build (wired in `gate.sh` after `phasemonth`, `notedates:phasenotes:900`),
+  14 of 18 red on `releases/v1.16.0.html`; `phaselink` R1 re-expected ("No date"). `npm run check` 42/42. 18 related
+  legs green on the final build (dayfirst x3, phasemonth, mvnotes x2, mvnotesize, notelook, noteviews, holidayrename,
+  autonoteview, mvtextstyle, mvkeys, wfnotelines month/drag, mvdragcarry, phaselink, notedates).
+- **Full gate on `80fd3b0` (build sha256 `5b23371e…`, port 8957, 17 Nov 2026, alone): 5,605 PASS / 12 FAIL.** No
+  baseline compare failed (gates 2, 3, 10, 13, restore). The 12: eleven `pilllabel` (blocks) cases, all "months 18 vs
+  1" (the leg flaky on `main` too, HANDOFF v1.13.0 notes), and `hostile` (xss-proto) S2, a Load. Re-run alone on 18
+  Nov: `hostile` (xss-proto) 18/18; `pilllabel` (blocks), judged by the gate's own checker, 29/35 once ("months 1 vs
+  18" again: its month walk saw one month), then 35/35 twice; `releases/v1.16.0.html` 35/35 twice. A flake, not this
+  change (which touches no month walk).
+- **`origin/main` had moved to `f48df5b` (v1.17.0-v1.17.5, Tandem days) by the push:** merged in as `188d9fa` (README /
+  HANDOFF conflicts only). On the merged build (sha256 `fbb8f7fd…`): `npm run check` 42/42 and 21 legs green:
+  `notedates` 18, `phaselink` 14, `phasenotes` 21, `phasemonth` 21, `dayfirstin` 13, `dayfirstwf` 11, `dayfirst` 14,
+  `wfkeys` 84, `noteviews` 15, `mvnotes` 30 + 14, `holidayrename` 14, `autonoterename` 25, `doubleups` live 11 / 50 / 3 /
+  2, `hidewf` 19, `phasesui` 8, `wfnotelines` drag 9, `mvdragcarry` 15. No second full gate (the two sides touch
+  different code, each fully gated on its own).
+- **Pushed** on the owner's *"push"* (18 Nov 2026) as a fast-forward of `origin/main` `f48df5b`. No version cut (README:
+  Unreleased; `APP_VERSION` stays 1.17.5).
+
 ### 🚀 17 Nov 2026: DOUBLE-UP DAYS — v1.17.0, built on branch `claude/double-up-days-037393` (worktree `.claude/worktrees/double-up-days-037393`, from `main` at `aa16ffe`), full gate green, cut as v1.17.0 and pushed to `main` on the owner's picker *"Push now as v1.17.0"* (the push and the live check are the last bullet). The owner chose *"Leave them, I'll handle it"* for the main checkout's own uncommitted double-up files: this session did not touch the main checkout, so its local `main` is behind `origin/main`. Plan + as-built record: [`DOUBLE-UP-DAYS-PLAN.md`](DOUBLE-UP-DAYS-PLAN.md) §10; mockup [`mockups/double-up-days-ui.html`](mockups/double-up-days-ui.html). Tracker card `double-up-days`.
 - **What it is:** "10+1" = 10 first-unit days plus 1 double-up day (two crews, two episodes, one day). It never lengthens
   Production. NOT a half day (`.5` is one crew splitting a day, already built). All 17 rulings (owner, 17 Nov 2026) are

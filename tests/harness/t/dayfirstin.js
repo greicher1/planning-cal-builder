@@ -4,7 +4,8 @@
 // 17/7/26" sat on its week's Monday in the month view and the month PDF, the Day list stamped "8/27/26" beside a
 // 24/8/2026 Date column, and Paste notes put 06/07/2026 on 7 June.
 //   W1-W5  typed waterfall lines on their own day in the month view (W3: a line written month first is still read inside
-//          its week; W4: a four-digit year sits on Monday, as its month-first twin always has; W5: edited in the month
+//          its week; W4: a four-digit year is read too and the note is on its day (since 17 Nov 2026, notedates: a date
+//          typed at the end of a one-line note is its Day, as if picked, owner's picker "Pin it"; it sat on Monday before); W5: edited in the month
 //          editor, it stays on its day)
 //   D1     the waterfall editor's Day list offers, stamps and places day first
 //   P1-P2  Paste notes reads day first, says so in its hint, and previews day first
@@ -76,7 +77,7 @@ window.addEventListener('load', function () { (async function () {
     add('W2', 'Fitting 29/7/26 on Wed 29 Jul, Wrap drinks 12/8/26 on Wed 12 Aug',
       has(dm, '2026-07-29 | Fitting 29/7/26') && has(dm, '2026-08-12 | Wrap drinks 12/8/26'), dm, '2026-07-29, 2026-08-12');
     add('W3', 'a line written month first (Cast dinner 8/6/26) is still read inside its week: Thu 6 Aug', has(dm, '2026-08-06 | Cast dinner 8/6/26'), dm, '2026-08-06');
-    add('W4', 'a four-digit year (Sound mix 18/8/2026) sits on its week’s Monday, as 8/18/2026 always has', has(dm, '2026-08-17 | Sound mix 18/8/2026'), dm, '2026-08-17');
+    add('W4', 'a four-digit year (Sound mix 18/8/2026) is read too: the one-line note takes it as its Day and sits on Tue 18 Aug (it sat on Monday until 17 Nov 2026)', has(dm, '2026-08-18 | Sound mix 18/8/2026'), dm, '2026-08-18');
     add('D1', 'the Day list offers and stamps day first, and the stamped line is drawn on its day',
       Array.isArray(out.dayOpts) && out.dayOpts.indexOf('2026-08-27=Thu 27/8/26') >= 0 && out.stamped === 'Network call 27/8/26' &&
       out.cell824 === 'Network call 27/8/26' && has(dm, '2026-08-27 | Network call 27/8/26'),
@@ -119,9 +120,12 @@ window.addEventListener('load', function () { (async function () {
     T.pickSelect('wf-date-format', ''); await settled();
     var mf = await census(['July 2026', 'August 2026']);
     out.mf = mf;
-    add('F1', 'back on MM/DD/YY a day-first line (Wrap drinks 12/8/26) sits on its week’s Monday again, as before this change',
-      has(mf, '2026-08-10 | Wrap drinks 12/8/26') && has(mf, '2026-08-06 | Cast dinner 8/6/26') && has(mf, '2026-08-27 | Network call 27/8/26'),
-      mf, 'Wrap drinks on 2026-08-10, Cast dinner on 2026-08-06, Network call on its pin 2026-08-27');
+    // ⚠️ Re-expected 17 Nov 2026 (notedates, owner's picker "Pin it"): Wrap drinks was typed on DD/MM as a one-line note, so
+    // its date is its Day, and back on MM/DD (where 12/8/26 is no day of its week) it stays on the 12 Aug it was typed for,
+    // as a picked day always has. It went back to Monday before.
+    add('F1', 'back on MM/DD/YY a one-line note typed day first (Wrap drinks 12/8/26) stays on the 12 Aug it was typed for (its Day); Cast dinner on 6 Aug; Network call on its pin',
+      has(mf, '2026-08-12 | Wrap drinks 12/8/26') && has(mf, '2026-08-06 | Cast dinner 8/6/26') && has(mf, '2026-08-27 | Network call 27/8/26'),
+      mf, 'Wrap drinks on 2026-08-12, Cast dinner on 2026-08-06, Network call on its pin 2026-08-27');
     await T.typeUserNote('2026-09-07', 'Mix 9/10/26'); await settled();
     var pf = await paste(['06/07/2026\tSpotting MF', '12/07/2026\tDelivery MF']);
     out.mf2 = {paste: pf};
