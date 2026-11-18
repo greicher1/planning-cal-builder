@@ -4,7 +4,7 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### 🛠️ 18 Nov 2026: EXPORT FILE NAMES (WRO date, "a.o." date, the File name list) + THE VERSION GETS ITS "v" BACK — WIP on branch `export-name-wro` (worktree `.claude/worktrees/export-name-wro`, from `origin/main` `1c9b008`). NOT merged, NOT pushed, no full gate. Tracker cards `save-name-wro-date`, `export-file-name-parts`, `version-auto-v`.
+### 🛠️ 18 Nov 2026: EXPORT FILE NAMES (WRO date, "a.o." date, the File name list) + THE VERSION GETS ITS "v" BACK — FINISHED on branch `export-name-wro` (worktree `.claude/worktrees/export-name-wro`, from `origin/main` `1c9b008`). NOT merged, NOT pushed; full gate below. Tracker cards `save-name-wro-date`, `export-file-name-parts`, `version-auto-v`.
 - **Export names** (`exportNameParts()` → `exportNameFrom()`, through `exportFileName()`, which the frozen workbook / waterfall-PDF name
   lines already call: NO frozen edit). ⭐ THE DEFAULT, the owner's last word (18 Nov 2026): "Test Show S3 Planning Calendar v3 WRO 1.4.27
   - a.o. 11.18.26.pdf": title, season, words, Version, WRO, then the scenario and the edited date, each SET OFF by " - " (a spaced
@@ -37,11 +37,12 @@
   only non-number text still gets the old-rule rewrite. `versionNeedsAsTyped()` is false for a number, so `versionAsTyped` is written
   only for text. Every test calendar holding a bare number lacks the key (it printed "v3" already), so baselines should not move;
   `hdrversion-astyped.sptcal` (the key + "3") now prints "v3". CLAUDE.md's `versionAsTyped` line is now out of date.
-- **Proof so far:** `exportnames` 12/12 on the first cut (before the a.o. date: it needs re-expecting); `npm run check` 42/42; every
-  step tried in the browser pane with real clicks, drags, typing and keys (see the commits). **To do on "finish it":** Help's two
-  example names and the Version help; re-expect `exportnames`, `hdrversion`, `hdrverload`, `monthexport`'s name check, the `hdr*` legs;
-  a leg for the list (typed name, ticks, drag order, title off, all off, Put all back); README; CLAUDE.md's `versionAsTyped` line; a
-  partial gate (base, waterfall PDF, workbook, gates 10 and 13).
+- **"Finish it" (owner, 18 Nov 2026):** Help's example names and the Export PDF paragraph; `exportnames` re-expected (12/12; X11
+  DD/MM, X12 no Writers' Room date); NEW leg `filenamelist` (11 checks, in gate.sh beside exportnames), which found two bugs fixed
+  here (the window grew 1 px when Put all back appeared: it is now always laid out, hidden; two quick row clicks kept only the
+  second: functional update); `hdrversion` / `hdrverload` re-expected for the number rule (the gate's section alone: 54 PASS, 0
+  FAIL); README's entry under Unreleased; CLAUDE.md's `versionAsTyped` line (SUPERSEDED) and the frozen S1b/S2b example. A full
+  gate was started on the finished branch; its result is the next bullet.
 
 ### 🔨 17 Nov 2026: THE NOTE EDITOR'S DAY — "No date", and a TYPED date works like a picked one. Branch `note-day-shift` (worktree `.claude/worktrees/note-day-shift`, from `origin/main` `aa16ffe`). Owner tried it on localhost, then *"Finish it"*, then *"push"* (18 Nov 2026). `origin/main` `f48df5b` (v1.17.0-v1.17.5, Tandem days) merged in first: README / HANDOFF conflicts only, both kept; `app.js` merged clean (main's 56 hunks touch none of the note editor's code). Tracker cards `note-day-default-no-date`, `linked-note-day-follows-phase`
 - **The asks (17 Nov 2026, in order):** *"In waterfall view, the default, for Day should be "No date" rather than Mon
