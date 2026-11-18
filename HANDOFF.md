@@ -30,6 +30,9 @@
   ink at 40%. ⛔ Never a border for the divider (it notched at the corners). The writer paints the same (no ring band on
   the joined side, a 1 px fill of `mvlMix(ink, .4, fill)`). Spec: [`mockups/double-up-join-line.html`](mockups/double-up-join-line.html);
   plan §10.3a. The first full gate (queued at 20:04, 154 PASS / 0 FAIL when stopped) was stopped for it, since the build changed.
+- 🔨 **After v1.17.2 (owner: *"Call the phase just \"Tandem\""*):** the card heading reads "Tandem", not "Tandem days"
+  (`DU_TITLE`); "Tandem days" typed there still reads as the default. Counts keep "tandem days". README Unreleased;
+  `doubleups` 58/58. Committed on the branch, NOT pushed.
 - 🔨 **R21, after v1.17.1 (owner: *"Yes, use Tandem"*): the word is Tandem.** Default pill "Tandem 101", card head
   "Tandem days", and every user-facing string; saved keys, ids, classes and code names keep "double-up" (Load's
   `data-action="open"` precedent). Plan §10.3d. `doubleups` 58/58, writer + export green. Tracker card

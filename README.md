@@ -29,6 +29,15 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+## Unreleased
+
+### The Tandem card is called just "Tandem" (17 Nov 2026)
+
+The owner, after v1.17.2: *"Call the phase just \"Tandem\""*. The card's heading reads **Tandem** (it read "Tandem days"),
+the same word its pills start with ("Tandem 101"); Help names it the Tandem card. The day counts keep their unit:
+*Default tandem days*, "7 tandem days · 6 episodes". A heading typed as "Tandem days" also reads as the default, so
+nothing is stored. Verified: `doubleups` 58/58, `npm run check` 42/42.
+
 ## v1.17.2 — double-up days are called Tandem days (17 Nov 2026)
 
 ### Double-up days are called Tandem days (17 Nov 2026)

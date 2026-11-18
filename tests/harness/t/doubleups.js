@@ -270,8 +270,8 @@ window.addEventListener('load', function () { (async function () {
                 name: card().querySelector('.du-name-input').value, list: cardList().length, pills: document.querySelectorAll('#table-wrap .mv-pill[data-du]').length,
                 boxes: card().querySelectorAll('input[type="number"]').length, buttons: card().querySelectorAll('.du-body button, .du-fields button').length,
                 notes: (card().querySelector('.du-body') || {}).innerText};
-      check(out.l3.meta === 'None yet' && out.l3.dflt === '' && out.l3.dph === 'None' && out.l3.name === 'Tandem days' && out.l3.list === 10 && out.l3.pills === 0,
-            'L3 a new calendar has none: "None yet", the default box blank ("None"), the card head reads "Tandem days" (R21), 10 episodes listed, no pill');
+      check(out.l3.meta === 'None yet' && out.l3.dflt === '' && out.l3.dph === 'None' && out.l3.name === 'Tandem' && out.l3.list === 10 && out.l3.pills === 0,
+            'L3 a new calendar has none: "None yet", the default box blank ("None"), the card head reads "Tandem" (R21), 10 episodes listed, no pill');
       check(out.l3.boxes === 11 && out.l3.buttons === 0 && !/Bold = its own|joined to the end of its shoot/.test(out.l3.notes || ''),
             'L3 (R19) the counts are number boxes like every other phase’s (the default and one per episode), no − / + buttons, and no explanatory lines');
       var before = await save();

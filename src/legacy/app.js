@@ -9911,7 +9911,9 @@ export function initLegacyApp() {
   // doubleUpName, data-du, DU_KEY 'doubleUp'), as Load kept data-action="open": renaming one would stop saved calendars
   // opening. A calendar with no typed name reads Tandem now; a typed name, "Double-up" included, is kept as typed.
   const DU_NAME = 'Tandem';
-  const DU_TITLE = 'Tandem days';   // the card head's text while the name is the default
+  // The card head's text while the name is the default. "Tandem days" in v1.17.2; the owner, the same evening: "Call the
+  // phase just \"Tandem\"", so the card and its pills read the same word.
+  const DU_TITLE = 'Tandem';
   const DU_MAX = 99;             // a typed count's ceiling (R19: the boxes are typed, so no stepper's 0..9)
   const DU_NAME_MAX = 40;
   const DU_SEL_PILL = '.mv-pill[data-du]';   // a double-up pill in the month view (frozen edit DU1's marker)
@@ -9927,8 +9929,9 @@ export function initLegacyApp() {
     return typeof v === 'string' ? v.replace(/[\u0000-\u001f\u007f]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, DU_NAME_MAX) : '';
   }
   function duDefaultName(){ return doubleUpName || DU_NAME; }
-  // A name in the card's head that means "the default": blank, the head's own "Tandem days", or the bare "Tandem".
-  function isDuDefaultTitle(t){ return t === '' || t === DU_TITLE || t === DU_NAME; }
+  // A name in the card's head that means "the default": blank, "Tandem", or v1.17.2's head text "Tandem days" (never saved:
+  // it read as the default there too).
+  function isDuDefaultTitle(t){ return t === '' || t === DU_TITLE || t === DU_NAME || t === 'Tandem days'; }
   // A moved position as stored, or null.
   function duMovedOf(v){
     if(!isPlainObj(v)) return null;
@@ -10041,7 +10044,7 @@ export function initLegacyApp() {
     row.style.setProperty('--phase-color', look.color);
     row.innerHTML = `
         <div class="swatch du-swatch" id="swatch-${DU_KEY}" style="background:${look.color};" title="A darker shade of Production&rsquo;s colour. It follows Production&rsquo;s colour."></div>
-        ${phaseHeadHtml(`<input type="text" class="phase-name-input du-name-input" value="${DU_TITLE}" placeholder="${DU_TITLE}" maxlength="${DU_NAME_MAX}" aria-label="Tandem name" title="What the pills say (blank: Tandem). Each episode or block can have its own name below.">`,
+        ${phaseHeadHtml(`<input type="text" class="phase-name-input du-name-input" value="${DU_TITLE}" placeholder="${DU_TITLE}" maxlength="${DU_NAME_MAX}" aria-label="Tandem name" title="What the pills say: Tandem 101 unless you type another name. Each episode or block can have its own name below.">`,
           MVONLY_TAG(false, 'A second crew&rsquo;s days, drawn in the month view and its PDF only. They never change Production&rsquo;s days.'),
           `<div class="phase-meta du-meta"></div>`)}
         <div class="phase-fields du-fields">
