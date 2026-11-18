@@ -203,6 +203,12 @@ holidays. Do not re-mint them without keeping a copy saved with a retired place:
 | `mvbarsize-large.sptcal` | ⭐ 27 Oct 2026 (MONTH-BAR-SIZE-PLAN.md step 3): `mvnotes.sptcal` at the **Large phase bar size** (`mvBarSize: "large"`), minted by the `mvbarsize` leg from its real Save at Large (out.sptcal). Two one-day custom bars renamed by the leg: custom3 (4/17/26) "Wardrobe Fittings For The", which fits one line at 10 px and not at 12 in the SCREEN's day (B5), and custom1 (4/15/26) "Camera Prep Day For T", which fits one line of the PDF's box at 10 px and not at 12, so the written Large PDF sets it on two lines (gate.sh's text check). Read by `monthemit`, `monthwriter` and `monthexport` (gate.sh's sized block). No gate-10 or gate-13 baseline reads it yet (plan step 4) |
 | `episodeprep-blocks.sptcal` | Its Blocks-mode twin, minted by the same run's second Save: Schedule by Blocks, 3 blocks x 10 days (episodes split 2, 2, 2 in shooting order), Block 3 with its own prep of 12, so Prep Block 3 overlaps Prep Block 2 and steps over Good Friday and the hiatus. It still carries the Episodes calendar's per-episode lengths, dormant, which the leg's K3 switches back to |
 
+### v1.17.0 (17 Nov 2026)
+
+| File | Use |
+|---|---|
+| `v1.17.0-saved.sptcal` | the reference calendar saved by the v1.17.0 build (double-up days), minted with `t/mintfixture.js` (a real Save): 46 snapshot keys, 77 ids, 0 clipped cells, **byte-identical to `v1.16.0-saved.sptcal` but its `lastEdited` line**, so a calendar with no double-up saves exactly as it did before them |
+
 ### Double-up days (DOUBLE-UP-DAYS-PLAN.md, 17 Nov 2026)
 
 | File | Use |

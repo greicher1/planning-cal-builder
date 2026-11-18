@@ -29,7 +29,7 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
-## Unreleased
+## v1.17.0 — double-up days: "10+1", a second crew's day on the next episode's shoot (17 Nov 2026)
 
 ### Double-up days: "10+1", a second crew's day on the next episode's shoot (17 Nov 2026)
 

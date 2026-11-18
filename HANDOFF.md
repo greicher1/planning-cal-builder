@@ -4,7 +4,7 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### 🔨 17 Nov 2026: DOUBLE-UP DAYS — BUILT on branch `claude/double-up-days-037393` (worktree `.claude/worktrees/double-up-days-037393`, from `main` at `aa16ffe`). Committed locally; NOT merged, NOT pushed. Plan + as-built record: [`DOUBLE-UP-DAYS-PLAN.md`](DOUBLE-UP-DAYS-PLAN.md) §10; mockup [`mockups/double-up-days-ui.html`](mockups/double-up-days-ui.html). Tracker card `double-up-days`.
+### 🚀 17 Nov 2026: DOUBLE-UP DAYS — v1.17.0, built on branch `claude/double-up-days-037393` (worktree `.claude/worktrees/double-up-days-037393`, from `main` at `aa16ffe`), full gate green, cut as v1.17.0 and pushed to `main` on the owner's picker *"Push now as v1.17.0"* (the push and the live check are the last bullet). The owner chose *"Leave them, I'll handle it"* for the main checkout's own uncommitted double-up files: this session did not touch the main checkout, so its local `main` is behind `origin/main`. Plan + as-built record: [`DOUBLE-UP-DAYS-PLAN.md`](DOUBLE-UP-DAYS-PLAN.md) §10; mockup [`mockups/double-up-days-ui.html`](mockups/double-up-days-ui.html). Tracker card `double-up-days`.
 - **What it is:** "10+1" = 10 first-unit days plus 1 double-up day (two crews, two episodes, one day). It never lengthens
   Production. NOT a half day (`.5` is one crew splitting a day, already built). All 17 rulings (owner, 17 Nov 2026) are
   in the plan's §2: a **Double-ups card** under Production, month view only, like Episodic Prep's; counts in number boxes (R19) with a
@@ -51,6 +51,11 @@
 - **Not done / open:** text-style picks on a double-up pill; a month note dragged right under a double-up pill files
   itself `under: 'doubleUp'` (it falls back to the bottom of its day if no double-up is drawn there, so it is never
   lost). Help has a "Double-up days" paragraph. Merging into `main` and pushing wait on the owner's picker (CLAUDE.md).
+- **The v1.17.0 cut:** `APP_VERSION`, `version.json`, `package.json` at 1.17.0 (`npm run check` 42/42); README's entry
+  under `## v1.17.0`; `releases/v1.17.0.html` cmp-identical to the build (sha256 `4a9c98d611769390…`, 2,271,017 bytes);
+  `tests/fixtures/v1.17.0-saved.sptcal` a real Save (mintfixture: 46 keys, 77 ids, 0 clipped), byte-identical to
+  v1.16.0's but `lastEdited`. On the cut: the waterfall PDF identical to its baseline bar the date stamp, gate 13's
+  reference byte-identical, `monthexport` 9/9, `pdfmark` 6/6 (the mark reads 1.17.0). Tag `v1.17.0` (annotated).
 - ⚠️ **Merging into `main` in the main checkout:** that checkout still has its own UNCOMMITTED `DOUBLE-UP-DAYS-PLAN.md`,
   `mockups/double-up-days-*.html`, `mockups/double-up-join-line.html` and a 17 Nov HANDOFF entry; move them aside first
   (this branch carries all of them, newer).
