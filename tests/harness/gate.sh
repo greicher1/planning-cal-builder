@@ -3039,10 +3039,14 @@ done
 #   mv    mvnotes (20 Oct 2026, MONTH-NOTES-PLAN.md): a printed edge month, No fill notes, one-day custom pills that wrap.
 #   hd/hm halfdays and halfmarks: switch days whose two Production bars meet half way through the square (16 Oct 2026,
 #         HALF-SQUARE-BARS-PLAN.md), the second with saved ½ marks inside those bars. A3 holds every inset box to Chrome.
+#   du/duh/dub  ⭐ ADDED 17 Nov 2026 (DOUBLE-UP-DAYS-PLAN.md R14, frozen edit DU1): double-ups joined flush to their
+#         episode's bar, a moved one, the last episode's beside its own last day (doubleups); with half days, and two in
+#         one week (doubleups-half); per block (doubleups-blocks). A3 holds every joined box to Chrome, square corners
+#         and lanes included (data-du-line / data-du-below re-packed by mvlPackLanes).
 MWA="/tmp/gate${GTAG}-mwa"; rm -rf "$MWA"; mkdir -p "$MWA"
 for MWSPEC in "t1:-:-:-" "t1z:Pacific/Kiritimati:-:-" "ms:-:-:monthscale" "md:-:-:month-dense60" "nw:-:-:notewrap" \
               "sr:-:-:stintswap-reshape" "sp:-:-:colswap-simpost-refuse" "win:-:1280,800:notewrap" "hd:-:-:halfdays" \
-              "hm:-:-:halfmarks" "mv:-:-:mvnotes"; do
+              "hm:-:-:halfmarks" "mv:-:-:mvnotes" "du:-:-:doubleups" "duh:-:-:doubleups-half" "dub:-:-:doubleups-blocks"; do
   MWRUN="${MWSPEC%%:*}"; MWREST="${MWSPEC#*:}"; MWTZ="${MWREST%%:*}"; MWREST="${MWREST#*:}"
   MWWIN="${MWREST%%:*}"; MWSTATE="${MWREST#*:}"
   [[ $MWTZ == - ]] && MWTZ=""; [[ $MWWIN == - ]] && MWWIN=""; [[ $MWSTATE == - ]] && MWSTATE=""
@@ -3132,7 +3136,7 @@ for MXSPEC in "r:-:-:-" "rz:Pacific/Kiritimati:-:-" "rw:-:1280,800:-" "b:-:-:blo
               "do:-:-:dayoverrides" "mh:-:-:mvheader" "ml:-:-:mvheaderlegacy" "bo:-:-:blocksoff" "oh:-:-:dayoverrides-onhalf" \
               "lc:-:-:month-lanecap" "hb:-:-:hiatus-blanklabel" "d6:-:-:month-dense60" "mn:-:-:monthnotes" "so:-:-:shootorder" \
               "nw:-:-:notewrap" "cr:-:-:carry-rich" "hd:-:-:halfdays" "nn:-:-:mvnotes" "bl:-:-:mvbarsize-large" \
-              "n4:-:-:mvnotesize-14" "nm:-:-:mvnotesize-mixed"; do
+              "n4:-:-:mvnotesize-14" "nm:-:-:mvnotesize-mixed" "du:-:-:doubleups"; do
   MXRUN="${MXSPEC%%:*}"; MXREST="${MXSPEC#*:}"; MXTZ="${MXREST%%:*}"; MXREST="${MXREST#*:}"
   MXWIN="${MXREST%%:*}"; MXSTATE="${MXREST#*:}"
   [[ $MXTZ == - ]] && MXTZ=""; [[ $MXWIN == - ]] && MXWIN=""; [[ $MXSTATE == - ]] && MXSTATE=""
@@ -3716,6 +3720,54 @@ if a.get('run') == 'restore':
         print('  FAIL  '+label+': the on/off exports could not be compared: '+str(e)); bad = 1
 sys.exit(0 if a.get('pass') is True and a.get('checks') and not bad else 1)
 PYEP
+done
+
+# ---- doubleups: double-up days, a second crew's day on the next episode's shoot (DOUBLE-UP-DAYS-PLAN.md) ---------------
+# ⭐ ADDED 17 Nov 2026. Four runs. LIVE: the Double-ups card under Production, month view only, no id on any control;
+# none by default; the default − / + draws one per episode but the last (R5); back at none the calendar saves byte for
+# byte what it did; one undo per click. RESTORE (doubleups.sptcal): every double-up to the hand trace in the leg's
+# header; the flush join on the episode's line, the next episode on the line below (R6); Production's colour, darker,
+# following it (R7); the right-click menu, Put back, Rename…, Remove (R11); double-click to the card's row (R12); the
+# drag, refused before the shoot and on its own days, allowed on another episode's days and after wrap, put back on its
+# default days, one undo (R8, R9); Shift keeping a moved one on its shoot day (R10); Production untouched (R17); Save /
+# Load; the M-5 trap; a hostile file. BLOCKS (doubleups-blocks) and HALF (doubleups-half, R15 and two in one week).
+# ⭐ "MONTH VIEW ONLY" (R13) IS PROVEN HERE: RESTORE exports the workbook and the waterfall PDF with double-ups ON and
+# OFF, and every Excel part (bar core.xml's timestamp) and the PDF must be byte-identical. The month PDF (R14) is
+# monthwriter's du/duh/dub and monthexport's du, above; gates 10 and 13 hold frozen edit DU1 inert without them.
+for DUSTATE in "" doubleups doubleups-half doubleups-blocks; do
+  rm -f "$HERE/doubleups.json"
+  HARNESS_PAGE="$PAGE" HARNESS_STATE="$DUSTATE" "$HERE/run.sh" doubleups 600 >/dev/null 2>&1
+  python3 - "$HERE/doubleups.json" "doubleups (${DUSTATE:-live})" <<'PYDU' || FAIL=1
+import json,sys,base64,io,zipfile
+path, label = sys.argv[1], sys.argv[2]
+try: a=json.load(open(path))
+except Exception as e:
+    print('  FAIL  '+label+' produced no result: '+str(e)); sys.exit(1)
+if a.get('EX'):
+    print('  FAIL  '+label+' threw: '+str(a['EX'])[:200]); sys.exit(1)
+bad = 0
+for c in a.get('checks') or []:
+    print(('  PASS  ' if c.get('ok') else '  FAIL  ')+label+': '+str(c.get('what')))
+errs = (a.get('health') or {}).get('errors') or []
+print(('  PASS  ' if not errs else '  FAIL  ')+label+f': 0 console errors {errs[:2]}')
+if a.get('run') == 'restore':
+    def parts(b):
+        z = zipfile.ZipFile(io.BytesIO(base64.b64decode(b)))
+        return {n: z.read(n) for n in z.namelist()}
+    try:
+        xa, xb = parts(a['xlsxOn']), parts(a['xlsxOff'])
+        diff = [n for n in sorted(set(xa) | set(xb)) if n != 'docProps/core.xml' and xa.get(n) != xb.get(n)]
+        ok = not diff and len(xa) > 5 and b'Production' in xa.get('xl/sharedStrings.xml', b'')
+        print(('  PASS  ' if ok else '  FAIL  ')+label+f': ⭐ the workbook is byte-identical with double-ups on and off ({len(xa)} parts, core.xml excluded){" -- differ: "+str(diff[:4]) if diff else ""}')
+        bad = bad or not ok
+        pa, pb = base64.b64decode(a['pdfOn']), base64.b64decode(a['pdfOff'])
+        ok = pa == pb and len(pa) > 10000
+        print(('  PASS  ' if ok else '  FAIL  ')+label+f': ⭐ the waterfall PDF is byte-identical with double-ups on and off ({len(pa)} vs {len(pb)} bytes)')
+        bad = bad or not ok
+    except Exception as e:
+        print('  FAIL  '+label+': the on/off exports could not be compared: '+str(e)); bad = 1
+sys.exit(0 if a.get('pass') is True and a.get('checks') and not bad else 1)
+PYDU
 done
 
 # ---- offweek: a Production week with no shoot days reads and counts as a Production hiatus (OFF-WEEK-PLAN.md) --

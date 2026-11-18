@@ -238,6 +238,62 @@
   notes to one day until it stops). Port 8893 is `srv.js` run in the background with Bash.
   `tests/harness/zzbase.html` (untracked, ignored) is the starting commit's build, for side by side.
 
+### 🚀 17 Nov 2026: DOUBLE-UP DAYS — v1.17.0, built on branch `claude/double-up-days-037393` (worktree `.claude/worktrees/double-up-days-037393`, from `main` at `aa16ffe`), full gate green, cut as v1.17.0 and pushed to `main` on the owner's picker *"Push now as v1.17.0"* (the push and the live check are the last bullet). The owner chose *"Leave them, I'll handle it"* for the main checkout's own uncommitted double-up files: this session did not touch the main checkout, so its local `main` is behind `origin/main`. Plan + as-built record: [`DOUBLE-UP-DAYS-PLAN.md`](DOUBLE-UP-DAYS-PLAN.md) §10; mockup [`mockups/double-up-days-ui.html`](mockups/double-up-days-ui.html). Tracker card `double-up-days`.
+- **What it is:** "10+1" = 10 first-unit days plus 1 double-up day (two crews, two episodes, one day). It never lengthens
+  Production. NOT a half day (`.5` is one crew splitting a day, already built). All 17 rulings (owner, 17 Nov 2026) are
+  in the plan's §2: a **Double-ups card** under Production, month view only, like Episodic Prep's; counts in number boxes (R19) with a
+  card default; each episode or block its own count AND name ("Tandem"); the last unit none by default (given one, it
+  sits beside its own last days); the pill joined flush to the end of its episode's shoot pill in a darker Production
+  shade; draggable (whole pill) onto another episode's days or after wrap, kept by shoot day; right-click Rename… / Put
+  back / Remove; double-click opens its row; not in the waterfall / Excel / waterfall PDF; prints in the month PDF.
+- **Built:** the engine (`appendDoubleUps`, after prep), the card (`buildDoubleUpRow` / `refreshDoubleUpUI`), frozen
+  edit **DU1** in `renderMonthView` (CLAUDE.md's eighth exception), the writer's read-back (`mvlDuJoins`,
+  `mvlPackLanes`, square corners), the drag / menu / Rename / double-click (`installDoubleUpDrag`, `duSections`,
+  `openDuRename`, `showDoubleUpRow`). Decisions the plan left open are in its §10.5 (no swatch picker; id-less defaults;
+  0..99; labelled by Week = drawn loose; corners squared only where the two bars touch; not stylable).
+- ⭐ **R19 (owner, after trying the build):** *"lets not do the plus and minus symbols lets do open text boxes like all
+  other phases use"*, and both explanatory lines in the card deleted. The counts are Prep's number boxes (blank = default,
+  0 = none, typed = its own, bold, "Whole days only" on a fraction); plan §10.3b.
+- ⭐ **One lane rule beyond the first cut, inside the approved scope** (plan §3: "the next episode takes the lane below"):
+  on `doubleups-half` (4.5-day episodes) a week held two double-ups, and first-fit lifted the next episode to a line
+  ABOVE the second one. The next episode's run right after a double-up now starts its lane search one line under it
+  (`duBelow`, `data-du-below`); the writer copies it. Gates 10 and 13 re-run after it.
+- ⭐ **R18 (owner's picker *"A: one faint line"*, after trying `60883ac`):** where a shoot pill meets its joined double-up,
+  ONE faint line instead of the two dark rings side by side. Shoot pill: `border-right:0; padding-right:9px`, the ring's
+  half pixel on its other three sides; double-up: `border-left:0; padding-left:9px` and a 1 px inset shadow line in its
+  ink at 40%. ⛔ Never a border for the divider (it notched at the corners). The writer paints the same (no ring band on
+  the joined side, a 1 px fill of `mvlMix(ink, .4, fill)`). Spec: [`mockups/double-up-join-line.html`](mockups/double-up-join-line.html);
+  plan §10.3a. The first full gate (queued at 20:04, 154 PASS / 0 FAIL when stopped) was stopped for it, since the build changed.
+- **Save format (⛔ permanent):** top-level `doubleUps` {days, name, moved: {<unit id>: {day: n} | {after: n}}}, and
+  `doubleUpDays` / `doubleUpName` on an episode or block; each ABSENT while unset, so a calendar with no double-up saves
+  byte for byte as before (leg `doubleups` L7). No id on any card control; no SNAPSHOT_VERSION bump.
+- ✅ **FULL GATE on `f5bc5dc` (build with R18 + R19; port 8435, 20:27–21:45 on 17 Nov 2026, alone among gates, under a
+  machine load of 25–74 from other sessions): 5,681 PASS / 10 FAIL.** Every baseline identical: gate 10 (all 11 print
+  documents), gate 13 (all 24 written month PDFs + reference in UTC+14 / 1280 px, 25 lines), the waterfall PDF and
+  workbook, the restore, `fields.byId` (77 ids, unchanged). `doubleups` 58/58 (with its on/off workbook and waterfall-PDF
+  byte checks), `monthwriter` du/duh/dub and `monthexport` du green.
+  - The 10: `hidewf` C1 counted 8 phase cards (the new card makes 9, and it has no Hide-in-waterfall tick, being month
+    only): leg re-expected, then 19/19 alone. The other nine all pass ALONE (port 8435, after the gate): `pilllabel`
+    blocksoff / shootorder / carry-rich 29/29 each (blocksoff's "months 1 vs 18" and two Save-button timeouts; HANDOFF
+    calls the first flaky on `main` too), `pwagate` 13/13 (C1, the known "Link copied" flake), `hiatuscolour` 14/14 (two
+    Load timeouts), `labelsetup` (halfdays) 41/41, `scenariocompat` on `/releases/v1.2.0.html` (a release page this
+    branch cannot touch) opened the 8-episode tab.
+- **Proof (earlier, per step):** Fixtures `doubleups.sptcal` (hand-made from `episodeprep.sptcal`, a real Save,
+  with Production moved to a Wednesday so double-ups join mid-week), `doubleups-half.sptcal`, `doubleups-blocks.sptcal`
+  (tests/fixtures/README.md). The plan, the mockups and this entry were uncommitted in the main checkout when the build
+  session started; they are committed on this branch.
+- **Not done / open:** text-style picks on a double-up pill; a month note dragged right under a double-up pill files
+  itself `under: 'doubleUp'` (it falls back to the bottom of its day if no double-up is drawn there, so it is never
+  lost). Help has a "Double-up days" paragraph. Merging into `main` and pushing wait on the owner's picker (CLAUDE.md).
+- **The v1.17.0 cut:** `APP_VERSION`, `version.json`, `package.json` at 1.17.0 (`npm run check` 42/42); README's entry
+  under `## v1.17.0`; `releases/v1.17.0.html` cmp-identical to the build (sha256 `4a9c98d611769390…`, 2,271,017 bytes);
+  `tests/fixtures/v1.17.0-saved.sptcal` a real Save (mintfixture: 46 keys, 77 ids, 0 clipped), byte-identical to
+  v1.16.0's but `lastEdited`. On the cut: the waterfall PDF identical to its baseline bar the date stamp, gate 13's
+  reference byte-identical, `monthexport` 9/9, `pdfmark` 6/6 (the mark reads 1.17.0). Tag `v1.17.0` (annotated).
+- ⚠️ **Merging into `main` in the main checkout:** that checkout still has its own UNCOMMITTED `DOUBLE-UP-DAYS-PLAN.md`,
+  `mockups/double-up-days-*.html`, `mockups/double-up-join-line.html` and a 17 Nov HANDOFF entry; move them aside first
+  (this branch carries all of them, newer).
+
 ### 🚂 v1.16.0 — wave 4. Branch `release-wave4` (worktree `.claude/worktrees/release-wave4`), cut from `origin/main` `7e1d8b4`; `origin/main` `8af4298` merged in at `91619e1`. The owner said *"Yes, prep it"* (16 Nov 2026): merge the newest live changes, write the owed docs and test wiring, cut v1.16.0. Tagged v1.16.0 and pushed to `main` on 17 Nov 2026 (owner's picker *"Push v1.16.0 now"*), after two full gates and the merges of `d44a52e` and `b8f4ccf`.
 - ⛔ **This section SUPERSEDES the "WIP", "NOT merged, NOT pushed", "the owner tries it first", "not in gate.sh yet" and
   "no README / HANDOFF yet" lines in each wave-4 item's own section below and in its branch's commits** (`ripple-marks`,
