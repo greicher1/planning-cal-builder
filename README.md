@@ -29,7 +29,7 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
-## Unreleased
+## v1.17.2 — double-up days are called Tandem days (17 Nov 2026)
 
 ### Double-up days are called Tandem days (17 Nov 2026)
 
