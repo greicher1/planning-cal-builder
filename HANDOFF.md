@@ -32,8 +32,11 @@
   plan §10.3a. The first full gate (queued at 20:04, 154 PASS / 0 FAIL when stopped) was stopped for it, since the build changed.
 - 🔨 **After v1.17.4 (owner: *"Allow me to change the color of tandem"*):** the Tandem square opens the colour picker
   ("Follow Production" first, then the palette). Stored as `phaseColorOverride.doubleUp` (absent = follow Production,
-  R7); `duLookFor()` decides the colour for the pills and the square. Plan §10.3f; README Unreleased. `doubleups` 66/66,
-  `phasesui` 8/8. Committed on the branch, NOT pushed. Tracker card `tandem-colour`.
+  R7); `duLookFor()` decides the colour for the pills and the square. Plan §10.3f. `doubleups` 66/66, `phasesui` 8/8.
+  Tracker card `tandem-colour`. Owner's picker *"Push as v1.17.5"*: cut as **v1.17.5** (version files, check 42/42;
+  `releases/v1.17.5.html` cmp-identical, sha256 `64a895b53d6a52e6…`; `v1.17.5-saved.sptcal` identical to v1.17.4's but
+  `lastEdited`; on the cut the waterfall PDF identical bar the stamp, gate 13 reference byte-identical, `monthexport` 9/9,
+  `pdfmark` 6/6), tagged `v1.17.5` and pushed with the branch.
 - 🔨 **After v1.17.3 (owner: *"i should be able to extend tandem day just like any other phase"*, picker "Both ends"):**
   grips on both ends of a tandem pill (`installDoubleUpGrips`, body-level `.phase-edge-handle`, made only on hover). End:
   days change, start held, still joined. Start: days change, end held, start becomes a moved position. Stops at R9/R20's

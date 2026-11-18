@@ -29,7 +29,7 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
-## Unreleased
+## v1.17.5 — pick the Tandem colour (17 Nov 2026)
 
 ### Pick the Tandem colour (17 Nov 2026)
 
