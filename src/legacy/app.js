@@ -9376,6 +9376,7 @@ export function initLegacyApp() {
           ${fieldsHtml}
         </div>
         ${p.key !== 'writersRoom' ? `<button class="autostart-btn" id="autostart-${p.key}" data-phase="${p.key}" type="button">↳ Start after previous phase</button>` : ''}
+        ${p.key !== 'localization' ? `<button class="finish-before-btn" data-phase="${p.key}" type="button">↳ Finish before next phase</button>` : ''}
         <div class="phase-switches">
           ${switchesHtml}
         </div>
@@ -29974,6 +29975,7 @@ export function initLegacyApp() {
     reflectHiatusRipple();   // the Settings switch (HIATUS-RIPPLE-PLAN.md §5; its only place since 10 Nov 2026)
     refreshCustomUnitMeta(currentSchedule);
     reflectPhaseEnds();   // the Starts / Ends selects, the Ends boxes and each card's ends-mode class
+    reflectFinishBefore(); // which cards show "Finish before" in place of "Start after", and its label (after the line above)
     reflectPhaseNudges(); // which cards show the week arrows (the waterfall, and a phase with a date), and their labels
     refreshPrepUI(currentSchedule);
     refreshDoubleUpUI(currentSchedule);
@@ -31908,6 +31910,12 @@ export function initLegacyApp() {
       if(!btn || btn.disabled) return;
       autostartPhase(btn.dataset.phase);
     });
+    // ...and their backwards twins, "Finish before next phase" (finishBeforePhase).
+    host.addEventListener('click', (e)=>{
+      const btn = e.target.closest('.finish-before-btn');
+      if(!btn || btn.disabled) return;
+      finishBeforePhase(btn.dataset.phase);
+    });
   })();
 
   // Block shooting panel wiring (BLOCKS-PLAN.md §4.4-4.5). Delegated from the same container for
@@ -32112,6 +32120,106 @@ export function initLegacyApp() {
       if(customPhaseUnit(key) !== 'weeks'){ let g = 0; while((d.getUTCDay() === 0 || d.getUTCDay() === 6) && g++ < 7) d = addDays(d, 1); }
       // Through the one writer, so a Dates phase's end moves with its start (plan §8.1).
       if(setPhaseStart(key, isoOf(d))){ update(); syncCustomUnitFallback(key); }
+    });
+  }
+
+  // ⭐ FINISH BEFORE: BUILDING BACKWARDS (owner, 18 Nov 2026, from the executives' review of 17 Nov: they often work back
+  // from a delivery date, and it has to be obvious without training). The backwards twin of "Start after previous
+  // phase". Rulings, by the owner's pickers (HANDOFF, "Finish before"):
+  //   R1  CONTEXTUAL, by where the card sits in the chain: while a LATER phase in PHASE_CHAIN is on Ends (its end held,
+  //       so the calendar is being worked back from it), the card shows "↳ Finish before <next phase>" in place of Start
+  //       after. Phases after every Ends phase keep Start after. An Ends phase with no Ends phase after it shows neither,
+  //       as before ("its start is worked out, never chained"). Custom phases are not in the chain, as for Start after.
+  //   R2  The words: "Finish before".
+  //   R3  Holding a delivery date when a phase grows is NOT done here: Build Around pinned to Post's end does it, and is
+  //       taught. An automatic pull gets its own plan after the training.
+  //   R4  A click puts the card ON ENDS with the end it worked out in its box, so the end then holds: an episode that
+  //       gains days moves Production's start earlier instead of running into Post. (A built-in on Dates has no Ends:
+  //       it keeps its length and both its dates move, as Start after moves a Dates phase.)
+  // Where it ends, the mirror of chainedStart(): its last WORKING week is the one before the next scheduled phase's
+  // first week, stepping back over an all-phase hiatus a whole week at a time, so it can never overlap the next phase.
+  // Production's wrap is the last shoot day before the next phase starts (the Ends search finds it, as for a typed wrap).
+  // One update(), so one undo step. The button has NO id (delegated, data-phase); frozen render() never touches it,
+  // so its label and its card's chain-back class are written here, after render, by update().
+  function nextChainSegment(key, schedule){
+    const idx = PHASE_CHAIN.indexOf(key);
+    if(idx < 0) return null;
+    const segs = (schedule && schedule.segments) || [];
+    for(let i = idx + 1; i < PHASE_CHAIN.length; i++){
+      const seg = segs.find(s => s.key === PHASE_CHAIN[i]);
+      if(seg) return { seg, key: PHASE_CHAIN[i] };
+    }
+    return null;
+  }
+  // R1: is any phase after `key` in the chain on Ends? Read from the stores, not the schedule: an Ends phase whose box
+  // is still empty is unscheduled, but choosing Ends already says the calendar is being worked back from it.
+  function chainEndsAfter(key){
+    const idx = PHASE_CHAIN.indexOf(key);
+    if(idx < 0) return false;
+    return PHASE_CHAIN.slice(idx + 1).some(k => k === 'production' ? productionEnds !== null : phaseEndsOn(k));
+  }
+  function chainPhaseName(key){
+    return ((document.getElementById('name-' + key) || {}).value || '').trim()
+      || (PHASES.find(x => x.key === key) || {}).label || 'next phase';
+  }
+  function reflectFinishBefore(){
+    document.querySelectorAll('#phase-rows > .phase-row').forEach(row=>{
+      const btn = row.querySelector('.finish-before-btn');
+      const key = phaseRowKey(row);
+      const back = !!btn && chainEndsAfter(key);
+      if(row.classList.contains('chain-back') !== back) row.classList.toggle('chain-back', back);
+      if(!btn) return;
+      const next = back ? nextChainSegment(key, currentSchedule) : null;
+      const label = '↳ Finish before ' + (next ? chainPhaseName(next.key) : 'next phase');
+      if(btn.textContent !== label) btn.textContent = label;
+      if(btn.disabled !== !next) btn.disabled = !next;
+    });
+  }
+  // A mover (owner ruling R2, v1.3.1): Production's day marks travel with it by shoot-day number.
+  function finishBeforePhase(key){
+    const next = nextChainSegment(key, currentSchedule);
+    if(!next) return;
+    const hiatuses = (currentSchedule && currentSchedule.hiatuses) || [];
+    const inHiatus = d => hiatuses.some(h => d >= h.start && d < h.end);
+    asShootDayMove(()=>{
+      if(key === 'production'){
+        // Ends, as setProductionEnds(true) puts it (Snap to Monday off), then the wrap as setProductionWrap() takes it:
+        // the latest shoot day on or before the day before the next phase starts. A weekend, a holiday or a hiatus
+        // there reads as the shoot day before it, because the search asks the real scheduler.
+        const startEl = document.getElementById('start-production'), snapEl = document.getElementById('snap-production');
+        const info = currentSchedule && currentSchedule.productionInfo;
+        const days = (info && info.shootDays) || [];
+        if(productionEnds === null){
+          if(days.length && startEl) startEl.value = days[0];
+          if(snapEl) snapEl.checked = false;
+        }
+        productionEnds = isoOf(addDays(next.seg.start, -1));
+        const warm = prodEndsWarm(productionEnds);
+        const r = warm ? solveProductionEndsStart(productionEnds, warm) : null;
+        if(r) productionEnds = r.wrap;
+        prodEndsForward = false;
+        update();
+        return;
+      }
+      if(customPhaseUnit(key) === 'weeks'){
+        const endEl = document.getElementById('end-' + key);
+        if(!endEl) return;
+        let e = addDays(mondayOf(next.seg.start), -3);   // the Friday of the week before the next phase's first week
+        let g = 0;
+        while(inHiatus(e) && g++ < 600) e = addDays(e, -7);
+        phaseEnds[key] = true;
+        endEl.value = isoOf(e);
+        reflectPhaseEnds();
+        update();
+        return;
+      }
+      // Dates: the same length, both dates moved, its last day the last weekday before the next phase starts.
+      const startEl = document.getElementById('start-' + key), endEl = document.getElementById('end-' + key);
+      const s = startEl ? parseDateUTC(startEl.value) : null, en = endEl ? parseDateUTC(endEl.value) : null;
+      if(!s || !en) return;
+      let last = addDays(next.seg.start, -1), g = 0;
+      while(g++ < 600 && (last.getUTCDay() === 0 || last.getUTCDay() === 6 || inHiatus(last))) last = addDays(last, -1);
+      if(setPhaseStart(key, isoOf(addDays(s, Math.round((last - en) / DAY_MS))))){ update(); syncCustomUnitFallback(key); }
     });
   }
 
