@@ -25844,23 +25844,35 @@ export function initLegacyApp() {
   // outlines (.month-sel-chip), above the active pick; with the pick gone (a cut), where that pick was. Session UI. ----
   let mvSelFlash = null;          // {msg, at}: the text, and the last rect it was drawn over
   let _mvSelFlashTimer = 0;
-  function flashMvSel(msg, ms){
+  // `by` ({iso, dy}; the day's 10 lines, mvSayDayFull): the message is about a DAY, not the pick. It is drawn over that
+  // day's cell, `dy` px down it (where the "+" that was clicked sits), found again on every draw so it follows a
+  // scroll or a redraw, and it may run to two lines (.is-lines) and is kept inside the window.
+  function flashMvSel(msg, ms, by){
     if(_mvSelFlashTimer) clearTimeout(_mvSelFlashTimer);
-    mvSelFlash = msg ? { msg, at: null } : null;
+    mvSelFlash = msg ? { msg, at: null, by: by || null } : null;
     _mvSelFlashTimer = mvSelFlash ? setTimeout(()=>{ _mvSelFlashTimer = 0; mvSelFlash = null; drawMvSel(); }, ms || 4200) : 0;
     drawMvSel();
   }
   function drawMvSelFlash(at){
     if(!mvSelFlash) return;
-    if(at) mvSelFlash.at = at;
+    const by = mvSelFlash.by;
+    if(by){
+      const cell = mvDayCellEl(by.iso), c = cell && cell.getBoundingClientRect(), v = cell && visibleRect(cell);
+      if(c && v){
+        const top = Math.min(Math.max(c.top + (by.dy || 0), v.top), v.bottom);
+        mvSelFlash.at = { left: c.left, right: c.right, top, bottom: top };
+      }
+    }
+    else if(at) mvSelFlash.at = at;
     const r = mvSelFlash.at;
     if(!r) return;
     const chip = document.createElement('div');
-    chip.className = 'text-sel-chip month-sel-chip';
+    chip.className = 'text-sel-chip month-sel-chip' + (by ? ' is-lines' : '');
     chip.textContent = mvSelFlash.msg;
     chip.style.left = Math.max(0, r.left) + 'px';
     document.body.appendChild(chip);
     mvSelBoxes.push(chip);
+    if(by) chip.style.left = Math.max(0, Math.min(r.left, window.innerWidth - chip.offsetWidth - 6)) + 'px';
     const top = r.top - chip.offsetHeight - 4;
     chip.style.top = (top >= 2 ? top : r.bottom + 4) + 'px';
   }
@@ -26150,6 +26162,19 @@ export function initLegacyApp() {
       return e;
     }).filter(Boolean);
     if(!notes.length) return false;
+    // ⭐ DOOR 2 OF THE DAY'S 10 LINES (MONTH-ROW-LIMIT-PLAN.md; mvMonthLines): the notes land one by one while the day
+    // is not full. How many is worked out first, on the day's list extended and put back, so a paste onto a full day
+    // changes nothing and banks no undo step.
+    const all = notes.length, had = dayNotes[iso];
+    let took = 0;
+    try {
+      let trial = dayNoteList(iso).slice();
+      while(took < all && !mvDayIsFull(iso)){ trial = trial.concat([notes[took]]); dayNotes[iso] = trial; took++; }
+    } finally {
+      if(had === undefined) delete dayNotes[iso]; else dayNotes[iso] = had;
+    }
+    if(!took){ mvSayDayFull(iso); return false; }
+    notes.length = took;
     pushUndoSnapshot();
     const list = dayNoteList(iso).slice(), at = list.length;
     dayNotes[iso] = list.concat(notes);
@@ -26162,6 +26187,8 @@ export function initLegacyApp() {
     mvSelActive = [...mvSel].pop() || null;
     if(mvSel.size && styleTarget !== 'month') setStyleTarget('month');
     drawMvSel(); syncStyleBar();
+    if(took < all) mvSayDayFull(iso, null, MV_DAY_FULL + '\n' + took + ' of ' + all + ' notes were pasted.');
+    else mvClearDayFull();
     return true;
   }
   function mvClipReady(){
@@ -43532,6 +43559,110 @@ export function initLegacyApp() {
       });
     }
   }
+  // ---------- A DAY IN THE MONTH VIEW HOLDS 10 LINES (owner, 17 Nov 2026; MONTH-ROW-LIMIT-PLAN.md) ----------
+  // Owner, looking at a month where one week took most of the page: "there reall should be a max limit on how tall a
+  // calendar row can be". Rulings, by picker the same day:
+  //   R0  "Stop adding notes": a full day refuses another note and says so. Nothing is ever hidden;
+  //   R1  "10 lines in a week": bars and notes both count, so it caps the row itself;
+  //   R2  "No new notes until under": a calendar already over opens and shows everything, and its over-full days
+  //       refuse a new note like any full day;
+  //   R3  "Never refused": what arrives on its own (automatic notes, holidays, Waterfall notes, notes that stay with a
+  //       phase, bars, bands, the moving tools) always shows, and counts. Only a note added BY HAND IN THE MONTH VIEW
+  //       is refused: a "+", a paste, Paste notes…, a note dragged to another day. An edit never is, and a note being
+  //       typed is saved whole, so a row can end a line or two over;
+  //   R4  "Short message by the day": the grid's chip, never a dialog.
+  // THE RULE: a day's lines are the lowest line any bar, band or note covering it ends on in its week row, and a day
+  // that reaches MV_DAY_MAX_LINES takes no new note. The check is AT THE DOOR (is the day full now?), never on what
+  // the note would become. A week is as tall as its tallest day, so capping every day caps the row.
+  // ⛔ THE COUNT IS ASKED OF THE FROZEN RENDERER, NEVER COPIED (CLAUDE.md, sanctioned pattern 2). mvMonthLines() has
+  // renderMonthView draw the month as the export does (printingCursor set and put back, synchronously: buildMonthLayout's
+  // and mvWriterFit's own pattern) and reads the grid-column / grid-row the renderer writes on each bar. So there is no
+  // second packing rule to drift, and the count is the FULL-SIZE one: with printingCursor set, frozen edit SK1 is inert,
+  // where the shrunk month on screen counts a note at its smaller size and can show fewer lines. A day is therefore
+  // full or not whichever month page it is seen on.
+  // ⛔ Nothing is saved, no frozen line is edited, nothing inside #table-wrap is written, and no output can move: the
+  // limit only keeps a new note out. The week's own "+" strip (mvExtraLanes, MV_MAX_LANES) is untouched; it adds blank
+  // lines up to 6, under this limit. ⚠️ A full day's "+" still shows (the renderer draws it): a click says why.
+  const MV_DAY_MAX_LINES = 10;
+  const MV_DAY_FULL = 'This day is full (' + MV_DAY_MAX_LINES + ' lines).';
+  const MV_DAY_FULL_MSG = MV_DAY_FULL + '\nDelete or move a note to add another.';
+  // Every day of one month's grid (its spillover days too) -> the lines it reaches at full size. Empty when the month
+  // cannot be drawn, so a day nothing is known about is never called full.
+  function mvMonthLines(monthDate){
+    const out = new Map();
+    if(!monthDate || printingCursor || !currentSchedule || currentSchedule.error) return out;
+    const first = new Date(Date.UTC(monthDate.getUTCFullYear(), monthDate.getUTCMonth(), 1));
+    const savedCursor = monthCursor;
+    let html = '';
+    // ⛔ SYNCHRONOUS, as buildMonthLayout: printingCursor is module state the live renderer reads.
+    try { printingCursor = new Date(first.getTime()); html = renderMonthView(currentSchedule); }
+    catch(e){ html = ''; }
+    finally { printingCursor = null; monthCursor = savedCursor; }
+    if(!html) return out;
+    const tpl = document.createElement('template');
+    tpl.innerHTML = html;
+    const gridStart = addDays(first, -first.getUTCDay());   // the renderer's own: a row runs Sunday to Saturday
+    tpl.content.querySelectorAll('.mv-week').forEach((wk, wi)=>{
+      const reach = [0, 0, 0, 0, 0, 0, 0];
+      // A bar's place is the first thing in its style, exactly as the renderer writes it; a "+" is not a line.
+      wk.querySelectorAll('.mv-bars > .mv-bar:not(.mv-note-add)').forEach(b=>{
+        const m = /^grid-column:(\d+) \/ (\d+); grid-row:(\d+)(?: \/ span (\d+))?;/.exec(b.getAttribute('style') || '');
+        if(!m) return;
+        const end = parseInt(m[3], 10) - 1 + (m[4] ? parseInt(m[4], 10) : 1);
+        for(let c = parseInt(m[1], 10) - 1; c <= parseInt(m[2], 10) - 2; c++){ if(c >= 0 && c < 7 && end > reach[c]) reach[c] = end; }
+      });
+      for(let i = 0; i < 7; i++) out.set(isoOf(addDays(gridStart, wi * 7 + i)), reach[i]);
+    });
+    return out;
+  }
+  function mvDayLines(iso){
+    const d = parseDateUTC(iso);
+    return d ? (mvMonthLines(d).get(iso) || 0) : 0;
+  }
+  function mvDayIsFull(iso){ return mvDayLines(iso) >= MV_DAY_MAX_LINES; }
+  // The day's cell in the month on screen, or null.
+  function mvDayCellEl(iso){
+    return Array.prototype.find.call(document.querySelectorAll('#table-wrap .mv-body > .mv-week > .mv-daygrid > .mv-daycell'),
+      c=>{ const loc = cellDate(c); return !!loc && isoOf(loc.date) === iso; }) || null;
+  }
+  // R4: the grid's short message, by the day. Over `near` (the "+" that was clicked) when given, else over the day.
+  function mvSayDayFull(iso, near, msg){
+    const cell = mvDayCellEl(iso);
+    let dy = 0;
+    if(cell && near && document.body.contains(near)) dy = Math.max(0, near.getBoundingClientRect().top - cell.getBoundingClientRect().top);
+    flashMvSel(msg || MV_DAY_FULL_MSG, 5200, { iso, dy });
+  }
+  // ...and gone again once a note does go in somewhere (a message about a pick is left alone).
+  function mvClearDayFull(){ if(mvSelFlash && mvSelFlash.by) flashMvSel(null); }
+  // Door 3, the Paste notes… box: a row for a full day becomes an error row, the box's own way of refusing ("Fix them
+  // first": Add stays off while any row has one). Counted in order, so a day fills up as the rows above it land: the
+  // day's list is extended for the count and put back, synchronously, and a month is drawn again only when a day in
+  // it has another row to come.
+  function mvMarkFullPasteRows(rows){
+    const lines = new Map(), left = new Map(), touched = new Map();
+    rows.forEach(r=>{ if(!r.error) left.set(r.iso, (left.get(r.iso) || 0) + 1); });
+    try {
+      rows.forEach(r=>{
+        if(r.error) return;
+        const mk = r.iso.slice(0, 7);
+        if(!lines.has(mk)) lines.set(mk, mvMonthLines(r.date));
+        left.set(r.iso, left.get(r.iso) - 1);
+        if((lines.get(mk).get(r.iso) || 0) >= MV_DAY_MAX_LINES){
+          r.error = fmtShort(r.date) + ' is full (' + MV_DAY_MAX_LINES + ' lines)';
+          return;
+        }
+        if(left.get(r.iso) > 0){
+          if(!touched.has(r.iso)) touched.set(r.iso, dayNotes[r.iso]);
+          dayNotes[r.iso] = dayNoteList(r.iso).concat([{text: r.text, lane: null, color: null}]);
+          lines.delete(mk);
+        }
+      });
+    } finally {
+      touched.forEach((v, iso)=>{ if(v === undefined) delete dayNotes[iso]; else dayNotes[iso] = v; });
+    }
+    return rows;
+  }
+
   // Find, in the freshly-rendered grid, the element equivalent to one that was just clicked --
   // used after committing a note (which re-renders and detaches the original click target) so the
   // editor can re-open on the live node. Matches an existing note by day+kind+index, or a "+" by
@@ -43584,6 +43715,13 @@ export function initLegacyApp() {
       kind = fresh.dataset.noteKind || 'day';
     }
     closeMvNoteEditor();
+    // ⭐ DOOR 1 OF THE DAY'S 10 LINES (MONTH-ROW-LIMIT-PLAN.md; mvMonthLines, above): a "+" on a full day says so and
+    // opens nothing. Only a "+" comes here as a new note; a note that exists opens as always, however full its day.
+    if(kind === 'day' && anchor.classList.contains('mv-note-add') && mvDayIsFull(dayIso)){
+      mvSayDayFull(dayIso, anchor);
+      return;
+    }
+    mvClearDayFull();
     // ⭐ A HOLIDAY OPENS ITS OWN EDITOR (owner, 30 Oct 2026: "being able to edit the name of a holiday slightly",
     // and by picker "Just this date", "Everywhere it shows", "Just that holiday"). It used to open its WEEK's
     // waterfall note: Thanksgiving's editor held "Day After Thanksgiving" too, a colour recoloured both, and an edit
@@ -44208,7 +44346,11 @@ export function initLegacyApp() {
               // switched off (moveWfLine), and every redraw starts from the press.
               autoOff0: deep(autoNotesOff), autoOn0: deep(autoNotesOn), autoView0: deep(autoNotesView), autoNames0: deep(autoNoteNames), autoColors0: deep(autoNoteColors),
               // The current redraw's own notes per day, by where each stood at the press ('me' = the dragged one).
-              perm: {}, key: null, redrawn: false, sig0: gridSig()};
+              perm: {}, key: null, redrawn: false, sig0: gridSig(),
+              // ⭐ DOOR 4 OF THE DAY'S 10 LINES (MONTH-ROW-LIMIT-PLAN.md; mvMonthLines): the lines every day on screen
+              // reached at the press, before the note left its own. apply() lets it land on no other day that was full
+              // then. `fullDay` is the full day the pointer is over, so its message is said once, not on every move.
+              lines0: mvMonthLines(monthCursor), fullDay: null};
       const t0 = target(p.x0, p.y0, r.top + r.height / 2);
       drag.key0 = t0 ? t0.key : null;
       drag.key = drag.key0;
@@ -44235,6 +44377,8 @@ export function initLegacyApp() {
       restore();
       if(t.key === d.key0) return true;
       const to = t.iso;
+      // Door 4: another day, full at the press, takes no note. The caller puts the note back where it was.
+      if(to !== from && (d.lines0.get(to) || 0) >= MV_DAY_MAX_LINES) return false;
       let meEntry = null, meText = null, mePlain = null;
       if(d.kind === 'day'){
         const list = (d.dayNotes0[from] || []).slice();
@@ -44340,6 +44484,13 @@ export function initLegacyApp() {
       drag.ghost.moveBy(dx, dy);
       const t = target(e.clientX, e.clientY, drag.top0 + dy + drag.h / 2);
       if(!t || t.key === drag.key) return;
+      // Door 4: over a day that was full at the press. Said once as the pointer comes onto it, and nothing is redrawn
+      // while it stays there with the note already back where it was.
+      const full = !!t.iso && t.iso !== drag.base.iso && (drag.lines0.get(t.iso) || 0) >= MV_DAY_MAX_LINES;
+      if(full && drag.fullDay === t.iso && drag.key === drag.key0) return;
+      if(full && drag.fullDay !== t.iso) mvSayDayFull(t.iso);
+      else if(!full && drag.fullDay) mvClearDayFull();
+      drag.fullDay = full ? t.iso : null;
       if(!apply(t)){ apply({key: drag.key0}); drag.key = drag.key0; }
       else drag.key = t.key;
       drag.redrawn = true;
@@ -44552,7 +44703,8 @@ export function initLegacyApp() {
     const sum = ov.querySelector('.paste-notes-sum'), prev = ov.querySelector('.paste-notes-preview');
     let rows = [];
     const refresh = function(){
-      rows = parsePastedNotes(ta.value, currentSchedule);
+      // Door 3 of the day's 10 lines: a row for a full day is an error row (mvMarkFullPasteRows).
+      rows = mvMarkFullPasteRows(parsePastedNotes(ta.value, currentSchedule));
       const errs = rows.filter(function(r){ return r.error; }).length, good = rows.length - errs;
       prev.innerHTML = rows.map(function(r){
         if(r.error) return '<div class="paste-row is-error"><span class="paste-row-n">Line ' + r.line + '</span>'

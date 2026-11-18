@@ -5352,6 +5352,9 @@
 /* The grid's short message in the month view (drawMvSelFlash): the waterfall's .text-sel-chip, body-level and fixed like
    the outlines above, and over them. */
 .text-sel-chip.month-sel-chip{ position:fixed; z-index:49; }
+/* ...and a message about a DAY ("This day is full (10 lines)."; MONTH-ROW-LIMIT-PLAN.md, mvSayDayFull): two short
+   lines, each on its own. Body-level chrome: it is never inside #table-wrap. */
+.text-sel-chip.month-sel-chip.is-lines{ white-space:pre-line; padding:5px 10px; }
 /* N1: a pill keeps its own text colour, so the bar's colour well greys while only pills are picked. */
 .style-bar .hf-swatch.is-disabled{ opacity:.35; pointer-events:none; }
 /* ...and its alignment control while only the month name is picked: centred between the arrows, it cannot move. */

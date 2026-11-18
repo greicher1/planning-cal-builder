@@ -73,7 +73,9 @@ what they do; this one only shares the branch.
   whose tallest day is full still takes notes: they do not make the row taller.
 - **Refused (hand adds in the Month view):**
   1. a "+" on a full day: the editor does not open;
-  2. ⌘V onto a full day; with several notes on the clipboard they land one by one until the day is full;
+  2. ⌘V onto a full day; with several notes on the clipboard they land one by one until the day is full, and the
+     message then reads *"This day is full (10 lines). 6 of 8 notes were pasted."* (the builder's wording for the
+     partial case, in the ruled message's form; the owner sees it in the build to try);
   3. Paste notes…: a line for a day that is full (counting the lines above it in the same box) is an error line, and
      Add stays off until it is fixed, as for every other error there;
   4. a note dragged onto a full day: it does not land, and goes back where it was.
@@ -150,7 +152,8 @@ The day menu has no Add note item (trimmed on 23 Oct 2026).
 
 ## 7. Build steps
 
-**Stage 1, for the owner to try (no tests or docs yet):**
+**Stage 1, for the owner to try (no tests or docs yet): BUILT 17 Nov 2026, local WIP commit; `HANDOFF.md` has what
+was measured.**
 1. `MV_DAY_MAX_LINES`, `mvMonthLines`, `mvDayLines`, `mvDayIsFull`, and the message by a day.
 2. The four doors of section 4.
 3. Scratch probes, not committed: each door refuses on a full day and lets in on a day with room; the never-refused

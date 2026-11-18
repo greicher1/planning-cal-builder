@@ -114,7 +114,7 @@
   the next turn: hand over the Bash-run port. `tests/harness/zzbase.html` (untracked, ignored) is `origin/main`'s
   build for side by side.
 
-### 📋 17 Nov 2026: PLANNED, ALL RULINGS MADE — A LIMIT ON HOW TALL A MONTH ROW CAN GET: A DAY HOLDS 10 LINES. Branch `claude/dreamy-keller-2ed2c2` (worktree `.claude/worktrees/dreamy-keller-2ed2c2`, a fast-forward of the month-shrink build's `01dac2f`, so it carries that unpushed build; its `node_modules` is a real directory). Tracker card `month-row-max-height`. ⭐ [`MONTH-ROW-LIMIT-PLAN.md`](MONTH-ROW-LIMIT-PLAN.md) is the design
+### 🔨 17 Nov 2026: A DAY IN THE MONTH VIEW HOLDS 10 LINES (the limit on how tall a month row can get). STAGE 1 BUILT (WIP), THE OWNER TRIES IT FIRST. Branch `claude/dreamy-keller-2ed2c2` (worktree `.claude/worktrees/dreamy-keller-2ed2c2`, a fast-forward of the month-shrink build's `01dac2f`, so it carries that unpushed build; its `node_modules` is a real directory). Local commits (the plan, then the WIP build), nothing pushed, NO tests or docs yet (owner workflow: try on localhost first). Tracker card `month-row-max-height`. ⭐ [`MONTH-ROW-LIMIT-PLAN.md`](MONTH-ROW-LIMIT-PLAN.md) is the design
 - **Owner, 17 Nov 2026**, while trying the month-shrink build: *"there reall should be a max limit on how tall a
   calendar row can be"*. Read as a week row in the Month view.
 - **What exists:** `MV_MAX_LANES = 6` caps only the week's "+" strip (frozen `renderMonthView`: "Manual expansion is
@@ -143,8 +143,52 @@
   no output moves.** The week's "+" strip and its 6-line cap are untouched. ⚠️ The "+" still shows on a full day:
   hiding it would be a frozen edit, not proposed.
 - **Every way a line reaches a week** is the table in plan §5 (16 paths; 4 refused, 12 never).
-- Independent of the shrink build above in what it does, but it sits on that branch: a push of this publishes the
-  shrink build too.
+- **Built** (`src/legacy/app.js`, the block "A DAY IN THE MONTH VIEW HOLDS 10 LINES" above `relocateNoteAnchor`;
+  three lines of chrome CSS; no frozen line):
+  - `MV_DAY_MAX_LINES = 10`; `mvMonthLines(month)` (the print render and the read of each bar's inline place),
+    `mvDayLines`, `mvDayIsFull`; `mvSayDayFull(iso, near, msg)`, which gives `flashMvSel` a third argument `by`
+    (`{iso, dy}`): the chip is then drawn over that day's cell (found again on every draw), may run to two lines
+    (`.is-lines`) and is kept inside the window. `mvClearDayFull()` takes a stale "full" chip away when a note does
+    go in.
+  - Door 1, `openMvNoteEditor`: a "+" (`.mv-note-add`, the full-day overlay too) on a full day says so and returns.
+  - Door 2, `mvNotesPaste`: how many notes land is worked out on the day's list extended and put back; none landing
+    banks no undo step; some landing says *"This day is full (10 lines). 6 of 8 notes were pasted."* ⚠️ That partial
+    wording is mine, in the ruled message's form: the owner has not seen it yet.
+  - Door 3, `openPasteNotes`' `refresh`: `mvMarkFullPasteRows(parsePastedNotes(...))` turns a full day's rows into
+    error rows, counting the rows above them.
+  - Door 4, the note drag: `lines0` (every day's lines at the press) on the drag; `apply()` returns false for another
+    day that was full then; the mousemove says it once per day and does not redraw while the pointer stays there.
+- **Measured** (the Browser pane on `month-lanecap`, whose 12 Aug holds 25 notes, 51 lines; and scratch legs, not
+  committed):
+  - The over-limit calendar opens as before: 25 notes drawn, the same factor (30/64).
+  - "+" on the over-full day: no editor, the chip with the ruled words. "+" on a day with room: the editor, 13 ms
+    for the click including the count. An existing note on a full day opens, and edited to three lines it saves.
+  - ⌘V of three notes onto the over-full day: 25 notes still, the chip, Undo still off. Onto a day with room: all
+    three. Eight onto a day holding 4 lines: six land (10 lines), "6 of 8 notes were pasted", and that day's "+" then
+    refuses.
+  - Paste notes…: rows for the two full days read "8/12/26 is full (10 lines)" and Add is off; eleven rows for one
+    day with a bar let nine in and mark the last two; the calendar on screen is untouched while the box previews;
+    nine rows add.
+  - A note dragged onto a full day goes back (counts and order unchanged, the chip by the day under the pointer);
+    dragged across two full days onto a day with room, it lands there.
+  - Never refused: a Waterfall note typed with the over-full day's date shows on it (26 notes).
+  - ⭐ **No output moved.** The waterfall PDF, the written month PDF and the workbook (all 16 parts, and the file)
+    are byte-identical to the starting commit's build (`01dac2f`) on `mvnotes`, `notewrap`, `monthscale` and
+    `month-dense60`, and so is the print rollback's document (543,246 / 506,519 / 546,507 / 536,614 characters,
+    same SHA-256). `npm run check` 42/42.
+  - ⚠️ A trap in such a probe: the export button has a re-click guard on the real clock, so a second export clicked
+    right after the first is silently ignored. Wait for the month to settle and click once per page load.
+- **Known edges, by design** (plan §6): a shrunk month can show fewer lines than are counted; a row can end up to 2
+  lines over (a note is saved whole); a full day's "+" still shows on hover, and in a week whose tallest day is far
+  over, a full day shows a "+" on every empty line beside it, each of which says the day is full.
+- **NOT DONE (stage 2, only after the owner says to finish):** the leg `monthrowlimit` (plan §7, cases L1 to L7,
+  each red on a mutant), its wiring into `gate.sh`, the full gate, README, CLAUDE.md, UI-CONVENTIONS, the commit and
+  push pickers. ⛔ This branch sits on the unpushed month-shrink build: a push publishes that too, so the owner must
+  have approved finishing the shrink build first, and the shrink build's own stage 2 (its red legs) comes first.
+- **Try it:** `http://localhost:8893/dist/index.html?state=month-lanecap`, Month, August 2026 (12 Aug is far over
+  the limit); also `?state=monthscale` (August: days of 6 notes) and `?state=mvnotes` (an ordinary calendar: add
+  notes to one day until it stops). Port 8893 is `srv.js` run in the background with Bash.
+  `tests/harness/zzbase.html` (untracked, ignored) is the starting commit's build, for side by side.
 
 ### 🚂 v1.16.0 — wave 4. Branch `release-wave4` (worktree `.claude/worktrees/release-wave4`), cut from `origin/main` `7e1d8b4`; `origin/main` `8af4298` merged in at `91619e1`. The owner said *"Yes, prep it"* (16 Nov 2026): merge the newest live changes, write the owed docs and test wiring, cut v1.16.0. Tagged v1.16.0 and pushed to `main` on 17 Nov 2026 (owner's picker *"Push v1.16.0 now"*), after two full gates and the merges of `d44a52e` and `b8f4ccf`.
 - ⛔ **This section SUPERSEDES the "WIP", "NOT merged, NOT pushed", "the owner tries it first", "not in gate.sh yet" and
