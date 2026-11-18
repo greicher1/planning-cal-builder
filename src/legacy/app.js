@@ -32946,8 +32946,9 @@ export function initLegacyApp() {
   function scenarioNameSuffix(){
     return (scenarioTabs && scenarioTabs.length > 1) ? ' \u2013 ' + currentScenario().name.replace(/[\\/:*?"<>|]/g, '-') : '';
   }
-  // ⭐ WHAT AN EXPORT'S NAME SAYS: "<title> <season> WRO <date> <words> a.o. <date> <version> – <scenario><ext>",
-  // e.g. "The Keleigh Show S3 WRO 1.5.26 Planning Calendar a.o. 11.18.26 v3 – Plan B.pdf".
+  // ⭐ WHAT AN EXPORT'S NAME SAYS: "<title> <season> WRO <date> <words> <version> a.o. <date> – <scenario><ext>",
+  // e.g. "The Keleigh Show S3 WRO 1.5.26 Planning Calendar v3 a.o. 11.18.26 – Plan B.pdf". The Version right after the
+  // words, before the edited date (owner, 18 Nov 2026; it came after the date until then).
   //  - History: audit 2026-11 AUD2-025 (decision D8 = c, 13 Nov 2026) added the date and the Version; the owner's
   //    "Work on it now" (16 Nov 2026) put the season BESIDE THE TITLE (frozen edits S1b / S2b); the owner's pickers of
   //    18 Nov 2026 added the Writers' Room Open date (the execs' ask, 17 Nov: "Show title, season, W-R-O date, and then
@@ -32988,8 +32989,8 @@ export function initLegacyApp() {
       { k:'season',   label:'Season',      val: clean(seasonLabel()) },
       { k:'wro',      label:'WRO date',    val: opts.noWro ? '' : exportNameWro() },
       { k:'words',    label:'Calendar',    val: clean(words) },
-      { k:'date',     label:'Edited date', val: 'a.o. ' + nameDate(d.getMonth() + 1, d.getDate(), d.getFullYear()) },
       { k:'version',  label:'Version',     val: opts.noVersion ? '' : clean(versionLabel()) },
+      { k:'date',     label:'Edited date', val: 'a.o. ' + nameDate(d.getMonth() + 1, d.getDate(), d.getFullYear()) },
       { k:'scenario', label:'Scenario',    join: ' – ',
         val: (!opts.noScenario && scenarioTabs && scenarioTabs.length > 1) ? currentScenario().name.replace(/[\\/:*?"<>|]/g, '-') : '' },
     ];
@@ -33000,7 +33001,7 @@ export function initLegacyApp() {
   // `fileNameOff` in sptcal.prefs (absent = every part on, today's name), set in the Export PDF window and read by EVERY
   // export's name (the workbook, both PDFs, Compare), never saved in a calendar. The title can't be switched off.
   // ⚠️ Whether it should travel with the calendar instead is the owner's open call (tracker export-file-name-parts).
-  const FILE_NAME_PART_KEYS = ['season', 'wro', 'words', 'date', 'version', 'scenario'];
+  const FILE_NAME_PART_KEYS = ['season', 'wro', 'words', 'version', 'date', 'scenario'];
   function fileNameOff(){
     const off = Array.isArray(prefs.fileNameOff) ? prefs.fileNameOff : [];
     return FILE_NAME_PART_KEYS.filter(k => off.includes(k));
