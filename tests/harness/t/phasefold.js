@@ -118,8 +118,9 @@ window.addEventListener('load', function () { (async function () {
       var rows = Array.from(document.querySelectorAll('#phase-rows > .phase-row, #custom-phase-rows > .phase-row'));
       var carets = rows.map(function (r) { return r.querySelector(':scope > .custom-phase-header > .phase-collapse-btn'); });
       var first = rows.map(function (r) { var h = r.querySelector(':scope > .custom-phase-header'); return h && h.firstElementChild; });
-      kase('F1', 'every phase card (the six built-ins, Prep, each custom phase) has ONE caret, first on its name line: a type=button with no id, open (aria-expanded=true), every card unfolded',
-           rows.length === 8 && carets.every(function (b, i) {
+      // 9 since 17 Nov 2026: the Double-ups card (DOUBLE-UP-DAYS-PLAN.md) is a card under Production, with its own caret.
+      kase('F1', 'every phase card (the six built-ins, Prep, Double-ups, each custom phase) has ONE caret, first on its name line: a type=button with no id, open (aria-expanded=true), every card unfolded',
+           rows.length === 9 && carets.every(function (b, i) {
              return b && b === first[i] && b.tagName === 'BUTTON' && b.type === 'button' && !b.id && b.getAttribute('aria-expanded') === 'true';
            }) && rows.every(function (r) { return r.querySelectorAll('.phase-collapse-btn').length === 1 && !r.classList.contains('is-collapsed'); }),
            { rows: rows.length, carets: carets.filter(Boolean).length });

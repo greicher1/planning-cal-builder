@@ -4,7 +4,7 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### 🔨 17 Nov 2026: THE NOTE EDITOR'S DAY — "No date", and a TYPED date works like a picked one. Branch `note-day-shift` (worktree `.claude/worktrees/note-day-shift`, from `origin/main` `aa16ffe`). Owner tried it on localhost, then *"Finish it"*, then *"push"*. PUSHED 18 Nov 2026. Tracker cards `note-day-default-no-date`, `linked-note-day-follows-phase`
+### 🔨 17 Nov 2026: THE NOTE EDITOR'S DAY — "No date", and a TYPED date works like a picked one. Branch `note-day-shift` (worktree `.claude/worktrees/note-day-shift`, from `origin/main` `aa16ffe`). Owner tried it on localhost, then *"Finish it"*, then *"push"* (18 Nov 2026). `origin/main` `f48df5b` (v1.17.0-v1.17.5, Tandem days) merged in first: README / HANDOFF conflicts only, both kept; `app.js` merged clean (main's 56 hunks touch none of the note editor's code). Tracker cards `note-day-default-no-date`, `linked-note-day-follows-phase`
 - **The asks (17 Nov 2026, in order):** *"In waterfall view, the default, for Day should be "No date" rather than Mon
   (default)"*; *"When you do select a date and ALSO have stays with set to a week of a phase (not a specific week) then
   when you shift the phase/calendar the date should auto-change to the same day of the week"*; *"what if you hand type
@@ -52,6 +52,120 @@
   change (which touches no month walk).
 - **Pushed** on the owner's *"push"* (18 Nov 2026) as a fast-forward of `origin/main` `aa16ffe`. No version cut (README:
   Unreleased).
+
+### 🚀 17 Nov 2026: DOUBLE-UP DAYS — v1.17.0, built on branch `claude/double-up-days-037393` (worktree `.claude/worktrees/double-up-days-037393`, from `main` at `aa16ffe`), full gate green, cut as v1.17.0 and pushed to `main` on the owner's picker *"Push now as v1.17.0"* (the push and the live check are the last bullet). The owner chose *"Leave them, I'll handle it"* for the main checkout's own uncommitted double-up files: this session did not touch the main checkout, so its local `main` is behind `origin/main`. Plan + as-built record: [`DOUBLE-UP-DAYS-PLAN.md`](DOUBLE-UP-DAYS-PLAN.md) §10; mockup [`mockups/double-up-days-ui.html`](mockups/double-up-days-ui.html). Tracker card `double-up-days`.
+- **What it is:** "10+1" = 10 first-unit days plus 1 double-up day (two crews, two episodes, one day). It never lengthens
+  Production. NOT a half day (`.5` is one crew splitting a day, already built). All 17 rulings (owner, 17 Nov 2026) are
+  in the plan's §2: a **Double-ups card** under Production, month view only, like Episodic Prep's; counts in number boxes (R19) with a
+  card default; each episode or block its own count AND name ("Tandem"); the last unit none by default (given one, it
+  sits beside its own last days); the pill joined flush to the end of its episode's shoot pill in a darker Production
+  shade; draggable (whole pill) onto another episode's days or after wrap, kept by shoot day; right-click Rename… / Put
+  back / Remove; double-click opens its row; not in the waterfall / Excel / waterfall PDF; prints in the month PDF.
+- **Built:** the engine (`appendDoubleUps`, after prep), the card (`buildDoubleUpRow` / `refreshDoubleUpUI`), frozen
+  edit **DU1** in `renderMonthView` (CLAUDE.md's eighth exception), the writer's read-back (`mvlDuJoins`,
+  `mvlPackLanes`, square corners), the drag / menu / Rename / double-click (`installDoubleUpDrag`, `duSections`,
+  `openDuRename`, `showDoubleUpRow`). Decisions the plan left open are in its §10.5 (no swatch picker; id-less defaults;
+  0..99; labelled by Week = drawn loose; corners squared only where the two bars touch; not stylable).
+- ⭐ **R19 (owner, after trying the build):** *"lets not do the plus and minus symbols lets do open text boxes like all
+  other phases use"*, and both explanatory lines in the card deleted. The counts are Prep's number boxes (blank = default,
+  0 = none, typed = its own, bold, "Whole days only" on a fraction); plan §10.3b.
+- ⭐ **One lane rule beyond the first cut, inside the approved scope** (plan §3: "the next episode takes the lane below"):
+  on `doubleups-half` (4.5-day episodes) a week held two double-ups, and first-fit lifted the next episode to a line
+  ABOVE the second one. The next episode's run right after a double-up now starts its lane search one line under it
+  (`duBelow`, `data-du-below`); the writer copies it. Gates 10 and 13 re-run after it.
+- ⭐ **R18 (owner's picker *"A: one faint line"*, after trying `60883ac`):** where a shoot pill meets its joined double-up,
+  ONE faint line instead of the two dark rings side by side. Shoot pill: `border-right:0; padding-right:9px`, the ring's
+  half pixel on its other three sides; double-up: `border-left:0; padding-left:9px` and a 1 px inset shadow line in its
+  ink at 40%. ⛔ Never a border for the divider (it notched at the corners). The writer paints the same (no ring band on
+  the joined side, a 1 px fill of `mvlMix(ink, .4, fill)`). Spec: [`mockups/double-up-join-line.html`](mockups/double-up-join-line.html);
+  plan §10.3a. The first full gate (queued at 20:04, 154 PASS / 0 FAIL when stopped) was stopped for it, since the build changed.
+- 🔨 **After v1.17.4 (owner: *"Allow me to change the color of tandem"*):** the Tandem square opens the colour picker
+  ("Follow Production" first, then the palette). Stored as `phaseColorOverride.doubleUp` (absent = follow Production,
+  R7); `duLookFor()` decides the colour for the pills and the square. Plan §10.3f. `doubleups` 66/66, `phasesui` 8/8.
+  Tracker card `tandem-colour`. Owner's picker *"Push as v1.17.5"*: cut as **v1.17.5** (version files, check 42/42;
+  `releases/v1.17.5.html` cmp-identical, sha256 `64a895b53d6a52e6…`; `v1.17.5-saved.sptcal` identical to v1.17.4's but
+  `lastEdited`; on the cut the waterfall PDF identical bar the stamp, gate 13 reference byte-identical, `monthexport` 9/9,
+  `pdfmark` 6/6), tagged `v1.17.5` and pushed with the branch.
+- 🔨 **After v1.17.3 (owner: *"i should be able to extend tandem day just like any other phase"*, picker "Both ends"):**
+  grips on both ends of a tandem pill (`installDoubleUpGrips`, body-level `.phase-edge-handle`, made only on hover). End:
+  days change, start held, still joined. Start: days change, end held, start becomes a moved position. Stops at R9/R20's
+  days; writes the unit's own count; one undo; Esc. Plan §10.3e. `doubleups` 63/63. Tracker card `tandem-extend-grips`.
+  Owner's picker *"Push as v1.17.4"*: cut as **v1.17.4** (version files, check 42/42; `releases/v1.17.4.html`
+  cmp-identical, sha256 `fe5d9a91838e9ade…`; `v1.17.4-saved.sptcal` identical to v1.17.3's but `lastEdited`; on the cut
+  the waterfall PDF identical bar the stamp, gate 13 reference byte-identical, `monthexport` 9/9, `pdfmark` 6/6), tagged
+  `v1.17.4` and pushed with the branch.
+  - ✅ **PUSHED AND LIVE:** ONE `git push origin HEAD:main refs/tags/v1.17.4` at 22:38:42 (`cd8db12..84466ee`, a
+    fast-forward after a re-fetch; it also carried v1.17.3's HANDOFF note `d38b54e`). Deploy run 44252856488 succeeded
+    (49 s). At 22:39:33 the live `version.json` read 1.17.4 and the live `index.html` was byte-identical to the build
+    (sha256 `fe5d9a91838e9ade…`). This sub-bullet is a later, unpushed docs commit.
+- 🔨 **After v1.17.2 (owner: *"Call the phase just \"Tandem\""*):** the card heading reads "Tandem", not "Tandem days"
+  (`DU_TITLE`); "Tandem days" typed there still reads as the default. Counts keep "tandem days". README Unreleased;
+  `doubleups` 58/58. Owner's picker *"Push as v1.17.3"*: cut as **v1.17.3** (version files, check 42/42;
+  `releases/v1.17.3.html` cmp-identical, sha256 `96670f67ceb7e743…`; `v1.17.3-saved.sptcal` identical to v1.17.2's but
+  `lastEdited`; on the cut the waterfall PDF identical bar the stamp, gate 13 reference byte-identical, `monthexport` 9/9,
+  `pdfmark` 6/6), tagged `v1.17.3` and pushed with the branch.
+  - ✅ **PUSHED AND LIVE:** ONE `git push origin HEAD:main refs/tags/v1.17.3` at 22:24:21 (`9545b6d..cd8db12`, a
+    fast-forward after a re-fetch; it also carried v1.17.2's HANDOFF note `44e1e26`). Deploy run 44251085104. At 22:25:02
+    the live `version.json` read 1.17.3 and the live `index.html` was byte-identical to the build (sha256
+    `96670f67ceb7e743…`). This sub-bullet is a later, unpushed docs commit.
+- 🔨 **R21, after v1.17.1 (owner: *"Yes, use Tandem"*): the word is Tandem.** Default pill "Tandem 101", card head
+  "Tandem days", and every user-facing string; saved keys, ids, classes and code names keep "double-up" (Load's
+  `data-action="open"` precedent). Plan §10.3d. `doubleups` 58/58, writer + export green. Tracker card
+  `double-up-rename-tandem`. Owner's picker *"Push as v1.17.2"*: cut as **v1.17.2** (the three version files, check
+  42/42; `releases/v1.17.2.html` cmp-identical, sha256 `c8eec0f3965bee61…`; `v1.17.2-saved.sptcal` identical to v1.17.1's
+  but `lastEdited`; on the cut the waterfall PDF identical bar the stamp, gate 13 reference byte-identical, `monthexport`
+  9/9, `pdfmark` 6/6), tagged `v1.17.2` and pushed with the branch.
+  - ✅ **PUSHED AND LIVE:** ONE `git push origin HEAD:main refs/tags/v1.17.2` at 22:17:44 (`1f94bf7..9545b6d`, a
+    fast-forward after a re-fetch; it also carried v1.17.1's HANDOFF note `471f08e`). Deploy run 44250283978. At 22:18:29
+    the live `version.json` read 1.17.2 and the live `index.html` was byte-identical to the build (sha256
+    `c8eec0f3965bee61…`). This sub-bullet is a later, unpushed docs commit.
+- 🔨 **R20, after v1.17.0 (owner: *"there also shouldnt be double up days at the beginning of the 1st episode"*; picker
+  "None during episode 1"; for a one-episode show, picker "Allow it there"):** no double-up on any of the first unit's
+  days. `minSlot` on the segment (appendDoubleUps), read by `duDropVerdict` and the drag's grey days; a v1.17.0 move onto
+  episode 1 draws at its default with the key kept. Plan §10.3c; README Unreleased. Leg `doubleups` 58/58 (restore 42).
+  No full gate (double-up code only, inert without double-ups); the owner picked *"Push as v1.17.1"*. Cut as **v1.17.1**:
+  the three version files at 1.17.1 (check 42/42), `releases/v1.17.1.html` cmp-identical to the build (sha256
+  `55ca36ef07e9ab53…`), `tests/fixtures/v1.17.1-saved.sptcal` (mintfixture) identical to v1.17.0's but `lastEdited`; on
+  the cut the waterfall PDF identical bar the stamp, gate 13 reference byte-identical, `monthexport` 9/9, `pdfmark` 6/6.
+  Tag `v1.17.1`, pushed with the branch. Tracker card `double-up-not-first-episode`.
+  - ✅ **PUSHED AND LIVE:** ONE `git push origin HEAD:main refs/tags/v1.17.1` at 22:04:13 (`3db79a0..1f94bf7`, a
+    fast-forward, `origin/main` re-fetched first; it also carried the v1.17.0 HANDOFF note `31487cd`). Deploy run
+    44248627484 succeeded (49 s). At 22:05:08 the live `version.json` read 1.17.1 and the live `index.html` was
+    byte-identical to the build (sha256 `55ca36ef07e9ab53…`). This sub-bullet is a later, unpushed docs commit.
+- **Save format (⛔ permanent):** top-level `doubleUps` {days, name, moved: {<unit id>: {day: n} | {after: n}}}, and
+  `doubleUpDays` / `doubleUpName` on an episode or block; each ABSENT while unset, so a calendar with no double-up saves
+  byte for byte as before (leg `doubleups` L7). No id on any card control; no SNAPSHOT_VERSION bump.
+- ✅ **FULL GATE on `f5bc5dc` (build with R18 + R19; port 8435, 20:27–21:45 on 17 Nov 2026, alone among gates, under a
+  machine load of 25–74 from other sessions): 5,681 PASS / 10 FAIL.** Every baseline identical: gate 10 (all 11 print
+  documents), gate 13 (all 24 written month PDFs + reference in UTC+14 / 1280 px, 25 lines), the waterfall PDF and
+  workbook, the restore, `fields.byId` (77 ids, unchanged). `doubleups` 58/58 (with its on/off workbook and waterfall-PDF
+  byte checks), `monthwriter` du/duh/dub and `monthexport` du green.
+  - The 10: `hidewf` C1 counted 8 phase cards (the new card makes 9, and it has no Hide-in-waterfall tick, being month
+    only): leg re-expected, then 19/19 alone. The other nine all pass ALONE (port 8435, after the gate): `pilllabel`
+    blocksoff / shootorder / carry-rich 29/29 each (blocksoff's "months 1 vs 18" and two Save-button timeouts; HANDOFF
+    calls the first flaky on `main` too), `pwagate` 13/13 (C1, the known "Link copied" flake), `hiatuscolour` 14/14 (two
+    Load timeouts), `labelsetup` (halfdays) 41/41, `scenariocompat` on `/releases/v1.2.0.html` (a release page this
+    branch cannot touch) opened the 8-episode tab.
+- **Proof (earlier, per step):** Fixtures `doubleups.sptcal` (hand-made from `episodeprep.sptcal`, a real Save,
+  with Production moved to a Wednesday so double-ups join mid-week), `doubleups-half.sptcal`, `doubleups-blocks.sptcal`
+  (tests/fixtures/README.md). The plan, the mockups and this entry were uncommitted in the main checkout when the build
+  session started; they are committed on this branch.
+- **Not done / open:** text-style picks on a double-up pill; a month note dragged right under a double-up pill files
+  itself `under: 'doubleUp'` (it falls back to the bottom of its day if no double-up is drawn there, so it is never
+  lost). Help has a "Double-up days" paragraph. Merging into `main` and pushing wait on the owner's picker (CLAUDE.md).
+- **The v1.17.0 cut:** `APP_VERSION`, `version.json`, `package.json` at 1.17.0 (`npm run check` 42/42); README's entry
+  under `## v1.17.0`; `releases/v1.17.0.html` cmp-identical to the build (sha256 `4a9c98d611769390…`, 2,271,017 bytes);
+  `tests/fixtures/v1.17.0-saved.sptcal` a real Save (mintfixture: 46 keys, 77 ids, 0 clipped), byte-identical to
+  v1.16.0's but `lastEdited`. On the cut: the waterfall PDF identical to its baseline bar the date stamp, gate 13's
+  reference byte-identical, `monthexport` 9/9, `pdfmark` 6/6 (the mark reads 1.17.0). Tag `v1.17.0` (annotated).
+- ✅ **PUSHED AND LIVE (17 Nov 2026):** ONE `git push origin HEAD:main refs/tags/v1.17.0` from the worktree at 21:50:36
+  (`aa16ffe..3db79a0`, a fast-forward; `origin/main` re-fetched first, still `aa16ffe`), on the owner's picker *"Push now
+  as v1.17.0"*. Deploy run 44247044929 succeeded (41 s). At 21:51:23 the live `version.json` read 1.17.0 and the live
+  `index.html`, fetched with a cache-buster, was byte-identical to the gated build (sha256 `4a9c98d611769390…`). This
+  HANDOFF bullet is a later, unpushed docs commit on the branch.
+- ⚠️ **Merging into `main` in the main checkout:** that checkout still has its own UNCOMMITTED `DOUBLE-UP-DAYS-PLAN.md`,
+  `mockups/double-up-days-*.html`, `mockups/double-up-join-line.html` and a 17 Nov HANDOFF entry; move them aside first
+  (this branch carries all of them, newer).
 
 ### 🚂 v1.16.0 — wave 4. Branch `release-wave4` (worktree `.claude/worktrees/release-wave4`), cut from `origin/main` `7e1d8b4`; `origin/main` `8af4298` merged in at `91619e1`. The owner said *"Yes, prep it"* (16 Nov 2026): merge the newest live changes, write the owed docs and test wiring, cut v1.16.0. Tagged v1.16.0 and pushed to `main` on 17 Nov 2026 (owner's picker *"Push v1.16.0 now"*), after two full gates and the merges of `d44a52e` and `b8f4ccf`.
 - ⛔ **This section SUPERSEDES the "WIP", "NOT merged, NOT pushed", "the owner tries it first", "not in gate.sh yet" and

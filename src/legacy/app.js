@@ -28,7 +28,7 @@ export function initLegacyApp() {
   // They are one action, not two: version.json alone makes every user see an update that
   // isn't there, and APP_VERSION alone makes a real update invisible. The release-cut step in
   // README's changelog rules lists them together for exactly this reason.
-  const APP_VERSION = '1.16.0';
+  const APP_VERSION = '1.17.5';
 
   // ---------- Embedded Carlito ----------
   // The two <script type="text/plain"> blocks above hold Carlito, subset and zlib-compressed,
@@ -5314,6 +5314,8 @@ export function initLegacyApp() {
       // Per-episode prep's default length and look (EPISODE-PREP-PLAN.md). Read here with every other
       // field, so a computeSchedule() over a modified state (the solvers, spanCulprit) carries it.
       prep: readPrepConfig(),
+      // Double-up days' default count and moved positions (DOUBLE-UP-DAYS-PLAN.md), read with prep's for the same reason.
+      doubleUps: readDoubleUpConfig(),
       simultaneousPost:{
         enabled: document.getElementById('simpost-enabled').checked,
         offsetWeeks: parseInt(document.getElementById('simpost-offset').value,10) || 0,
@@ -6513,6 +6515,9 @@ export function initLegacyApp() {
     // schedule.weeks, never schedule.segments -- are byte-identical with prep on or off. Only the month
     // view, which draws schedule.segments, sees it. ⛔ Do not move this above the week loop.
     appendEpisodePrep(schedule, state, hiatuses);
+    // ⭐ DOUBLE-UP DAYS, appended after prep for the same reason (DOUBLE-UP-DAYS-PLAN.md §3): derived from Production's
+    // shoot days and units, they move no date and the waterfall cannot see them (R13, R17).
+    appendDoubleUps(schedule, state, hiatuses);
     // After the prep, whose first and last days widen the month range. MONTH-NOTES-PLAN.md §3, ruling Q1.
     schedule.monthOnlyHolidays = monthOnlyHolidaysFor(schedule);
     return schedule;
@@ -9406,6 +9411,8 @@ export function initLegacyApp() {
       // changed, so the save format cannot, and nothing in the engine reads the rows by position.
       if(p.key === 'production') wrap.appendChild(buildPrepRow());
       wrap.appendChild(row);
+      // The Double-ups card goes straight UNDER Production (DOUBLE-UP-DAYS-PLAN.md R1), which it is drawn from.
+      if(p.key === 'production') wrap.appendChild(buildDoubleUpRow());
       row.querySelector('.phase-name-input').addEventListener('input', (e)=>{
         // Keep the hiatus name field's placeholder in step with the phase's typed name, same as
         // the custom-phase rows do.
@@ -9872,6 +9879,379 @@ export function initLegacyApp() {
   function readPrepConfig(){
     return {dflt: prepDayCount((document.getElementById('prep-days') || {}).value), def: prepDisplayDef(),
             pauseOff: prepPauseOff};
+  }
+
+  // ⭐ DOUBLE-UP DAYS (DOUBLE-UP-DAYS-PLAN.md; owner rulings R1-R17, 17 Nov 2026). "10+1" is ten first-unit days plus
+  // one double-up day: a second crew shoots one episode while the first unit shoots the next. TWO CREWS, ONE DAY, so it
+  // is an OVERLAP and never makes Production longer (R17): Production's length, shoot days, Day N, prep, wrap and every
+  // main-unit date ignore it. It is NOT a half day (".5" is one crew splitting a day, which is built already).
+  // Prep is the template (EPISODE-PREP-PLAN.md): one segment, appended AFTER computeSchedule() has built the weeks
+  // (appendDoubleUps), drawn in the month view and its PDF only (R13, R14). The waterfall, Excel and the waterfall PDF
+  // read schedule.weeks, never schedule.segments, so they cannot draw it.
+  //   - Each UNIT (an episode in shooting order, or a block) has a count: its own (episodeDefs[].doubleUpDays /
+  //     blockDefs[].doubleUpDays), else the card's default (doubleUpDays), EXCEPT the last unit, whose default is 0 (R5).
+  //   - Its name is its own (….doubleUpName), else the card's (doubleUpName), else "Double-up" (R2, R4).
+  //   - Its days are the count's SLOTS on the line of shoot days, carried on past wrap through working days. By default
+  //     the slots right after the unit's last day, the next unit's first days (with a half day, the first FULL day after
+  //     the switch, R15); the last unit's are its own last days (R5). A MOVED one is kept as a shoot-day number or as
+  //     working days after wrap (R9, R10), never as a date, so Shift, a hiatus or a day count carries it with the shoot.
+  // ⛔ PERMANENT SAVE FORMAT from the first save:
+  //   - the top-level `doubleUps`: {days, name, moved}, each part only when set, and the whole key ABSENT when none is;
+  //   - `doubleUpDays` (a whole number, 0 included: R11's Remove) and `doubleUpName` on an episode or block, each only
+  //     when set. `moved` is keyed by the unit's id, its value {day: n} (the n-th shoot day) or {after: n} (the n-th
+  //     working day after wrap).
+  // So a calendar with no double-up saves byte for byte what it did. No SNAPSHOT_VERSION bump: an older build ignores
+  // the keys and draws no double-up, which is safe. ⛔ The card's controls carry NO id (UI-CONVENTIONS §8, plan §9's
+  // recommendation), so fields.byId and gate 5 do not move; these variables are the one store.
+  const DU_KEY = 'doubleUp';
+  // ⭐ R21 (owner, 17 Nov 2026: "Yes, use Tandem"): the WORD people read is "Tandem" -- the default pill prefix ("Tandem 101")
+  // -- and the card's head reads "Tandem days" while its name is the default (Prep's pattern: "Episodic Prep" over "Prep
+  // 303"). Real calendars and dailies call them tandem days; "double-up" only describes two units shooting at once.
+  // ⛔ Only words changed. Every saved key, id, class and code name keeps "double-up" (doubleUps, doubleUpDays,
+  // doubleUpName, data-du, DU_KEY 'doubleUp'), as Load kept data-action="open": renaming one would stop saved calendars
+  // opening. A calendar with no typed name reads Tandem now; a typed name, "Double-up" included, is kept as typed.
+  const DU_NAME = 'Tandem';
+  // The card head's text while the name is the default. "Tandem days" in v1.17.2; the owner, the same evening: "Call the
+  // phase just \"Tandem\"", so the card and its pills read the same word.
+  const DU_TITLE = 'Tandem';
+  const DU_MAX = 99;             // a typed count's ceiling (R19: the boxes are typed, so no stepper's 0..9)
+  const DU_NAME_MAX = 40;
+  const DU_SEL_PILL = '.mv-pill[data-du]';   // a double-up pill in the month view (frozen edit DU1's marker)
+  let doubleUpDays = 0;          // the card's default count (R2); 0 = none
+  let doubleUpName = '';         // the card's default name; '' reads "Tandem" (R21)
+  let doubleUpMoved = {};        // unit id -> {day: n} | {after: n}
+  // A count as stored: a whole number 0..DU_MAX, or NaN.
+  function duCountOf(v){ return (typeof v === 'number' && Number.isInteger(v) && v >= 0 && v <= DU_MAX) ? v : NaN; }
+  function hasDuDays(def){ return !!def && Number.isFinite(duCountOf(def.doubleUpDays)); }
+  function hasDuName(def){ return !!def && typeof def.doubleUpName === 'string' && def.doubleUpName !== ''; }
+  // A name as kept: one line, trimmed, at most DU_NAME_MAX characters. '' means "the default".
+  function cleanDuName(v){
+    return typeof v === 'string' ? v.replace(/[\u0000-\u001f\u007f]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, DU_NAME_MAX) : '';
+  }
+  function duDefaultName(){ return doubleUpName || DU_NAME; }
+  // A name in the card's head that means "the default": blank, "Tandem", or v1.17.2's head text "Tandem days" (never saved:
+  // it read as the default there too).
+  function isDuDefaultTitle(t){ return t === '' || t === DU_TITLE || t === DU_NAME || t === 'Tandem days'; }
+  // A moved position as stored, or null.
+  function duMovedOf(v){
+    if(!isPlainObj(v)) return null;
+    const keys = Object.keys(v);
+    if(keys.length !== 1) return null;
+    const n = v[keys[0]];
+    if(!(Number.isInteger(n) && n >= 1 && n <= 5000)) return null;
+    return keys[0] === 'day' ? {day: n} : keys[0] === 'after' ? {after: n} : null;
+  }
+  // The unit's own entry (an episode or a block), by its id.
+  function duDefOf(id){
+    return episodeDefs.find(e=> e.id === id) || blockDefs.find(b=> b.id === id) || null;
+  }
+  // ⭐ R7: A DARKER SHADE OF PRODUCTION'S OWN COLOUR, following it when Production is recoloured. Production's fill with
+  // its HSL lightness 16 points lower (never below 18%), and its ink 8 lower; the ink falls back to textColorFor() when
+  // it would not read on the darker fill (4.5:1). Production's default green gives #B5D99E on #24390F-ish ink, the
+  // mockup's shade. Derived, never stored: there is no colour picker (plan §9, R7 "follow Production").
+  function duShade(fill, ink){
+    const rgb = h=>{ const s = String(h || '').replace('#', ''); return /^[0-9a-f]{6}$/i.test(s) ? [0, 2, 4].map(i=> parseInt(s.slice(i, i + 2), 16) / 255) : null; };
+    const hex = c=> '#' + c.map(v=> ('0' + Math.round(Math.max(0, Math.min(1, v)) * 255).toString(16)).slice(-2)).join('').toUpperCase();
+    const toHsl = ([r, g, b])=>{
+      const mx = Math.max(r, g, b), mn = Math.min(r, g, b), l = (mx + mn) / 2, d = mx - mn;
+      if(!d) return [0, 0, l];
+      const s = d / (1 - Math.abs(2 * l - 1));
+      let h = mx === r ? ((g - b) / d) % 6 : mx === g ? (b - r) / d + 2 : (r - g) / d + 4;
+      return [(h * 60 + 360) % 360, s, l];
+    };
+    const fromHsl = ([h, s, l])=>{
+      const c = (1 - Math.abs(2 * l - 1)) * s, x = c * (1 - Math.abs((h / 60) % 2 - 1)), m = l - c / 2;
+      const [r, g, b] = h < 60 ? [c, x, 0] : h < 120 ? [x, c, 0] : h < 180 ? [0, c, x] : h < 240 ? [0, x, c] : h < 300 ? [x, 0, c] : [c, 0, x];
+      return [r + m, g + m, b + m];
+    };
+    const lum = c=> c.map(v=> v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4)).reduce((a, v, i)=> a + v * [0.2126, 0.7152, 0.0722][i], 0);
+    const f = rgb(fill) || rgb('#E2F0D9'), i = rgb(ink);
+    const fh = toHsl(f), out = fromHsl([fh[0], fh[1], Math.max(0.18, fh[2] - 0.16)]);
+    const fillHex = hex(out);
+    let inkHex = null;
+    if(i){
+      const ih = toHsl(i), ic = fromHsl([ih[0], ih[1], Math.max(0, ih[2] - 0.08)]);
+      const a = lum(out), b = lum(ic), ratio = (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05);
+      if(ratio >= 4.5) inkHex = hex(ic);
+    }
+    return {color: fillHex, textColor: inkHex || textColorFor(fillHex)};
+  }
+  // ⭐ THE TANDEM'S OWN COLOUR (owner, 17 Nov 2026, after v1.17.4: "Allow me to change the color of tandem"; this
+  // replaces plan §9's "no picker"). The card's colour square opens the phase colour picker, as every phase's does. A
+  // pick is kept as phaseColorOverride.doubleUp (an index into PHASE_COLOR_OPTIONS, like Prep's episodePrep), so it
+  // saves, restores, sanitizes and resets with the other phases' picks and needs no key of its own; ABSENT until picked,
+  // so no calendar's file changes until someone picks one. Absent, the tandem follows Production, R7's darker shade.
+  // ⛔ 'doubleUp' is permanent in that map from the first file saved with a pick.
+  function duLookFor(prodFill, prodInk){
+    const i = phaseColorOverride[DU_KEY];
+    const opt = (Number.isInteger(i) && PHASE_COLOR_OPTIONS[i]) || null;
+    return opt ? {color: opt.color, textColor: opt.text} : duShade(prodFill, prodInk);
+  }
+  function duProdDef(){
+    return (getAllPhaseDefs().find(d=> d.key === 'production')) || PHASES.find(d=> d.key === 'production') || {};
+  }
+  // The tandem's colour as drawn: its own pick, else Production's (its def, picked colour included) made darker.
+  function duColors(){
+    const p = duProdDef();
+    return duLookFor(p.color, p.textColor);
+  }
+  // The picker: "Follow Production" (R7's automatic shade) first, then the phase palette. Picking the first removes
+  // the pick, so the tandem follows Production again. One step, through update(), as every swatch's pick is.
+  function openDuColorPop(sw){
+    const p = duProdDef(), auto = duShade(p.color, p.textColor);
+    const i = phaseColorOverride[DU_KEY];
+    const opts = [{name: 'Follow Production (a darker shade of it)', color: auto.color}].concat(PHASE_COLOR_OPTIONS);
+    openPhaseColorPop(sw, Number.isInteger(i) && PHASE_COLOR_OPTIONS[i] ? i + 1 : 0, k=>{
+      if(k === 0) delete phaseColorOverride[DU_KEY]; else phaseColorOverride[DU_KEY] = k - 1;
+      update();
+    }, opts);
+  }
+  // What readState() hands computeSchedule(): the default count, the default name and the moved positions, so a
+  // computeSchedule() over a modified state (the solvers, spanCulprit) carries them. The per-unit counts and names are
+  // read off episodeDefs/blockDefs at schedule time, as productionUnits() reads their day counts.
+  function readDoubleUpConfig(){
+    return {dflt: doubleUpDays, moved: doubleUpMoved};
+  }
+  // The top-level `doubleUps` key as saved, or null (ABSENT) while nothing is set. `moved` keeps only the units that
+  // still exist (either list: a calendar switched between Episodes and Blocks keeps both), with sorted keys.
+  function duSnapshot(){
+    const out = {};
+    if(doubleUpDays > 0) out.days = doubleUpDays;
+    if(doubleUpName) out.name = doubleUpName;
+    const ids = Object.keys(doubleUpMoved).filter(id=> duDefOf(id) && duMovedOf(doubleUpMoved[id])).sort();
+    if(ids.length){ out.moved = {}; ids.forEach(id=>{ out.moved[id] = Object.assign({}, doubleUpMoved[id]); }); }
+    return Object.keys(out).length ? out : null;
+  }
+  // ⛔ UNCONDITIONAL: a snapshot with no key (every calendar saved before 17 Nov 2026, and every one with no
+  // double-up) has none -- never the previous calendar's defaults or moves.
+  function restoreDoubleUps(v){
+    doubleUpDays = 0; doubleUpName = ''; doubleUpMoved = {};
+    if(!isPlainObj(v)) return;
+    const d = duCountOf(v.days);
+    if(d > 0) doubleUpDays = d;
+    doubleUpName = cleanDuName(v.name);
+    if(isDuDefaultTitle(doubleUpName)) doubleUpName = '';
+    if(isPlainObj(v.moved)) Object.keys(v.moved).forEach(id=>{
+      const m = duMovedOf(v.moved[id]);
+      if(m && SNAP_ID.test(id)) doubleUpMoved[id] = m;
+    });
+  }
+
+  // ⭐ THE DOUBLE-UPS CARD (R1-R5, R7; mockups/double-up-days-ui.html). A phase card in look only, directly UNDER
+  // Production (R1), month view only like Episodic Prep's (CSS off the view toggle): hidden, never cleared, in the
+  // waterfall. Its head: the colour square (R7's shade, which follows Production: no picker, plan §9), the name box
+  // (the default pill name, R2), the "Month view only" tag and a summary line. Its body: "Default double-ups" as a
+  // number box with its unit inside (R2; R19, the owner, 17 Nov 2026: "lets not do the plus and minus symbols lets do
+  // open text boxes like all other phases use", which replaced R3's − / +), then the list of episodes (shooting order)
+  // or blocks, each with its own name and its own number box (R4), the last one starting at none (R5). Prep's rule
+  // (EPISODE-PREP-PLAN §6): a blank box uses the default, shown as its placeholder; 0 is none; a typed number is that
+  // unit's own, in bold, even when it equals the default.
+  //   ⛔ NO ID ON ANY CONTROL (plan §5, recommended id-less): collectFieldValues() sweeps id'd inputs into fields.byId,
+  //   so an id would bake a junk key into every saved file and re-cut gate 5. The variables above are the one store,
+  //   and this card only reflects them (refreshDoubleUpUI, from update(), so an undo, a Load or New shows at once).
+  //   The row's own id (#du-row, a <div>) and the square's (#swatch-doubleUp, which the caret keys the fold off,
+  //   phaseRowKey) are not fields.
+  // A count box with its unit inside, Prep's `.num-suffix` (the <label> draws the border, so a click on "days" focuses it).
+  // ⛔ No id: its value lives in doubleUpDays or on the def, never in fields.byId.
+  function duBoxHtml(cls, placeholder, label){
+    return `<span class="num-suffix"><input type="number" class="${cls} du-days-in" min="0" max="${DU_MAX}" step="1" placeholder="${placeholder}" aria-label="${label}"><span>days</span></span>`;
+  }
+  // A count as typed: a whole number 0..DU_MAX, or NaN for a blank or unreadable box (prepDayCount's rule, capped).
+  function duTyped(v){
+    const n = parseInt(v, 10);
+    return (Number.isFinite(n) && n >= 0) ? Math.min(DU_MAX, n) : NaN;
+  }
+  function buildDoubleUpRow(){
+    const row = document.createElement('div');
+    row.className = 'phase-row du-row';
+    row.id = 'du-row';
+    const look = duColors();
+    row.style.setProperty('--phase-color', look.color);
+    row.innerHTML = `
+        <div class="swatch clickable du-swatch" id="swatch-${DU_KEY}" style="background:${look.color};" title="Change colour" aria-label="Change colour"></div>
+        ${phaseHeadHtml(`<input type="text" class="phase-name-input du-name-input" value="${DU_TITLE}" placeholder="${DU_TITLE}" maxlength="${DU_NAME_MAX}" aria-label="Tandem name" title="What the pills say: Tandem 101 unless you type another name. Each episode or block can have its own name below.">`,
+          MVONLY_TAG(false, 'A second crew&rsquo;s days, drawn in the month view and its PDF only. They never change Production&rsquo;s days.'),
+          `<div class="phase-meta du-meta"></div>`)}
+        <div class="phase-fields du-fields">
+          <label class="du-default" title="Working days a second crew shoots on the next episode, for every episode but the last">Default tandem days ${duBoxHtml('du-default-in', 'None', 'Default tandem days')}</label>
+        </div>
+        <div class="du-body">
+          <div class="du-panel"><div class="du-rows"></div></div>
+        </div>`;
+    const sw = row.querySelector('.du-swatch');
+    sw.addEventListener('click', ()=> openDuColorPop(sw));
+    const nameIn = row.querySelector('.du-name-input');
+    nameIn.addEventListener('input', ()=>{
+      const t = cleanDuName(nameIn.value);
+      const next = isDuDefaultTitle(t) ? '' : t;
+      if(next === doubleUpName) return;
+      doubleUpName = next;
+      update();
+    });
+    // Leaving the box puts the default name back in it when it was emptied.
+    nameIn.addEventListener('change', ()=> reflectDuName(true));
+    // The default count: blank (or 0) is none, the default's default, so a calendar with none saves as before.
+    row.querySelector('.du-default-in').addEventListener('input', e=>{
+      const n = duTyped(e.target.value), next = n > 0 ? n : 0;
+      if(next === doubleUpDays) return;
+      doubleUpDays = next;
+      update();
+    });
+    // One unit's own count. Blank goes back to the default by REMOVING the key, so a box typed and cleared leaves the
+    // file as it was; a number typed is the unit's own, 0 included (no double-up), and 0 drops a moved position too.
+    row.addEventListener('input', e=>{
+      const t = e.target;
+      if(!t || !t.classList || !t.classList.contains('du-unit-days')) return;
+      const r = t.closest('.du-unit-row');
+      const def = r && duUnitDef(r.dataset.kind, r.dataset.id);
+      if(!def) return;
+      const n = duTyped(t.value);
+      if(!Number.isFinite(n)) delete def.doubleUpDays; else def.doubleUpDays = n;
+      if(n === 0) delete doubleUpMoved[def.id];
+      t.classList.toggle('is-edited', hasDuDays(def));
+      update();
+    });
+    // One unit's own name. Blank goes back to the card's name by REMOVING the key, so a box typed and cleared leaves
+    // the file as it was.
+    row.addEventListener('input', e=>{
+      const t = e.target;
+      if(!t || !t.classList || !t.classList.contains('du-unit-name')) return;
+      const r = t.closest('.du-unit-row');
+      const def = r && duUnitDef(r.dataset.kind, r.dataset.id);
+      if(!def) return;
+      const v = cleanDuName(t.value);
+      if(v) def.doubleUpName = v; else delete def.doubleUpName;
+      t.classList.toggle('is-own', hasDuName(def));
+      update();
+    });
+    return row;
+  }
+  function duUnitDef(kind, id){
+    return (kind === 'block' ? blockDefs : episodeDefs).find(x=> x.id === id) || null;
+  }
+  // A unit's count as the card shows it: its own, else 0 for the last unit (R5), else the default.
+  function duUnitCount(def, isLast){
+    return hasDuDays(def) ? def.doubleUpDays : (isLast ? 0 : doubleUpDays);
+  }
+  // A unit's count, set from the pill's menu (R11's Remove): a value equal to its default is not kept as its own, so
+  // removing the last unit's double-up leaves it plain, and 0 drops a moved position with it (plan §4). The card's box
+  // writes the def itself (Prep's rule: typed is its own).
+  function setDuUnitCount(def, n, isLast){
+    n = Math.max(0, Math.min(DU_MAX, n));
+    const dflt = isLast ? 0 : doubleUpDays;
+    if(n === dflt) delete def.doubleUpDays; else def.doubleUpDays = n;
+    if(n === 0) delete doubleUpMoved[def.id];
+  }
+  // The units the card lists: episodes in shooting order, or the blocks, as productionUnits() lays them on the shoot.
+  function duCardUnits(info){
+    if(!info.complete) return [];
+    let units;
+    if(info.blocks) units = blockDefs.map((b, i)=> ({kind: 'block', def: b, tag: b.name || ('Block ' + (i + 1))}));
+    else {
+      const byId = new Map(episodeDefs.map(e=> [e.id, e]));
+      units = effectiveShootOrder().map(id=> byId.get(id)).filter(Boolean).map(e=> ({kind: 'episode', def: e, tag: shortEpisodeName(e) || 'Episode'}));
+    }
+    units = units.filter(u=> Number.isFinite(dayCountVal(u.def.days)));
+    if(units.length) units[units.length - 1].last = true;
+    return units;
+  }
+  // The head's name box: a typed name, or "Tandem days" for the default (R21), unless it is being typed in. `force` (its
+  // change event) writes it even then.
+  function reflectDuName(force){
+    const el = document.querySelector('#du-row .du-name-input');
+    if(!el) return;
+    const want = doubleUpName || DU_TITLE;
+    if((force || document.activeElement !== el) && cleanDuName(el.value) !== want) el.value = want;
+  }
+  // The card's list, its count boxes and its summary line, from update(). REBUILT only when its rows change (the
+  // mode, which units, their order or tags), never on a keystroke in one of its own boxes; otherwise written back in
+  // place from the store, skipping the box being typed in (refreshPrepUI's rule).
+  function refreshDoubleUpUI(schedule){
+    const row = document.getElementById('du-row');
+    if(!row) return;
+    const look = duColors();
+    const sw = row.querySelector('.du-swatch');
+    if(sw && sw.style.background !== look.color) paintPhaseSwatch(sw, look.color);
+    reflectDuName(false);
+    const info = showInfoStatus();
+    const units = duCardUnits(info);
+    const wrap = row.querySelector('.du-rows');
+    const key = (info.blocks ? 'B' : 'E') + '|' + units.map(u=> u.def.id + ':' + u.tag).join('|');
+    if(wrap._duKey !== key){
+      wrap._duKey = key;
+      wrap.innerHTML = !units.length ? '' :
+        '<div class="ep-sec-head"><span class="ep-sec-title">' + (info.blocks ? 'Blocks' : 'Episodes') + '</span>'
+        + '<span class="ep-sec-note" title="Blank uses the default. 0 gives ' + (info.blocks ? 'that block' : 'that episode') + ' no tandem days.">Blank = default · 0 = none</span></div>'
+        + '<div class="ep-list">' + units.map(u=> `
+          <div class="du-unit-row" data-kind="${u.kind}" data-id="${escHtml(u.def.id)}"${u.last ? ' data-last="1"' : ''}>
+            <span class="du-unit-tag" title="${escHtml(u.tag)}">${escHtml(u.tag)}</span>
+            <input type="text" class="du-unit-name" maxlength="${DU_NAME_MAX}" value="" aria-label="${escHtml(u.tag)} tandem name">
+            <label class="du-unit-count" title="Tandem days for ${escHtml(u.tag)}">${duBoxHtml('du-unit-days', '–', escHtml(u.tag) + ' tandem days')}</label>
+          </div>`).join('') + '</div>';
+    }
+    // Values written back in place from the store, never into the box being typed in (Prep's rule), so an undo, a
+    // Load or New shows at once and typing keeps its caret.
+    // A box that already READS as the stored count is left as typed ("2.5" for 2 keeps its "Whole days only" ring, as
+    // Prep's boxes do, since Prep stores the text and this stores the number).
+    const setBox = (inp, want, ph)=>{
+      if(!inp) return;
+      if(ph !== undefined && inp.placeholder !== ph) inp.placeholder = ph;
+      if(document.activeElement === inp) return;
+      const same = want === '' ? inp.value === '' : (inp.value !== '' && duTyped(inp.value) === Number(want));
+      if(!same) inp.value = want;
+    };
+    setBox(row.querySelector('.du-default-in'), doubleUpDays > 0 ? String(doubleUpDays) : '');
+    const dName = duDefaultName();
+    wrap.querySelectorAll('.du-unit-row').forEach(r=>{
+      const def = duUnitDef(r.dataset.kind, r.dataset.id);
+      if(!def) return;
+      const isLast = r.dataset.last === '1', n = duUnitCount(def, isLast), dflt = isLast ? 0 : doubleUpDays;
+      const box = r.querySelector('.du-unit-days');
+      setBox(box, hasDuDays(def) ? String(def.doubleUpDays) : '', dflt > 0 ? String(dflt) : '–');
+      box.classList.toggle('is-edited', hasDuDays(def));
+      r.classList.toggle('is-none', !n);
+      const inp = r.querySelector('.du-unit-name');
+      if(inp.placeholder !== dName) inp.placeholder = dName;
+      const want = hasDuName(def) ? def.doubleUpName : '';
+      if(document.activeElement !== inp && cleanDuName(inp.value) !== want) inp.value = want;
+      inp.classList.toggle('is-own', hasDuName(def));
+    });
+    // (No explanatory lines in the card: the owner took both out, 17 Nov 2026. The rules are in Help and the tooltips.)
+    const meta = row.querySelector('.du-meta');
+    const mText = duSummary(schedule, info, units);
+    if(meta.textContent !== mText) meta.textContent = mText;
+  }
+  // The summary line (the mockup's): "7 double-ups · 7 days · 101–107", or why there are none.
+  function duSummary(schedule, info, units){
+    if(!info.complete) return 'Complete Show Info to add tandem days.';
+    const seg = duSegOf(schedule);
+    if(!seg) return 'None yet';
+    const n = seg.dus.length, days = seg.dus.reduce((a, d)=> a + d.n, 0);
+    let range = '';
+    if(!info.blocks){
+      const tags = seg.dus.map(d=>{ const e = episodeDefs.find(x=> x.id === d.id); return e ? shortEpisodeName(e) : ''; }).filter(Boolean);
+      range = tags.length > 1 ? ' · ' + tags[0] + '–' + tags[tags.length - 1] : tags.length ? ' · ' + tags[0] : '';
+    }
+    const moved = seg.dus.filter(d=> d.moved).length;
+    // R21's words: "7 tandem days · 6 episodes · 302–305", one count of days and one of the units that have them.
+    const unitWord = info.blocks ? 'block' : 'episode';
+    return days + ' tandem day' + (days === 1 ? '' : 's') + ' · ' + n + ' ' + unitWord + (n === 1 ? '' : 's') + range
+      + (moved ? ' · ' + moved + ' moved' : '');
+  }
+  // ⭐ R12: double-click a double-up pill opens this card at that unit's row, as every month bar opens its phase's card.
+  // The tab switch is saved state (sidebarTab), so it is bracketed as one step, as showPhaseRow()'s is.
+  function showDoubleUpRow(id){
+    pushUndoSnapshot();
+    revealSidebarTab('phases');
+    pushUndoSnapshot();
+    setPhaseCollapsed(DU_KEY, false);
+    const row = document.getElementById('du-row');
+    const r = row && Array.prototype.find.call(row.querySelectorAll('.du-unit-row'), x=> x.dataset.id === id);
+    const el = r || row;
+    if(!el) return;
+    el.scrollIntoView({block: 'center', inline: 'nearest'});
+    [row, r].forEach(x=>{ if(!x) return; x.classList.remove('is-flash'); void x.offsetWidth; x.classList.add('is-flash'); });
+    setTimeout(()=>{ [row, r].forEach(x=> x && x.classList.remove('is-flash')); }, 1400);
   }
 
   function getAllPhaseDefs(){
@@ -10980,7 +11360,8 @@ export function initLegacyApp() {
     let grip = null, shownFor = null, drag = null;
     // Sim Post included (SO1, 11 Nov 2026): its bar carries data-sp on screen and stands in the order as MV_SIMPOST_KEY.
     const effectiveOrder = ()=> mvOrderKeys((currentSchedule && currentSchedule.segments) || [], currentSchedule);
-    const BAR_SEL = '.mv-pill[data-ph], .mv-pill[data-sp]';
+    // Not a double-up pill (DOUBLE-UP-DAYS-PLAN.md): it rides Production's line or sits loose, and has no order of its own.
+    const BAR_SEL = '.mv-pill[data-ph]:not([data-du]), .mv-pill[data-sp]';
     const barKey = p=> p.getAttribute('data-ph') || (p.hasAttribute('data-sp') ? MV_SIMPOST_KEY : null);
     function gripEl(){
       if(grip) return grip;
@@ -12678,6 +13059,440 @@ export function initLegacyApp() {
     }, true);
   })();
 
+  // ---------- Double-ups in the month view: the drag, the Rename box, the reason line (DOUBLE-UP-DAYS-PLAN.md R8-R11) ----------
+  // A double-up pill carries data-du="<unit id>" (frozen edit DU1); everything here works off that and the schedule.
+  // ⭐ ZERO FURTHER FROZEN EDITS: the moving copy (mvDragGhost), the drop boxes over the day cells, the reason line and
+  // the Rename box are body-level chrome laid OVER the grid, never written into it. The print path hides every direct
+  // child of <body> but #print-root, and buildSavedHtml() strips them, so no month PDF and no shareable copy carries one.
+  // The right-click (R11) and the double-click (R12) are the day menu's (installMonthDayMenu): it opens a double-up's own
+  // lean menu on one, and its double-click opens the card's row (showDoubleUpRow).
+  function duOfId(id){ const seg = duSegOf(currentSchedule); return seg ? (seg.dus.find(d=> d.id === id) || null) : null; }
+  // A double-up's menu title and its second line: "Tandem 102", "1 day · moved".
+  function duMenuHead(du){
+    return {title: duPillLabel(du), facts: du.n + ' day' + (du.n === 1 ? '' : 's') + (du.moved ? ' · moved' : '')
+      + (du.last ? ' · beside its last days' : '')};
+  }
+  // THE SLOT LINE on the calendar as drawn (appendDoubleUps' line, from currentSchedule): a shoot day is its index, a
+  // working day after wrap is N + j, and a working day BEFORE the first shoot day is -(j + 1), so the drag can name a
+  // drop there and refuse it (R9). Any other day (a weekend or holiday inside the shoot, a day marked Off) has none.
+  // Working days are isUnitWorkDay()'s, the derivation's own rule.
+  function duSlotLine(){
+    const sch = currentSchedule;
+    const prod = ((sch && sch.segments) || []).find(s=> s.key === 'production');
+    if(!prod || !prod.shootDays || !prod.shootDays.length) return null;
+    const shoot = prod.shootDays, N = shoot.length, idx = new Map(shoot.map((d, k)=> [d, k]));
+    const ctx = {holidayIsos: new Set(fullHolidayList(effectiveRegionKey()).filter(h=> h.enabled).map(h=> h.date)),
+                 hiatuses: sch.hiatuses || [], ownHi: null};
+    const memo = new Map();
+    // The working days strictly between two dates, walked one day at a time (bounded: a page is at most 6 weeks).
+    const walk = (fromIso, toIso, step)=>{
+      let n = 0;
+      for(let d = addDays(parseDateUTC(fromIso), step), safety = 0; isoOf(d) !== toIso && safety < MAX_WEEKS * 7; d = addDays(d, step), safety++){
+        if(isUnitWorkDay(d, ctx)) n++;
+      }
+      return n;
+    };
+    return {
+      N, shoot,
+      slotOf(iso){
+        if(memo.has(iso)) return memo.get(iso);
+        let k = null;
+        if(idx.has(iso)) k = idx.get(iso);
+        else {
+          const d = parseDateUTC(iso);
+          if(d && isUnitWorkDay(d, ctx)){
+            if(iso > shoot[N - 1]) k = N + walk(shoot[N - 1], iso, 1);
+            else if(iso < shoot[0]) k = -(walk(shoot[0], iso, -1) + 1);
+          }
+        }
+        memo.set(iso, k);
+        return k;
+      },
+      // Is shoot slot k one of this unit's own days (a half switch day belongs to both units)?
+      ownDay(k, unit){
+        if(!(k >= 0 && k < N)) return false;
+        const U = productionUnits(sch);
+        return ((U && U.byDay.get(shoot[k])) || []).includes(unit);
+      },
+    };
+  }
+  // R9: where a double-up may go. Its own default days always (that is Put back); otherwise never on its own unit's
+  // days and never before the shoot starts. Another unit's days and days after wrap are fine.
+  // R20: never on the FIRST unit's days either (the segment's minSlot, appendDoubleUps' one copy of the rule; 0 on a
+  // show of one unit, the owner's exception).
+  function duDropVerdict(du, start, S){
+    if(start === du.defSlot) return {ok: true};
+    const minSlot = (duSegOf(currentSchedule) || {}).minSlot || 0;
+    for(let k = start; k < start + du.n; k++){
+      if(k < 0) return {ok: false, why: 'before'};
+      if(S.ownDay(k, du.unit)) return {ok: false, why: 'own'};   // the more specific reason, for the first unit's own
+      if(k < minSlot) return {ok: false, why: 'first'};
+    }
+    return {ok: true};
+  }
+  function duRefusal(du, why){
+    const word = du.kind === 'block' ? 'block' : 'episode';
+    if(why === 'first') return duPillLabel(du) + ' can’t go on the first ' + word + '’s days: it has no tandem days.';
+    return duPillLabel(du) + ' can only go on another ' + word + '’s days, or after wrap'
+      + (why === 'before' ? ', never before the shoot starts.' : '.');
+  }
+  // ⭐ ONE WRITER of a double-up's position (R8-R10). A start on its default days removes the move (Put back); any other
+  // is kept as a shoot-day number, or as working days after wrap, never as a date. One undo step.
+  function setDoubleUpAt(du, start){
+    const S = duSlotLine();
+    if(!S || !du) return false;
+    pushUndoSnapshot();
+    if(start === du.defSlot) delete doubleUpMoved[du.id];
+    else doubleUpMoved[du.id] = start < S.N ? {day: start + 1} : {after: start - S.N + 1};
+    update();
+    pushUndoSnapshot();
+    return true;
+  }
+  // R11's Remove double-up: that unit's count to 0 (its own, or plain for the last unit, whose default is 0), and its
+  // moved position with it. One undo step.
+  function removeDoubleUp(du){
+    const def = duDefOf(du.id);
+    if(!def) return;
+    pushUndoSnapshot();
+    setDuUnitCount(def, 0, du.last);
+    update();
+    pushUndoSnapshot();
+  }
+  // The one-line reason a refused drop snaps back with (plan §6), near the pointer, gone after a few seconds or the
+  // next press.
+  let duToastEl = null, duToastTimer = 0;
+  function duToast(text, x, y){
+    if(duToastEl) duToastEl.remove();
+    clearTimeout(duToastTimer);
+    const el = document.createElement('div');
+    el.className = 'du-toast';
+    el.setAttribute('role', 'status');
+    el.textContent = text;
+    document.body.appendChild(el);
+    const w = el.offsetWidth, h = el.offsetHeight;
+    el.style.left = Math.max(8, Math.min(x - w / 2, innerWidth - w - 8)) + 'px';
+    el.style.top = Math.max(8, Math.min(y + 18, innerHeight - h - 8)) + 'px';
+    duToastEl = el;
+    duToastTimer = setTimeout(()=>{ if(duToastEl === el){ el.remove(); duToastEl = null; } }, 4000);
+  }
+  window.addEventListener('mousedown', ()=>{ if(duToastEl){ duToastEl.remove(); duToastEl = null; } }, true);
+  // ⭐ R11's Rename…: that unit's own name, in a small box by the pill. Blank, or "Use the card's name", goes back to
+  // the card's name by removing the unit's own. Enter or Done saves (one undo step); Esc or a click away cancels.
+  let duRenamePop = null;
+  function closeDuRename(){
+    if(!duRenamePop) return;
+    duRenamePop.remove();
+    duRenamePop = null;
+    document.removeEventListener('mousedown', onDuRenameOutside, true);
+  }
+  function onDuRenameOutside(e){ if(duRenamePop && !duRenamePop.contains(e.target)) closeDuRename(); }
+  function openDuRename(du, x, y){
+    closeDuRename();
+    const def = duDefOf(du.id);
+    if(!def) return;
+    const unit = du.kind === 'block' ? ((def.name) || 'this block') : (shortEpisodeName(def) || 'this episode');
+    const pop = document.createElement('div');
+    pop.className = 'du-rename-pop';
+    pop.setAttribute('role', 'dialog');
+    pop.setAttribute('aria-label', 'Name of ' + unit + '’s tandem days');
+    pop.innerHTML = '<div class="du-rename-title">Name of ' + escHtml(unit) + '’s tandem days</div>'
+      + '<input type="text" class="du-rename-input" maxlength="' + DU_NAME_MAX + '" aria-label="Tandem name">'
+      + '<div class="du-rename-acts"><button type="button" class="du-rename-default"></button>'
+      + '<button type="button" class="du-rename-done">Done</button></div>';
+    const inp = pop.querySelector('.du-rename-input');
+    inp.value = hasDuName(def) ? def.doubleUpName : '';
+    inp.placeholder = duDefaultName();
+    pop.querySelector('.du-rename-default').textContent = 'Use “' + duDefaultName() + '”';
+    document.body.appendChild(pop);
+    const w = pop.offsetWidth, h = pop.offsetHeight;
+    pop.style.left = Math.max(8, Math.min(x, innerWidth - w - 8)) + 'px';
+    pop.style.top = Math.max(8, Math.min(y, innerHeight - h - 8)) + 'px';
+    duRenamePop = pop;
+    const save = v=>{
+      const t = cleanDuName(v), was = hasDuName(def) ? def.doubleUpName : '';
+      closeDuRename();
+      if(t === was) return;
+      pushUndoSnapshot();
+      if(t) def.doubleUpName = t; else delete def.doubleUpName;
+      update();
+      pushUndoSnapshot();
+    };
+    inp.addEventListener('keydown', k=>{
+      if(k.key === 'Enter'){ k.preventDefault(); save(inp.value); }
+      else if(k.key === 'Escape'){ k.preventDefault(); k.stopPropagation(); closeDuRename(); }
+    });
+    pop.querySelector('.du-rename-default').addEventListener('click', ()=> save(''));
+    pop.querySelector('.du-rename-done').addEventListener('click', ()=> save(inp.value));
+    setTimeout(()=>{ document.addEventListener('mousedown', onDuRenameOutside, true); }, 0);
+    inp.focus();
+    inp.select();
+  }
+  // ⭐ THE DRAG (R8, R9): the WHOLE pill moves, in shoot days, read off the day under the pointer and kept where it was
+  // grabbed (a 2-day pill held by its second day lands with that day under the pointer). While dragging, the days it
+  // can never take are greyed and its target days outlined, red where refused (screen only, body-level boxes). A
+  // refused drop snaps back with a one-line reason; a drop on its own default days puts it back. Nothing redraws
+  // during the drag, so it banks ONE undo step at the drop, or none. Esc cancels.
+  (function installDoubleUpDrag(){
+    const wrap = document.getElementById('table-wrap');
+    if(!wrap) return;
+    let drag = null;
+    const clearBoxes = ()=>{ if(drag){ drag.boxes.forEach(b=> b.remove()); drag.boxes = []; } };
+    const box = (cell, cls)=>{
+      const v = visibleRect(cell);
+      if(!v) return;
+      const b = document.createElement('div');
+      b.className = 'du-drop-box ' + cls;
+      b.style.left = v.left + 'px'; b.style.top = v.top + 'px';
+      b.style.width = (v.right - v.left) + 'px'; b.style.height = (v.bottom - v.top) + 'px';
+      document.body.appendChild(b);
+      drag.boxes.push(b);
+    };
+    const cells = ()=> Array.prototype.slice.call(wrap.querySelectorAll('.mv-body > .mv-week > .mv-daygrid > .mv-daycell'));
+    const drawBoxes = ()=>{
+      clearBoxes();
+      const d = drag, S = d.S;
+      cells().forEach(c=>{
+        const loc = cellDate(c);
+        if(!loc) return;
+        const k = S.slotOf(isoOf(loc.date));
+        if(k === null) return;
+        const inTarget = d.to !== null && k >= d.to && k < d.to + d.du.n;
+        if(inTarget) box(c, 'is-target' + (d.ok ? '' : ' is-bad'));
+        else if(k < 0 || k < d.minSlot || (S.ownDay(k, d.du.unit) && !(k >= d.du.defSlot && k < d.du.defSlot + d.du.n))) box(c, 'is-nodrop');
+      });
+    };
+    const end = (commit, e)=>{
+      const d = drag;
+      if(!d) return;
+      clearBoxes();
+      if(d.ghost) d.ghost.remove();
+      document.body.classList.remove('du-dragging', 'du-refuse');
+      drag = null;
+      if(!commit || !d.live || d.to === null || d.to === d.du.slot) return;
+      if(!d.ok){ duToast(duRefusal(d.du, d.why), e ? e.clientX : 0, e ? e.clientY : 0); return; }
+      setDoubleUpAt(d.du, d.to);
+    };
+    wrap.addEventListener('mousedown', e=>{
+      if(viewMode !== 'month' || e.button !== 0 || isMacCtrlClick(e) || drag) return;
+      const pill = e.target.closest && e.target.closest(DU_SEL_PILL);
+      if(!pill || !wrap.contains(pill)) return;
+      const du = duOfId(pill.getAttribute('data-du'));
+      const S = du && duSlotLine();
+      const iso = S && dayAtPoint(e.clientX, e.clientY);
+      const grab = iso != null ? S.slotOf(iso) : null;
+      if(!du || grab === null) return;
+      e.preventDefault();
+      drag = {du, S, pill, grab: grab - du.slot, x0: e.clientX, y0: e.clientY, live: false, ghost: null, boxes: [], to: null, ok: false, why: '',
+              minSlot: (duSegOf(currentSchedule) || {}).minSlot || 0};   // R20: the first unit's days are greyed too
+    });
+    window.addEventListener('mousemove', e=>{
+      const d = drag;
+      if(!d) return;
+      if(!(e.buttons & 1)){ end(false); return; }
+      const dx = e.clientX - d.x0, dy = e.clientY - d.y0;
+      if(!d.live){
+        if(Math.abs(dx) + Math.abs(dy) < 4) return;
+        d.live = true;
+        document.body.classList.add('du-dragging');
+        if(d.pill.isConnected) d.ghost = mvDragGhost(d.pill);
+      }
+      if(d.ghost) d.ghost.moveBy(dx, dy);
+      const iso = dayAtPoint(e.clientX, e.clientY);
+      const k = iso ? d.S.slotOf(iso) : null;
+      d.to = k === null ? null : k - d.grab;
+      const v = d.to === null ? {ok: false} : duDropVerdict(d.du, d.to, d.S);
+      d.ok = !!v.ok; d.why = v.why || '';
+      document.body.classList.toggle('du-refuse', d.to !== null && !d.ok);
+      drawBoxes();
+    });
+    window.addEventListener('mouseup', e=>{ if(drag) end(true, e); });
+    document.addEventListener('keydown', e=>{
+      if(!drag || e.key !== 'Escape') return;
+      e.preventDefault();
+      end(false);
+    }, true);
+    window.addEventListener('scroll', ()=>{ if(drag && drag.live) drawBoxes(); }, true);
+  })();
+
+  // ---------- A tandem's two grips: drag either end to change its days (owner, 17 Nov 2026) ----------
+  // "i should be able to extend tandem day just like any other phase"; picker "Both ends". Prep's start grip is the
+  // pattern (installPrepEdgeHandles): body-level .phase-edge-handle chrome over the pill, never written into the grid, a
+  // live redraw per step, ONE undo step for the gesture, Esc puts it back.
+  //   END grip    on the pill holding its last day: the start is held, the days change. A joined tandem stays joined.
+  //   START grip  on the pill holding its first day: the end is held, the days change, and the start becomes a MOVED
+  //               position (unjoined, drawn on its own), unless it lands on its default.
+  // Either way the count written is that unit's OWN (a drag is a statement about that episode, Prep's Q1(a)), 1..99.
+  // ⛔ It never takes a day the drop rules refuse (R9, R20): an edge pulled onto its own unit's days, the first unit's
+  // days or before the shoot stops at the last day it may take. Days it already covers stay (the last unit's own).
+  (function installDoubleUpGrips(){
+    const wrap = document.getElementById('table-wrap');
+    if(!wrap) return;
+    const HANDLE_W = 10;
+    const pool = [];
+    let shownFor = null, shield = null, drag = null;
+
+    // The slot nearest a day: the day's own, else the nearest one before it (an end) or after it (a start).
+    const slotNear = (S, iso, dir)=>{
+      let d = parseDateUTC(iso);
+      for(let i = 0; i < 14 && d; i++){ const k = S.slotOf(isoOf(d)); if(k !== null) return k; d = addDays(d, dir); }
+      return null;
+    };
+    function specFor(pill){
+      const du = duOfId(pill.getAttribute('data-du')), g = du && pillRange(pill);
+      if(!du || !g) return [];
+      const out = [];
+      if(g.from === du.days[0]) out.push({kind: 'start', side: 'left', du, pill});
+      if(g.to === du.days[du.days.length - 1]) out.push({kind: 'end', side: 'right', du, pill});
+      return out;
+    }
+    function handleAt(k){
+      while(pool.length <= k){
+        const h = document.createElement('div');
+        h.className = 'phase-edge-handle';
+        h.hidden = true;
+        h.addEventListener('mousedown', e=> beginDrag(e, h));
+        document.body.appendChild(h);
+        pool.push(h);
+      }
+      return pool[k];
+    }
+    function hideHandles(except){ shownFor = null; pool.forEach(h=>{ if(h !== except) h.hidden = true; }); }
+    function place(h, spec){
+      const v = visibleRect(spec.pill);
+      if(!v){ h.hidden = true; return; }
+      const x = spec.side === 'left' ? v.full.left : v.full.right - HANDLE_W;
+      if(x < v.left - 1 || x + HANDLE_W > v.right + 1){ h.hidden = true; return; }
+      h._spec = spec;
+      h._pill = spec.pill;
+      h.setAttribute('data-edge', spec.kind);
+      h.setAttribute('data-ph', DU_KEY);
+      h.style.left = x + 'px';
+      h.style.top = v.top + 'px';
+      h.style.height = (v.bottom - v.top) + 'px';
+      h.style.color = getComputedStyle(spec.pill).color;
+      h.title = spec.kind === 'end' ? 'Drag to change how many tandem days ' + duPillLabel(spec.du) + ' has; its start stays'
+                                    : 'Drag to change where ' + duPillLabel(spec.du) + ' starts; its end stays';
+      h.hidden = false;
+    }
+    function showFor(pill){
+      if(pill === shownFor) return;
+      hideHandles();
+      const specs = specFor(pill);
+      if(!specs.length) return;
+      shownFor = pill;
+      specs.forEach((sp, i)=> place(handleAt(i), sp));
+    }
+    document.addEventListener('mousemove', e=>{
+      if(drag) return;
+      const t = e.target;
+      if(t && t.classList && t.classList.contains('phase-edge-handle') && t.getAttribute('data-ph') === DU_KEY) return;
+      if(viewMode !== 'month' || document.body.classList.contains('du-dragging')){ hideHandles(); return; }
+      const pill = t && t.closest && t.closest(DU_SEL_PILL);
+      if(!pill || !wrap.contains(pill)){ hideHandles(); return; }
+      showFor(pill);
+    }, {passive: true});
+    window.addEventListener('scroll', ()=>{ if(!drag) hideHandles(); }, true);
+    window.addEventListener('resize', ()=>{ if(!drag) hideHandles(); });
+    new MutationObserver(()=>{ if(!drag) hideHandles(); }).observe(wrap, {childList: true, subtree: true});
+
+    // Writes a span [start, start + n) as the unit's own count and, when it is not its default, a moved start.
+    function writeSpan(d, start, n){
+      const def = d.def, S = d.S;
+      if(start === d.start0 && n === d.n0){
+        if(d.hadN) def.doubleUpDays = d.wasN; else delete def.doubleUpDays;
+        if(d.wasMv) doubleUpMoved[d.id] = Object.assign({}, d.wasMv); else delete doubleUpMoved[d.id];
+        return;
+      }
+      def.doubleUpDays = n;
+      const dflt = d.last ? Math.max(d.minSlot, d.unitLast - n + 1) : d.unitLast + 1;
+      if(start === dflt) delete doubleUpMoved[d.id];
+      else doubleUpMoved[d.id] = start < S.N ? {day: start + 1} : {after: start - S.N + 1};
+    }
+    function apply(start, n){
+      const d = drag;
+      writeSpan(d, start, n);
+      d.cur = {start, n};
+      update();
+      cancelPendingUndoPush();
+      // ⛔ The real derivation must agree: the tandem exactly where it was computed to land. If not, put it back and
+      // let the gesture go inert (every grip's guard).
+      const now = duOfId(d.id);
+      if(!(now && now.slot === start && now.n === n)){ d.broken = true; writeSpan(d, d.start0, d.n0); d.cur = {start: d.start0, n: d.n0}; update(); cancelPendingUndoPush(); }
+      follow();
+    }
+    // Keep the dragged handle on its edge as the grid redraws.
+    function follow(){
+      const d = drag, du = duOfId(d.id);
+      const pills = du ? Array.prototype.filter.call(wrap.querySelectorAll(DU_SEL_PILL), p=> p.getAttribute('data-du') === d.id) : [];
+      for(const p of pills){
+        const sp = specFor(p).filter(x=> x.kind === d.kind)[0];
+        if(sp){ place(d.handle, sp); return; }
+      }
+      d.handle.hidden = true;
+    }
+    // Is slot k one this tandem may newly take (R9, R20)?
+    const mayTake = (d, k)=> k >= 0 && k >= d.minSlot && !d.S.ownDay(k, d.unit);
+    function solve(d, iso){
+      const k0 = d.start0, e0 = d.start0 + d.n0 - 1;
+      if(d.kind === 'end'){
+        let k = slotNear(d.S, iso, -1);
+        if(k === null) return null;
+        k = Math.max(k0, Math.min(k, k0 + DU_MAX - 1));
+        let e = Math.min(k, e0);
+        for(let j = e0 + 1; j <= k && mayTake(d, j); j++) e = j;
+        return {start: k0, n: e - k0 + 1};
+      }
+      let k = slotNear(d.S, iso, 1);
+      if(k === null) return null;
+      k = Math.min(e0, Math.max(k, e0 - DU_MAX + 1));
+      let s = Math.max(k, k0);
+      for(let j = k0 - 1; j >= k && mayTake(d, j); j--) s = j;
+      return {start: s, n: e0 - s + 1};
+    }
+    function endDrag(){
+      const d = drag;
+      drag = null;
+      if(shield){ shield.remove(); shield = null; }
+      hideHandles();
+      if(d && (d.cur.start !== d.start0 || d.cur.n !== d.n0)){ pushUndoSnapshot(); markDirty(); }
+    }
+    function beginDrag(e, h){
+      if(e.button !== 0 || drag || viewMode !== 'month') return;
+      const spec = h._spec, du = spec && duOfId(spec.du.id), def = du && duDefOf(du.id), S = du && duSlotLine();
+      if(!du || !def || !S) return;
+      e.preventDefault();
+      e.stopPropagation();
+      const edgeIso = spec.kind === 'end' ? du.days[du.days.length - 1] : du.days[0];
+      const cell = Array.prototype.find.call(wrap.querySelectorAll('.mv-body > .mv-week > .mv-daygrid > .mv-daycell'),
+        c=>{ const loc = cellDate(c); return !!loc && isoOf(loc.date) === edgeIso; });
+      const cr = cell ? cell.getBoundingClientRect() : null;
+      pushUndoSnapshot();
+      drag = {handle: h, kind: spec.kind, id: du.id, unit: du.unit, def, S, last: du.last, unitLast: du.unitLast,
+              minSlot: (duSegOf(currentSchedule) || {}).minSlot || 0, start0: du.slot, n0: du.n,
+              hadN: hasDuDays(def), wasN: def.doubleUpDays, wasMv: doubleUpMoved[du.id] ? Object.assign({}, doubleUpMoved[du.id]) : null,
+              dx: cr ? e.clientX - (cr.left + cr.width / 2) : 0, cur: {start: du.slot, n: du.n}, broken: false};
+      hideHandles(h);
+      shield = document.createElement('div');
+      shield.className = 'phase-edge-shield';
+      document.body.appendChild(shield);
+    }
+    window.addEventListener('mousemove', e=>{
+      if(!drag) return;
+      if(!(e.buttons & 1)){ endDrag(); return; }
+      if(drag.broken) return;
+      const iso = dayAtPoint(e.clientX - drag.dx, e.clientY);
+      const step = iso && solve(drag, iso);
+      if(step && (step.start !== drag.cur.start || step.n !== drag.cur.n)) apply(step.start, step.n);
+    });
+    window.addEventListener('mouseup', ()=>{ if(drag) endDrag(); });
+    document.addEventListener('keydown', e=>{
+      if(!drag || e.key !== 'Escape') return;
+      e.preventDefault();
+      if(drag.cur.start !== drag.start0 || drag.cur.n !== drag.n0) apply(drag.start0, drag.n0);
+      endDrag();
+    }, true);
+  })();
+
   // ---------- Hiatus drag: move a hiatus, or change its first or last week, in the month view ----------
   // HIATUS-DRAG-PLAN.md. Owner, 19 Oct 2026: "whole-week move and edges, same pattern as the phase
   // grips". Grab a band anywhere to move the hiatus. A START grip on its first week and an END grip on
@@ -13017,7 +13832,7 @@ export function initLegacyApp() {
       const ends = phaseEnds();
       const rippled = new Set(((rip && rip.moves) || []).map(m=> m.key));
       const moved = ((currentSchedule && currentSchedule.segments) || [])
-        .filter(s=> s.key !== 'production' && !rippled.has(s.key) && d.ends0[s.key] !== undefined && ends[s.key] !== d.ends0[s.key])
+        .filter(s=> s.key !== 'production' && s.key !== DU_KEY && !rippled.has(s.key) && d.ends0[s.key] !== undefined && ends[s.key] !== d.ends0[s.key])
         .map(s=> s.name || s.label || s.key);
       if(moved.length){
         msg += '\n\nIt also changes when ' + (moved.length === 1 ? moved[0] + ' ends.'
@@ -13549,6 +14364,7 @@ export function initLegacyApp() {
       rows:  'M4 6h16M4 12h16M4 18h16',
       cols:  'M6 4v16M12 4v16M18 4v16',
       cal:   'M4 6h16v14H4zM4 10h16M8 3v4M16 3v4',
+      pencil:'M4 20h4L19 9l-4-4L4 16v4zM14 6l4 4',
       undo:  'M9 14L4 9l5-5M4 9h10a6 6 0 0 1 0 12h-3',
     };
     const icon = k=> '<svg class="day-menu-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor"'
@@ -13580,7 +14396,9 @@ export function initLegacyApp() {
       let pill = handle ? handle._pill : t.closest('.mv-pill[data-ph]');
       if(pill && !wrap.contains(pill)) pill = null;
       const key = (handle && handle.getAttribute('data-ph')) || (pill && pill.getAttribute('data-ph')) || null;
-      return {iso, date, key, target: t, pill};
+      // A double-up pill (DOUBLE-UP-DAYS-PLAN.md R11) opens its own lean menu: menuSections() below.
+      const du = (pill && pill.hasAttribute('data-du')) ? duOfId(pill.getAttribute('data-du')) : null;   // its grips too
+      return {iso, date, key, target: t, pill, du, x: e.clientX, y: e.clientY};
     }
 
     // ---- The waterfall (WATERFALL-CONTEXT-MENU-PLAN.md §4) ----
@@ -13629,6 +14447,10 @@ export function initLegacyApp() {
           (seg.preps || []).forEach(p=>{ if(p.days.has(iso)) facts.push(prepPillLabel(seg, p)); });
           return;
         }
+        if(seg.key === DU_KEY){
+          (seg.dus || []).forEach(u=>{ if(u.daySet.has(iso)) facts.push(duPillLabel(u)); });
+          return;
+        }
         if(seg.key === 'production'){
           const U = productionUnits(s);
           ((U && U.byDay.get(iso)) || []).forEach(u=>{
@@ -13651,6 +14473,7 @@ export function initLegacyApp() {
     // notes button at all") -- and an item that cannot act on the day is LEFT OUT, not greyed (ruling T3, the
     // waterfall's R6), so the Add 1-day phase item is not offered where it could not be drawn.
     function menuSections(ctx){
+      if(ctx.du) return duSections(ctx);
       const d = ctx.date, dow = d.getUTCDay(), weekend = dow === 0 || dow === 6;
       const hiatus = isHiatusDate(currentSchedule || {}, d);
       const week = mondayOf(d);
@@ -13673,6 +14496,19 @@ export function initLegacyApp() {
            run: ()=> showWeekInWaterfall(week)},
         ]},
       ]);
+    }
+
+    // ⭐ A DOUBLE-UP'S MENU (DOUBLE-UP-DAYS-PLAN.md R11, owner's picker "Keep all three"): exactly Rename…, Put back on
+    // its default days (only on a moved one), and Remove double-up, in red, last. Lean (owner rule, 23 Oct 2026): no day
+    // items, no Add note, nothing else. Its head is the pill's own name and length (openMenu, duMenuHead).
+    function duSections(ctx){
+      const du = ctx.du, items = [{id: 'du-rename', icon: 'pencil', text: 'Rename…', note: 'This ' + (du.kind === 'block' ? 'block' : 'episode') + '’s own name',
+        run: ()=> openDuRename(du, ctx.x, ctx.y)}];
+      if(du.moved) items.push({id: 'du-back', icon: 'undo', text: 'Put back on its default days', note: duPillLabel(du) + ' goes back where it started',
+        run: ()=> setDoubleUpAt(du, du.defSlot)});
+      return [{id: 'du', items},   // no label: the menu's head already names the pill
+              {id: 'du-out', items: [{id: 'du-remove', icon: 'trash', text: 'Remove tandem days', danger: true,
+                run: ()=> removeDoubleUp(du)}]}];
     }
 
     // The bar under the pointer (plan §3.4–3.7, step 3): its own section, after "This day", headed by its
@@ -13810,6 +14646,8 @@ export function initLegacyApp() {
       if(document.querySelector('.phase-edge-shield, .hiatus-drag-shield, .mv-drag-shield')) return;
       const pill = mvTextAt(e.clientX, e.clientY);
       if(!pill || !pill.matches('.mv-pill[data-ph]')) return;
+      // A double-up pill opens the Double-ups card at its unit's row (DOUBLE-UP-DAYS-PLAN.md R12).
+      if(pill.hasAttribute('data-du')){ showDoubleUpRow(pill.getAttribute('data-du')); return; }
       const key = pill.getAttribute('data-ph');
       if(key !== PREP_KEY && !getAllPhaseDefs().some(p=> p.key === key)) return;
       showPhaseRow(key);
@@ -14635,10 +15473,11 @@ export function initLegacyApp() {
       // shows and that HOLDS a mark, the one place a double-click can clear one. The "Shift + right-click opens the
       // browser's own menu" line is gone, as the waterfall dropped it (ruling T1); Shift + right-click still opens it.
       const foot = !wf && sections.some(s=> s.id === 'shoot') && dayOverrides[ctx.iso] ? ['Double-click a marked day to clear it'] : [];
-      const title = !wf ? dayMonth(ctx.date) + ' ' + ctx.date.getUTCFullYear()
+      const duHead = (!wf && ctx.du) ? duMenuHead(ctx.du) : null;   // a double-up's menu names the pill, not the day
+      const title = duHead ? duHead.title : !wf ? dayMonth(ctx.date) + ' ' + ctx.date.getUTCFullYear()
                   : ctx.many ? ctx.keys.length + ' cells highlighted'
                   : 'Week of ' + dayMonth(ctx.date) + ' ' + ctx.date.getUTCFullYear();
-      const facts = !wf ? dayFacts(ctx.date).join(' · ') : ctx.many ? wfHighlightWeeksText(ctx.keys) : wfRowFacts(ctx.td);
+      const facts = duHead ? duHead.facts : !wf ? dayFacts(ctx.date).join(' · ') : ctx.many ? wfHighlightWeeksText(ctx.keys) : wfRowFacts(ctx.td);
       const html = '<div class="day-menu-head"><div class="day-menu-date">' + escHtml(title) + '</div>'
                + (facts ? '<div class="day-menu-ctx">' + escHtml(facts) + '</div>' : '') + '</div>'
                + built.html
@@ -15544,11 +16383,17 @@ export function initLegacyApp() {
   function segPillLabel(s, date){
     if(s.key === 'production'){
       const r = takeProdRun(date);
+      // A joined double-up rides Production's runs (mvJoinDoubleUps) and names itself: "Tandem 102".
+      if(r && r.du) return duPillLabel(r.du);
       if(r && r.unit) return unitBarLabel(r.kind, r.unit, prodWeekLabel(s, date), r);
     }
     if(s.key === PREP_KEY){
       const r = takePrepRun(date);
       return prepPillLabel(s, r ? r.prep : null);
+    }
+    if(s.key === DU_KEY){
+      const r = takeDuRun(date);
+      return duPillLabel(r ? r.du : null);
     }
     return prodWeekLabel(s, date);
   }
@@ -15584,6 +16429,13 @@ export function initLegacyApp() {
       _prepRuns = {week: isoOf(weekStart), runs: prepRuns, next: 0};
       return prepRuns;
     }
+    // Double-ups (DOUBLE-UP-DAYS-PLAN.md): the segment draws only the LOOSE ones (moved, or the last unit's); a joined
+    // one is in Production's runs, below. Recorded for segPillLabel() as prep's are (takeDuRun).
+    if(seg.key === DU_KEY){
+      const duRuns = duLooseRunsForWeek(schedule, weekStart, seg);
+      _duRuns = {week: isoOf(weekStart), runs: duRuns, next: 0};
+      return duRuns;
+    }
     const runs = [];
     let run = null;
     for(let i=0;i<7;i++){
@@ -15599,7 +16451,9 @@ export function initLegacyApp() {
     // days it covers; productionSplitRuns() only cuts them, so no day is added or lost. It is
     // recorded for segPillLabel()/productionPillTag(), which the frozen loop calls run by run.
     if(seg.key === 'production'){
-      const split = productionSplitRuns(schedule, weekStart, runs);
+      // ...and each joined double-up put in right after its own unit's runs (R6, mvJoinDoubleUps), recorded with them,
+      // so the Nth label asked for is still the Nth run. With no double-up the split comes back as it was.
+      const split = mvJoinDoubleUps(schedule, weekStart, productionSplitRuns(schedule, weekStart, runs));
       _prodRuns = split ? {week: isoOf(weekStart), runs: split, next: 0, cur: null} : null;
       if(split) return split;
     }
@@ -16341,10 +17195,26 @@ export function initLegacyApp() {
         // On a calendar with no note place that call places nothing.
         const notesFrom = placed.length;
         const replacedByEpisodes = (s.key === 'production' && epSpans.length > 0);
+        // ⛔ FROZEN EDIT DU1 (owner-approved 17 Nov 2026 by picker, DOUBLE-UP-DAYS-PLAN.md R16: "Approve"; its gate:
+        // every calendar with no double-ups prints byte-identical month PDFs, gate 10 and gate 13, and the full gate.sh
+        // stays green). A DOUBLE-UP pill (a run carrying `du`: mvJoinDoubleUps() puts a joined one among Production's
+        // runs, right after its own unit's; the double-up segment's runs are the loose ones) is drawn:
+        //   - in its own colour, R7's darker shade of Production's (`du.color`, duShade), never the segment's;
+        //   - with data-ph="doubleUp" and data-du="<unit id>" (mvDuAttrs), so the drag, the right-click and the
+        //     double-click know whose it is, and nothing keyed on data-ph="production" (its grips, its drag) takes it;
+        //   - JOINED FLUSH to its unit's bar where they touch (R6): square corners and no margin on both sides of the
+        //     meeting, on the unit's run (joinR) and the double-up's (joinL) (mvDuJoinCss);
+        //   - ON ITS UNIT'S LINE: a run marked duLine starts its lane search at the lane the run before it took
+        //     (place()'s minLane, E3's), so it continues that line; and the next episode's run right after it, marked
+        //     duBelow, starts one line under it, so the next episode takes the line below that week.
+        // ⚠️ A run with no `du`, no joinL/joinR, no duLine and no duBelow -- every run of a calendar without double-ups -- gets the
+        // colour, style, data and lane it always did (both helpers return '', and minLane stays undefined). `duPrevLane`
+        // only records the lane place() already returned.
+        let duPrevLane = -1;
         if(!replacedByEpisodes){
           pillRunsForWeek(schedule, weekStart, s).forEach(r=>{
-            const bg = s.color || '#eee';
-            const fg = s.textColor || textColorFor(bg);
+            const bg = r.du ? r.du.color : (s.color || '#eee');
+            const fg = r.du ? r.du.textColor : (s.textColor || textColorFor(bg));
             const lbl = segPillLabel(s, addDays(weekStart, r.startCol));
             // ⛔ FROZEN EDIT, approved 16 Sep 2026 against MONTH-VIEW-PLAN.md §6.5. `data-ph` is the
             // MINIMUM that makes a pill identifiable for body-drag: it renders nothing, occupies no
@@ -16380,11 +17250,14 @@ export function initLegacyApp() {
             // appended LAST, after the half-day layers, so nothing it writes can reset them. It never carries a colour
             // (N1), so the text and the ring stay in the phase's ink. Unstyled, both are what they were.
             const pillLanes = mvPillLanes(s, r, lbl, noteBoxW, mvPillFmt(s, r));
-            place(r.startCol, r.endCol, 'mv-bar mv-pill' + (pillLanes > 1 ? ' mv-pill-2l' : ''),
-              `background:${bg}; color:${fg};` + halfSlices(weekStart, r.startCol, r.endCol, r) + halfInset(r) + mvPillCss(s, r),
+            // ⛔ FROZEN EDIT DU1 (above): mvDuJoinCss(r) after M1, the `data-ph` of a double-up, mvDuAttrs(r), and the
+            // minLane of a run marked duLine or duBelow.
+            duPrevLane = place(r.startCol, r.endCol, 'mv-bar mv-pill' + (pillLanes > 1 ? ' mv-pill-2l' : ''),
+              `background:${bg}; color:${fg};` + halfSlices(weekStart, r.startCol, r.endCol, r) + halfInset(r) + mvPillCss(s, r) + mvDuJoinCss(r),
               escHtml(lbl) + (blkTag ? ' · ' + escHtml(blkTag) : ''),
               escHtml(lbl) + (blkTag ? '<span class="mv-pill-block">' + escHtml(blkTag) + '</span>' : ''),
-              `data-ph="${s.key}"`, pillLanes, r);
+              `data-ph="${r.du ? DU_KEY : s.key}"` + mvDuAttrs(r), pillLanes, r,
+              r.duLine ? duPrevLane : r.duBelow ? duPrevLane + 1 : undefined);
           });
         }
         // Episode pills occupy Production's lane.
@@ -16795,7 +17668,7 @@ export function initLegacyApp() {
         delete mvTextStyle.episode[last.id];   // its bars' month style goes with it (MONTH-TEXT-STYLE-PLAN.md §3.5)
         // A typed prep length is an edit too (EPISODE-PREP-PLAN.md §6): it goes with the episode, so it
         // is named in the same "Removed ..." warning rather than lost in silence.
-        if(last.nameEdited || last.daysEdited || hasPrepOverride(last)) dropped.push(last.name || 'an episode');
+        if(last.nameEdited || last.daysEdited || hasPrepOverride(last) || hasDuDays(last) || hasDuName(last)) dropped.push(last.name || 'an episode');
       }
     }
     episodeDefs.forEach((e, i)=>{
@@ -16828,7 +17701,7 @@ export function initLegacyApp() {
       while(blockDefs.length > wanted){
         const last = blockDefs.pop();
         delete mvTextStyle.episode[last.id];   // its bars' month style goes with it (MONTH-TEXT-STYLE-PLAN.md §3.5)
-        if(last.daysEdited || hasPrepOverride(last)) dropped.push(last.name || 'a block');
+        if(last.daysEdited || hasPrepOverride(last) || hasDuDays(last) || hasDuName(last)) dropped.push(last.name || 'a block');
       }
     }
     blockDefs.forEach((b, i)=>{
@@ -17279,6 +18152,220 @@ export function initLegacyApp() {
     }
     const e = episodeDefs.find(x=> x.id === p.unit.id);
     return e ? name + ' ' + shortEpisodeName(e) : name;
+  }
+
+  // ⭐ DOUBLE-UP DAYS: THE DERIVATION (DOUBLE-UP-DAYS-PLAN.md §4). computeSchedule() calls this right after
+  // appendEpisodePrep(), and it only APPENDS one segment, so it moves no date anywhere (R17).
+  // The SLOT LINE: slot k < N is Production's k-th shoot day (shootDays, so a weekend marked On counts and a day marked
+  // Off does not); slot N + j is the (j+1)-th working day after wrap (isUnitWorkDay(): Mon-Fri, no enabled union
+  // holiday, no all-phase hiatus). For each unit productionUnits() lays on the shoot, in shooting order:
+  //   n       its own count, else the card's default, else 0 for the LAST unit (R5);
+  //   default the n slots after its last day (the next unit's first days; a half switch day is its last day, so the
+  //           double-up starts on the first FULL day after it, R15), or for the last unit its own last n days (R5);
+  //   moved   doubleUpMoved[id]: {day: n} is slot n-1, {after: n} is slot N-1+n. A move onto the default is no move.
+  // A unit that is not the last and not moved is JOINED: it rides its unit's line in Production's lane (R6), and is
+  // drawn by mvJoinDoubleUps() inside Production's runs; every other one is LOOSE, drawn by this segment's own runs.
+  // The segment, the only one of its kind:
+  //   dus       each double-up: {kind, unit, id, n, slot, defSlot, moved, last, joined, days (isos, in order), daySet,
+  //             color, textColor};
+  //   days      the union, for segCoversDate();
+  //   firstDay / lastDay  its real bounds, which monthRangeForSchedule() reads, so one dropped after wrap gets its month;
+  //   start     ⛔ Production's own start, a LANE ANCHOR (prep's reason, EPISODE-PREP-PLAN §13.1): frozen renderMonthView
+  //             orders a week's segments by start, so the loose pills come after Production and prep.
+  // landmarkDate(), scheduleLastDay(), the key facts' weeks and the hiatus drag's question skip it (duIsDerived), so
+  // a double-up after wrap never reads as the calendar running longer.
+  function appendDoubleUps(schedule, state, hiatuses){
+    const cfg = state && state.doubleUps;
+    if(!cfg) return;
+    const defs = isBlocksMode() ? blockDefs : episodeDefs;
+    // The cheap exit, before any unit is laid out: the solvers call computeSchedule() up to 300 times a solve, and a
+    // calendar with no double-up must pay nothing.
+    if(!(cfg.dflt > 0) && !defs.some(d=> duCountOf(d.doubleUpDays) > 0)) return;
+    const prod = (schedule.segments || []).find(s=> s.key === 'production');
+    if(!prod || !prod.shootDays || !prod.shootDays.length) return;
+    if(!showInfoStatus().complete) return;
+    const U = productionUnits(schedule);
+    if(!U || !U.units.length) return;
+    const shoot = prod.shootDays, N = shoot.length;
+    const index = new Map(shoot.map((iso, k)=> [iso, k]));
+    const ctx = {holidayIsos: new Set(fullHolidayList(state.unionCountry).filter(h=> h.enabled).map(h=> h.date)),
+                 hiatuses: hiatuses || [], ownHi: null};
+    const after = [];
+    const slotIso = k=>{
+      if(!(k >= 0)) return null;
+      if(k < N) return shoot[k];
+      // Bounded like a Days phase's walk, so a typo'd move cannot hang the page.
+      for(let d = after.length ? addDays(parseDateUTC(after[after.length - 1]), 1) : addDays(parseDateUTC(shoot[N - 1]), 1), safety = 0;
+          after.length <= k - N && safety < MAX_WEEKS * 7; d = addDays(d, 1), safety++){
+        if(isUnitWorkDay(d, ctx)) after.push(isoOf(d));
+      }
+      return after[k - N] || null;
+    };
+    const look = duLookFor(prod.color, prod.textColor);   // its own pick, else Production's darker
+    const last = U.units[U.units.length - 1];
+    // ⭐ R20 (owner, 17 Nov 2026, after v1.17.0: "there also shouldnt be double up days at the beginning of the 1st
+    // episode", then the picker "None during episode 1"): NO double-up sits on any of the FIRST unit's days (episode 1 in
+    // shooting order, or block 1). `minSlot` is the first slot after its last day (a half switch day is its day too), so
+    // the earliest a double-up can start is the next unit's first full day, where the first unit's own sits by default.
+    // ⭐ The one exception (owner's picker, "Allow it there"): a show of ONE unit keeps its double-up on its own last days
+    // (R5), so with one unit there is no limit. The drag (duDropVerdict) and its grey days read this same `minSlot` off
+    // the segment, so the rule has one copy.
+    const firstDays = U.units.length > 1 ? Array.from(U.units[0].days) : [];
+    const minSlot = firstDays.length ? (index.get(firstDays[firstDays.length - 1]) + 1) : 0;
+    const dus = [], all = new Set();
+    let firstDay = null, lastDay = null;
+    U.units.forEach(u=>{
+      const def = (U.kind === 'block') ? blockDefs[u.i] : episodeDefs.find(e=> e.id === u.id);
+      if(!def || !u.days.size) return;
+      const isLast = u === last;
+      const own = duCountOf(def.doubleUpDays);
+      const n = Number.isFinite(own) ? own : (isLast ? 0 : (cfg.dflt || 0));
+      if(!(n > 0)) return;
+      // A unit's days were added in shoot order, so the last one is its last day.
+      const ud = Array.from(u.days), lastK = index.get(ud[ud.length - 1]);
+      if(lastK === undefined) return;
+      // The last unit's own last days, never reaching back into the first unit's (R20; only a short last unit could).
+      const defSlot = isLast ? Math.max(minSlot, lastK - n + 1) : lastK + 1;
+      const mv = duMovedOf(cfg.moved && cfg.moved[def.id]);
+      let slot = defSlot;
+      // A move onto the first unit's days (only a v1.17.0 file can hold one: R20 came after it) is drawn at its default,
+      // and the saved move is KEPT, so the file opens and nothing in it is lost.
+      if(mv){ const k = mv.day ? mv.day - 1 : N - 1 + mv.after; if(k >= minSlot) slot = k; }
+      const moved = slot !== defSlot;
+      const list = [];
+      for(let j = 0; j < n; j++){ const iso = slotIso(slot + j); if(iso) list.push(iso); }
+      if(!list.length) return;
+      list.forEach(iso=> all.add(iso));
+      const f = parseDateUTC(list[0]), l = parseDateUTC(list[list.length - 1]);
+      if(!firstDay || f < firstDay) firstDay = f;
+      if(!lastDay || l > lastDay) lastDay = l;
+      dus.push({kind: U.kind, unit: u, id: def.id, n, slot, defSlot, unitLast: lastK, moved, last: isLast, joined: !isLast && !moved,
+                days: list, daySet: new Set(list), first: f, lastDay: l, color: look.color, textColor: look.textColor});
+    });
+    if(!dus.length) return;
+    schedule.segments.push({key: DU_KEY, label: duDefaultName(), name: duDefaultName(), color: look.color,
+      textColor: look.textColor, start: prod.start, end: addDays(lastDay, 1), firstDay, lastDay, weeks: 0,
+      days: all, dus, shotCount: N, minSlot, shootDays: null, phaseHiatus: null, doubleUp: true});
+  }
+  // A derived, month-only segment that is not a phase: prep and double-ups.
+  function duIsDerived(s){ return !!s && (s.key === PREP_KEY || s.key === DU_KEY); }
+  function duSegOf(schedule){ return ((schedule && schedule.segments) || []).find(s=> s.key === DU_KEY) || null; }
+  // One double-up's runs in one Sun-Sat row: a run breaks where its days do (a weekend, a holiday).
+  function duRunsInWeek(schedule, weekStart, du){
+    const out = [];
+    let run = null;
+    for(let i = 0; i < 7; i++){
+      const d = addDays(weekStart, i);
+      if(du.daySet.has(isoOf(d)) && !isHiatusDate(schedule, d)){
+        if(!run) run = {startCol: i, endCol: i, date: d, du};
+        else run.endCol = i;
+      } else if(run){ out.push(run); run = null; }
+    }
+    if(run) out.push(run);
+    return out;
+  }
+  // ⭐ THE JOIN (R6): Production's runs for one row, with each JOINED double-up's runs put in right after its own unit's
+  // runs (before any later unit's), so frozen renderMonthView, which places runs first-fit in this order, gives the
+  // double-up the line before the next episode can take it. The next episode then sits on the line below for that week
+  // only. Three marks, which only the frozen edit DU1 and its writer read:
+  //   duLine  the run before it in this list is its own unit's (or its own previous piece): DU1 starts its lane search
+  //           at that run's lane (place()'s minLane), so it continues the line even where an earlier phase holds a line
+  //           above on its days. The month-PDF writer reads it back as data-du-line.
+  //   joinR / joinL  the unit's last run and the double-up's first touch (adjacent columns, no half inset): square
+  //           corners and no margin where they meet (mvDuJoinCss), "joined flush" (R6).
+  //   duBelow the NEXT unit's run right after it, sharing its days: DU1 starts its lane search one line under the
+  //           double-up's, so the next episode sits on the line below (R6). The writer reads it as data-du-below.
+  // A row with no joined double-up comes back as the same array, untouched, which is what keeps every calendar without
+  // double-ups byte-identical. Labelled by Production Week (productionSplits() false) there is no unit bar to join, and
+  // the double-ups are drawn loose instead (duLooseRunsForWeek).
+  function mvJoinDoubleUps(schedule, weekStart, runs){
+    const seg = duSegOf(schedule);
+    if(!seg || !runs) return runs;
+    const U = productionUnits(schedule);
+    if(!U) return runs;
+    const order = u=> U.units.indexOf(u);
+    let out = runs;
+    seg.dus.forEach(du=>{
+      if(!du.joined) return;
+      const dr = duRunsInWeek(schedule, weekStart, du);
+      if(!dr.length) return;
+      if(out === runs) out = runs.slice();
+      const k = order(du.unit);
+      let at = out.findIndex(r=> r.du ? order(r.du.unit) > k : (!r.unit || order(r.unit) > k));
+      if(at < 0) at = out.length;
+      const prev = at > 0 ? out[at - 1] : null;
+      if(prev && (prev.unit === du.unit || (prev.du && prev.du === du))){
+        dr[0].duLine = true;
+        if(prev.unit === du.unit && !prev.du && prev.endCol + 1 === dr[0].startCol && !prev.halfEnd){
+          prev.joinR = true;
+          dr[0].joinL = true;
+        }
+      }
+      for(let j = 1; j < dr.length; j++) dr[j].duLine = true;
+      out.splice(at, 0, ...dr);
+      // The next unit's run, when it shares the double-up's days in this row, goes to the line BELOW it (R6: "the next
+      // episode starts on the line below for the overlap days"). First-fit alone could lift it to a line above, where an
+      // earlier double-up of the same week left room.
+      const nx = out[at + dr.length], lastDr = dr[dr.length - 1];
+      if(nx && nx.unit && !nx.du && nx.startCol <= lastDr.endCol && nx.endCol >= dr[0].startCol) nx.duBelow = true;
+    });
+    return out;
+  }
+  // The double-up segment's own pills in one row: every double-up that is not riding Production's line.
+  function duLooseRunsForWeek(schedule, weekStart, seg){
+    const split = productionSplits(productionUnits(schedule));
+    const out = [];
+    (seg.dus || []).forEach(du=>{ if(!(du.joined && split)) duRunsInWeek(schedule, weekStart, du).forEach(r=> out.push(r)); });
+    return out;
+  }
+  // The loose runs pillRunsForWeek() last handed the renderer, for segPillLabel(): prep's call-order contract
+  // (takePrepRun), since two loose double-ups can start on the same day of one row.
+  let _duRuns = null;   // {week: iso of the row's Sunday, runs, next}
+  function takeDuRun(date){
+    const P = _duRuns;
+    if(!P) return null;
+    const col = date.getUTCDay();
+    if(isoOf(addDays(date, -col)) !== P.week) return null;
+    let k = (P.runs[P.next] && P.runs[P.next].startCol === col) ? P.next : -1;
+    if(k < 0) k = P.runs.findIndex(r=> r.startCol === col);
+    if(k < 0) return null;
+    P.next = k + 1;
+    return P.runs[k];
+  }
+  // A double-up pill's text (plan §6): its name and its unit, "Tandem 102", "Double-up Block 1". Read at render time,
+  // so renaming the episode, the block, the card or the unit's own name shows at once.
+  function duPillLabel(du){
+    if(!du) return duDefaultName();
+    const def = du.kind === 'block' ? blockDefs[du.unit.i] : episodeDefs.find(e=> e.id === du.unit.id);
+    const name = hasDuName(def) ? def.doubleUpName : duDefaultName();
+    if(du.kind === 'block') return name + ' ' + ((def && def.name) || ('Block ' + (du.unit.i + 1)));
+    return def ? name + ' ' + shortEpisodeName(def) : name;
+  }
+  // What frozen edit DU1 appends to a run's style and its data: '' for a run with no double-up mark, which is every run
+  // of a calendar without double-ups.
+  // ⭐ THE JOIN IS ONE FAINT LINE (owner, 17 Nov 2026, R18: "A: one faint line", mockups/double-up-join-line.html). Every
+  // pill is ringed in its ink (a 1 px currentColor border plus an inset .5 px shadow, the 21 Oct 2026 frozen CSS edit),
+  // so two squared ends side by side made a ~3 px dark double line. So, where the two meet:
+  //   the shoot pill (joinR)  no right border, its padding 1 px wider (8 + 1: the box and the text stay exactly where
+  //                            they were), and the ring's half pixel on its other three sides only;
+  //   the double-up (joinL)   no left border, padding 1 px wider, the half pixel on its other three sides, and ONE 1 px
+  //                            inset line on its left edge in its own ink at 40% (DU_JOIN_LINE).
+  // ⛔ The divider is a SHADOW, never a border, not even a faint or transparent one: a border met the dark top and bottom
+  // borders on a diagonal at each corner and left a 1 px stripe beside the line, which read as two lines with notches.
+  // The top and bottom borders run straight across. ⚠️ 9px is .mv-bar's padding (8px, at every bar size) plus the 1 px
+  // border it replaces; the month-PDF writer reads all of this back exactly (mvlDuJoins) and paints the same.
+  const DU_JOIN_LINE = 'color-mix(in srgb, currentColor 40%, transparent)';
+  function mvDuJoinCss(r){
+    if(!r || !(r.joinL || r.joinR)) return '';
+    if(r.joinL) return ' border-top-left-radius:0; border-bottom-left-radius:0; margin-left:0; border-left:0; padding-left:9px;'
+      + ' box-shadow:inset 1px 0 0 ' + DU_JOIN_LINE + ', inset 0 .5px 0 currentColor, inset 0 -.5px 0 currentColor, inset -.5px 0 0 currentColor;';
+    return ' border-top-right-radius:0; border-bottom-right-radius:0; margin-right:0; border-right:0; padding-right:9px;'
+      + ' box-shadow:inset 0 .5px 0 currentColor, inset 0 -.5px 0 currentColor, inset .5px 0 0 currentColor;';
+  }
+  function mvDuAttrs(r){
+    if(!r) return '';
+    if(!r.du) return r.duBelow ? ' data-du-below="1"' : '';
+    return ' data-du="' + escHtml(r.du.id) + '"' + (r.duLine ? ' data-du-line="1"' : '');
   }
 
   // The bar text and the grey text of one unit's run -- the ONLY place a split bar's two strings are
@@ -20824,6 +21911,8 @@ export function initLegacyApp() {
   // and week number (N2). null when the run names nothing it could keep (a prep run with no unit).
   function mvPillTextKey(s, run){
     if(!s || !run || !run.date) return null;
+    // A double-up pill takes no month text style (not in DOUBLE-UP-DAYS-PLAN.md): it has no key to keep one under.
+    if(run.du || s.key === DU_KEY) return null;
     if(s.key === 'production' && run.unit && run.unit.id) return ['episode', String(run.unit.id)];
     if(s.key === PREP_KEY) return (run.prep && run.prep.unit && run.prep.unit.id) ? ['phase', PREP_KEY + '@' + run.prep.unit.id] : null;
     return ['phase', s.key + '@' + mvPhaseWeekNo(s, run.date)];
@@ -25824,8 +26913,8 @@ export function initLegacyApp() {
   }
   // The renderer's run state, put back after a resolver re-derives one row's runs (pillRunsForWeek records it).
   function mvRowRuns(schedule, rowStart, seg){
-    const pr = _prodRuns, pp = _prepRuns;
-    try { return pillRunsForWeek(schedule, rowStart, seg); } finally { _prodRuns = pr; _prepRuns = pp; }
+    const pr = _prodRuns, pp = _prepRuns, pd = _duRuns;
+    try { return pillRunsForWeek(schedule, rowStart, seg); } finally { _prodRuns = pr; _prepRuns = pp; _duRuns = pd; }
   }
   // The '<kind>:<key>' of one month text element, or null for one that has no stable name.
   function mvTextKeyOf(el){
@@ -25863,6 +26952,7 @@ export function initLegacyApp() {
       return hits.length === 1 ? 'band:' + wk + '|' + hits[0].key : null;
     }
     if(!cl.contains('mv-pill')) return null;
+    if(el.hasAttribute('data-du')) return null;          // a double-up pill takes no style (mvPillTextKey)
     const ph = el.getAttribute('data-ph');
     if(!ph){
       const wkRec = (sch.weeks || []).find(x=> isoOf(x.date) === isoOf(mondayOf(addDays(start, 1))));
@@ -25876,8 +26966,9 @@ export function initLegacyApp() {
     // ⛔ Not mvlDecls: that is the month PDF writer's, and nothing outside the writer may reach a name in it (the month
     // legs' F0). halfInset() writes exactly these two declarations, and only on a switch day's end.
     const st = el.getAttribute('style') || '';
-    const hasL = /(^|;)\s*margin-left:/.test(st), hasR = /(^|;)\s*margin-right:/.test(st);
-    let runs = mvRowRuns(sch, start, seg).filter(r=> r.startCol === from && r.endCol === to
+    // A half inset is a calc() (halfInset); a double-up's flush join writes margin 0 (mvDuJoinCss), which is not one.
+    const hasL = /(^|;)\s*margin-left:\s*calc\(/.test(st), hasR = /(^|;)\s*margin-right:\s*calc\(/.test(st);
+    let runs = mvRowRuns(sch, start, seg).filter(r=> !r.du && r.startCol === from && r.endCol === to
       && !!r.halfStart === hasL && !!r.halfEnd === hasR);
     if(runs.length > 1 && ph === PREP_KEY){
       const tag = el.querySelector('.mv-pill-block');
@@ -28467,7 +29558,8 @@ export function initLegacyApp() {
     // ⭐ PRODUCTION runs from its first SHOOT day to its last (shootDays, the simulation's own list, the one the month
     // view draws from). Its segment's `end` is week-based, so it would carry the bar on past the wrap to the end of
     // that week (the monthmap leg's B2 caught it: a Tuesday wrap drawn to the Sunday).
-    const spans = mvLaneOrder(sch.segments || []).map(s => {
+    // Double-ups are not drawn on the map (DOUBLE-UP-DAYS-PLAN.md): they are a second crew inside Production's span.
+    const spans = mvLaneOrder((sch.segments || []).filter(s=> s.key !== DU_KEY)).map(s => {
       const fill = s.color || '#eee';
       const shot = Array.isArray(s.shootDays) && s.shootDays.length ? s.shootDays : null;
       const start = shot ? parseDateUTC(shot[0]) : (s.firstDay || s.start);
@@ -29025,6 +30117,7 @@ export function initLegacyApp() {
     reflectPhaseEnds();   // the Starts / Ends selects, the Ends boxes and each card's ends-mode class
     reflectPhaseNudges(); // which cards show the week arrows (the waterfall, and a phase with a date), and their labels
     refreshPrepUI(currentSchedule);
+    refreshDoubleUpUI(currentSchedule);
     refreshHolidayCoverageNote();
     // The "Label Production by" control (Preferences, month view). Here because a change of Schedule by,
     // an undo or a Load can change what it shows without touching mvProdLabel's own setter.
@@ -29165,7 +30258,7 @@ export function initLegacyApp() {
   }
   const HALF_FIELDS = '#episode-rows .ep-days, #episode-rows .blk-days, #shoot-days-per-ep, #days-per-block';
   // The prep lengths (EPISODE-PREP-PLAN.md) count WORKING days, whole ones, like a Days phase.
-  const PREP_FIELDS = '.form-panel .prep-days-in';
+  const PREP_FIELDS = '.form-panel .prep-days-in, .form-panel .du-days-in';   // and the double-up counts (R19), whole days too
   const WHOLE_FIELDS = '.form-panel input[id^="weeks-"], #hiatus-list .hiatus-weeks, .phiatus-weeks, #simpost-offset, '
                      + HALF_FIELDS + ', .form-panel .phase-days, ' + PREP_FIELDS;
   function reflectStartDateValidity(state, extraBad){
@@ -29178,14 +30271,14 @@ export function initLegacyApp() {
       bad.add(el);
       // The two Show Info defaults are Mantine NumberInputs, whose input sits in the wrapper rather
       // than inside its <label>, so the wrapper hosts the words (printed under the field).
-      const host = el.closest('.episode-row') || el.closest('.block-head') || el.closest('.prep-unit-row')
+      const host = el.closest('.episode-row') || el.closest('.block-head') || el.closest('.prep-unit-row') || el.closest('.du-unit-row')
                 || el.closest('label') || el.closest('.mantine-InputWrapper-root');
       // Both rules, kept side by side (merged 15 Oct 2026): an episode's or block's count may end in .5
       // (HALF_FIELDS, the half-days ruling), while a custom phase's Days box counts WORKING days,
       // which are whole (CUSTOM-PHASE-UNITS-PLAN.md) -- isWholeNumberTypo() applies the whole rule to
       // it because it is not in HALF_FIELDS.
       if(host) hosts.set(host, el.matches(HALF_FIELDS) ? 'Whole or half days only'
-                             : (el.classList.contains('phase-days') || el.classList.contains('prep-days-in')) ? 'Whole days only'
+                             : (el.classList.contains('phase-days') || el.classList.contains('prep-days-in') || el.classList.contains('du-days-in')) ? 'Whole days only'
                              : 'Whole weeks only');
     });
     document.querySelectorAll('.form-panel [data-whole-err]').forEach(h=>{ if(!hosts.has(h)) h.removeAttribute('data-whole-err'); });
@@ -31704,6 +32797,7 @@ export function initLegacyApp() {
     { const el = document.getElementById('prep-days'); if(el) el.value = ''; }
     { const el = document.getElementById('prep-name'); if(el) el.value = PREP_DEF.label; }
     prepPauseOff = false;   // the box follows on the update() after New (refreshPrepUI)
+    restoreDoubleUps(null); // no double-up default, name or move (DOUBLE-UP-DAYS-PLAN.md); the units' own go with the defs
     colReuse = true; colFollow = {}; reflectColReuse();   // a new calendar reuses columns (owner, 2 Nov 2026)
     colKeep = {}; colKeepRestored = true;   // ...remembers no moved phase, and New itself is not a move (sticky columns)
     mvPhaseOrder = [];      // the month view back in date order (MONTH-ORDER-PLAN.md)
@@ -32065,7 +33159,7 @@ export function initLegacyApp() {
     // .hiatus-drag-layer / .hiatus-grip / .hiatus-drag-shield added 19 Oct 2026 with the hiatus drag
     // (HIATUS-DRAG-PLAN.md): the same body-level chrome, over a hiatus band. The copy's own engine
     // makes fresh ones when it boots, so a kept set would be a second, dead one.
-    clone.querySelectorAll('.note-pop, .mv-note-pop, .day-ov-pop, .phase-color-pop, .date-pop, .select-pop, .hdr-mode-pop, .hdr-token-pop, .hde-overlay, .phase-edge-handle, .phase-edge-shield, .day-menu, .day-menu-ring, .hdrrow-ring, .paste-notes-overlay, .sb-fmt, .sb-menu, .sb-drop, .hiatus-drag-layer, .hiatus-grip, .hiatus-drag-shield, .mv-order-grip, .mv-drag-ghost, .mv-drag-shield, .wf-notes-ring, .month-sel-box, .month-sel-chip, .fm-ctx, .ripple-note').forEach(el=>el.remove());
+    clone.querySelectorAll('.note-pop, .mv-note-pop, .day-ov-pop, .phase-color-pop, .date-pop, .select-pop, .hdr-mode-pop, .hdr-token-pop, .hde-overlay, .phase-edge-handle, .phase-edge-shield, .day-menu, .day-menu-ring, .hdrrow-ring, .paste-notes-overlay, .sb-fmt, .sb-menu, .sb-drop, .hiatus-drag-layer, .hiatus-grip, .hiatus-drag-shield, .mv-order-grip, .mv-drag-ghost, .mv-drag-shield, .wf-notes-ring, .month-sel-box, .month-sel-chip, .fm-ctx, .ripple-note, .du-drop-box, .du-toast, .du-rename-pop').forEach(el=>el.remove());
     // .month-sel-chip added 14 Nov 2026 (second review of item 2.8): the month grid's message chip (flashMvSel), body-level
     // for 4.2 s after a copy leaves a note out, so a copy exported inside that window carried it, visible, for good.
     // A retry of the Excel library still on its way (loadExcelLib, audit item 3.11): the copy loads its own from the
@@ -32612,8 +33706,9 @@ export function initLegacyApp() {
       if(p.key !== 'production') values['ph:' + p.key] = (day(t[p.key + '.open']) && day(t[p.key + '.close']))
         ? [day(t[p.key + '.open']), day(t[p.key + '.close'])] : null;
     });
-    // From the first phase's start to the last one's end, in whole weeks.
-    const segs = (sch && sch.segments) || [];
+    // From the first phase's start to the last one's end, in whole weeks. Not double-ups: one dropped after wrap is a
+    // second crew's day, not a longer calendar (DOUBLE-UP-DAYS-PLAN.md R17).
+    const segs = ((sch && sch.segments) || []).filter(s=> s.key !== DU_KEY);
     if(segs.length){
       // Each phase from the first day it works, as its own row reads (phaseOpenDay): a first phase typed into a
       // hiatus counted the break's weeks here too.
@@ -33497,6 +34592,10 @@ export function initLegacyApp() {
       // key. Unticked, the default, is an ABSENT key, so a calendar that never ticks it saves byte for
       // byte what it did before the switch existed.
       ...(prepPauseOff ? {prepPauseOff: true} : {}),
+      // 17 Nov 2026: double-up days (DOUBLE-UP-DAYS-PLAN.md §7). ⛔ PERMANENT key and parts (days, name, moved, and the
+      // values {day} / {after}). ABSENT while nothing is set (duSnapshot), so a calendar with no double-up saves byte
+      // for byte as before. The per-unit counts and names ride on episodeDefs / blockDefs.
+      ...(duSnapshot() ? {doubleUps: duSnapshot()} : {}),
       // 2 Nov 2026: Simultaneous Post's own name (owner). ⛔ PERMANENT key. The default name is an ABSENT key, so a
       // calendar that never renames it saves byte for byte as before. An older build ignores it and shows the default.
       ...(simPostName ? {simPostName} : {}),
@@ -35711,7 +36810,8 @@ export function initLegacyApp() {
   // Prep is skipped (EPISODE-PREP-PLAN.md §4.2): it always ends before its shoot, but it is derived, not
   // scheduled, so it must never be what the schedule's end is read from.
   function scheduleLastDay(){
-    const segs = ((currentSchedule && currentSchedule.segments) || []).filter(s=> s.key !== PREP_KEY);
+    // Nor double-ups (DOUBLE-UP-DAYS-PLAN.md): one dropped after wrap is a second crew's day, never the calendar's end.
+    const segs = ((currentSchedule && currentSchedule.segments) || []).filter(s=> !duIsDerived(s));
     if(!segs.length) return null;
     let last = null;
     segs.forEach(s=>{ const d = phaseLastWorkday(s); if(d && (!last || d > last)) last = d; });
@@ -37779,7 +38879,7 @@ export function initLegacyApp() {
         let first = null;
         // ⛔ Not prep (EPISODE-PREP-PLAN.md §4.2): it is derived from the shoot and moves with it, so it
         // cannot be a landmark to anchor the shoot BY -- and its `start` is a lane anchor, not a date.
-        segs.forEach(s=>{ if(s.key !== PREP_KEY && (!first || s.start < first)) first = s.start; });
+        segs.forEach(s=>{ if(!duIsDerived(s) && (!first || s.start < first)) first = s.start; });   // nor double-ups
         return first;
       }
       if(edge === 'start') return phaseStartDate(key);
@@ -41291,6 +42391,39 @@ export function initLegacyApp() {
     if(d['color']) f.color = d['color'];
     return Object.keys(f).length ? f : null;
   }
+  // ⭐ A DOUBLE-UP'S FLUSH JOIN (DOUBLE-UP-DAYS-PLAN.md R6, R18, frozen edit DU1): mvDuJoinCss() writes, on the side
+  // where a unit's bar and its double-up meet, square corners, `margin-…:0`, `border-…:0`, `padding-…:9px` and the
+  // box-shadow that keeps the ring on the other three sides (the double-up's with its one faint line). Read back here as
+  // joinL / joinR, checked to the character, and DELETED from `d`, so mvlHalfInset never meets that margin. joinL only
+  // on a double-up, joinR only on Production's bar, never both: anything else throws, as an inset does, because a join
+  // drawn on the wrong side would misstate whose day it is. ⚠️ The strings are written out here, not read from
+  // mvDuJoinCss's DU_JOIN_LINE: the writer is sliced out of this file on its own (the monthwriter leg, S0).
+  function mvlDuJoins(d, ph, isDu){
+    const out = {};
+    const want = {
+      joinL: {'border-top-left-radius': '0', 'border-bottom-left-radius': '0', 'margin-left': '0', 'border-left': '0',
+              'padding-left': '9px', 'box-shadow': 'inset 1px 0 0 color-mix(in srgb, currentColor 40%, transparent), inset 0 .5px 0 currentColor, inset 0 -.5px 0 currentColor, inset -.5px 0 0 currentColor'},
+      joinR: {'border-top-right-radius': '0', 'border-bottom-right-radius': '0', 'margin-right': '0', 'border-right': '0',
+              'padding-right': '9px', 'box-shadow': 'inset 0 .5px 0 currentColor, inset 0 -.5px 0 currentColor, inset .5px 0 0 currentColor'},
+    };
+    const side = ('border-top-left-radius' in d) ? 'joinL' : ('border-top-right-radius' in d) ? 'joinR' : null;
+    if(!side){
+      if('box-shadow' in d || 'border-left' in d || 'border-right' in d || 'padding-left' in d || 'padding-right' in d
+         || 'border-bottom-left-radius' in d || 'border-bottom-right-radius' in d){
+        throw new Error('Month layout: a bar with a part of a join.');
+      }
+      return out;
+    }
+    const w = want[side];
+    Object.keys(w).forEach(function(k){
+      if(d[k] !== w[k]) throw new Error('Month layout: a join with ' + k + ':' + d[k] + '.');
+      delete d[k];
+    });
+    if(side === 'joinL' ? !isDu : !(ph === 'production' && !isDu)) throw new Error('Month layout: a join on the wrong bar.');
+    if('border-top-right-radius' in d || 'border-top-left-radius' in d || 'box-shadow' in d) throw new Error('Month layout: a bar joined on both sides.');
+    out[side] = true;
+    return out;
+  }
   // One bar: what it is, where the renderer put it, and what it says.
   function mvlParseItem(el){
     const cl = el.classList, d = mvlDecls(el.getAttribute('style'));
@@ -41307,6 +42440,9 @@ export function initLegacyApp() {
     const tagEl = el.querySelector('.mv-pill-block');
     let text = '';
     el.childNodes.forEach(function(n){ if(n !== tagEl) text += n.textContent; });
+    // A double-up's flush join (frozen edit DU1, mvDuJoinCss): read and taken out first, so its `margin:0` is never
+    // mistaken for a half inset.
+    const joins = mvlDuJoins(d, kind === 'pill' ? el.getAttribute('data-ph') : null, el.hasAttribute('data-du'));
     const ends = mvlHalfInset(d, from, to);
     if((ends.halfStart || ends.halfEnd) && !(kind === 'pill' && el.getAttribute('data-ph') === 'production')){
       throw new Error('Month layout: a half-day inset on a bar that is not Production\'s.');
@@ -41334,6 +42470,11 @@ export function initLegacyApp() {
     // Only when true, so a calendar with no switch day models exactly as it did.
     if(ends.halfStart) item.halfStart = true;
     if(ends.halfEnd) item.halfEnd = true;
+    // A double-up's join and line (DOUBLE-UP-DAYS-PLAN.md, frozen edit DU1), only when true, for the same reason.
+    if(joins.joinL) item.joinL = true;
+    if(joins.joinR) item.joinR = true;
+    if(el.getAttribute('data-du-line') === '1') item.duLine = true;
+    if(el.getAttribute('data-du-below') === '1') item.duBelow = true;
     // Only when styled (W1), for the same reason.
     const fmt = mvlTextFmt(d);
     if(fmt) item.fmt = fmt;
@@ -41415,12 +42556,18 @@ export function initLegacyApp() {
   // ⭐ A NOTE'S ANCHOR, copied too (MONTH-ORDER-PLAN.md §9, frozen edit E3): a note carrying `anchor` (the index of
   // an EARLIER item, the bar it sits under) starts its search at the line under that bar as this re-pack placed it,
   // as the renderer's takeLane starts at its minLane. No item carries one on a calendar with no order or note place.
+  // ⭐ A DOUBLE-UP ON ITS UNIT'S LINE, copied too (DOUBLE-UP-DAYS-PLAN.md R6, frozen edit DU1): an item marked duLine
+  // starts its search at the lane of the item placed just before it, as the renderer's place() starts at that run's
+  // lane, and one marked duBelow (the next episode's bar after a double-up) one lane under it. No item carries either
+  // mark on a calendar with no double-up.
   function mvlPackLanes(items, spanOf){
     const occupied = new Map(), halfHeld = new Map(), done = [];
-    return items.map(function(it){
+    return items.map(function(it, idx){
       const span = Math.max(1, spanOf(it) || 1);
       const under = (it.anchor != null && done[it.anchor]) ? done[it.anchor] : null;
-      const from = under ? under.lane + under.lanes : 0;
+      const prev = (idx > 0 && done[idx - 1]) ? done[idx - 1] : null;
+      const prevLane = (it.duLine && prev) ? prev.lane : (it.duBelow && prev) ? prev.lane + 1 : 0;
+      const from = under ? under.lane + under.lanes : prevLane;
       const need = function(c){
         if(!it.halfStart && !it.halfEnd) return '';
         const l = !(it.halfStart && c === it.from), r = !(it.halfEnd && c === it.to);
@@ -41562,6 +42709,10 @@ export function initLegacyApp() {
                     ph: it.ph, note: it.note, lines: it.lines };
         if(it.halfStart) o.halfStart = true;
         if(it.halfEnd) o.halfEnd = true;
+        if(it.joinL) o.joinL = true;
+        if(it.joinR) o.joinR = true;
+        if(it.duLine) o.duLine = true;     // mvlShrinkWeeks re-packs from this
+        if(it.duBelow) o.duBelow = true;
         if(it.fmt) o.fmt = it.fmt;
         return o;
       });
@@ -42034,7 +43185,11 @@ export function initLegacyApp() {
     const fill = clear ? [1, 1, 1] : mvlRgb(it.fill), ink = mvlRgb(it.ink);
     const tag = function(o){ o.wk = at.wk; o.i = at.i; return o; };
     const clr = function(o){ if(clear) o.clear = true; return o; };
-    out.push(clr(tag({ k: 'fill', x: x, y: y, w: w, h: h, r: r, c: fill, role: 'bar', kind: it.kind })));
+    // A double-up's flush join (DOUBLE-UP-DAYS-PLAN.md R6): square corners on the side where it meets its unit's bar.
+    // `sq` is written only on a joined bar, so every other bar's entries are exactly what they were.
+    const sq = (it.joinL ? 'L' : '') + (it.joinR ? 'R' : '');
+    const sqd = function(o){ if(sq) o.sq = sq; return o; };
+    out.push(clr(tag(sqd({ k: 'fill', x: x, y: y, w: w, h: h, r: r, c: fill, role: 'bar', kind: it.kind }))));
     // The shade is a background layer one day wide over the bottom half of the PADDING box, clipped to
     // the bar's rounded edge (halfSlices: background-size W% 100%, positioned in the padding box).
     const px = x + B.border, py = y + B.border, pw = w - 2 * B.border, ph = h - 2 * B.border;
@@ -42050,7 +43205,7 @@ export function initLegacyApp() {
       return { x: px + (c - it.from) * pw / span, y: py + ph / 2, w: pw / span, h: ph / 2 };
     });
     slices.forEach(function(s){
-      out.push({ k: 'clip', x: x, y: y, w: w, h: h, r: r });
+      out.push(sqd({ k: 'clip', x: x, y: y, w: w, h: h, r: r }));
       out.push(tag({ k: 'fill', x: s.x, y: s.y, w: s.w, h: s.h, r: 0, c: shade, role: 'bar-shade' }));
       out.push({ k: 'unclip' });
     });
@@ -42061,8 +43216,12 @@ export function initLegacyApp() {
     const pillRim = (it.kind === 'pill' || it.kind === 'simpost');
     // Anything else: the 18% border lies over the fill, and in a rounded bottom corner over the shade too, so it is
     // drawn once over the fill and again, clipped to each slice, over the shade.
-    out.push(clr(tag({ k: 'ring', x: x, y: y, w: w, h: h, r: r, t: pillRim ? B.pillRim : B.border,
-                       c: pillRim ? ink : mvlMix(black, B.borderAlpha, fill), role: 'bar-ring' })));
+    out.push(clr(tag(sqd({ k: 'ring', x: x, y: y, w: w, h: h, r: r, t: pillRim ? B.pillRim : B.border,
+                       c: pillRim ? ink : mvlMix(black, B.borderAlpha, fill), role: 'bar-ring' }))));
+    // R18 (owner, 17 Nov 2026): a joined bar has NO ring on the side where it meets the other (the ring's `sq` side,
+    // mvlPageOps), and the double-up's left edge is ONE 1 px line in its ink at 40% over its fill, inside the top and
+    // bottom borders, over the ring there as the first box-shadow is in CSS (mvDuJoinCss).
+    if(it.joinL) out.push(tag({ k: 'fill', x: x, y: y + B.border, w: 1, h: h - 2 * B.border, r: 0, c: mvlMix(ink, 0.4, fill), role: 'bar-join' }));
     if(!pillRim) slices.forEach(function(s){
       out.push({ k: 'clip', x: s.x, y: s.y, w: s.w, h: s.h, r: 0 });
       out.push(tag({ k: 'ring', x: x, y: y, w: w, h: h, r: r, t: B.border, c: mvlMix(black, B.borderAlpha, shade), role: 'bar-ring' }));
@@ -42333,6 +43492,9 @@ export function initLegacyApp() {
           const l = mvlInsetCols(span, it.halfStart) * G.trackW, r = mvlInsetCols(span, it.halfEnd) * G.trackW;
           x += l; w -= l + r;
         }
+        // A double-up's flush join (mvlDuJoins): no margin on the side where the two bars meet, as the CSS writes it.
+        if(it.joinL){ x -= S.bar.marginX; w += S.bar.marginX; }
+        if(it.joinR) w += S.bar.marginX;
         mvlPaintBar(it, x, gy + laneTop[it.lane], w, mvlBarHeight(it, S), fonts, out, { wk: wi, i: ii }, S);
       });
     });
@@ -42349,9 +43511,23 @@ export function initLegacyApp() {
     const page = pdfPage(G.pageW * k, G.pageH * k), ops = page.ops, H = page.h;
     const X = function(v){ return pdfNum(v * k); }, Y = function(v){ return pdfNum(H - v * k); };
     const rgb = function(c){ return c.map(function(v){ return String(Math.round(v * 10000) / 10000); }).join(' '); };
-    function path(x, y, w, h, r){
+    function path(x, y, w, h, r, sq){
       r = Math.min(r || 0, w / 2, h / 2);
       if(r <= 0) return X(x) + ' ' + Y(y + h) + ' ' + pdfNum(w * k) + ' ' + pdfNum(h * k) + ' re';
+      // A double-up's flush join (sq 'L', 'R' or 'LR'): that side's two corners square, the others round.
+      if(sq){
+        const rl = sq.indexOf('L') >= 0 ? 0 : r, rr = sq.indexOf('R') >= 0 ? 0 : r;
+        const cl = rl * (1 - MVL_KAPPA), cr = rr * (1 - MVL_KAPPA), xr = x + w, yb = y + h, p = [X(x + rl), Y(y), 'm', X(xr - rr), Y(y), 'l'];
+        if(rr) p.push(X(xr - cr), Y(y), X(xr), Y(y + cr), X(xr), Y(y + rr), 'c');
+        p.push(X(xr), Y(yb - rr), 'l');
+        if(rr) p.push(X(xr), Y(yb - cr), X(xr - cr), Y(yb), X(xr - rr), Y(yb), 'c');
+        p.push(X(x + rl), Y(yb), 'l');
+        if(rl) p.push(X(x + cl), Y(yb), X(x), Y(yb - cl), X(x), Y(yb - rl), 'c');
+        p.push(X(x), Y(y + rl), 'l');
+        if(rl) p.push(X(x), Y(y + cl), X(x + cl), Y(y), X(x + rl), Y(y), 'c');
+        p.push('h');
+        return p.join(' ');
+      }
       const c = r * (1 - MVL_KAPPA), xr = x + w, yb = y + h;
       return [X(x + r), Y(y), 'm', X(xr - r), Y(y), 'l', X(xr - c), Y(y), X(xr), Y(y + c), X(xr), Y(y + r), 'c',
               X(xr), Y(yb - r), 'l', X(xr), Y(yb - c), X(xr - c), Y(yb), X(xr - r), Y(yb), 'c',
@@ -42363,11 +43539,13 @@ export function initLegacyApp() {
     const setFill = function(c){ const s = rgb(c); if(s !== fill){ ops.push(s + ' rg'); fill = s; } };
     list.forEach(function(o){
       if(o.clear) return;                       // a No fill note's fill and ring: listed, never painted
-      if(o.k === 'fill'){ setFill(o.c); ops.push(path(o.x, o.y, o.w, o.h, o.r) + ' f'); }
+      if(o.k === 'fill'){ setFill(o.c); ops.push(path(o.x, o.y, o.w, o.h, o.r, o.sq) + ' f'); }
       else if(o.k === 'ring'){
-        // The band between the outer edge and the edge `t` inside it, filled even-odd.
+        // The band between the outer edge and the edge `t` inside it, filled even-odd. A joined bar's `sq` side has no
+        // ring at all (R18): there the inner edge IS the outer one, so the top and bottom rims run straight across.
         setFill(o.c);
-        ops.push(path(o.x, o.y, o.w, o.h, o.r) + ' ' + path(o.x + o.t, o.y + o.t, o.w - 2 * o.t, o.h - 2 * o.t, Math.max(0, o.r - o.t)) + ' f*');
+        const iL = (o.sq && o.sq.indexOf('L') >= 0) ? 0 : o.t, iR = (o.sq && o.sq.indexOf('R') >= 0) ? 0 : o.t;
+        ops.push(path(o.x, o.y, o.w, o.h, o.r, o.sq) + ' ' + path(o.x + iL, o.y + o.t, o.w - iL - iR, o.h - 2 * o.t, Math.max(0, o.r - o.t), o.sq) + ' f*');
       }
       else if(o.k === 'hatch'){
         // repeating-linear-gradient(135deg): along the gradient a point (u, v) from the box's top-left
@@ -42386,7 +43564,7 @@ export function initLegacyApp() {
         ops.push('Q');
         const s = stack.pop(); fill = s.fill; tc = s.tc;
       }
-      else if(o.k === 'clip'){ stack.push({ fill: fill, tc: tc }); ops.push('q ' + path(o.x, o.y, o.w, o.h, o.r) + ' W n'); }
+      else if(o.k === 'clip'){ stack.push({ fill: fill, tc: tc }); ops.push('q ' + path(o.x, o.y, o.w, o.h, o.r, o.sq) + ' W n'); }
       else if(o.k === 'unclip'){ const s = stack.pop(); ops.push('Q'); fill = s.fill; tc = s.tc; }
       else if(o.k === 'text'){
         if(o.s === '') return;
@@ -45103,6 +46281,15 @@ export function initLegacyApp() {
       if(d !== o.prepDays) bad.n++;
       if(d === '') delete o.prepDays; else o.prepDays = d;
     };
+    // A unit's own double-up count and name (DOUBLE-UP-DAYS-PLAN.md §7): a whole number 0..DU_MAX, and a name as
+    // cleanDuName() keeps one. Anything else is counted and DROPPED: absent is "use the default".
+    const cleanDuUnit = o=>{
+      if('doubleUpDays' in o && !Number.isFinite(duCountOf(o.doubleUpDays))){ bad.n++; delete o.doubleUpDays; }
+      if('doubleUpName' in o){
+        const t = cleanDuName(o.doubleUpName);
+        if(t !== o.doubleUpName){ bad.n++; if(t) o.doubleUpName = t; else delete o.doubleUpName; }
+      }
+    };
     // A v1.6.0 file's own bar prefix on an episode or block (unitBarLabel): a string that build could have
     // written, or dropped, which reads as no prefix kept. Blank is kept: on an episode it meant "no prefix".
     const cleanBarPrefix = o=>{
@@ -45117,6 +46304,7 @@ export function initLegacyApp() {
         if(o.name !== undefined && typeof o.name !== 'string'){ bad.n++; o.name = ''; }
         if(o.days !== undefined){ const d = countVal(o.days); if(d !== o.days) bad.n++; o.days = d; }
         cleanPrepDays(o);
+        cleanDuUnit(o);
         cleanBarPrefix(o);
         return o;
       });
@@ -45132,6 +46320,7 @@ export function initLegacyApp() {
           o.episodes = eps.filter(x=>{ if(cleanId(x)) return true; bad.n++; return false; });
         }
         cleanPrepDays(o);
+        cleanDuUnit(o);
         cleanBarPrefix(o);
         return o;
       });
@@ -45251,6 +46440,26 @@ export function initLegacyApp() {
     if('viewMode' in s && s.viewMode !== 'sheet' && s.viewMode !== 'month'){ bad.n++; delete s.viewMode; }
     if('mvProdLabel' in s && !MV_PROD_LABELS.includes(s.mvProdLabel)){ bad.n++; delete s.mvProdLabel; }
     if('prepPauseOff' in s && typeof s.prepPauseOff !== 'boolean'){ bad.n++; delete s.prepPauseOff; }
+    // Double-ups (DOUBLE-UP-DAYS-PLAN.md §7): an object of {days, name, moved}, each part as the app writes it. A bad
+    // part is counted and dropped; restoreDoubleUps() reads only what is left.
+    if('doubleUps' in s){
+      if(!isPlainObj(s.doubleUps)){ bad.n++; delete s.doubleUps; }
+      else {
+        const v = ownCopy(s.doubleUps), o = {};
+        if('days' in v){ if(duCountOf(v.days) > 0) o.days = v.days; else bad.n++; }
+        if('name' in v){ const t = cleanDuName(v.name); if(t && t === v.name) o.name = t; else { bad.n++; if(t) o.name = t; } }
+        if('moved' in v){
+          if(!isPlainObj(v.moved)) bad.n++;
+          else {
+            const m = {};
+            Object.keys(v.moved).forEach(id=>{ const x = duMovedOf(v.moved[id]); if(x && SNAP_ID.test(id)) m[id] = x; else bad.n++; });
+            if(Object.keys(m).length) o.moved = m;
+          }
+        }
+        Object.keys(v).forEach(k=>{ if(k !== 'days' && k !== 'name' && k !== 'moved') bad.n++; });
+        if(Object.keys(o).length) s.doubleUps = o; else delete s.doubleUps;
+      }
+    }
     // Date Last Edited: an ISO time in UTC, as the app writes it. Anything else is dropped, and the header reads today.
     if('lastEdited' in s && !lastEditedValid(s.lastEdited)){ bad.n++; delete s.lastEdited; }
     // Sim Post's name: a string the app would have kept as typed. Anything else is dropped, and it reads the default.
@@ -45459,6 +46668,9 @@ export function initLegacyApp() {
         name: e.name || '', days: (e.days===undefined?'':e.days),
         nameEdited: !!e.nameEdited, daysEdited: !!e.daysEdited,
         ...(hasPrepOverride(e) ? {prepDays: e.prepDays} : {}),
+        // Its own double-up count and name (DOUBLE-UP-DAYS-PLAN.md §7), each only when the file has one.
+        ...(hasDuDays(e) ? {doubleUpDays: e.doubleUpDays} : {}),
+        ...(hasDuName(e) ? {doubleUpName: e.doubleUpName} : {}),
         // A v1.6.0 file's own month-bar prefix (unitBarLabel), only when the file has one. Nothing writes
         // one any more, but a file that carries it keeps it, and its bar reads as it was saved.
         ...(typeof e.barPrefix === 'string' ? {barPrefix: e.barPrefix} : {})
@@ -45592,6 +46804,9 @@ export function initLegacyApp() {
       episodes: (b && Array.isArray(b.episodes)) ? b.episodes.filter(x=> typeof x === 'string') : [],
       // The per-block prep length (P4), under the same rule as the episodes' map above.
       ...(hasPrepOverride(b) ? {prepDays: b.prepDays} : {}),
+      // Its own double-up count and name, under the same rule.
+      ...(hasDuDays(b) ? {doubleUpDays: b.doubleUpDays} : {}),
+      ...(hasDuName(b) ? {doubleUpName: b.doubleUpName} : {}),
       // A v1.6.0 file's own month-bar prefix, under the same rule.
       ...((b && typeof b.barPrefix === 'string') ? {barPrefix: b.barPrefix} : {}),
     })) : [];
@@ -45876,6 +47091,9 @@ export function initLegacyApp() {
     // that leaves the switch off) runs prep through Off days -- never the previous file's tick. The
     // update() after the restore puts the Prep row's box in step (refreshPrepUI).
     prepPauseOff = snap.prepPauseOff === true;
+    // ⛔ UNCONDITIONAL: a file with no `doubleUps` has no default count, no default name and no moved double-up --
+    // never the previous file's (restoreDoubleUps).
+    restoreDoubleUps(snap.doubleUps);
     // ⛔ UNCONDITIONAL: a file with no key (every calendar saved before 2 Nov 2026, and every one never renamed) reads
     // "Simultaneous Post" -- never the previous file's name.
     simPostName = typeof snap.simPostName === 'string' ? cleanSimPostName(snap.simPostName) : '';

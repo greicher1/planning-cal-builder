@@ -17,7 +17,7 @@
 //   Y1  hidden and alone in a later year (2028), it adds no 2028 block to the waterfall; the month view draws it there
 //   N1  Writer's Room hidden: its "Writer's Room Opens" note leaves the waterfall, the workbook and the waterfall PDF,
 //       and stays in the month view
-//   C1  the cards: one tick on every phase card but Production's (Production none, Episodic Prep none), no id on any;
+//   C1  the cards: one tick on every phase card but Production's (Production none, Episodic Prep none, Double-ups none), no id on any;
 //       the fixture's tick on; "Month view only" on Colour Grading and Episodic Prep only, inside the head
 //   C2  the tag stays on screen while the card is folded
 //   U1  one undo step each way: untick, undo (ticked, hidden again), redo
@@ -198,12 +198,15 @@ window.addEventListener('load', function () { (async function () {
                  tagInHead: !!(tag && tag.closest('.custom-phase-header')), tagHidden: tag ? tag.hidden : null };
       });
       var get = function (k) { return per.filter(function (p) { return p.key === k; })[0] || {}; };
-      var ok = per.length === 8 && get('production').ticks === 0 && get('episodePrep').ticks === 0 &&
+      // 9 cards since 17 Nov 2026: the Double-ups card (DOUBLE-UP-DAYS-PLAN.md) is month view only, like Episodic Prep's,
+      // so it has no tick and its "Month view only" tag is always on.
+      var ok = per.length === 9 && get('production').ticks === 0 && get('episodePrep').ticks === 0 &&
+        get('doubleUp').ticks === 0 && get('doubleUp').tagInHead && get('doubleUp').tagHidden === false &&
         ['writersRoom', 'prePrep', 'prodPrep', 'post', 'localization', 'custom1'].every(function (k) { return get(k).ticks === 1 && get(k).tickIds === 0; }) &&
         tickOf('custom1').checked === true && ['writersRoom', 'prePrep', 'prodPrep', 'post', 'localization'].every(function (k) { return tickOf(k).checked === false && get(k).tagHidden === true; }) &&
         get('custom1').tagInHead && get('custom1').tagHidden === false && tagShown('custom1') &&
         get('episodePrep').tagInHead && get('episodePrep').tagHidden === false && !get('production').tagInHead;
-      kase('C1', 'one Hide in waterfall tick (no id) on every phase card but Production\'s and Episodic Prep\'s; the fixture\'s on Colour Grading is on; "Month view only" in the head of Colour Grading and Episodic Prep only',
+      kase('C1', 'one Hide in waterfall tick (no id) on every phase card but Production\'s, Episodic Prep\'s and Double-ups\'; the fixture\'s on Colour Grading is on; "Month view only" in the head of Colour Grading, Episodic Prep and Double-ups only',
            ok, { per: per });
     });
 
