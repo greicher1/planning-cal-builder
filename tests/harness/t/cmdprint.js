@@ -104,7 +104,7 @@ window.addEventListener('load', function () { (async function () {
     out.month = { prevented: prevented3, names: sp.calls.map(function (c) { return c.suggestedName; }), closed: !!(f3 && f3.closed),
                   pages: f3 ? T.pdfPages(f3.bytes) : 0, printCalled: printed };
     kase('P3', 'month view, Ctrl+P: default prevented, and the month PDF is WRITTEN through the Save dialog (one page per month), with no print',
-         prevented3 && !!f3 && f3.closed && /Month Calendar .*\d{4}-\d{2}-\d{2}.*\.pdf$/.test(f3.name || '') && out.month.pages >= 12 && !printed, out.month);
+         prevented3 && !!f3 && f3.closed && /Month Calendar .*- a\.o\. \d{1,2}\.\d{1,2}\.\d{2}\.pdf$/.test(f3.name || '') && out.month.pages >= 12 && !printed, out.month);
 
     var errs = (T.appHealth().errors || []);
     kase('E0', '0 console errors', errs.length === 0, { errors: errs.slice(0, 5) });

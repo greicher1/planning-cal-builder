@@ -43,6 +43,14 @@
   second: functional update); `hdrversion` / `hdrverload` re-expected for the number rule (the gate's section alone: 54 PASS, 0
   FAIL); README's entry under Unreleased; CLAUDE.md's `versionAsTyped` line (SUPERSEDED) and the frozen S1b/S2b example. A full
   gate was started on the finished branch; its result is the next bullet.
+- ✅ **FULL GATE on `ab1730b` (port 8985, 18 Nov 2026, alone): 5,697 PASS / 68 FAIL, EVERY BASELINE IDENTICAL** (the waterfall PDF bar
+  the date stamp, the workbook, gate 10, gate 13's 24 written month PDFs). All 68 were expectations of the OLD name or Version and
+  are re-expected in `<this commit>`: `monthexport` X2 + X7 in all 30 runs (the month PDF's name regex), `cmdprint` P3, `pdfdialog`
+  D10, `filekeys` K10, `cspproof` M2 (the "Month Calendar … yyyy-mm-dd" regex), `monthpick` M2, `scenarios` S16 / S17 (the scenario
+  is off by default now: S16 now asserts NO scenario in the name), and `phasesui` P1 (its `versionEra` map: a number opens as the bare
+  number). Rerun the way the gate runs them, all green: `monthexport` 9/9 on reference, UTC+14, 1280x800, blocks, mvheader,
+  doubleups; `cmdprint` 6/6, `pdfdialog` 15/15, `filekeys` 16/16, `monthpick` 10/10, `scenarios` 23/23, `phasesui` 8/8,
+  `cspproof` 15/15.
 
 ### 🔨 17 Nov 2026: THE NOTE EDITOR'S DAY — "No date", and a TYPED date works like a picked one. Branch `note-day-shift` (worktree `.claude/worktrees/note-day-shift`, from `origin/main` `aa16ffe`). Owner tried it on localhost, then *"Finish it"*, then *"push"* (18 Nov 2026). `origin/main` `f48df5b` (v1.17.0-v1.17.5, Tandem days) merged in first: README / HANDOFF conflicts only, both kept; `app.js` merged clean (main's 56 hunks touch none of the note editor's code). Tracker cards `note-day-default-no-date`, `linked-note-day-follows-phase`
 - **The asks (17 Nov 2026, in order):** *"In waterfall view, the default, for Day should be "No date" rather than Mon

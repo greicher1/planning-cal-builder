@@ -214,8 +214,13 @@ window.addEventListener('load', function () { (async function () {
     // the title, before "Planning Calendar" (re-expected: "… Planning Calendar S2 <today> 3 – Toronto.xlsx" until then).
     var nowD = new Date(), todayYmd = nowD.getFullYear() + '-' + String(nowD.getMonth() + 1).padStart(2, '0') + '-' + String(nowD.getDate()).padStart(2, '0');
     var xlName3 = await exportName('export-btn');
-    add('S16', 'with scenarios, the Excel export is named after the scenario on screen', (xlName3 || '').slice(-('S2 Planning Calendar ' + todayYmd + ' 3 \u2013 Toronto.xlsx').length) === 'S2 Planning Calendar ' + todayYmd + ' 3 \u2013 Toronto.xlsx',
-      {name: xlName3}, '"… S2 Planning Calendar ' + todayYmd + ' 3 – Toronto.xlsx"');
+    // ⭐ RE-EXPECTED 18 Nov 2026 (owner: "scenario name should not be adding by default"; the default name "… S2 Planning
+    // Calendar v3 WRO 1.4.27 - a.o. 11.18.26"): with scenarios the name carries NO scenario until it is ticked in the
+    // Export PDF window (leg filenamelist ticks it). The Version box "3" prints v3.
+    var todayAo = (nowD.getMonth() + 1) + '.' + nowD.getDate() + '.' + String(nowD.getFullYear()).slice(2);
+    var wantTail = new RegExp('S2 Planning Calendar v3(?: WRO \\d+\\.\\d+\\.\\d{2})? - a\\.o\\. ' + todayAo.replace(/\./g, '\\.') + '\\.xlsx$');
+    add('S16', 'with scenarios, the Excel export names no scenario by default (18 Nov 2026)', wantTail.test(xlName3 || '') && (xlName3 || '').indexOf('Toronto') === -1,
+      {name: xlName3}, '"… S2 Planning Calendar v3 [WRO …] - a.o. ' + todayAo + '.xlsx"');
 
     // S14 -- Delete asks, then the tab goes; Keep only leaves one tab, and Save is a plain file again.
     document.dispatchEvent(new CustomEvent('sptcal-scenario', {detail: {op: 'delete', id: (sc.tabs[0] || {}).id}}));
@@ -235,8 +240,8 @@ window.addEventListener('load', function () { (async function () {
 
     // S17 -- one scenario again: the export's name names no scenario (and still has the season, date and Version).
     var xlName1 = await exportName('export-btn');
-    add('S17', 'with one scenario the Excel export names no scenario', (xlName1 || '').slice(-('S2 Planning Calendar ' + todayYmd + ' 3.xlsx').length) === 'S2 Planning Calendar ' + todayYmd + ' 3.xlsx' && !/\u2013/.test(xlName1 || ''),
-      {name: xlName1}, '"… S2 Planning Calendar ' + todayYmd + ' 3.xlsx"');
+    add('S17', 'with one scenario the Excel export names no scenario', wantTail.test(xlName1 || '') && !/\u2013/.test(xlName1 || ''),
+      {name: xlName1}, '"… S2 Planning Calendar v3 [WRO …] - a.o. ' + todayAo + '.xlsx"');
 
     // S15 -- a damaged or too-new scenarios file is refused WHOLE and the calendar on screen stays.
     var base = JSON.parse(saved);
