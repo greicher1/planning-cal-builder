@@ -451,6 +451,35 @@ window.addEventListener('load', function () { (async function () {
       out.r9e = {map: await duMap(), saved: JSON.parse(await save())};
       check(out.r9e.map['Double-up 306'] === '2027-04-08' && !('ep7' in (out.r9e.saved.doubleUps.moved || {})),
             'R9 dragged back onto its default day it is PUT BACK: the move is gone from the file');
+      // R20 (owner, 17 Nov 2026, "None during episode 1"): no double-up on ANY of the first episode's days (302 in
+      // shooting order: slots 0-4, 2/24-3/2). Its last day refused; the next episode's first day (3/3, 301's) allowed.
+      await toMonth('March 2027');
+      dr = await dragDu('Double-up 301', '2027-03-10', '2027-03-02');
+      out.r20a = {dr: dr, map: await duMap()};
+      check(dr.toast.indexOf('can’t go on the first episode’s days') >= 0 && dr.bad > 0 && out.r20a.map['Double-up 301'] === '2027-03-10',
+            'R20 a drop on the FIRST episode’s days (302’s 3/2) is refused with a one-line reason, and snaps back');
+      await toMonth('April 2027');
+      var firstGrey = await (async function () {
+        // While dragging, 302's days are greyed too (on March's page, which shows them).
+        await toMonth('March 2027');
+        var b = duPillOn('Double-up 301', '2027-03-10'), c = cellOf('2027-03-01'), r = b.el.getBoundingClientRect(), cr = c.getBoundingClientRect();
+        b.el.dispatchEvent(new MouseEvent('mousedown', {bubbles: true, cancelable: true, clientX: r.left + 6, clientY: r.top + 5, button: 0, buttons: 1}));
+        window.dispatchEvent(new MouseEvent('mousemove', {clientX: r.left + 14, clientY: r.top + 5, buttons: 1}));
+        window.dispatchEvent(new MouseEvent('mousemove', {clientX: r.left + 14, clientY: r.top + 6, buttons: 1}));
+        var hit = Array.prototype.some.call(document.querySelectorAll('.du-drop-box.is-nodrop'), function (x) {
+          var q = x.getBoundingClientRect(); return Math.abs(q.left - cr.left) < 2 && Math.abs(q.top - cr.top) < 2; });
+        document.dispatchEvent(new KeyboardEvent('keydown', {key: 'Escape', bubbles: true}));
+        window.dispatchEvent(new MouseEvent('mouseup', {clientX: r.left + 14, clientY: r.top + 6, button: 0}));
+        await settle();
+        return hit;
+      })();
+      check(firstGrey, 'R20 ...and while a double-up is dragged, the first episode’s days are greyed');
+      await toMonth('March 2027');
+      dr = await dragDu('Tandem 304', '2027-03-24', '2027-03-03');
+      out.r20b = {dr: dr, map: await duMap()};
+      check(dr.toast === '' && out.r20b.map['Tandem 304'] === '2027-03-03,2027-03-04', 'R20 the earliest a double-up can go is the next episode’s first day (3/3, 301’s)');
+      await undo();
+      check((await duMap())['Tandem 304'] === '2027-03-24,2027-03-25', 'R20 ...one Undo');
       // R17: Production's own days, and the waterfall, untouched. R10: Shift keeps a moved one on its shoot day.
       out.prodOn = await prodBars();
       var total = (document.querySelector('.prod-total-readout strong') || {}).textContent;
@@ -468,6 +497,24 @@ window.addEventListener('load', function () { (async function () {
             'S0 ...and fields.byId holds no double-up id (the card has none)');
       await load(JSON.stringify(base));
       check(sameMap(await duMap(), WANT), 'S1 Save then Load: every double-up as it was');
+      // R20 and a v1.17.0 file: a double-up saved moved onto the first episode's days keeps opening, is drawn at its
+      // default, and its saved move is kept (nothing in the file is lost).
+      var onFirst = JSON.parse(JSON.stringify(base));
+      onFirst.doubleUps.moved.ep7 = {day: 2};
+      await load(JSON.stringify(onFirst));
+      out.r20c = {map: await duMap(), saved: JSON.parse(await save()).doubleUps};
+      check(out.r20c.map['Double-up 306'] === '2027-04-08' && JSON.stringify(out.r20c.saved.moved.ep7) === '{"day":2}' && sameMap(out.r20c.map, WANT),
+            'R20 a file whose double-up was moved onto episode 1 (v1.17.0 allowed it) opens with it on its default day, and the saved move is kept');
+      // The owner's exception (picker "Allow it there"): a show of ONE episode keeps its double-up on its own last day.
+      var one = JSON.parse(JSON.stringify(base));
+      one.fields.byId['num-episodes'] = {value: '1'};
+      one.episodeDefs = [Object.assign({}, one.episodeDefs.filter(function (e) { return e.id === 'ep2'; })[0], {doubleUpDays: 1})];
+      one.episodeShootOrder = [];
+      delete one.doubleUps.moved;
+      await load(JSON.stringify(one));
+      out.r20d = {map: await duMap(), list: cardList().map(function (x) { return x.tag + '=' + x.n; }).join()};
+      check(Object.keys(out.r20d.map).length === 1 && out.r20d.map[Object.keys(out.r20d.map)[0]] === '2027-03-02',
+            'R20 the one exception: a ONE-episode show keeps its double-up on its own last day (3/2), episode 1 though it is');
       var bare = JSON.parse(JSON.stringify(base));
       delete bare.doubleUps;
       bare.episodeDefs.forEach(function (e) { delete e.doubleUpDays; delete e.doubleUpName; });

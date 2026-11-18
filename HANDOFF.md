@@ -30,6 +30,12 @@
   ink at 40%. ⛔ Never a border for the divider (it notched at the corners). The writer paints the same (no ring band on
   the joined side, a 1 px fill of `mvlMix(ink, .4, fill)`). Spec: [`mockups/double-up-join-line.html`](mockups/double-up-join-line.html);
   plan §10.3a. The first full gate (queued at 20:04, 154 PASS / 0 FAIL when stopped) was stopped for it, since the build changed.
+- 🔨 **R20, after v1.17.0 (owner: *"there also shouldnt be double up days at the beginning of the 1st episode"*; picker
+  "None during episode 1"; for a one-episode show, picker "Allow it there"):** no double-up on any of the first unit's
+  days. `minSlot` on the segment (appendDoubleUps), read by `duDropVerdict` and the drag's grey days; a v1.17.0 move onto
+  episode 1 draws at its default with the key kept. Plan §10.3c; README Unreleased. Leg `doubleups` 58/58 (restore 42).
+  Committed on the branch, NOT pushed; no full gate (double-up code only, inert without double-ups). Tracker card
+  `double-up-not-first-episode`.
 - **Save format (⛔ permanent):** top-level `doubleUps` {days, name, moved: {<unit id>: {day: n} | {after: n}}}, and
   `doubleUpDays` / `doubleUpName` on an episode or block; each ABSENT while unset, so a calendar with no double-up saves
   byte for byte as before (leg `doubleups` L7). No id on any card control; no SNAPSHOT_VERSION bump.

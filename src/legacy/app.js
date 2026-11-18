@@ -13075,16 +13075,21 @@ export function initLegacyApp() {
   }
   // R9: where a double-up may go. Its own default days always (that is Put back); otherwise never on its own unit's
   // days and never before the shoot starts. Another unit's days and days after wrap are fine.
+  // R20: never on the FIRST unit's days either (the segment's minSlot, appendDoubleUps' one copy of the rule; 0 on a
+  // show of one unit, the owner's exception).
   function duDropVerdict(du, start, S){
     if(start === du.defSlot) return {ok: true};
+    const minSlot = (duSegOf(currentSchedule) || {}).minSlot || 0;
     for(let k = start; k < start + du.n; k++){
       if(k < 0) return {ok: false, why: 'before'};
-      if(S.ownDay(k, du.unit)) return {ok: false, why: 'own'};
+      if(S.ownDay(k, du.unit)) return {ok: false, why: 'own'};   // the more specific reason, for the first unit's own
+      if(k < minSlot) return {ok: false, why: 'first'};
     }
     return {ok: true};
   }
   function duRefusal(du, why){
     const word = du.kind === 'block' ? 'block' : 'episode';
+    if(why === 'first') return duPillLabel(du) + ' can’t go on the first ' + word + '’s days: it has no double-ups.';
     return duPillLabel(du) + ' can only go on another ' + word + '’s days, or after wrap'
       + (why === 'before' ? ', never before the shoot starts.' : '.');
   }
@@ -13210,7 +13215,7 @@ export function initLegacyApp() {
         if(k === null) return;
         const inTarget = d.to !== null && k >= d.to && k < d.to + d.du.n;
         if(inTarget) box(c, 'is-target' + (d.ok ? '' : ' is-bad'));
-        else if(k < 0 || (S.ownDay(k, d.du.unit) && !(k >= d.du.defSlot && k < d.du.defSlot + d.du.n))) box(c, 'is-nodrop');
+        else if(k < 0 || k < d.minSlot || (S.ownDay(k, d.du.unit) && !(k >= d.du.defSlot && k < d.du.defSlot + d.du.n))) box(c, 'is-nodrop');
       });
     };
     const end = (commit, e)=>{
@@ -13234,7 +13239,8 @@ export function initLegacyApp() {
       const grab = iso != null ? S.slotOf(iso) : null;
       if(!du || grab === null) return;
       e.preventDefault();
-      drag = {du, S, pill, grab: grab - du.slot, x0: e.clientX, y0: e.clientY, live: false, ghost: null, boxes: [], to: null, ok: false, why: ''};
+      drag = {du, S, pill, grab: grab - du.slot, x0: e.clientX, y0: e.clientY, live: false, ghost: null, boxes: [], to: null, ok: false, why: '',
+              minSlot: (duSegOf(currentSchedule) || {}).minSlot || 0};   // R20: the first unit's days are greyed too
     });
     window.addEventListener('mousemove', e=>{
       const d = drag;
@@ -17975,6 +17981,15 @@ export function initLegacyApp() {
     };
     const look = duShade(prod.color, prod.textColor);
     const last = U.units[U.units.length - 1];
+    // ⭐ R20 (owner, 17 Nov 2026, after v1.17.0: "there also shouldnt be double up days at the beginning of the 1st
+    // episode", then the picker "None during episode 1"): NO double-up sits on any of the FIRST unit's days (episode 1 in
+    // shooting order, or block 1). `minSlot` is the first slot after its last day (a half switch day is its day too), so
+    // the earliest a double-up can start is the next unit's first full day, where the first unit's own sits by default.
+    // ⭐ The one exception (owner's picker, "Allow it there"): a show of ONE unit keeps its double-up on its own last days
+    // (R5), so with one unit there is no limit. The drag (duDropVerdict) and its grey days read this same `minSlot` off
+    // the segment, so the rule has one copy.
+    const firstDays = U.units.length > 1 ? Array.from(U.units[0].days) : [];
+    const minSlot = firstDays.length ? (index.get(firstDays[firstDays.length - 1]) + 1) : 0;
     const dus = [], all = new Set();
     let firstDay = null, lastDay = null;
     U.units.forEach(u=>{
@@ -17987,10 +18002,13 @@ export function initLegacyApp() {
       // A unit's days were added in shoot order, so the last one is its last day.
       const ud = Array.from(u.days), lastK = index.get(ud[ud.length - 1]);
       if(lastK === undefined) return;
-      const defSlot = isLast ? Math.max(0, lastK - n + 1) : lastK + 1;
+      // The last unit's own last days, never reaching back into the first unit's (R20; only a short last unit could).
+      const defSlot = isLast ? Math.max(minSlot, lastK - n + 1) : lastK + 1;
       const mv = duMovedOf(cfg.moved && cfg.moved[def.id]);
       let slot = defSlot;
-      if(mv){ const k = mv.day ? mv.day - 1 : N - 1 + mv.after; if(k >= 0) slot = k; }
+      // A move onto the first unit's days (only a v1.17.0 file can hold one: R20 came after it) is drawn at its default,
+      // and the saved move is KEPT, so the file opens and nothing in it is lost.
+      if(mv){ const k = mv.day ? mv.day - 1 : N - 1 + mv.after; if(k >= minSlot) slot = k; }
       const moved = slot !== defSlot;
       const list = [];
       for(let j = 0; j < n; j++){ const iso = slotIso(slot + j); if(iso) list.push(iso); }
@@ -18005,7 +18023,7 @@ export function initLegacyApp() {
     if(!dus.length) return;
     schedule.segments.push({key: DU_KEY, label: duDefaultName(), name: duDefaultName(), color: look.color,
       textColor: look.textColor, start: prod.start, end: addDays(lastDay, 1), firstDay, lastDay, weeks: 0,
-      days: all, dus, shotCount: N, shootDays: null, phaseHiatus: null, doubleUp: true});
+      days: all, dus, shotCount: N, minSlot, shootDays: null, phaseHiatus: null, doubleUp: true});
   }
   // A derived, month-only segment that is not a phase: prep and double-ups.
   function duIsDerived(s){ return !!s && (s.key === PREP_KEY || s.key === DU_KEY); }

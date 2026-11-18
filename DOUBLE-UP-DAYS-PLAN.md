@@ -50,6 +50,7 @@ instead of 11, and draws the bars meeting mid-day.
 | R16 | **Frozen month-view edit APPROVED.** Acceptance gate: every calendar with no double-ups prints byte-identical month PDFs (gate 10, the print path, and gate 13, the written PDF), and the full `gate.sh` stays green. | picker "Approve" |
 | R17 | **Production's days never change**: its length, shoot days, Day N numbers, prep, wrap and every main-unit date ignore double-ups. | the model, agreed throughout |
 | R19 | **Number boxes, not − / +** (replaces R3): the default and each episode's or block's count are typed into boxes with "days" inside, like every other phase's (Episodic Prep's: blank uses the default, 0 is none, a typed number is the unit's own, in bold). And the card's two explanatory lines ("Every episode but the last, joined to the end of its shoot…" and "Bold = its own. The last episode starts with none…") are deleted. | "lets not do the plus and minus symbols lets do open text boxes like all other phases use"; "Delete: …" (both lines) |
+| R20 | **No double-up during episode 1**: none may sit on ANY of the first episode's (or first block's) days, in shooting order. The earliest one can start is the next episode's first full day, where the first episode's own sits by default; a drag onto episode 1 snaps back with a one-line reason. A v1.17.0 file holding a move onto episode 1 opens with that double-up at its default, the saved move kept. ⭐ **Exception:** a show of ONE episode or block keeps its double-up on its own last days (R5). | "there also shouldnt be double up days at the beginning of the 1st episode"; picker "None during episode 1 (Recommended)" over "Just not its first day"; for one-episode shows, picker "Allow it there" (over "Right after wrap" and "No double-up at all") |
 | R18 | **Where a shoot pill meets its joined double-up, ONE faint line**, not the two dark rings side by side the first build drew (~3 px of dark line). The shoot pill loses its ring on that side; the double-up's left edge is one 1 px line in its own ink at 40%; the top and bottom rims run straight across. Layout-neutral. Given after trying the built branch (`60883ac`); spec: [`mockups/double-up-join-line.html`](mockups/double-up-join-line.html), "Proposed: ONE thin line". | picker "A: one faint line" (asked: "can you make it a single fainter line that seperates the edge of the phase and the double up coming out of it") |
 
 Turned down on the way (do not reintroduce): a dashed pill in a row of its own (look A), a hatched stretch of the
@@ -224,6 +225,15 @@ marks `duLine`, `joinL` / `joinR` and the next unit's run `duBelow`. The writer:
 writes them back in place, never into the focused box, and leaves a box that already READS as the stored count (so "2.5"
 keeps its ring). Both boxes are in `PREP_FIELDS` (whole days). The two explanatory lines are gone from the card; the
 mockup `double-up-days-ui.html` still shows the − / + and the lines, and is superseded on both.
+
+### 10.3c R20, nothing during episode 1 (17 Nov 2026, after v1.17.0)
+`appendDoubleUps` works out `minSlot`, the first slot after the first unit's last day (0 on a show of one unit, the
+owner's exception), and stores it on the segment. A moved position below it is drawn at its default with the key kept
+(only a v1.17.0 file can hold one); the last unit's default never reaches below it. `duDropVerdict` refuses a drop below
+it (`why: 'first'`, "Double-up 104 can’t go on the first episode’s days: it has no double-ups."), after the "own days"
+test, whose reason is the more specific for the first episode's own double-up; the drag greys those days. Leg
+`doubleups` RESTORE R20 (5 checks: refused with its reason, greyed while dragging, the next episode's first day allowed,
+a v1.17.0-style file, the one-episode exception).
 
 ### 10.4 Interaction (step 4)
 - **Drag** (`installDoubleUpDrag`): mouse events, as every month drag; the whole pill in slots; `duSlotLine()` maps a

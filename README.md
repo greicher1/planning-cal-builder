@@ -29,6 +29,21 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+## Unreleased
+
+### No double-up during the first episode (17 Nov 2026)
+
+The owner, after v1.17.0 went live: *"there also shouldnt be double up days at the beginning of the 1st episode"*, and
+by picker, none during episode 1 at all (DOUBLE-UP-DAYS-PLAN.md R20).
+- A double-up can no longer be dragged onto any of the first episode's (or first block's) days, in shooting order: it
+  snaps back with "Double-up 104 can’t go on the first episode’s days: it has no double-ups.", and while dragging those
+  days are greyed. The earliest one can start is the second episode's first day. Defaults never landed there.
+- A calendar saved by v1.17.0 with a double-up already moved onto episode 1 still opens: that double-up is drawn at its
+  default day, and the saved move is kept.
+- The one exception (owner's picker): a show with a single episode or block keeps its double-up on its own last days.
+- Nothing changes for a calendar without double-ups. Verified: `doubleups` live 11, restore 42 (5 new R20 checks), half
+  3, blocks 2; `npm run check` 42/42.
+
 ## v1.17.0 — double-up days: "10+1", a second crew's day on the next episode's shoot (17 Nov 2026)
 
 ### Double-up days: "10+1", a second crew's day on the next episode's shoot (17 Nov 2026)
