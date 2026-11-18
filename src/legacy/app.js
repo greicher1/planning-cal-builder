@@ -32966,11 +32966,27 @@ export function initLegacyApp() {
       .map(s => String(s || '').replace(/[\\/:*?"<>|]/g, '-').replace(/\s+/g, ' ').trim()).filter(Boolean);
     return marks.length ? ' ' + marks.join(' ') : '';
   }
-  // "<title> <season> <words>": the title as the caller made it safe (the frozen writers keep their own sanitising),
-  // then the season, then the words; whichever is empty leaves no space behind.
-  function exportNameHead(safeTitle, words){
+  // "<title> <season> <WRO> <words>": the title as the caller made it safe (the frozen writers keep their own
+  // sanitising), then the season, then the Writers' Room Open date, then the words; whichever is empty leaves no space
+  // behind. `opts.noWro` leaves the WRO date out (Compare's name: its tabs can open the room on different days).
+  function exportNameHead(safeTitle, words, opts){
     const season = seasonLabel().replace(/[\\/:*?"<>|]/g, '-').replace(/\s+/g, ' ').trim();
-    return [safeTitle, season, words].filter(Boolean).join(' ');
+    const wro = (opts && opts.noWro) ? '' : exportNameWro();
+    return [safeTitle, season, wro, words].filter(Boolean).join(' ');
+  }
+  // ⭐ THE WRITERS' ROOM OPEN DATE IN AN EXPORT'S NAME (owner's picker, 18 Nov 2026, from the execs' 17 Nov ask: "Show
+  // title, season, W-R-O date, and then the file date"): "Harbor Lights S3 WRO 1.5.26 Planning Calendar 2026-11-18
+  // v3.xlsx". Exports only (the owner's pick): Save's .sptcal name is unchanged. The day is wrHeaderOpenDay(), the one the
+  // header's "Writer's Room Opens: 1.5.26" line names, written the header's way (M.D.YY, day first on a DD/MM calendar,
+  // orderedDate), so the name and the page it names agree. No Writer's Room date, no "WRO": nothing else moves.
+  // ⛔ Dots, never slashes: '/' is not allowed in a file name.
+  function exportNameWro(){
+    const el = document.getElementById('start-writersRoom');
+    const raw = el ? String(el.value || '').trim() : '';
+    if(!raw) return '';
+    const d = wrHeaderOpenDay(currentSchedule, raw);
+    if(!d) return '';
+    return 'WRO ' + orderedDate(d.getUTCMonth() + 1, d.getUTCDate(), String(d.getUTCFullYear()).slice(2), '.');
   }
   // ⛔ THE NAME FROZEN CODE CALLS. Frozen exportExcel and exportWaterfallPdfDirect name their download
   // exportFileName(<their safe title>, 'Planning Calendar', ext) (owner-approved frozen edits S1b / S2b, 16 Nov 2026;
@@ -34038,7 +34054,7 @@ export function initLegacyApp() {
       const d = lastEditedValid(t.snapshot.lastEdited) ? new Date(t.snapshot.lastEdited) : new Date();
       if(d > newest) newest = d;
     });
-    return exportNameHead(safe, 'Scenario Comparison') + exportNameMarks({ date: newest, noVersion: true });
+    return exportNameHead(safe, 'Scenario Comparison', { noWro: true }) + exportNameMarks({ date: newest, noVersion: true });
   }
   function downloadBlob(blob, name){
     const url = URL.createObjectURL(blob), a = document.createElement('a');
