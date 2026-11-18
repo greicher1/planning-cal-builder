@@ -38,6 +38,10 @@
   cmp-identical, sha256 `fe5d9a91838e9ade…`; `v1.17.4-saved.sptcal` identical to v1.17.3's but `lastEdited`; on the cut
   the waterfall PDF identical bar the stamp, gate 13 reference byte-identical, `monthexport` 9/9, `pdfmark` 6/6), tagged
   `v1.17.4` and pushed with the branch.
+  - ✅ **PUSHED AND LIVE:** ONE `git push origin HEAD:main refs/tags/v1.17.4` at 22:38:42 (`cd8db12..84466ee`, a
+    fast-forward after a re-fetch; it also carried v1.17.3's HANDOFF note `d38b54e`). Deploy run 44252856488 succeeded
+    (49 s). At 22:39:33 the live `version.json` read 1.17.4 and the live `index.html` was byte-identical to the build
+    (sha256 `fe5d9a91838e9ade…`). This sub-bullet is a later, unpushed docs commit.
 - 🔨 **After v1.17.2 (owner: *"Call the phase just \"Tandem\""*):** the card heading reads "Tandem", not "Tandem days"
   (`DU_TITLE`); "Tandem days" typed there still reads as the default. Counts keep "tandem days". README Unreleased;
   `doubleups` 58/58. Owner's picker *"Push as v1.17.3"*: cut as **v1.17.3** (version files, check 42/42;
