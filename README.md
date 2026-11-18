@@ -29,6 +29,38 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+## Unreleased
+
+### Double-up days: "10+1", a second crew's day on the next episode's shoot (17 Nov 2026)
+
+Executives asked for double-up days: "10+1" is ten first-unit days plus one double-up day, a second crew shooting one
+episode while the first unit shoots the next. Two crews, one day, so it is an **overlap**: it never makes Production
+longer, and it is not a half day (`.5`, one crew splitting a day, which is built already). The owner ruled all of it on
+17 Nov 2026 (R1–R17, [`DOUBLE-UP-DAYS-PLAN.md`](DOUBLE-UP-DAYS-PLAN.md); the mockup is
+[`mockups/double-up-days-ui.html`](mockups/double-up-days-ui.html)).
+- **A Double-ups card** in the Phases tab, directly under Production, month view only like Episodic Prep's. Its name box
+  is the default pill name ("Double-up"), its − / + the default count; the list gives each episode (shooting order) or
+  block its own name and its own − / +, bold when it is its own. The last episode or block has none by default; given
+  one, it sits beside its own last days. The colour square is a darker shade of Production's colour and follows it.
+- **The month view and the month PDF.** A double-up comes out of the end of its episode's shoot pill on the same line,
+  joined flush (square corners where they meet), in the darker shade, reading "Double-up 102" or the episode's own name
+  ("Tandem 102", "Double-up Block 1"). The next episode sits on the line below for that week. Drag the whole pill onto
+  another episode's days or after wrap (never its own days, never before the shoot; its own default days put it back);
+  a moved one is kept by shoot-day number, so Shift, a hiatus or a day count carries it with the shoot. Right-click:
+  Rename…, Put back on its default days (a moved one), Remove double-up. Double-click: the card at that episode's row.
+  With a half day (9.5 + 1) the double-up starts on the first full day after the switch.
+- **Nothing else moves.** Production's days, shoot-day numbers, prep, wrap and every main-unit date ignore double-ups;
+  the waterfall, Excel and the waterfall PDF do not show them (proven byte for byte with them on and off).
+- **Frozen edit DU1** in `renderMonthView`, owner-approved (R16): a double-up run's colour, its `data-ph="doubleUp"` /
+  `data-du` marker, the flush-join CSS, and the lane hints that keep it on its episode's line and the next episode
+  below. Inert on a calendar without double-ups: gates 10 and 13 byte-identical (all 11 print documents, all 24 written
+  PDFs). The month-PDF writer reads the join and the lanes back (`mvlDuJoins`, `mvlPackLanes`).
+- **Save format:** `doubleUps` {days, name, moved} at the top level and `doubleUpDays` / `doubleUpName` on an episode or
+  block, each written only when set, so a calendar with no double-up saves byte for byte as before. No id on any card
+  control (fields.byId unchanged); no SNAPSHOT_VERSION bump.
+- Verified: new leg `doubleups` (live, restore, half, blocks), `monthwriter` / `monthab` and `monthexport` on the three
+  new fixtures, gates 10 and 13, the full gate (HANDOFF has the numbers).
+
 ## v1.16.0 — wave 4: day marks and a break's own notes stay put when a hiatus ripples, Changes since last save, keys named for your computer, a month note no longer cut off on Windows, a contrast theme keeps the calendar's colours, long titles fit a file name, the season beside the title in export names; plus everything since v1.15.0: the month view on screen is the month PDF's page, a toolbar that keeps its size, folds, and stays on one line while the window is resized, a click outside closes Shift, the recents as cards, every phase switch on show again (16 Nov 2026)
 
 ### A very long show title is cut to fit the workbook's and the waterfall PDF's file names too (16 Nov 2026)

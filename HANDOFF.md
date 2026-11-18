@@ -4,6 +4,33 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### 🔨 17 Nov 2026: DOUBLE-UP DAYS — BUILT on branch `claude/double-up-days-037393` (worktree `.claude/worktrees/double-up-days-037393`, from `main` at `aa16ffe`). Committed locally; NOT merged, NOT pushed. Plan + as-built record: [`DOUBLE-UP-DAYS-PLAN.md`](DOUBLE-UP-DAYS-PLAN.md) §10; mockup [`mockups/double-up-days-ui.html`](mockups/double-up-days-ui.html). Tracker card `double-up-days`.
+- **What it is:** "10+1" = 10 first-unit days plus 1 double-up day (two crews, two episodes, one day). It never lengthens
+  Production. NOT a half day (`.5` is one crew splitting a day, already built). All 17 rulings (owner, 17 Nov 2026) are
+  in the plan's §2: a **Double-ups card** under Production, month view only, like Episodic Prep's; − / + counts with a
+  card default; each episode or block its own count AND name ("Tandem"); the last unit none by default (given one, it
+  sits beside its own last days); the pill joined flush to the end of its episode's shoot pill in a darker Production
+  shade; draggable (whole pill) onto another episode's days or after wrap, kept by shoot day; right-click Rename… / Put
+  back / Remove; double-click opens its row; not in the waterfall / Excel / waterfall PDF; prints in the month PDF.
+- **Built:** the engine (`appendDoubleUps`, after prep), the card (`buildDoubleUpRow` / `refreshDoubleUpUI`), frozen
+  edit **DU1** in `renderMonthView` (CLAUDE.md's eighth exception), the writer's read-back (`mvlDuJoins`,
+  `mvlPackLanes`, square corners), the drag / menu / Rename / double-click (`installDoubleUpDrag`, `duSections`,
+  `openDuRename`, `showDoubleUpRow`). Decisions the plan left open are in its §10.5 (no swatch picker; id-less defaults;
+  0..9; labelled by Week = drawn loose; corners squared only where the two bars touch; not stylable).
+- ⭐ **One lane rule beyond the first cut, inside the approved scope** (plan §3: "the next episode takes the lane below"):
+  on `doubleups-half` (4.5-day episodes) a week held two double-ups, and first-fit lifted the next episode to a line
+  ABOVE the second one. The next episode's run right after a double-up now starts its lane search one line under it
+  (`duBelow`, `data-du-below`); the writer copies it. Gates 10 and 13 re-run after it.
+- **Save format (⛔ permanent):** top-level `doubleUps` {days, name, moved: {<unit id>: {day: n} | {after: n}}}, and
+  `doubleUpDays` / `doubleUpName` on an episode or block; each ABSENT while unset, so a calendar with no double-up saves
+  byte for byte as before (leg `doubleups` L7). No id on any card control; no SNAPSHOT_VERSION bump.
+- **Proof:** see the gate bullet below. Fixtures `doubleups.sptcal` (hand-made from `episodeprep.sptcal`, a real Save,
+  with Production moved to a Wednesday so double-ups join mid-week), `doubleups-half.sptcal`, `doubleups-blocks.sptcal`
+  (tests/fixtures/README.md). The plan, the mockups and this entry were uncommitted in the main checkout when the build
+  session started; they are committed on this branch.
+- **Not done / open:** a Help paragraph for double-ups; text-style picks on a double-up pill; the owner has not yet
+  tried it in the browser. Merging into `main` and pushing wait on the owner's picker (CLAUDE.md).
+
 ### 🚂 v1.16.0 — wave 4. Branch `release-wave4` (worktree `.claude/worktrees/release-wave4`), cut from `origin/main` `7e1d8b4`; `origin/main` `8af4298` merged in at `91619e1`. The owner said *"Yes, prep it"* (16 Nov 2026): merge the newest live changes, write the owed docs and test wiring, cut v1.16.0. Tagged v1.16.0 and pushed to `main` on 17 Nov 2026 (owner's picker *"Push v1.16.0 now"*), after two full gates and the merges of `d44a52e` and `b8f4ccf`.
 - ⛔ **This section SUPERSEDES the "WIP", "NOT merged, NOT pushed", "the owner tries it first", "not in gate.sh yet" and
   "no README / HANDOFF yet" lines in each wave-4 item's own section below and in its branch's commits** (`ripple-marks`,

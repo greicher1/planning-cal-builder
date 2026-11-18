@@ -4673,6 +4673,9 @@
      and its PDF only, so its row shows only there, off the same toggle as the rule above. Hidden, never
      cleared: #prep-days and #prep-name are written by id, and keep their values in the waterfall. */
   body:not(:has(#view-month-btn.active)) #prep-row{ display:none; }
+  /* The Double-ups card (DOUBLE-UP-DAYS-PLAN.md R1): month view only, like Prep's, off the same toggle. Hidden, never
+     cleared: its store is the engine's variables, so nothing it holds changes in the waterfall. */
+  body:not(:has(#view-month-btn.active)) #du-row{ display:none; }
   /* The month box's "Show" switches follow "Label Production by" (MONTH-PILL-LABEL-PLAN §5.2, owner
      ruling Q3): only the items the grey text can carry right now are offered. A switch hides while
      its item is the bar's text (the control's CHECKED radio, which is the label the bars are drawn
@@ -4858,6 +4861,52 @@
   .prep-default .num-suffix span{ font-size:var(--mantine-font-size-xs); font-weight:400; color:var(--mantine-color-gray-5); }
   .prep-panel{ padding:0 12px; }
   .prep-panel:has(#prep-rows:not(:empty)){ margin:10px 0 8px; }
+
+  /* ---- The Double-ups card (DOUBLE-UP-DAYS-PLAN.md R1-R5; mockups/double-up-days-ui.html) ----
+     Prep's card in look: the phase head (its colour square is R7's darker shade of Production's, no picker), then
+     "Default double-ups" as a − / + with its unit, a note, and the list boxed under its heading: each episode's or
+     block's tag, its own name box and its own − / +. Bold = its own (the name box's and the count's). No id on any
+     control. The square is not clickable: it follows Production's colour. */
+  .du-row .du-swatch{ cursor:default; }
+  .du-body{ padding:10px 12px 12px; display:flex; flex-direction:column; gap:8px; }
+  .du-default{ display:flex; align-items:center; gap:8px; font-size:var(--mantine-font-size-sm); }
+  .du-default-label{ flex:1; min-width:0; }
+  .du-unit{ font-size:var(--mantine-font-size-xs); color:var(--mantine-color-gray-6); }
+  .du-note{ font-size:var(--mantine-font-size-xxs); line-height:1.4; color:var(--mantine-color-gray-6); }
+  .du-note:empty{ display:none; }
+  .du-default-note{ margin-top:-4px; }
+  /* The − / +: Mantine's NumberInput controls in a row, the value between. */
+  .du-step{ display:inline-flex; align-items:stretch; flex:none; height:30px; box-sizing:border-box;
+    border:1px solid var(--mantine-color-gray-4); border-radius:var(--mantine-radius-default); overflow:hidden;
+    background:var(--mantine-color-white); }
+  .du-step-btn{ width:28px; padding:0; border:0; background:var(--mantine-color-gray-0); color:var(--mantine-color-gray-7);
+    font:inherit; font-size:15px; line-height:1; cursor:pointer; }
+  .du-step-btn:hover:not(:disabled){ background:var(--mantine-color-gray-2); }
+  .du-step-btn:disabled{ color:var(--mantine-color-gray-4); cursor:default; }
+  .du-step-val{ min-width:34px; display:grid; place-items:center; padding:0 4px; font-size:var(--mantine-font-size-sm);
+    font-weight:500; border-left:1px solid var(--mantine-color-gray-3); border-right:1px solid var(--mantine-color-gray-3); }
+  .du-step-val.is-own{ font-weight:700; }
+  .du-panel:has(.du-rows:empty){ display:none; }
+  .du-unit-row{ display:flex; align-items:center; gap:6px; min-height:34px; padding:0 8px;
+    border-bottom:1px solid var(--mantine-color-gray-2); background:var(--mantine-color-white); transition:background-color .2s; }
+  .du-unit-row:last-child{ border-bottom:none; }
+  .du-unit-row:hover{ background:var(--mantine-color-gray-0); }
+  .du-unit-tag{ width:52px; flex:none; font-size:var(--mantine-font-size-sm); font-weight:600; color:var(--mantine-color-black);
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .du-unit-name{ flex:1; min-width:0; height:26px; box-sizing:border-box; padding:0 7px; font:inherit;
+    font-size:var(--mantine-font-size-sm); border:1px solid var(--mantine-color-gray-4); border-radius:var(--mantine-radius-sm);
+    background:var(--mantine-color-white); outline:none; }
+  .du-unit-name:focus{ border-color:var(--mantine-primary-color-filled); }
+  .du-unit-name::placeholder{ color:var(--mantine-color-gray-5); }
+  .du-unit-name.is-own{ font-weight:700; }
+  .du-unit-row.is-none .du-unit-name{ opacity:.45; }
+  .du-unit-row .du-step{ height:26px; border-radius:var(--mantine-radius-sm); }
+  .du-unit-row .du-step-btn{ width:22px; font-size:13px; }
+  .du-unit-row .du-step-val{ min-width:24px; font-weight:400; }
+  .du-unit-row .du-step-val.is-own{ font-weight:700; }
+  /* The double-click on a pill (R12) flashes the card and its row. */
+  .du-row.is-flash{ box-shadow:0 0 0 3px color-mix(in srgb, var(--mantine-primary-color-filled) 35%, transparent); }
+  .du-unit-row.is-flash{ background:var(--mantine-color-yellow-0); }
 
   /* (The rule that kept ONE solid line above Production Hiatus and Sim Post, `.ep-panel + .phase-hiatus +
      .simpost-panel`, owner 22 Sep 2026, retired with the blend: both are switch rows now, each with its hairline,
@@ -5291,6 +5340,35 @@
   filter:drop-shadow(0 4px 10px rgba(0,0,0,.28)); will-change:transform;
 }
 .mv-drag-shield{ position:fixed; inset:0; z-index:300; cursor:grabbing; }
+
+/* ---- Double-ups in the month view (DOUBLE-UP-DAYS-PLAN.md R8-R11): chrome laid OVER the grid, never in it ----
+   The drop boxes over the day cells while a double-up is dragged: grey where it can never go (its own episode's
+   days, before the shoot), outlined where it would land, red where that is refused. pointer-events:none, so the
+   pointer still reads the day under it. Under the moving copy (.mv-drag-ghost, 301). */
+.du-drop-box{ position:fixed; z-index:299; pointer-events:none; box-sizing:border-box; }
+.du-drop-box.is-nodrop{ background:rgba(120,118,110,.18); }
+.du-drop-box.is-target{ box-shadow:inset 0 0 0 2px var(--mantine-primary-color-filled);
+  background:color-mix(in srgb, var(--mantine-primary-color-filled) 8%, transparent); }
+.du-drop-box.is-target.is-bad{ box-shadow:inset 0 0 0 2px var(--mantine-color-red-6); background:rgba(224,49,49,.08); }
+body.du-dragging, body.du-dragging *{ cursor:grabbing !important; user-select:none; }
+body.du-dragging.du-refuse, body.du-dragging.du-refuse *{ cursor:not-allowed !important; }
+/* The one-line reason a refused drop snaps back with. */
+.du-toast{ position:fixed; z-index:400; max-width:360px; padding:6px 10px; border-radius:var(--mantine-radius-md);
+  background:var(--mantine-color-dark-7, #25262b); color:#fff; font-size:var(--mantine-font-size-xs); line-height:1.4;
+  box-shadow:0 6px 18px rgba(0,0,0,.22); pointer-events:none; }
+/* Rename… (R11): a unit's own double-up name, in a small box by the pill. */
+.du-rename-pop{ position:fixed; z-index:400; width:250px; box-sizing:border-box; padding:10px 12px;
+  background:var(--mantine-color-white); border:1px solid var(--mantine-color-gray-3); border-radius:var(--mantine-radius-md);
+  box-shadow:0 8px 24px rgba(0,0,0,.14); font-size:var(--mantine-font-size-sm); }
+.du-rename-title{ font-size:var(--mantine-font-size-xs); font-weight:600; margin:0 0 6px; }
+.du-rename-input{ width:100%; height:30px; box-sizing:border-box; padding:0 8px; font:inherit;
+  border:1px solid var(--mantine-color-gray-4); border-radius:var(--mantine-radius-sm); outline:none; }
+.du-rename-input:focus{ border-color:var(--mantine-primary-color-filled); }
+.du-rename-acts{ display:flex; justify-content:space-between; align-items:center; gap:8px; margin-top:8px; }
+.du-rename-default{ border:0; background:none; padding:0; font:inherit; font-size:var(--mantine-font-size-xs);
+  color:var(--mantine-primary-color-filled); text-decoration:underline; cursor:pointer; }
+.du-rename-done{ border:0; border-radius:var(--mantine-radius-sm); padding:4px 12px; font:inherit; font-size:var(--mantine-font-size-xs);
+  background:var(--mantine-primary-color-filled); color:#fff; cursor:pointer; }
 
 /* ⛔ FROZEN-SURFACE EDIT FC1 -- OWNER-APPROVED by picker, 16 Nov 2026, "Keep colours (contrast)" (audit 2026-11, item
    W.2, WIN-5: "A Windows contrast theme removes the phase colours on screen"). In forced-colors mode (Windows

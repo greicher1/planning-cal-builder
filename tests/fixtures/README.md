@@ -203,6 +203,14 @@ holidays. Do not re-mint them without keeping a copy saved with a retired place:
 | `mvbarsize-large.sptcal` | ⭐ 27 Oct 2026 (MONTH-BAR-SIZE-PLAN.md step 3): `mvnotes.sptcal` at the **Large phase bar size** (`mvBarSize: "large"`), minted by the `mvbarsize` leg from its real Save at Large (out.sptcal). Two one-day custom bars renamed by the leg: custom3 (4/17/26) "Wardrobe Fittings For The", which fits one line at 10 px and not at 12 in the SCREEN's day (B5), and custom1 (4/15/26) "Camera Prep Day For T", which fits one line of the PDF's box at 10 px and not at 12, so the written Large PDF sets it on two lines (gate.sh's text check). Read by `monthemit`, `monthwriter` and `monthexport` (gate.sh's sized block). No gate-10 or gate-13 baseline reads it yet (plan step 4) |
 | `episodeprep-blocks.sptcal` | Its Blocks-mode twin, minted by the same run's second Save: Schedule by Blocks, 3 blocks x 10 days (episodes split 2, 2, 2 in shooting order), Block 3 with its own prep of 12, so Prep Block 3 overlaps Prep Block 2 and steps over Good Friday and the hiatus. It still carries the Episodes calendar's per-episode lengths, dormant, which the leg's K3 switches back to |
 
+### Double-up days (DOUBLE-UP-DAYS-PLAN.md, 17 Nov 2026)
+
+| File | Use |
+|---|---|
+| `doubleups.sptcal` | `episodeprep.sptcal` (a real Save) with these edits by hand, as a 17 Nov 2026 build's Save writes them: title "Double-up Fixture"; Production from **Wed 2/24/27** with Snap to Mon off, so episodes end mid-week and a double-up joins its bar flush; prep 3 days with no overrides; and the double-up keys: `doubleUps: {days: 1, moved: {ep3: {day: 27}}}`, Episode 304 (`ep4`) its own `doubleUpDays: 2` and `doubleUpName: "Tandem"`, Episode 305 (`ep5`, the last in shooting order) its own `doubleUpDays: 1`. `viewMode` month. The hand trace (every slot, every double-up's day, and after Shift +1 week) is in `tests/harness/t/doubleups.js`'s header. Read by the `doubleups` leg (RESTORE), `monthwriter` du and `monthexport` du |
+| `doubleups-half.sptcal` | `halfdays.sptcal` with `doubleUps: {days: 1}` added by hand and `viewMode` month: R15 (202 ends half way through Mon 7/13/26, its double-up is Tue 7/14) and two double-ups in one week (Sun 7/26). `doubleups` HALF, `monthwriter` duh |
+| `doubleups-blocks.sptcal` | `episodeprep-blocks.sptcal` with `doubleUps: {days: 1}` added by hand and `viewMode` month: "Double-up Block 1" / "Block 2", none for Block 3 (the last). `doubleups` BLOCKS, `monthwriter` dub |
+
 ### Excel's editing keys in the waterfall (WATERFALL-KEYS-PLAN.md, 22 Oct 2026)
 
 | File | Use |

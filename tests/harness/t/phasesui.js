@@ -244,7 +244,8 @@ window.addEventListener('load', function () { (async function () {
       byId('undo-btn').click(); await settle();
       var undone = close(rgb(getComputedStyle(rowOf('post').querySelector(':scope > .custom-phase-header')).backgroundColor), tint(rgb(byId('swatch-post').style.backgroundColor)));
       kase('P5', 'every head (' + rows.length + ' cards) is its phase colour lightened 60/40 with black text, caret and title (R8, R9); the square is on top and opens the 14 swatches with no text (R10); a pick repaints the head, and undo puts it back',
-           bad.length === 0 && rows.length === 8 && hit === sw && swatches.length === 14 && popText === '' && picked && undone,
+           // 9 cards since 17 Nov 2026: the Double-ups card under Production (DOUBLE-UP-DAYS-PLAN.md), a head like the rest.
+           bad.length === 0 && rows.length === 9 && hit === sw && swatches.length === 14 && popText === '' && picked && undone,
            { bad: bad, hitSquare: hit === sw, swatches: swatches.length, popText: popText, picked: picked, undone: undone });
     });
 
