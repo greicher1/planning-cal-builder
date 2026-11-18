@@ -4,28 +4,36 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### 🚀 18 Nov 2026: v1.18.0 — THE MONTH SHRINK AND THE 10-LINE DAY, RELEASED TOGETHER from `claude/dreamy-keller-2ed2c2` (the two entries below are the features)
+### 🚀 18 Nov 2026: v1.19.0 — THE MONTH SHRINK AND THE 10-LINE DAY, RELEASED TOGETHER from `claude/dreamy-keller-2ed2c2` (the two entries below are the features)
 - **Owner's pickers, 18 Nov:** *"Commit locally"* (`c87655b`) and *"Push to main"*. When the push was approved,
   `origin/main` had moved to v1.17.5 (five Tandem-day releases since the v1.17.0 merged here), so it was merged in
-  (`61dcadf`; only README's top conflicted, both kept. ⚠️ This repo's conflict style is diff3: strip the `||||||| base`
-  line with the other markers). `app.js` and `legacy.css` merged clean; `fitMonthPage`'s observer is still the first on
-  `#table-wrap` (the tandem grips' is later and only hides handles).
-- **Cut:** `APP_VERSION`, `version.json`, `package.json` 1.18.0; README's two entries under a v1.18.0 heading;
-  `releases/v1.18.0.html` cmp-identical to the build (sha256 `fff531583c90b47e…`). `npm run check` 42/42.
-- **Release gate** on that build (port 8961, 11:55–13:16 on 18 Nov; a load spike to 106 from two other sessions'
-  Chrome around 12:36): **5,772 PASS, 5 FAIL**. Gates 1–3, the restore (77 ids), **gate 10 11 of 11, gate 13 24 of 24**,
-  all byte-identical. `conflict` C3/C4b, `monthwriter` (`mvnotesize-14`) and (`doubleups`) no result: timeouts, each
-  green alone (9/9, 12/12, 12/12).
-- ⭐ **`epnames` (halfdays) N5 was red once more ALONE** (the session that started this one asked for it to be explained
-  before any push). Cause, measured: **a test race, on the live build too.** `openText()` waited 300 ms plus a quiet grid,
-  never for the load; the grid of the calendar before is already a month grid, and a Load now and then lands up to 2 s
-  after the picker (both builds; the load usually lands in 40–140 ms). N5 then read N4's 11-name episode list while
-  its bars and saved file were already N5's. A loop of the N4 → N5 step (scratch leg, deleted) caught it on
-  **v1.17.5: 1 load in 20 at 1.97 s, the old wait returning at 1.2 s**; no revert, just late. Fix (test only):
-  `openText()` waits for the File menu's label to name the loaded file (`renderRecents()` runs after
-  `refreshAfterRestore()` has rebuilt every sidebar list), as `autonoterename` does. With it, 80 loads in a row on both
-  builds read correctly, one landing at 1.69 s, and the label never came before the list.
-  `epnames` 11/11 (halfdays) and 5/5 (blocks) on both builds.
+  (`61dcadf`); while that tree was being gated another session released **v1.18.0** (Finish before + the note editor's
+  "No date", `714df71`), so that was merged too (`0c30df6`) and this release became **v1.19.0**. Each time only the
+  tops of README and HANDOFF conflicted (both sides kept. ⚠️ This repo's conflict style is diff3: strip the
+  `||||||| base` lines with the other markers). `app.js`, `legacy.css` and `gate.sh` merged clean; `fitMonthPage`'s
+  observer is still the first on `#table-wrap`; main's `moveWfLine` change sits under the row limit's drag door.
+- **Cut:** `APP_VERSION`, `version.json`, `package.json` 1.19.0; README's two entries under a v1.19.0 heading;
+  `releases/v1.19.0.html` cmp-identical to the build (sha256 `8d8ac15af2acc3d6…`); `tests/fixtures/v1.19.0-saved.sptcal`
+  a real Save. `npm run check` 42/42.
+- **Release gate** on that build (port 8961, 13:25–14:24 on 18 Nov): **5,834 PASS, 1 FAIL**. Gates 1–3, the restore
+  (77 ids), **gate 10 11 of 11, gate 13 24 of 24**, all byte-identical. The FAIL is `scenariocompat` on
+  `releases/v1.2.0.html`: red in the gate and twice alone (v1.2.0 never drew its File menu: `menuItems: 0`, the leg
+  timing out on "Open…"), then green three times alone with nothing changed. A headless probe of v1.2.0 (deleted) showed
+  its menu, File System Access and the in-memory IndexedDB all present. It runs only that frozen file and unchanged
+  harness files; a known flake of v1.17.0's gate.
+- **The gate before it** (v1.17.5 merged, cut as a v1.18.0 that was never pushed; 11:55–13:16, a load spike to 106 from
+  two other sessions' Chrome around 12:36): 5,772 PASS, 5 FAIL, gates 10 and 13 byte-identical. `conflict` C3/C4b,
+  `monthwriter` (`mvnotesize-14`) and (`doubleups`): timeouts, each green alone (9/9, 12/12, 12/12).
+- ⭐ **`epnames` (halfdays) N5 was red once more ALONE** in that round (the session that started this one asked for it
+  to be explained before any push). Cause, measured: **a test race, on the live build too.** `openText()` waited 300 ms
+  plus a quiet grid, never for the load; the grid of the calendar before is already a month grid, and a Load now and
+  then lands up to 2 s after the picker (both builds; usually 40–140 ms). N5 then read N4's 11-name episode list while
+  its bars and saved file were already N5's. A loop of the N4 → N5 step (scratch leg, deleted) caught it on **v1.17.5: 1
+  load in 20 at 1.97 s, the old wait returning at 1.2 s**; no revert, just late. Fix (test only): `openText()`
+  waits for the File menu's label to name the loaded file (`renderRecents()` runs after `refreshAfterRestore()` has
+  rebuilt every sidebar list), as `autonoterename` does. With it, 80 loads in a row on both builds read correctly, one
+  landing at 1.69 s, and the label never came before the list; `epnames` 11/11 and 5/5 on both builds, and green in the
+  v1.19.0 gate.
 - ⚠️ Any leg that loads through `openViaFakePicker` and then waits only on TIME has the same race. `autonoterename`'s
   `load()` is the pattern to copy.
 
