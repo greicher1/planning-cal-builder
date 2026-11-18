@@ -381,6 +381,43 @@ window.addEventListener('load', function () { (async function () {
             && +out.r3b.bg.match(/(\d+)\)$/)[1] > +out.r3b.bg.match(/^rgb\((\d+)/)[1],
             'R3 recolour Production to blue and the double-ups follow it, a darker blue (' + out.r3b.bg + ')');
       await undo();
+      // THE TANDEM'S OWN COLOUR (owner, 17 Nov 2026: "Allow me to change the color of tandem"): its square opens the
+      // phase picker with "Follow Production" first; a pick holds even when Production is recoloured; the first swatch
+      // goes back to following Production, and the file holds no pick again.
+      async function duPick(k){
+        tab('phases'); await T.sleep(150);
+        var sq = card().querySelector('.du-swatch'); sq.scrollIntoView({block: 'center'}); await T.sleep(100);
+        sq.click();
+        await T.until(function () { return document.querySelectorAll('.phase-color-pop .pc-sw').length > 0; }, 'the tandem colour picker', 40, 100);
+        var sws = document.querySelectorAll('.phase-color-pop .pc-sw'), info = {n: sws.length, first: sws[0].title, selected: [].findIndex.call(sws, function (x) { return x.classList.contains('selected'); })};
+        sws[k].click();
+        await settle();
+        return info;
+      }
+      var cp1 = await duPick(12);          // the palette's Pink (#FF66CC on #5C0A3E), index 11, after "Follow Production"
+      await toMonth('March 2027');
+      var pinkPill = duPillOn('Tandem 302', '2027-03-03'), shootPill = rowsOnScreen()[0].bars.filter(function (b) { return b.text === 'Shoot 302'; })[0];
+      var cs1 = JSON.parse(await save());
+      out.c1 = {pop: cp1, bg: pinkPill && pinkPill.bg, ink: pinkPill && pinkPill.ink, sq: card().querySelector('.du-swatch').style.backgroundColor,
+                shoot: shootPill && shootPill.bg, saved: (cs1.phaseColorOverride || {}).doubleUp};
+      check(cp1.n === 15 && /^Follow Production/.test(cp1.first) && cp1.selected === 0 && out.c1.bg === 'rgb(255, 102, 204)' && out.c1.ink === 'rgb(92, 10, 62)'
+            && out.c1.sq === out.c1.bg && out.c1.shoot === 'rgb(226, 240, 217)' && out.c1.saved === 11,
+            'C1 the Tandem square opens the colour picker ("Follow Production" first, chosen); a pick colours every tandem pill and the square, not Production, and is saved as phaseColorOverride.doubleUp');
+      tab('phases'); await T.sleep(150);
+      $('swatch-production').click();
+      await T.until(function () { return document.querySelectorAll('.phase-color-pop .pc-sw').length > 10; }, 'the colour picker', 40, 100);
+      document.querySelectorAll('.phase-color-pop .pc-sw')[10].click();
+      await settle();
+      await toMonth('March 2027');
+      out.c2 = (duPillOn('Tandem 302', '2027-03-03') || {}).bg;
+      check(out.c2 === 'rgb(255, 102, 204)', 'C2 a picked tandem colour holds when Production is recoloured');
+      await undo();
+      var cp3 = await duPick(0);
+      await toMonth('March 2027');
+      var cs3 = JSON.parse(await save());
+      out.c3 = {selected: cp3.selected, bg: (duPillOn('Tandem 302', '2027-03-03') || {}).bg, saved: cs3.phaseColorOverride};
+      check(cp3.selected === 12 && out.c3.bg === 'rgb(181, 217, 158)' && !('doubleUp' in (out.c3.saved || {})),
+            'C3 "Follow Production" puts it back to Production’s darker shade, and the file holds no tandem colour again');
       // R5: the last unit's double-up sits beside its own last day, loose, under its shoot pill.
       await toMonth('April 2027');
       var ar = rowsOnScreen().filter(function (r) { return r.start === '2027-04-11'; })[0];

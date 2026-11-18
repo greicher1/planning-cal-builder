@@ -30,6 +30,10 @@
   ink at 40%. ⛔ Never a border for the divider (it notched at the corners). The writer paints the same (no ring band on
   the joined side, a 1 px fill of `mvlMix(ink, .4, fill)`). Spec: [`mockups/double-up-join-line.html`](mockups/double-up-join-line.html);
   plan §10.3a. The first full gate (queued at 20:04, 154 PASS / 0 FAIL when stopped) was stopped for it, since the build changed.
+- 🔨 **After v1.17.4 (owner: *"Allow me to change the color of tandem"*):** the Tandem square opens the colour picker
+  ("Follow Production" first, then the palette). Stored as `phaseColorOverride.doubleUp` (absent = follow Production,
+  R7); `duLookFor()` decides the colour for the pills and the square. Plan §10.3f; README Unreleased. `doubleups` 66/66,
+  `phasesui` 8/8. Committed on the branch, NOT pushed. Tracker card `tandem-colour`.
 - 🔨 **After v1.17.3 (owner: *"i should be able to extend tandem day just like any other phase"*, picker "Both ends"):**
   grips on both ends of a tandem pill (`installDoubleUpGrips`, body-level `.phase-edge-handle`, made only on hover). End:
   days change, start held, still joined. Start: days change, end held, start becomes a moved position. Stops at R9/R20's

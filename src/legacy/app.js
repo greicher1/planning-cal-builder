@@ -9976,10 +9976,35 @@ export function initLegacyApp() {
     }
     return {color: fillHex, textColor: inkHex || textColorFor(fillHex)};
   }
-  // Production's colour as drawn (its def, picked colour included), and so the double-ups'.
+  // ⭐ THE TANDEM'S OWN COLOUR (owner, 17 Nov 2026, after v1.17.4: "Allow me to change the color of tandem"; this
+  // replaces plan §9's "no picker"). The card's colour square opens the phase colour picker, as every phase's does. A
+  // pick is kept as phaseColorOverride.doubleUp (an index into PHASE_COLOR_OPTIONS, like Prep's episodePrep), so it
+  // saves, restores, sanitizes and resets with the other phases' picks and needs no key of its own; ABSENT until picked,
+  // so no calendar's file changes until someone picks one. Absent, the tandem follows Production, R7's darker shade.
+  // ⛔ 'doubleUp' is permanent in that map from the first file saved with a pick.
+  function duLookFor(prodFill, prodInk){
+    const i = phaseColorOverride[DU_KEY];
+    const opt = (Number.isInteger(i) && PHASE_COLOR_OPTIONS[i]) || null;
+    return opt ? {color: opt.color, textColor: opt.text} : duShade(prodFill, prodInk);
+  }
+  function duProdDef(){
+    return (getAllPhaseDefs().find(d=> d.key === 'production')) || PHASES.find(d=> d.key === 'production') || {};
+  }
+  // The tandem's colour as drawn: its own pick, else Production's (its def, picked colour included) made darker.
   function duColors(){
-    const p = (getAllPhaseDefs().find(d=> d.key === 'production')) || PHASES.find(d=> d.key === 'production') || {};
-    return duShade(p.color, p.textColor);
+    const p = duProdDef();
+    return duLookFor(p.color, p.textColor);
+  }
+  // The picker: "Follow Production" (R7's automatic shade) first, then the phase palette. Picking the first removes
+  // the pick, so the tandem follows Production again. One step, through update(), as every swatch's pick is.
+  function openDuColorPop(sw){
+    const p = duProdDef(), auto = duShade(p.color, p.textColor);
+    const i = phaseColorOverride[DU_KEY];
+    const opts = [{name: 'Follow Production (a darker shade of it)', color: auto.color}].concat(PHASE_COLOR_OPTIONS);
+    openPhaseColorPop(sw, Number.isInteger(i) && PHASE_COLOR_OPTIONS[i] ? i + 1 : 0, k=>{
+      if(k === 0) delete phaseColorOverride[DU_KEY]; else phaseColorOverride[DU_KEY] = k - 1;
+      update();
+    }, opts);
   }
   // What readState() hands computeSchedule(): the default count, the default name and the moved positions, so a
   // computeSchedule() over a modified state (the solvers, spanCulprit) carries them. The per-unit counts and names are
@@ -10043,7 +10068,7 @@ export function initLegacyApp() {
     const look = duColors();
     row.style.setProperty('--phase-color', look.color);
     row.innerHTML = `
-        <div class="swatch du-swatch" id="swatch-${DU_KEY}" style="background:${look.color};" title="A darker shade of Production&rsquo;s colour. It follows Production&rsquo;s colour."></div>
+        <div class="swatch clickable du-swatch" id="swatch-${DU_KEY}" style="background:${look.color};" title="Change colour" aria-label="Change colour"></div>
         ${phaseHeadHtml(`<input type="text" class="phase-name-input du-name-input" value="${DU_TITLE}" placeholder="${DU_TITLE}" maxlength="${DU_NAME_MAX}" aria-label="Tandem name" title="What the pills say: Tandem 101 unless you type another name. Each episode or block can have its own name below.">`,
           MVONLY_TAG(false, 'A second crew&rsquo;s days, drawn in the month view and its PDF only. They never change Production&rsquo;s days.'),
           `<div class="phase-meta du-meta"></div>`)}
@@ -10053,6 +10078,8 @@ export function initLegacyApp() {
         <div class="du-body">
           <div class="du-panel"><div class="du-rows"></div></div>
         </div>`;
+    const sw = row.querySelector('.du-swatch');
+    sw.addEventListener('click', ()=> openDuColorPop(sw));
     const nameIn = row.querySelector('.du-name-input');
     nameIn.addEventListener('input', ()=>{
       const t = cleanDuName(nameIn.value);
@@ -18174,7 +18201,7 @@ export function initLegacyApp() {
       }
       return after[k - N] || null;
     };
-    const look = duShade(prod.color, prod.textColor);
+    const look = duLookFor(prod.color, prod.textColor);   // its own pick, else Production's darker
     const last = U.units[U.units.length - 1];
     // ⭐ R20 (owner, 17 Nov 2026, after v1.17.0: "there also shouldnt be double up days at the beginning of the 1st
     // episode", then the picker "None during episode 1"): NO double-up sits on any of the FIRST unit's days (episode 1 in

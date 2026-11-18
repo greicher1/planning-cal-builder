@@ -29,6 +29,19 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+## Unreleased
+
+### Pick the Tandem colour (17 Nov 2026)
+
+The owner: *"Allow me to change the color of tandem"* (DOUBLE-UP-DAYS-PLAN.md R23).
+- The Tandem card's colour square now opens the colour picker, like every phase's. The first swatch, **Follow
+  Production**, is the automatic darker shade of Production's colour (what tandems used until now); any other swatch
+  colours every tandem pill, on screen and in the month PDF, and stays put when Production is recoloured.
+- Saved in the existing phase-colour map, only once a colour is picked, so a calendar that never picks one saves byte
+  for byte as before.
+- Verified: `doubleups` 66/66 (live 11, restore 50 with three new colour checks, half 3, blocks 2), `phasesui` 8/8,
+  `npm run check` 42/42.
+
 ## v1.17.4 — drag a tandem's ends to change its days (17 Nov 2026)
 
 ### Drag a tandem's ends to change its days (17 Nov 2026)
