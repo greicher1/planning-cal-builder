@@ -4,7 +4,7 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### 🚀 18 Nov 2026: v1.19.0 — THE MONTH SHRINK AND THE 10-LINE DAY, RELEASED TOGETHER from `claude/dreamy-keller-2ed2c2` (the two entries below are the features)
+### 🚀 18 Nov 2026: v1.19.0 — THE MONTH SHRINK AND THE 10-LINE DAY, RELEASED TOGETHER from `claude/dreamy-keller-2ed2c2` (the two entries below are the features). ✅ PUSHED (`714df71..a3fac82`, tag `v1.19.0`) on the owner's picker *"Push v1.19.0"* AND VERIFIED LIVE at 14:29 on 18 Nov: `version.json` 1.19.0 about 80 s after the push, the live page byte-identical to `releases/v1.19.0.html`
 - **Owner's pickers, 18 Nov:** *"Commit locally"* (`c87655b`) and *"Push to main"*. When the push was approved,
   `origin/main` had moved to v1.17.5 (five Tandem-day releases since the v1.17.0 merged here), so it was merged in
   (`61dcadf`); while that tree was being gated another session released **v1.18.0** (Finish before + the note editor's
@@ -37,7 +37,7 @@
 - ⚠️ Any leg that loads through `openViaFakePicker` and then waits only on TIME has the same race. `autonoterename`'s
   `load()` is the pattern to copy.
 
-### ✅ 17 Nov 2026: A CROWDED MONTH SHRINKS ON SCREEN EXACTLY AS ITS PDF DOES. STAGE 2 DONE (owner: *"finish"*), ON THE ROW LIMIT'S BRANCH `claude/dreamy-keller-2ed2c2` WITH `origin/main` v1.17.0 MERGED IN; FULL GATE RUN 18 Nov (5,731 PASS, 14 timeouts each green alone, gates 10 and 13 byte-identical); NOT PUSHED. Stage 1 was built on branch `claude/month-shrink-build-c94fac` (worktree `.claude/worktrees/month-shrink-build-c94fac`, cut from the planning branch `month-shrink` at `c6b7830`, which is `origin/main` `aa16ffe` plus the plan; its `node_modules` is a real copy, not a symlink, so there is nothing to unlink). Its own branch stops at the stage 1 WIP commits (`01dac2f`); ⛔ the tests, the docs and the full gate are ONLY on `claude/dreamy-keller-2ed2c2`, which carries this build with the 10-line limit on top, so the two ship together. Tracker card `month-view-shrink-like-pdf`. ⭐ [`MONTH-SHRINK-PLAN.md`](MONTH-SHRINK-PLAN.md) is the design
+### ✅ 17 Nov 2026: A CROWDED MONTH SHRINKS ON SCREEN EXACTLY AS ITS PDF DOES. STAGE 2 DONE (owner: *"finish"*), ON THE ROW LIMIT'S BRANCH `claude/dreamy-keller-2ed2c2` WITH `origin/main` v1.17.0 MERGED IN; FULL GATE RUN 18 Nov (5,731 PASS, 14 timeouts each green alone, gates 10 and 13 byte-identical); ✅ RELEASED AS v1.19.0 AND LIVE (entry above). Stage 1 was built on branch `claude/month-shrink-build-c94fac` (worktree `.claude/worktrees/month-shrink-build-c94fac`, cut from the planning branch `month-shrink` at `c6b7830`, which is `origin/main` `aa16ffe` plus the plan; its `node_modules` is a real copy, not a symlink, so there is nothing to unlink). Its own branch stops at the stage 1 WIP commits (`01dac2f`); ⛔ the tests, the docs and the full gate are ONLY on `claude/dreamy-keller-2ed2c2`, which carries this build with the 10-line limit on top, so the two ship together. Tracker card `month-view-shrink-like-pdf`. ⭐ [`MONTH-SHRINK-PLAN.md`](MONTH-SHRINK-PLAN.md) is the design
 - **Owner, 17 Nov 2026**, with a PDF and a screenshot of one crowded month: *"1st image is pdf export, 2nd image is live
   viewer...the live viewer still looks different and is changing the height and stretching the whole calendar"*, and
   *"I think id rather the live view look like it will in the pdf"*. That was the month page's "Full size, taller page"
@@ -192,7 +192,7 @@
   the next turn: hand over the Bash-run port. `tests/harness/zzbase.html` (untracked, ignored) is `origin/main`'s
   build for side by side.
 
-### ✅ 17 Nov 2026: A DAY IN THE MONTH VIEW HOLDS 10 LINES (the limit on how tall a month row can get). FINISHED, COMMITTED LOCALLY (`2b9439a`), NOT PUSHED. Branch `claude/dreamy-keller-2ed2c2` (worktree `.claude/worktrees/dreamy-keller-2ed2c2`, a fast-forward of the month-shrink build's `01dac2f`, so it carries that build, whose stage 2 was then finished here too; `origin/main` v1.17.0 merged in; its `node_modules` is a real directory). Local commits only. Tracker card `month-row-max-height`. ⭐ [`MONTH-ROW-LIMIT-PLAN.md`](MONTH-ROW-LIMIT-PLAN.md) is the design
+### ✅ 17 Nov 2026: A DAY IN THE MONTH VIEW HOLDS 10 LINES (the limit on how tall a month row can get). FINISHED; ✅ RELEASED AS v1.19.0 AND LIVE (top entry). Branch `claude/dreamy-keller-2ed2c2` (worktree `.claude/worktrees/dreamy-keller-2ed2c2`, a fast-forward of the month-shrink build's `01dac2f`, so it carries that build, whose stage 2 was then finished here too; `origin/main` v1.17.0 merged in; its `node_modules` is a real directory). Local commits only. Tracker card `month-row-max-height`. ⭐ [`MONTH-ROW-LIMIT-PLAN.md`](MONTH-ROW-LIMIT-PLAN.md) is the design
 - **Owner, 17 Nov 2026**, while trying the month-shrink build: *"there reall should be a max limit on how tall a
   calendar row can be"*. Read as a week row in the Month view.
 - **What exists:** `MV_MAX_LANES = 6` caps only the week's "+" strip (frozen `renderMonthView`: "Manual expansion is
