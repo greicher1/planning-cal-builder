@@ -2113,7 +2113,7 @@ export function initLegacyApp() {
         if(list.length) out[k] = list;
         return;
       }
-      if(k === 'fileNameOff'){   // the file-name parts switched off (exportNameParts): an array of short strings
+      if(k === 'fileNameOff' || k === 'fileNameOrder'){   // the file-name parts off / their order: short strings
         if(Array.isArray(v) && v.every(x => typeof x === 'string' && x.length < 20)) out[k] = v.slice(0, 20);
         return;
       }
@@ -33002,6 +33002,29 @@ export function initLegacyApp() {
   // export's name (the workbook, both PDFs, Compare), never saved in a calendar. The title can't be switched off.
   // ⚠️ Whether it should travel with the calendar instead is the owner's open call (tracker export-file-name-parts).
   const FILE_NAME_PART_KEYS = ['season', 'wro', 'words', 'version', 'date', 'scenario'];
+  // ⭐ AND THEIR ORDER (owner, 18 Nov 2026: "Allow me to be able to drag and reorder the chips to reorder the file
+  // name"): `fileNameOrder` in sptcal.prefs, every part's key including the title, absent = exportNameParts' order. A key
+  // the store lacks (a part added by a later build) goes in where it sits by default, after the part before it.
+  const FILE_NAME_ORDER_DEFAULT = ['title'].concat(FILE_NAME_PART_KEYS);
+  function fileNameOrder(){
+    const known = FILE_NAME_ORDER_DEFAULT;
+    const stored = Array.isArray(prefs.fileNameOrder) ? prefs.fileNameOrder.filter((k, i, a) => known.includes(k) && a.indexOf(k) === i) : [];
+    const out = stored.slice();
+    known.forEach((k, i) => {
+      if(out.includes(k)) return;
+      const before = known.slice(0, i).reverse().find(x => out.includes(x));
+      out.splice(before ? out.indexOf(before) + 1 : 0, 0, k);
+    });
+    return out;
+  }
+  function setFileNameOrder(list){
+    const known = FILE_NAME_ORDER_DEFAULT;
+    const order = (list || []).filter((k, i, a) => known.includes(k) && a.indexOf(k) === i);
+    known.forEach(k => { if(!order.includes(k)) order.push(k); });
+    if(order.join() === fileNameOrder().join()) return;
+    if(order.join() === known.join()) delete prefs.fileNameOrder; else prefs.fileNameOrder = order;
+    savePrefs();
+  }
   function fileNameOff(){
     const off = Array.isArray(prefs.fileNameOff) ? prefs.fileNameOff : [];
     return FILE_NAME_PART_KEYS.filter(k => off.includes(k));
@@ -33012,12 +33035,16 @@ export function initLegacyApp() {
     if(off.length) prefs.fileNameOff = off; else delete prefs.fileNameOff;
     savePrefs();
   }
+  // The parts in the chosen order, less the ones switched off, joined by spaces. The scenario keeps its " – " only when
+  // it is LAST ("… a.o. 11.18.26 – Plan B"); moved anywhere else it is joined like any part. ⛔ The Export PDF window's
+  // preview (ExportPdfDialog.jsx, joinName) repeats this rule: change both together.
   function exportNameFrom(parts, ext){
-    const off = fileNameOff();
+    const off = fileNameOff(), order = fileNameOrder();
+    const shown = parts.filter(p => p.locked || !off.includes(p.k))
+      .sort((a, b) => order.indexOf(a.k) - order.indexOf(b.k));
     let out = '';
-    parts.forEach(p => {
-      if(!p.locked && off.includes(p.k)) return;
-      out += (out ? (p.join || ' ') : '') + p.val;
+    shown.forEach((p, i) => {
+      out += (i ? ((p.join && i === shown.length - 1) ? p.join : ' ') : '') + p.val;
     });
     return out + (ext || '');
   }
@@ -40672,11 +40699,14 @@ export function initLegacyApp() {
       // exportFileName(<title>, 'Planning Calendar', '.pdf'), the same list), and which are switched off.
       nameParts: exportNameParts(fileNameTitle((document.getElementById('show-title').value || '').trim()), 'Planning Calendar'),
       nameExt: '.pdf',
-      nameOff: fileNameOff()
+      nameOff: fileNameOff(),
+      nameOrder: fileNameOrder(),
+      nameOrderDefault: FILE_NAME_ORDER_DEFAULT.slice()
     });
     if(!choice) return false;
     // A per-computer preference, written only when it changed, so Export at the window's defaults still writes nothing.
     if(Array.isArray(choice.nameOff)) setFileNameOff(choice.nameOff);
+    if(Array.isArray(choice.nameOrder)) setFileNameOrder(choice.nameOrder);
     const key = SHEET_PAPERS[choice.paper] ? choice.paper : 'letter';
     const paper = PAPER_SIZES.includes(key) ? key : '';
     // D1: kept only when it differs from what the rule recommends ON THE CHOSEN PAPER, so picking the

@@ -64,29 +64,84 @@ export function Row({ label, children }) {
 }
 
 // ⭐ THE FILE NAME (owner, 18 Nov 2026: "an easy to use system that lets you add/unadd parts of the file name", then
-// "make it actually work"; mockups/export-file-name-parts.html, layout A). The engine passes `nameParts`, the parts
-// in order as the PDF will be named ({k, label, val, join?, locked?}: exportNameParts, the list the name itself is
-// built from), `nameExt` and `nameOff` (the keys switched off, a per-computer preference). One chip per part; the
-// name above them is exactly what will download. The title is locked on. The answer carries `nameOff`, which the
-// engine stores only if it changed, and which every export's name then follows.
+// "make it actually work"; mockups/export-file-name-parts.html, layout A; then "Allow me to be able to drag and reorder
+// the chips to reorder the file name"). The engine passes `nameParts`, the parts as the PDF will be named ({k, label,
+// val, join?, locked?}: exportNameParts, the list the name itself is built from), `nameExt`, `nameOff` (the keys
+// switched off) and `nameOrder` / `nameOrderDefault` (every key, in order), both per-computer preferences. One chip per
+// part: a click switches it off or on (the title is locked on), a drag moves it. The name above them is exactly what
+// will download. The answer carries `nameOff` and `nameOrder`, which the engine stores only if they changed, and which
+// every export's name then follows.
+// ⛔ joinName repeats the engine's exportNameFrom (app.js): the scenario keeps its " – " only when it is last.
 function joinName(parts, off, ext) {
+  const shown = parts.filter((p) => p.locked || !off.includes(p.k))
   let out = ''
-  parts.forEach((p) => {
-    if (!p.locked && off.includes(p.k)) return
-    out += (out ? (p.join || ' ') : '') + p.val
+  shown.forEach((p, i) => {
+    out += (i ? ((p.join && i === shown.length - 1) ? p.join : ' ') : '') + p.val
   })
   return out + (ext || '')
 }
 
-function FileNameRow({ parts, off, setOff, ext }) {
+function FileNameRow({ parts, off, setOff, order, setOrder, orderDefault, ext }) {
+  const [dragK, setDragK] = useState(null)
+  const orderRef = useRef(order)
+  orderRef.current = order
+  const press = useRef(null)      // {k, x, y, dragging} from pointerdown until pointerup
+  const swallow = useRef(false)   // the click that ends a drag must not switch the chip
+  const sorted = parts.slice().sort((a, b) => order.indexOf(a.k) - order.indexOf(b.k))
   const toggle = (k) => setOff(off.includes(k) ? off.filter((x) => x !== k) : off.concat([k]))
-  const anyOff = parts.some((p) => !p.locked && off.includes(p.k))
+  const changed = parts.some((p) => !p.locked && off.includes(p.k)) || order.join() !== orderDefault.join()
+  // A DRAG is a press that moves more than 4 px. Pointer events, not the browser's own drag and drop, so it works the
+  // same with a mouse, a pen or a finger. While it moves, the pressed part is moved before or after the chip under the
+  // pointer (by which half of it the pointer is over), live, so the chips and the name show where it will land. Moved
+  // within the WHOLE order, parts not shown included.
+  const onPointerDown = (e, k) => {
+    if (e.button !== 0) return
+    swallow.current = false
+    press.current = { k, x: e.clientX, y: e.clientY, dragging: false }
+    const move = (ev) => {
+      const pr = press.current
+      if (!pr) return
+      if (!pr.dragging) {
+        if (Math.abs(ev.clientX - pr.x) + Math.abs(ev.clientY - pr.y) < 5) return
+        pr.dragging = true
+        setDragK(pr.k)
+      }
+      ev.preventDefault()
+      const el = document.elementFromPoint(ev.clientX, ev.clientY)
+      const over = el && el.closest && el.closest('[data-namepart]')
+      if (!over || over.dataset.namepart === pr.k) return
+      const r = over.getBoundingClientRect()
+      const after = ev.clientX > r.left + r.width / 2
+      const next = orderRef.current.filter((x) => x !== pr.k)
+      next.splice(next.indexOf(over.dataset.namepart) + (after ? 1 : 0), 0, pr.k)
+      if (next.join() !== orderRef.current.join()) { orderRef.current = next; setOrder(next) }
+    }
+    const up = () => {
+      if (press.current && press.current.dragging) swallow.current = true
+      press.current = null
+      setDragK(null)
+      document.removeEventListener('pointermove', move, true)
+      document.removeEventListener('pointerup', up, true)
+      document.removeEventListener('pointercancel', up, true)
+    }
+    document.addEventListener('pointermove', move, true)
+    document.addEventListener('pointerup', up, true)
+    document.addEventListener('pointercancel', up, true)
+  }
+  // ⛔ The click a drag ends with is swallowed here, and the NEXT press drops the guard (never a timer: a press whose
+  // click never comes would leave a timer to eat the next real one; CLAUDE.md, the Shift list's press guard).
+  const onClickCapture = (e) => {
+    if (!swallow.current) return
+    swallow.current = false
+    e.preventDefault()
+    e.stopPropagation()
+  }
   return (
     <div className="pdfdlg-name">
       <Group justify="space-between" align="baseline" mb={6} wrap="nowrap">
         <Text size="sm" fw={600}>File name</Text>
-        {anyOff && (
-          <UnstyledButton onClick={() => setOff([])} data-pdfdlg="name-reset"
+        {changed && (
+          <UnstyledButton onClick={() => { setOff([]); setOrder(orderDefault.slice()) }} data-pdfdlg="name-reset"
             style={{ fontSize: 12, color: 'var(--mantine-color-dimmed)', textDecoration: 'underline' }}>
             Put all back
           </UnstyledButton>
@@ -95,17 +150,22 @@ function FileNameRow({ parts, off, setOff, ext }) {
       <Text size="sm" className="pdfdlg-name-preview"
         style={{ background: 'var(--mantine-color-gray-0)', border: '1px solid var(--mantine-color-gray-2)',
                  borderRadius: 7, padding: '7px 10px', wordBreak: 'break-word', lineHeight: 1.45 }}>
-        {joinName(parts, off, '')}<span style={{ color: 'var(--mantine-color-dimmed)' }}>{ext}</span>
+        {joinName(sorted, off, '')}<span style={{ color: 'var(--mantine-color-dimmed)' }}>{ext}</span>
       </Text>
-      <Group gap={6} mt={8}>
-        {parts.map((p) => (
-          <Chip key={p.k} size="xs" checked={p.locked || !off.includes(p.k)} disabled={p.locked}
-            onChange={() => { if (!p.locked) toggle(p.k) }} data-namepart={p.k}
-            title={p.locked ? 'The show title always stays' : p.val}>
-            {p.label}
-          </Chip>
+      <Group gap={6} mt={8} onClickCapture={onClickCapture} style={{ touchAction: 'none' }}>
+        {sorted.map((p) => (
+          <span key={p.k} data-namepart={p.k} onPointerDown={(e) => onPointerDown(e, p.k)}
+            style={{ cursor: dragK ? 'grabbing' : 'grab', opacity: dragK === p.k ? 0.5 : 1, display: 'inline-flex',
+                     userSelect: 'none', WebkitUserSelect: 'none' }}>
+            <Chip size="xs" checked={p.locked || !off.includes(p.k)} disabled={p.locked}
+              onChange={() => { if (!p.locked) toggle(p.k) }}
+              title={p.locked ? 'The show title always stays. Drag to move it.' : p.val + '. Click to take it out or put it back; drag to move it.'}>
+              {p.label}
+            </Chip>
+          </span>
         ))}
       </Group>
+      <Text size="xs" c="dimmed" mt={6}>Click a part to take it out or put it back. Drag it to move it.</Text>
     </div>
   )
 }
@@ -116,6 +176,7 @@ export function ExportPdfDialog() {
   const [orient, setOrient] = useState('')   // '' = follow the paper's recommendation
   const [grid, setGrid] = useState('none')
   const [nameOff, setNameOff] = useState([])
+  const [nameOrder, setNameOrder] = useState([])
   const resolveRef = useRef(null)
   const openCount = useRef(0)
 
@@ -130,6 +191,7 @@ export function ExportPdfDialog() {
           setOrient(opts.orientation || '')
           setGrid(opts.gridlines || 'none')
           setNameOff(Array.isArray(opts.nameOff) ? opts.nameOff : [])
+          setNameOrder(Array.isArray(opts.nameOrder) ? opts.nameOrder : (opts.nameOrderDefault || []))
           setDlg({ ...opts, n: openCount.current })
         }),
     })
@@ -152,7 +214,7 @@ export function ExportPdfDialog() {
   const paperRec = (dlg.paperRec || {})[orient || 'follow'] || { paper: 'letter', gain: 0 }
   const gridData = GRID_OPTIONS.some((g) => g.value === grid)
     ? GRID_OPTIONS : GRID_OPTIONS.concat([{ value: grid, label: grid.charAt(0).toUpperCase() + grid.slice(1) }])
-  const doExport = () => finish({ paper, orientation: shown, gridlines: grid, nameOff })
+  const doExport = () => finish({ paper, orientation: shown, gridlines: grid, nameOff, nameOrder })
   // Enter exports, as the app's other dialogs confirm on Enter -- except on a button, whose own Enter
   // (a native click) must stay the button's: Enter on Cancel cancels.
   const onKey = (e) => {
@@ -207,7 +269,8 @@ export function ExportPdfDialog() {
             <SegmentedControl fullWidth size="sm" value={grid} onChange={setGrid} aria-label="Grid lines" data={gridData} />
           </Row>
           {Array.isArray(dlg.nameParts) && dlg.nameParts.length > 0 && (
-            <FileNameRow parts={dlg.nameParts} off={nameOff} setOff={setNameOff} ext={dlg.nameExt || '.pdf'} />
+            <FileNameRow parts={dlg.nameParts} off={nameOff} setOff={setNameOff} order={nameOrder} setOrder={setNameOrder}
+              orderDefault={dlg.nameOrderDefault || nameOrder} ext={dlg.nameExt || '.pdf'} />
           )}
           <Text size="xs" c="dimmed">
             The paper and orientation are saved with this calendar, and Export to Excel uses them too.
