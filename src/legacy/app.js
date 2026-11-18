@@ -9904,12 +9904,19 @@ export function initLegacyApp() {
   // the keys and draws no double-up, which is safe. ⛔ The card's controls carry NO id (UI-CONVENTIONS §8, plan §9's
   // recommendation), so fields.byId and gate 5 do not move; these variables are the one store.
   const DU_KEY = 'doubleUp';
-  const DU_NAME = 'Double-up';
+  // ⭐ R21 (owner, 17 Nov 2026: "Yes, use Tandem"): the WORD people read is "Tandem" -- the default pill prefix ("Tandem 101")
+  // -- and the card's head reads "Tandem days" while its name is the default (Prep's pattern: "Episodic Prep" over "Prep
+  // 303"). Real calendars and dailies call them tandem days; "double-up" only describes two units shooting at once.
+  // ⛔ Only words changed. Every saved key, id, class and code name keeps "double-up" (doubleUps, doubleUpDays,
+  // doubleUpName, data-du, DU_KEY 'doubleUp'), as Load kept data-action="open": renaming one would stop saved calendars
+  // opening. A calendar with no typed name reads Tandem now; a typed name, "Double-up" included, is kept as typed.
+  const DU_NAME = 'Tandem';
+  const DU_TITLE = 'Tandem days';   // the card head's text while the name is the default
   const DU_MAX = 99;             // a typed count's ceiling (R19: the boxes are typed, so no stepper's 0..9)
   const DU_NAME_MAX = 40;
   const DU_SEL_PILL = '.mv-pill[data-du]';   // a double-up pill in the month view (frozen edit DU1's marker)
   let doubleUpDays = 0;          // the card's default count (R2); 0 = none
-  let doubleUpName = '';         // the card's default name; '' reads "Double-up"
+  let doubleUpName = '';         // the card's default name; '' reads "Tandem" (R21)
   let doubleUpMoved = {};        // unit id -> {day: n} | {after: n}
   // A count as stored: a whole number 0..DU_MAX, or NaN.
   function duCountOf(v){ return (typeof v === 'number' && Number.isInteger(v) && v >= 0 && v <= DU_MAX) ? v : NaN; }
@@ -9920,6 +9927,8 @@ export function initLegacyApp() {
     return typeof v === 'string' ? v.replace(/[\u0000-\u001f\u007f]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, DU_NAME_MAX) : '';
   }
   function duDefaultName(){ return doubleUpName || DU_NAME; }
+  // A name in the card's head that means "the default": blank, the head's own "Tandem days", or the bare "Tandem".
+  function isDuDefaultTitle(t){ return t === '' || t === DU_TITLE || t === DU_NAME; }
   // A moved position as stored, or null.
   function duMovedOf(v){
     if(!isPlainObj(v)) return null;
@@ -9993,7 +10002,7 @@ export function initLegacyApp() {
     const d = duCountOf(v.days);
     if(d > 0) doubleUpDays = d;
     doubleUpName = cleanDuName(v.name);
-    if(doubleUpName === DU_NAME) doubleUpName = '';
+    if(isDuDefaultTitle(doubleUpName)) doubleUpName = '';
     if(isPlainObj(v.moved)) Object.keys(v.moved).forEach(id=>{
       const m = duMovedOf(v.moved[id]);
       if(m && SNAP_ID.test(id)) doubleUpMoved[id] = m;
@@ -10032,11 +10041,11 @@ export function initLegacyApp() {
     row.style.setProperty('--phase-color', look.color);
     row.innerHTML = `
         <div class="swatch du-swatch" id="swatch-${DU_KEY}" style="background:${look.color};" title="A darker shade of Production&rsquo;s colour. It follows Production&rsquo;s colour."></div>
-        ${phaseHeadHtml(`<input type="text" class="phase-name-input du-name-input" value="${DU_NAME}" placeholder="${DU_NAME}" maxlength="${DU_NAME_MAX}" aria-label="Double-up name" title="What the pills say. Each episode or block can have its own name below.">`,
+        ${phaseHeadHtml(`<input type="text" class="phase-name-input du-name-input" value="${DU_TITLE}" placeholder="${DU_TITLE}" maxlength="${DU_NAME_MAX}" aria-label="Tandem name" title="What the pills say (blank: Tandem). Each episode or block can have its own name below.">`,
           MVONLY_TAG(false, 'A second crew&rsquo;s days, drawn in the month view and its PDF only. They never change Production&rsquo;s days.'),
           `<div class="phase-meta du-meta"></div>`)}
         <div class="phase-fields du-fields">
-          <label class="du-default" title="Working days a second crew shoots on the next episode, for every episode but the last">Default double-ups ${duBoxHtml('du-default-in', 'None', 'Default double-up days')}</label>
+          <label class="du-default" title="Working days a second crew shoots on the next episode, for every episode but the last">Default tandem days ${duBoxHtml('du-default-in', 'None', 'Default tandem days')}</label>
         </div>
         <div class="du-body">
           <div class="du-panel"><div class="du-rows"></div></div>
@@ -10044,7 +10053,7 @@ export function initLegacyApp() {
     const nameIn = row.querySelector('.du-name-input');
     nameIn.addEventListener('input', ()=>{
       const t = cleanDuName(nameIn.value);
-      const next = t === DU_NAME ? '' : t;
+      const next = isDuDefaultTitle(t) ? '' : t;
       if(next === doubleUpName) return;
       doubleUpName = next;
       update();
@@ -10116,13 +10125,15 @@ export function initLegacyApp() {
     if(units.length) units[units.length - 1].last = true;
     return units;
   }
-  // The head's name box: the default name, unless it is being typed in. `force` (its change event) writes it even then.
+  // The head's name box: a typed name, or "Tandem days" for the default (R21), unless it is being typed in. `force` (its
+  // change event) writes it even then.
   function reflectDuName(force){
     const el = document.querySelector('#du-row .du-name-input');
     if(!el) return;
-    if((force || document.activeElement !== el) && cleanDuName(el.value) !== duDefaultName()) el.value = duDefaultName();
+    const want = doubleUpName || DU_TITLE;
+    if((force || document.activeElement !== el) && cleanDuName(el.value) !== want) el.value = want;
   }
-  // The card's list, its − / + values and its summary line, from update(). REBUILT only when its rows change (the
+  // The card's list, its count boxes and its summary line, from update(). REBUILT only when its rows change (the
   // mode, which units, their order or tags), never on a keystroke in one of its own boxes; otherwise written back in
   // place from the store, skipping the box being typed in (refreshPrepUI's rule).
   function refreshDoubleUpUI(schedule){
@@ -10140,12 +10151,12 @@ export function initLegacyApp() {
       wrap._duKey = key;
       wrap.innerHTML = !units.length ? '' :
         '<div class="ep-sec-head"><span class="ep-sec-title">' + (info.blocks ? 'Blocks' : 'Episodes') + '</span>'
-        + '<span class="ep-sec-note" title="Blank uses the default. 0 gives ' + (info.blocks ? 'that block' : 'that episode') + ' no double-up.">Blank = default · 0 = none</span></div>'
+        + '<span class="ep-sec-note" title="Blank uses the default. 0 gives ' + (info.blocks ? 'that block' : 'that episode') + ' no tandem days.">Blank = default · 0 = none</span></div>'
         + '<div class="ep-list">' + units.map(u=> `
           <div class="du-unit-row" data-kind="${u.kind}" data-id="${escHtml(u.def.id)}"${u.last ? ' data-last="1"' : ''}>
             <span class="du-unit-tag" title="${escHtml(u.tag)}">${escHtml(u.tag)}</span>
-            <input type="text" class="du-unit-name" maxlength="${DU_NAME_MAX}" value="" aria-label="${escHtml(u.tag)} double-up name">
-            <label class="du-unit-count" title="Double-up days for ${escHtml(u.tag)}">${duBoxHtml('du-unit-days', '–', escHtml(u.tag) + ' double-up days')}</label>
+            <input type="text" class="du-unit-name" maxlength="${DU_NAME_MAX}" value="" aria-label="${escHtml(u.tag)} tandem name">
+            <label class="du-unit-count" title="Tandem days for ${escHtml(u.tag)}">${duBoxHtml('du-unit-days', '–', escHtml(u.tag) + ' tandem days')}</label>
           </div>`).join('') + '</div>';
     }
     // Values written back in place from the store, never into the box being typed in (Prep's rule), so an undo, a
@@ -10182,7 +10193,7 @@ export function initLegacyApp() {
   }
   // The summary line (the mockup's): "7 double-ups · 7 days · 101–107", or why there are none.
   function duSummary(schedule, info, units){
-    if(!info.complete) return 'Complete Show Info to add double-ups.';
+    if(!info.complete) return 'Complete Show Info to add tandem days.';
     const seg = duSegOf(schedule);
     if(!seg) return 'None yet';
     const n = seg.dus.length, days = seg.dus.reduce((a, d)=> a + d.n, 0);
@@ -10192,7 +10203,9 @@ export function initLegacyApp() {
       range = tags.length > 1 ? ' · ' + tags[0] + '–' + tags[tags.length - 1] : tags.length ? ' · ' + tags[0] : '';
     }
     const moved = seg.dus.filter(d=> d.moved).length;
-    return n + ' double-up' + (n === 1 ? '' : 's') + ' · ' + days + ' day' + (days === 1 ? '' : 's') + range
+    // R21's words: "7 tandem days · 6 episodes · 302–305", one count of days and one of the units that have them.
+    const unitWord = info.blocks ? 'block' : 'episode';
+    return days + ' tandem day' + (days === 1 ? '' : 's') + ' · ' + n + ' ' + unitWord + (n === 1 ? '' : 's') + range
       + (moved ? ' · ' + moved + ' moved' : '');
   }
   // ⭐ R12: double-click a double-up pill opens this card at that unit's row, as every month bar opens its phase's card.
@@ -13089,7 +13102,7 @@ export function initLegacyApp() {
   }
   function duRefusal(du, why){
     const word = du.kind === 'block' ? 'block' : 'episode';
-    if(why === 'first') return duPillLabel(du) + ' can’t go on the first ' + word + '’s days: it has no double-ups.';
+    if(why === 'first') return duPillLabel(du) + ' can’t go on the first ' + word + '’s days: it has no tandem days.';
     return duPillLabel(du) + ' can only go on another ' + word + '’s days, or after wrap'
       + (why === 'before' ? ', never before the shoot starts.' : '.');
   }
@@ -13151,9 +13164,9 @@ export function initLegacyApp() {
     const pop = document.createElement('div');
     pop.className = 'du-rename-pop';
     pop.setAttribute('role', 'dialog');
-    pop.setAttribute('aria-label', 'Name of ' + unit + '’s double-up');
-    pop.innerHTML = '<div class="du-rename-title">Name of ' + escHtml(unit) + '’s double-up</div>'
-      + '<input type="text" class="du-rename-input" maxlength="' + DU_NAME_MAX + '" aria-label="Double-up name">'
+    pop.setAttribute('aria-label', 'Name of ' + unit + '’s tandem days');
+    pop.innerHTML = '<div class="du-rename-title">Name of ' + escHtml(unit) + '’s tandem days</div>'
+      + '<input type="text" class="du-rename-input" maxlength="' + DU_NAME_MAX + '" aria-label="Tandem name">'
       + '<div class="du-rename-acts"><button type="button" class="du-rename-default"></button>'
       + '<button type="button" class="du-rename-done">Done</button></div>';
     const inp = pop.querySelector('.du-rename-input');
@@ -14285,7 +14298,7 @@ export function initLegacyApp() {
       if(du.moved) items.push({id: 'du-back', icon: 'undo', text: 'Put back on its default days', note: duPillLabel(du) + ' goes back where it started',
         run: ()=> setDoubleUpAt(du, du.defSlot)});
       return [{id: 'du', items},   // no label: the menu's head already names the pill
-              {id: 'du-out', items: [{id: 'du-remove', icon: 'trash', text: 'Remove double-up', danger: true,
+              {id: 'du-out', items: [{id: 'du-remove', icon: 'trash', text: 'Remove tandem days', danger: true,
                 run: ()=> removeDoubleUp(du)}]}];
     }
 

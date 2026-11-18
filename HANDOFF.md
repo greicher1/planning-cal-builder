@@ -30,6 +30,10 @@
   ink at 40%. ⛔ Never a border for the divider (it notched at the corners). The writer paints the same (no ring band on
   the joined side, a 1 px fill of `mvlMix(ink, .4, fill)`). Spec: [`mockups/double-up-join-line.html`](mockups/double-up-join-line.html);
   plan §10.3a. The first full gate (queued at 20:04, 154 PASS / 0 FAIL when stopped) was stopped for it, since the build changed.
+- 🔨 **R21, after v1.17.1 (owner: *"Yes, use Tandem"*): the word is Tandem.** Default pill "Tandem 101", card head
+  "Tandem days", and every user-facing string; saved keys, ids, classes and code names keep "double-up" (Load's
+  `data-action="open"` precedent). Plan §10.3d; README Unreleased. `doubleups` 58/58, writer + export green. Committed on
+  the branch, NOT pushed. Tracker card `double-up-rename-tandem`.
 - 🔨 **R20, after v1.17.0 (owner: *"there also shouldnt be double up days at the beginning of the 1st episode"*; picker
   "None during episode 1"; for a one-episode show, picker "Allow it there"):** no double-up on any of the first unit's
   days. `minSlot` on the segment (appendDoubleUps), read by `duDropVerdict` and the drag's grey days; a v1.17.0 move onto

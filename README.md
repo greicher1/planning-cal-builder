@@ -29,6 +29,20 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+## Unreleased
+
+### Double-up days are called Tandem days (17 Nov 2026)
+
+The owner asked whether calendars really say "double-up" or "tandem", and on hearing that every real calendar and
+dailies record in their additional-units write-up says tandem, ruled *"Yes, use Tandem"* (DOUBLE-UP-DAYS-PLAN.md R21).
+- A pill nobody named reads **"Tandem 101"** ("Tandem Block 1"), and the card is **Tandem days**: its head, its
+  *Default tandem days* box, its summary ("7 tandem days · 6 episodes · 302–305"), the right-click *Remove tandem days*,
+  the drag's refusals, the Rename box and Help all say tandem.
+- Only words changed. The saved keys keep "double-up", so every calendar keeps opening; one whose pills had the default
+  name now reads Tandem, and a name someone typed (even "Double-up") stays as typed.
+- Verified: `doubleups` 58/58 (live 11, restore 42, half 3, blocks 2), `monthwriter` + `monthab` on `doubleups` and
+  `doubleups-blocks` (the written PDF reads "Tandem 301", "Tandem Block 1"), `monthexport` 9/9, `npm run check` 42/42.
+
 ## v1.17.1 — no double-up during the first episode (17 Nov 2026)
 
 ### No double-up during the first episode (17 Nov 2026)
