@@ -32985,7 +32985,7 @@ export function initLegacyApp() {
     if(!opts.date) noteLastEdited();
     const d = opts.date || lastEditedDate();
     const parts = [
-      { k:'title',    label:'Show title',  val: clean(safeTitle), locked: true },
+      { k:'title',    label:'Show title',  val: clean(safeTitle) },
       { k:'season',   label:'Season',      val: clean(seasonLabel()) },
       { k:'wro',      label:'WRO date',    val: opts.noWro ? '' : exportNameWro() },
       { k:'words',    label:'Calendar',    val: clean(words) },
@@ -32999,13 +32999,15 @@ export function initLegacyApp() {
   // ⭐ WHICH PARTS ARE SWITCHED OFF (owner, 18 Nov 2026: "an easy to use system that lets you add/unadd parts of the
   // file name", then "make it actually work"; mockups/export-file-name-parts.html, layout A). A PER-COMPUTER preference,
   // `fileNameOff` in sptcal.prefs (absent = every part on, today's name), set in the Export PDF window and read by EVERY
-  // export's name (the workbook, both PDFs, Compare), never saved in a calendar. The title can't be switched off.
+  // export's name (the workbook, both PDFs, Compare), never saved in a calendar. The title can be switched off too
+  // (owner, 18 Nov 2026, "also allow removing show title"; it was locked on until then). With every part off, the name
+  // is the calendar's words alone ("Planning Calendar.pdf"), never empty (exportNameFrom).
   // ⚠️ Whether it should travel with the calendar instead is the owner's open call (tracker export-file-name-parts).
-  const FILE_NAME_PART_KEYS = ['season', 'wro', 'words', 'version', 'date', 'scenario'];
+  const FILE_NAME_PART_KEYS = ['title', 'season', 'wro', 'words', 'version', 'date', 'scenario'];
   // ⭐ AND THEIR ORDER (owner, 18 Nov 2026: "Allow me to be able to drag and reorder the chips to reorder the file
   // name"): `fileNameOrder` in sptcal.prefs, every part's key including the title, absent = exportNameParts' order. A key
   // the store lacks (a part added by a later build) goes in where it sits by default, after the part before it.
-  const FILE_NAME_ORDER_DEFAULT = ['title'].concat(FILE_NAME_PART_KEYS);
+  const FILE_NAME_ORDER_DEFAULT = FILE_NAME_PART_KEYS.slice();
   function fileNameOrder(){
     const known = FILE_NAME_ORDER_DEFAULT;
     const stored = Array.isArray(prefs.fileNameOrder) ? prefs.fileNameOrder.filter((k, i, a) => known.includes(k) && a.indexOf(k) === i) : [];
@@ -33040,8 +33042,9 @@ export function initLegacyApp() {
   // preview (ExportPdfDialog.jsx, joinName) repeats this rule: change both together.
   function exportNameFrom(parts, ext){
     const off = fileNameOff(), order = fileNameOrder();
-    const shown = parts.filter(p => p.locked || !off.includes(p.k))
+    let shown = parts.filter(p => p.locked || !off.includes(p.k))
       .sort((a, b) => order.indexOf(a.k) - order.indexOf(b.k));
+    if(!shown.length) shown = parts.filter(p => p.k === 'words');   // every part off: never an empty name
     let out = '';
     shown.forEach((p, i) => {
       out += (i ? ((p.join && i === shown.length - 1) ? p.join : ' ') : '') + p.val;
@@ -33060,7 +33063,24 @@ export function initLegacyApp() {
   // already hand their title to this function. fileNameTitle() of a title the writers made safe is that same title
   // whenever it is 150 characters or fewer (it strips nothing they left), so no real calendar's name changes.
   function exportFileName(safeTitle, words, ext){
+    // A name TYPED in the Export PDF window names that one waterfall PDF, and is then gone (pendingPdfName, below).
+    if(pendingPdfName && ext === '.pdf' && words === 'Planning Calendar'){
+      const typed = pendingPdfName;
+      pendingPdfName = '';
+      return typed + ext;
+    }
     return exportNameFrom(exportNameParts(fileNameTitle(safeTitle), words), ext);
+  }
+  // ⭐ A FILE NAME TYPED BY HAND (owner, 18 Nov 2026: "you need to be able to manually edit the file name"). The Export
+  // PDF window's name box can be typed in; what is typed names THIS export only and is never remembered (a typed name
+  // belongs to one revision; the parts and their order are what is remembered). askPdfPageSetup() sets it, frozen
+  // exportWaterfallPdfDirect's name line takes it through exportFileName() above, which clears it, and the click
+  // handler clears it if the export stops before then. Characters a file name can't hold become '-', as in a title; a
+  // typed ".pdf" is not doubled; the length is cut as a title is (fileNameTitle). Empty = the built name.
+  let pendingPdfName = '';
+  function cleanTypedFileName(raw){
+    const s = String(raw || '').replace(/\.pdf\s*$/i, '');
+    return fileNameTitle(s);
   }
   // The shareable copy holds the tab on screen only (ruling D6), so with two or more its name says which one. Its name
   // is a SAVE's (the title and today's date, buildSavedFileName), so it takes the scenario alone, never the marks.
@@ -40629,7 +40649,7 @@ export function initLegacyApp() {
       if(!(await askPdfPageSetup())) return;
       // Audit L-6: name what would print as "?" before writing it. Only the direct writer is
       // bound to WinAnsi; the print fallback renders the DOM with the browser's own font fallback.
-      if(!(await confirmPdfPrintable())) return;
+      if(!(await confirmPdfPrintable())){ pendingPdfName = ''; return; }
       exportWaterfallPdfDirect();
     }
     else exportWaterfallPdf();
@@ -40686,6 +40706,7 @@ export function initLegacyApp() {
   // preference store -- so a calendar exported without touching it comes out exactly as before the dialog
   // existed. Every gate leg that exports a PDF goes through here at the defaults, which is the proof.
   async function askPdfPageSetup(){
+    pendingPdfName = '';
     const fits = {};
     Object.keys(SHEET_PAPERS).forEach(k=>{ fits[k] = pageFitFor(k); });
     const choice = await chrome.pdfExportDialog({
@@ -40707,6 +40728,7 @@ export function initLegacyApp() {
     // A per-computer preference, written only when it changed, so Export at the window's defaults still writes nothing.
     if(Array.isArray(choice.nameOff)) setFileNameOff(choice.nameOff);
     if(Array.isArray(choice.nameOrder)) setFileNameOrder(choice.nameOrder);
+    pendingPdfName = choice.nameTyped ? cleanTypedFileName(choice.nameTyped) : '';
     const key = SHEET_PAPERS[choice.paper] ? choice.paper : 'letter';
     const paper = PAPER_SIZES.includes(key) ? key : '';
     // D1: kept only when it differs from what the rule recommends ON THE CHOSEN PAPER, so picking the

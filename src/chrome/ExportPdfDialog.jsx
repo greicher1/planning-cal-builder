@@ -26,7 +26,7 @@
 // withinPortal={false}, as in Dialogs.jsx: Mantine's portal would append after #print-root, which must stay
 // <body>'s last child (MANTINE-SEAM §3.1).
 import { useState, useLayoutEffect, useCallback, useRef } from 'react'
-import { Modal, Button, Text, Group, Stack, SegmentedControl, Chip, UnstyledButton } from '@mantine/core'
+import { Modal, Button, Text, Group, Stack, SegmentedControl, UnstyledButton, TextInput } from '@mantine/core'
 import { installChrome } from './bridge.js'
 import { useOutsideCloseGuard } from './modalGuard.js'
 
@@ -71,9 +71,15 @@ export function Row({ label, children }) {
 // part: a click switches it off or on (the title is locked on), a drag moves it. The name above them is exactly what
 // will download. The answer carries `nameOff` and `nameOrder`, which the engine stores only if they changed, and which
 // every export's name then follows.
-// ⛔ joinName repeats the engine's exportNameFrom (app.js): the scenario keeps its " – " only when it is last.
+// ⭐ The name is a TEXT BOX (owner, 18 Nov 2026: "you need to be able to manually edit the file name"): what is typed
+// names this one export (the answer's `nameTyped`; the engine never remembers it). A click on a chip, a drag or Put all
+// back builds the name from the parts again. The title chip can be switched off like any part ("also allow removing
+// show title").
+// ⛔ joinName repeats the engine's exportNameFrom (app.js): the scenario keeps its " – " only when it is last, and with
+// every part off the name is the calendar's words alone.
 function joinName(parts, off, ext) {
-  const shown = parts.filter((p) => p.locked || !off.includes(p.k))
+  let shown = parts.filter((p) => p.locked || !off.includes(p.k))
+  if (!shown.length) shown = parts.filter((p) => p.k === 'words')
   let out = ''
   shown.forEach((p, i) => {
     out += (i ? ((p.join && i === shown.length - 1) ? p.join : ' ') : '') + p.val
@@ -81,19 +87,22 @@ function joinName(parts, off, ext) {
   return out + (ext || '')
 }
 
-function FileNameRow({ parts, off, setOff, order, setOrder, orderDefault, ext }) {
+function FileNameRow({ parts, off, setOff, order, setOrder, orderDefault, ext, typed, setTyped }) {
   const [dragK, setDragK] = useState(null)
   const orderRef = useRef(order)
   orderRef.current = order
   const press = useRef(null)      // {k, x, y, dragging} from pointerdown until pointerup
   const swallow = useRef(false)   // the click that ends a drag must not switch the chip
   const sorted = parts.slice().sort((a, b) => order.indexOf(a.k) - order.indexOf(b.k))
-  const toggle = (k) => setOff(off.includes(k) ? off.filter((x) => x !== k) : off.concat([k]))
-  const changed = parts.some((p) => !p.locked && off.includes(p.k)) || order.join() !== orderDefault.join()
-  // A DRAG is a press that moves more than 4 px. Pointer events, not the browser's own drag and drop, so it works the
-  // same with a mouse, a pen or a finger. While it moves, the pressed part is moved before or after the chip under the
-  // pointer (by which half of it the pointer is over), live, so the chips and the name show where it will land. Moved
-  // within the WHOLE order, parts not shown included.
+  const toggle = (k) => { setTyped(null); setOff(off.includes(k) ? off.filter((x) => x !== k) : off.concat([k])) }
+  const changed = typed !== null || parts.some((p) => !p.locked && off.includes(p.k)) || order.join() !== orderDefault.join()
+  const built = joinName(sorted, off, '')
+  // ⭐ A LIST WITH DRAG HANDLES (owner, 18 Nov 2026: "we might need to change it to the list version with drag handles
+  // so you can easily reoder"; it was chips). A click on a row ticks it; its handle (six dots) drags it; Alt + Up / Down
+  // moves it from the keyboard. A DRAG is a press on the handle that moves more than 4 px. Pointer events, not the
+  // browser's own drag and drop, so it works the same with a mouse, a pen or a finger. While it moves, the pressed part
+  // is moved above or below the row under the pointer (by which half of it the pointer is over), live, so the rows and
+  // the name show where it will land. Moved within the WHOLE order, parts not shown included.
   const onPointerDown = (e, k) => {
     if (e.button !== 0) return
     swallow.current = false
@@ -111,10 +120,10 @@ function FileNameRow({ parts, off, setOff, order, setOrder, orderDefault, ext })
       const over = el && el.closest && el.closest('[data-namepart]')
       if (!over || over.dataset.namepart === pr.k) return
       const r = over.getBoundingClientRect()
-      const after = ev.clientX > r.left + r.width / 2
+      const after = ev.clientY > r.top + r.height / 2
       const next = orderRef.current.filter((x) => x !== pr.k)
       next.splice(next.indexOf(over.dataset.namepart) + (after ? 1 : 0), 0, pr.k)
-      if (next.join() !== orderRef.current.join()) { orderRef.current = next; setOrder(next) }
+      if (next.join() !== orderRef.current.join()) { orderRef.current = next; setTyped(null); setOrder(next) }
     }
     const up = () => {
       if (press.current && press.current.dragging) swallow.current = true
@@ -141,31 +150,65 @@ function FileNameRow({ parts, off, setOff, order, setOrder, orderDefault, ext })
       <Group justify="space-between" align="baseline" mb={6} wrap="nowrap">
         <Text size="sm" fw={600}>File name</Text>
         {changed && (
-          <UnstyledButton onClick={() => { setOff([]); setOrder(orderDefault.slice()) }} data-pdfdlg="name-reset"
+          <UnstyledButton onClick={() => { setTyped(null); setOff([]); setOrder(orderDefault.slice()) }} data-pdfdlg="name-reset"
             style={{ fontSize: 12, color: 'var(--mantine-color-dimmed)', textDecoration: 'underline' }}>
             Put all back
           </UnstyledButton>
         )}
       </Group>
-      <Text size="sm" className="pdfdlg-name-preview"
-        style={{ background: 'var(--mantine-color-gray-0)', border: '1px solid var(--mantine-color-gray-2)',
-                 borderRadius: 7, padding: '7px 10px', wordBreak: 'break-word', lineHeight: 1.45 }}>
-        {joinName(sorted, off, '')}<span style={{ color: 'var(--mantine-color-dimmed)' }}>{ext}</span>
+      <TextInput size="sm" className="pdfdlg-name-input" aria-label="File name" spellCheck={false}
+        value={typed !== null ? typed : built} onChange={(e) => setTyped(e.currentTarget.value)}
+        rightSection={<Text size="sm" c="dimmed">{ext}</Text>} rightSectionWidth={44} />
+      <div onClickCapture={onClickCapture} onPointerDownCapture={() => { swallow.current = false }}
+        className="pdfdlg-name-list"
+        style={{ border: '1px solid var(--mantine-color-gray-2)', borderRadius: 7, marginTop: 8, overflow: 'hidden' }}>
+        {sorted.map((p, i) => {
+          const on = !off.includes(p.k)
+          return (
+            <div key={p.k} data-namepart={p.k} role="checkbox" aria-checked={on} tabIndex={0}
+              onClick={() => toggle(p.k)}
+              onKeyDown={(e) => {
+                if (e.key === ' ') { e.preventDefault(); toggle(p.k) }
+                // Alt + Up / Down moves the row, for the keyboard.
+                if (e.altKey && (e.key === 'ArrowUp' || e.key === 'ArrowDown')) {
+                  e.preventDefault()
+                  const next = order.slice(), at = next.indexOf(p.k)
+                  const to = Math.max(0, Math.min(next.length - 1, at + (e.key === 'ArrowUp' ? -1 : 1)))
+                  next.splice(at, 1); next.splice(to, 0, p.k)
+                  setTyped(null); setOrder(next)
+                }
+              }}
+              style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '3px 10px 3px 4px', fontSize: 13,
+                       borderTop: i ? '1px solid var(--mantine-color-gray-1)' : 0, cursor: 'pointer',
+                       userSelect: 'none', WebkitUserSelect: 'none',
+                       background: dragK === p.k ? 'var(--mantine-color-gray-1)' : '#fff',
+                       boxShadow: dragK === p.k ? 'inset 0 0 0 1px var(--mantine-color-gray-4)' : 'none' }}>
+              <span data-namehandle aria-label="Drag to move" title="Drag to move it in the name"
+                onPointerDown={(e) => onPointerDown(e, p.k)} onClick={(e) => e.stopPropagation()}
+                style={{ cursor: dragK ? 'grabbing' : 'grab', touchAction: 'none', display: 'inline-grid', placeItems: 'center',
+                         width: 22, height: 22, borderRadius: 4, color: 'var(--mantine-color-gray-5)', flex: '0 0 auto' }}>
+                <svg width="10" height="14" viewBox="0 0 10 14" aria-hidden="true">
+                  {[2, 7, 12].map((y) => [2.5, 7.5].map((x) => <circle key={x + '-' + y} cx={x} cy={y} r="1.3" fill="currentColor" />))}
+                </svg>
+              </span>
+              <span style={{ width: 16, height: 16, borderRadius: 4, flex: '0 0 auto', display: 'inline-grid', placeItems: 'center',
+                             border: '1.5px solid ' + (on ? 'var(--mantine-color-navy-6, #2C3E50)' : 'var(--mantine-color-gray-4)'),
+                             background: on ? 'var(--mantine-color-navy-6, #2C3E50)' : '#fff', color: '#fff', fontSize: 11, lineHeight: 1 }}>
+                {on ? '✓' : ''}
+              </span>
+              <span style={{ fontWeight: 500, flex: '0 0 auto', width: 86 }}>{p.label}</span>
+              <span style={{ marginLeft: 'auto', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                             textAlign: 'right', color: on ? 'var(--mantine-color-dimmed)' : 'var(--mantine-color-gray-5)',
+                             textDecoration: on ? 'none' : 'line-through' }}>{p.val}</span>
+            </div>
+          )
+        })}
+      </div>
+      <Text size="xs" c="dimmed" mt={6} className="pdfdlg-name-hint">
+        {typed !== null
+          ? 'Your typed name is used for this export only. Tick or move a part to build the name from the parts again.'
+          : 'Type in the box to name this export yourself, or tick the parts to use. Drag a part by its handle to move it.'}
       </Text>
-      <Group gap={6} mt={8} onClickCapture={onClickCapture} style={{ touchAction: 'none' }}>
-        {sorted.map((p) => (
-          <span key={p.k} data-namepart={p.k} onPointerDown={(e) => onPointerDown(e, p.k)}
-            style={{ cursor: dragK ? 'grabbing' : 'grab', opacity: dragK === p.k ? 0.5 : 1, display: 'inline-flex',
-                     userSelect: 'none', WebkitUserSelect: 'none' }}>
-            <Chip size="xs" checked={p.locked || !off.includes(p.k)} disabled={p.locked}
-              onChange={() => { if (!p.locked) toggle(p.k) }}
-              title={p.locked ? 'The show title always stays. Drag to move it.' : p.val + '. Click to take it out or put it back; drag to move it.'}>
-              {p.label}
-            </Chip>
-          </span>
-        ))}
-      </Group>
-      <Text size="xs" c="dimmed" mt={6}>Click a part to take it out or put it back. Drag it to move it.</Text>
     </div>
   )
 }
@@ -177,6 +220,7 @@ export function ExportPdfDialog() {
   const [grid, setGrid] = useState('none')
   const [nameOff, setNameOff] = useState([])
   const [nameOrder, setNameOrder] = useState([])
+  const [nameTyped, setNameTyped] = useState(null)   // null = built from the parts
   const resolveRef = useRef(null)
   const openCount = useRef(0)
 
@@ -192,6 +236,7 @@ export function ExportPdfDialog() {
           setGrid(opts.gridlines || 'none')
           setNameOff(Array.isArray(opts.nameOff) ? opts.nameOff : [])
           setNameOrder(Array.isArray(opts.nameOrder) ? opts.nameOrder : (opts.nameOrderDefault || []))
+          setNameTyped(null)
           setDlg({ ...opts, n: openCount.current })
         }),
     })
@@ -214,7 +259,8 @@ export function ExportPdfDialog() {
   const paperRec = (dlg.paperRec || {})[orient || 'follow'] || { paper: 'letter', gain: 0 }
   const gridData = GRID_OPTIONS.some((g) => g.value === grid)
     ? GRID_OPTIONS : GRID_OPTIONS.concat([{ value: grid, label: grid.charAt(0).toUpperCase() + grid.slice(1) }])
-  const doExport = () => finish({ paper, orientation: shown, gridlines: grid, nameOff, nameOrder })
+  const doExport = () => finish({ paper, orientation: shown, gridlines: grid, nameOff, nameOrder,
+    nameTyped: (nameTyped !== null && nameTyped.trim()) ? nameTyped : '' })
   // Enter exports, as the app's other dialogs confirm on Enter -- except on a button, whose own Enter
   // (a native click) must stay the button's: Enter on Cancel cancels.
   const onKey = (e) => {
@@ -270,7 +316,8 @@ export function ExportPdfDialog() {
           </Row>
           {Array.isArray(dlg.nameParts) && dlg.nameParts.length > 0 && (
             <FileNameRow parts={dlg.nameParts} off={nameOff} setOff={setNameOff} order={nameOrder} setOrder={setNameOrder}
-              orderDefault={dlg.nameOrderDefault || nameOrder} ext={dlg.nameExt || '.pdf'} />
+              orderDefault={dlg.nameOrderDefault || nameOrder} ext={dlg.nameExt || '.pdf'}
+              typed={nameTyped} setTyped={setNameTyped} />
           )}
           <Text size="xs" c="dimmed">
             The paper and orientation are saved with this calendar, and Export to Excel uses them too.
