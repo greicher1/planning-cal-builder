@@ -99,14 +99,17 @@ function FileNameRow({ parts, off, setOff, offDefault, order, setOrder, orderDef
   const offKey = (list) => parts.filter((p) => list.includes(p.k)).map((p) => p.k).join()
   const changed = typed !== null || offKey(off) !== offKey(offDefault) || order.join() !== orderDefault.join()
   const built = joinName(sorted, off, '')
-  // ⭐ THE WINDOW WIDENS TO SHOW THE WHOLE NAME (owner, 18 Nov 2026: "extend the width of the window if necessary to
-  // always show the full file name"). A hidden copy of the name, in the box's own font, is measured after every change
-  // (typing included) and reported up; ExportPdfDialog sizes the modal from it (WINDOW_W, capped by the screen).
+  // ⭐ THE WINDOW IS WIDE ENOUGH FOR THE WHOLE NAME, AND HOLDS STILL (owner, 18 Nov 2026: "extend the width of the window
+  // if necessary to always show the full file name", then "the window size/position should not move/change size if i
+  // make a change to the file name"). Measured ONCE, when the window opens (this row mounts per opening): the LONGEST
+  // name its parts can make, every part ticked (the scenario included) in the order it opens with, in the box's own
+  // font, plus room for the " - " a moved part can add (windowWidth). So a tick, a drag or Put all back never resizes it;
+  // a typed name longer than that scrolls in the box. The hint below keeps one height for the same reason.
   const measureRef = useRef(null)
-  const shownName = typed !== null ? typed : built
+  const longest = useRef(joinName(sorted, [], '')).current
   useLayoutEffect(() => {
     if (measureRef.current && onWidth) onWidth(Math.ceil(measureRef.current.getBoundingClientRect().width))
-  }, [shownName, onWidth])
+  }, [])   // eslint-disable-line react-hooks/exhaustive-deps
   // ⭐ A LIST WITH DRAG HANDLES (owner, 18 Nov 2026: "we might need to change it to the list version with drag handles
   // so you can easily reoder"; it was chips). A click on a row ticks it; its handle (six dots) drags it; Alt + Up / Down
   // moves it from the keyboard. A DRAG is a press on the handle that moves more than 4 px. Pointer events, not the
@@ -168,7 +171,7 @@ function FileNameRow({ parts, off, setOff, offDefault, order, setOrder, orderDef
       </Group>
       <span ref={measureRef} aria-hidden="true"
         style={{ position: 'absolute', visibility: 'hidden', whiteSpace: 'pre', fontSize: 'var(--mantine-font-size-sm)',
-                 fontFamily: 'inherit', left: -9999, top: 0 }}>{shownName}</span>
+                 fontFamily: 'inherit', left: -9999, top: 0 }}>{longest}</span>
       <TextInput size="sm" className="pdfdlg-name-input" aria-label="File name" spellCheck={false}
         value={typed !== null ? typed : built} onChange={(e) => setTyped(e.currentTarget.value)}
         rightSection={<Text size="sm" c="dimmed">{ext}</Text>} rightSectionWidth={44} />
@@ -217,7 +220,7 @@ function FileNameRow({ parts, off, setOff, offDefault, order, setOrder, orderDef
           )
         })}
       </div>
-      <Text size="xs" c="dimmed" mt={6} className="pdfdlg-name-hint">
+      <Text size="xs" c="dimmed" mt={6} className="pdfdlg-name-hint" style={{ minHeight: '3.1em' }}>
         {typed !== null
           ? 'Your typed name is used for this export only. Tick or move a part to build the name from the parts again.'
           : 'Type in the box to name this export yourself, or tick the parts to use. Drag a part by its handle to move it.'}
@@ -231,7 +234,7 @@ function FileNameRow({ parts, off, setOff, offDefault, order, setOrder, orderDef
 // own 16 px padding each side), never wider than the screen less 16 px each side. Past that the box scrolls.
 const WINDOW_W = 440
 function windowWidth(nameW) {
-  const need = (nameW || 0) + 12 + 44 + 2 + 12 + 32
+  const need = (nameW || 0) + 12 + 44 + 2 + 12 + 32 + 16   // + 16: room for a moved part's dashes
   const cap = Math.max(WINDOW_W, (typeof window !== 'undefined' ? window.innerWidth : 1200) - 32)
   return Math.max(WINDOW_W, Math.min(need, cap))
 }
