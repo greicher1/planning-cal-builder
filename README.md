@@ -145,6 +145,71 @@ full-size month; they were rewritten for the shrunk month (see the entry above).
 holds 10 lines on its crowded fixture, and the limit refused it, so the test now uses a day with room. The out-of-view
 message (12 lines of chrome) was added between the two gates; the second covers it.
 
+## v1.17.5 — pick the Tandem colour (17 Nov 2026)
+
+### Pick the Tandem colour (17 Nov 2026)
+
+The owner: *"Allow me to change the color of tandem"* (DOUBLE-UP-DAYS-PLAN.md R23).
+- The Tandem card's colour square now opens the colour picker, like every phase's. The first swatch, **Follow
+  Production**, is the automatic darker shade of Production's colour (what tandems used until now); any other swatch
+  colours every tandem pill, on screen and in the month PDF, and stays put when Production is recoloured.
+- Saved in the existing phase-colour map, only once a colour is picked, so a calendar that never picks one saves byte
+  for byte as before.
+- Verified: `doubleups` 66/66 (live 11, restore 50 with three new colour checks, half 3, blocks 2), `phasesui` 8/8,
+  `npm run check` 42/42.
+
+## v1.17.4 — drag a tandem's ends to change its days (17 Nov 2026)
+
+### Drag a tandem's ends to change its days (17 Nov 2026)
+
+The owner: *"i should be able to extend tandem day just like any other phase"*, and by picker, a grip on both ends
+(DOUBLE-UP-DAYS-PLAN.md R22).
+- Point at a tandem pill in the month view and a grip shows on each end, as on every phase bar. **Drag the end** to add
+  or remove tandem days: the start stays put, so a tandem joined to its episode's shoot bar stays joined. **Drag the
+  start** to change the days while the end stays put; the tandem then sits on its own, as a moved one does.
+- The days it gets are that episode's own count, shown in bold in the Tandem card. An edge never goes onto its own
+  episode's days, the first episode's days or before the shoot: it stops at the last day it may take. One undo per drag,
+  and Esc during a drag puts it back.
+- Verified: `doubleups` 63/63 (live 11, restore 47 with five new grip checks, half 3, blocks 2), `npm run check` 42/42.
+
+## v1.17.3 — the Tandem card is called just "Tandem" (17 Nov 2026)
+
+### The Tandem card is called just "Tandem" (17 Nov 2026)
+
+The owner, after v1.17.2: *"Call the phase just \"Tandem\""*. The card's heading reads **Tandem** (it read "Tandem days"),
+the same word its pills start with ("Tandem 101"); Help names it the Tandem card. The day counts keep their unit:
+*Default tandem days*, "7 tandem days · 6 episodes". A heading typed as "Tandem days" also reads as the default, so
+nothing is stored. Verified: `doubleups` 58/58, `npm run check` 42/42.
+
+## v1.17.2 — double-up days are called Tandem days (17 Nov 2026)
+
+### Double-up days are called Tandem days (17 Nov 2026)
+
+The owner asked whether calendars really say "double-up" or "tandem", and on hearing that every real calendar and
+dailies record in their additional-units write-up says tandem, ruled *"Yes, use Tandem"* (DOUBLE-UP-DAYS-PLAN.md R21).
+- A pill nobody named reads **"Tandem 101"** ("Tandem Block 1"), and the card is **Tandem days**: its head, its
+  *Default tandem days* box, its summary ("7 tandem days · 6 episodes · 302–305"), the right-click *Remove tandem days*,
+  the drag's refusals, the Rename box and Help all say tandem.
+- Only words changed. The saved keys keep "double-up", so every calendar keeps opening; one whose pills had the default
+  name now reads Tandem, and a name someone typed (even "Double-up") stays as typed.
+- Verified: `doubleups` 58/58 (live 11, restore 42, half 3, blocks 2), `monthwriter` + `monthab` on `doubleups` and
+  `doubleups-blocks` (the written PDF reads "Tandem 301", "Tandem Block 1"), `monthexport` 9/9, `npm run check` 42/42.
+
+## v1.17.1 — no double-up during the first episode (17 Nov 2026)
+
+### No double-up during the first episode (17 Nov 2026)
+
+The owner, after v1.17.0 went live: *"there also shouldnt be double up days at the beginning of the 1st episode"*, and
+by picker, none during episode 1 at all (DOUBLE-UP-DAYS-PLAN.md R20).
+- A double-up can no longer be dragged onto any of the first episode's (or first block's) days, in shooting order: it
+  snaps back with "Double-up 104 can’t go on the first episode’s days: it has no double-ups.", and while dragging those
+  days are greyed. The earliest one can start is the second episode's first day. Defaults never landed there.
+- A calendar saved by v1.17.0 with a double-up already moved onto episode 1 still opens: that double-up is drawn at its
+  default day, and the saved move is kept.
+- The one exception (owner's picker): a show with a single episode or block keeps its double-up on its own last days.
+- Nothing changes for a calendar without double-ups. Verified: `doubleups` live 11, restore 42 (5 new R20 checks), half
+  3, blocks 2; `npm run check` 42/42.
+
 ## v1.17.0 — double-up days: "10+1", a second crew's day on the next episode's shoot (17 Nov 2026)
 
 ### Double-up days: "10+1", a second crew's day on the next episode's shoot (17 Nov 2026)

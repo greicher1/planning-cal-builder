@@ -15,7 +15,7 @@
 //     which gate.sh holds byte-identical.
 //
 //   HARNESS_PAGE=/dist/index.html HARNESS_STATE=doubleups-blocks ./run.sh doubleups 300
-//     BLOCKS (episodeprep-blocks.sptcal plus a default of 1). The same rules per block: "Double-up Block 1", none for the
+//     BLOCKS (episodeprep-blocks.sptcal plus a default of 1). The same rules per block: "Tandem Block 1", none for the
 //     last block.
 //
 //   HARNESS_PAGE=/dist/index.html HARNESS_STATE=doubleups-half ./run.sh doubleups 300
@@ -169,6 +169,27 @@ window.addEventListener('load', function () { (async function () {
     mid.after = document.querySelectorAll('.du-drop-box, .mv-drag-ghost').length;
     return mid;
   }
+  // A tandem's grip (owner, 17 Nov 2026, "Both ends"): hover the pill, press its start or end grip, move to a day.
+  // `esc` presses Escape before letting go. Returns what was shown and done.
+  async function gripDrag(text, fromDay, edge, toDay, esc){
+    var b = duPillOn(text, fromDay); if(!b) throw new Error('gripDrag: no pill ' + text + ' on ' + fromDay);
+    b.el.scrollIntoView({block: 'center'}); await T.sleep(150);
+    var r = b.el.getBoundingClientRect();
+    b.el.dispatchEvent(new MouseEvent('mousemove', {bubbles: true, clientX: r.left + r.width / 2, clientY: r.top + r.height / 2}));
+    var shown = [].filter.call(document.querySelectorAll('.phase-edge-handle[data-ph="doubleUp"]'), function (h) { return !h.hidden; });
+    var h = shown.filter(function (x) { return x.getAttribute('data-edge') === edge; })[0];
+    var info = {edges: shown.map(function (x) { return x.getAttribute('data-edge'); }).join(), ids: shown.filter(function (x) { return x.id; }).length};
+    if(!h) return info;
+    var hr = h.getBoundingClientRect(), c = cellOf(toDay), cr = c.getBoundingClientRect();
+    h.dispatchEvent(new MouseEvent('mousedown', {bubbles: true, cancelable: true, clientX: hr.left + 5, clientY: hr.top + 5, button: 0, buttons: 1}));
+    window.dispatchEvent(new MouseEvent('mousemove', {clientX: cr.left + cr.width / 2, clientY: hr.top + 5, buttons: 1}));
+    await T.sleep(200);
+    if(esc) document.dispatchEvent(new KeyboardEvent('keydown', {key: 'Escape', bubbles: true}));
+    window.dispatchEvent(new MouseEvent('mouseup', {clientX: cr.left + cr.width / 2, clientY: hr.top + 5, button: 0}));
+    await settle();
+    info.done = true;
+    return info;
+  }
   async function menuOn(text, day){
     var b = duPillOn(text, day), p = centre(b.el);
     b.el.dispatchEvent(new MouseEvent('contextmenu', {bubbles: true, cancelable: true, clientX: p.x, clientY: p.y, button: 2}));
@@ -242,12 +263,12 @@ window.addEventListener('load', function () { (async function () {
   }
 
   var WANT = wantMap({
-    'Double-up 302': ['2027-03-03'], 'Double-up 301': ['2027-03-10'], 'Tandem 304': ['2027-03-24', '2027-03-25'],
-    'Double-up 303': ['2027-04-09'], 'Double-up 306': ['2027-04-08'], 'Double-up 305': ['2027-04-14'],
+    'Tandem 302': ['2027-03-03'], 'Tandem 301': ['2027-03-10'], 'Tandem 304': ['2027-03-24', '2027-03-25'],
+    'Tandem 303': ['2027-04-09'], 'Tandem 306': ['2027-04-08'], 'Tandem 305': ['2027-04-14'],
   });
   var WANT_SHIFT = wantMap({
-    'Double-up 302': ['2027-03-10'], 'Double-up 301': ['2027-03-24'], 'Tandem 304': ['2027-04-01', '2027-04-02'],
-    'Double-up 303': ['2027-04-16'], 'Double-up 306': ['2027-04-15'], 'Double-up 305': ['2027-04-21'],
+    'Tandem 302': ['2027-03-10'], 'Tandem 301': ['2027-03-24'], 'Tandem 304': ['2027-04-01', '2027-04-02'],
+    'Tandem 303': ['2027-04-16'], 'Tandem 306': ['2027-04-15'], 'Tandem 305': ['2027-04-21'],
   });
 
   try {
@@ -270,8 +291,8 @@ window.addEventListener('load', function () { (async function () {
                 name: card().querySelector('.du-name-input').value, list: cardList().length, pills: document.querySelectorAll('#table-wrap .mv-pill[data-du]').length,
                 boxes: card().querySelectorAll('input[type="number"]').length, buttons: card().querySelectorAll('.du-body button, .du-fields button').length,
                 notes: (card().querySelector('.du-body') || {}).innerText};
-      check(out.l3.meta === 'None yet' && out.l3.dflt === '' && out.l3.dph === 'None' && out.l3.name === 'Double-up' && out.l3.list === 10 && out.l3.pills === 0,
-            'L3 a new calendar has none: "None yet", the default box blank ("None"), named "Double-up", 10 episodes listed, no pill');
+      check(out.l3.meta === 'None yet' && out.l3.dflt === '' && out.l3.dph === 'None' && out.l3.name === 'Tandem' && out.l3.list === 10 && out.l3.pills === 0,
+            'L3 a new calendar has none: "None yet", the default box blank ("None"), the card head reads "Tandem" (R21), 10 episodes listed, no pill');
       check(out.l3.boxes === 11 && out.l3.buttons === 0 && !/Bold = its own|joined to the end of its shoot/.test(out.l3.notes || ''),
             'L3 (R19) the counts are number boxes like every other phase’s (the default and one per episode), no − / + buttons, and no explanatory lines');
       var before = await save();
@@ -281,7 +302,7 @@ window.addEventListener('load', function () { (async function () {
       cardType(null, '1'); await settle();
       out.l5 = {dflt: cardBox(null).value, list: cardList(), map: await duMap()};
       check(out.l5.dflt === '1' && out.l5.list.filter(function (x) { return x.n === '1' && !x.typed; }).length === 9 && out.l5.list[9].n === '–'
-            && out.l5.list[9].last && Object.keys(out.l5.map).length === 9 && !out.l5.map['Double-up 210'],
+            && out.l5.list[9].last && Object.keys(out.l5.map).length === 9 && !out.l5.map['Tandem 210'],
             'L5 a default of 1 gives every episode but the LAST a 1-day double-up (R5), shown as each box’s placeholder; 9 pills, none for 210');
       await undo();
       out.l6 = {dflt: cardBox(null).value, pills: document.querySelectorAll('#table-wrap .mv-pill[data-du]').length};
@@ -319,14 +340,14 @@ window.addEventListener('load', function () { (async function () {
       check(out.r0.list.map(function (x) { return x.tag + '=' + x.n + (x.own ? '*' : '') + (x.name ? ':' + x.name : ''); }).join()
             === '302=1,301=1,304=2*:Tandem,303=1,306=1,305=1*' && out.r0.dflt === '1',
             'R0 the card restores the default 1, 304 its own 2 named Tandem, 305 (the last) its own 1, in shooting order');
-      check(out.r0.meta === '6 double-ups · 7 days · 302–305 · 1 moved', 'R0 its summary line: "' + out.r0.meta + '"');
+      check(out.r0.meta === '7 tandem days · 6 episodes · 302–305 · 1 moved', 'R0 its summary line: "' + out.r0.meta + '"');
       out.map = await duMap();
       check(sameMap(out.map, WANT), 'R1 every double-up matches the hand trace (default, own count, own name, moved, the last unit)');
       if(!sameMap(out.map, WANT)) out.mapDiff = mapDiff(out.map, WANT);
       // R6: the join, on March's first row (Sun 2/28): Shoot 302 Mon-Tue, Double-up 302 Wed on its line, flush; 301 below.
       await toMonth('March 2027');
       var row = rowsOnScreen()[0], p302 = row.bars.filter(function (b) { return b.ph === 'production' && b.text === 'Shoot 302'; })[0];
-      var d302 = row.bars.filter(function (b) { return b.text === 'Double-up 302'; })[0], s301 = row.bars.filter(function (b) { return b.text.indexOf('Shoot 301') === 0; })[0];
+      var d302 = row.bars.filter(function (b) { return b.text === 'Tandem 302'; })[0], s301 = row.bars.filter(function (b) { return b.text.indexOf('Shoot 301') === 0; })[0];
       out.r2 = {p302: p302 && [p302.cols, p302.lane, p302.joinR], d302: d302 && [d302.cols, d302.lane, d302.joinL, d302.line, d302.ph], s301: s301 && [s301.cols, s301.lane]};
       check(p302 && d302 && s301 && p302.cols === '2/4' && d302.cols === '4/5' && d302.lane === p302.lane && p302.joinR && d302.joinL && d302.line
             && d302.ph === 'doubleUp' && s301.lane === p302.lane + 1,
@@ -354,35 +375,72 @@ window.addEventListener('load', function () { (async function () {
       await T.until(function () { return document.querySelectorAll('.phase-color-pop .pc-sw').length > 10; }, 'the colour picker', 40, 100);
       document.querySelectorAll('.phase-color-pop .pc-sw')[10].click();   // Strong blue #5B9BD5
       await settle();
-      var d302b = duPillOn('Double-up 302', '2027-03-03');
+      var d302b = duPillOn('Tandem 302', '2027-03-03');
       out.r3b = {bg: d302b && d302b.bg, sw: card().querySelector('.du-swatch').style.backgroundColor};
       check(d302b && out.r3b.bg !== out.r3.bg && out.r3b.bg === out.r3b.sw && /^rgb\(\d+, \d+, (\d+)\)$/.test(out.r3b.bg)
             && +out.r3b.bg.match(/(\d+)\)$/)[1] > +out.r3b.bg.match(/^rgb\((\d+)/)[1],
             'R3 recolour Production to blue and the double-ups follow it, a darker blue (' + out.r3b.bg + ')');
       await undo();
+      // THE TANDEM'S OWN COLOUR (owner, 17 Nov 2026: "Allow me to change the color of tandem"): its square opens the
+      // phase picker with "Follow Production" first; a pick holds even when Production is recoloured; the first swatch
+      // goes back to following Production, and the file holds no pick again.
+      async function duPick(k){
+        tab('phases'); await T.sleep(150);
+        var sq = card().querySelector('.du-swatch'); sq.scrollIntoView({block: 'center'}); await T.sleep(100);
+        sq.click();
+        await T.until(function () { return document.querySelectorAll('.phase-color-pop .pc-sw').length > 0; }, 'the tandem colour picker', 40, 100);
+        var sws = document.querySelectorAll('.phase-color-pop .pc-sw'), info = {n: sws.length, first: sws[0].title, selected: [].findIndex.call(sws, function (x) { return x.classList.contains('selected'); })};
+        sws[k].click();
+        await settle();
+        return info;
+      }
+      var cp1 = await duPick(12);          // the palette's Pink (#FF66CC on #5C0A3E), index 11, after "Follow Production"
+      await toMonth('March 2027');
+      var pinkPill = duPillOn('Tandem 302', '2027-03-03'), shootPill = rowsOnScreen()[0].bars.filter(function (b) { return b.text === 'Shoot 302'; })[0];
+      var cs1 = JSON.parse(await save());
+      out.c1 = {pop: cp1, bg: pinkPill && pinkPill.bg, ink: pinkPill && pinkPill.ink, sq: card().querySelector('.du-swatch').style.backgroundColor,
+                shoot: shootPill && shootPill.bg, saved: (cs1.phaseColorOverride || {}).doubleUp};
+      check(cp1.n === 15 && /^Follow Production/.test(cp1.first) && cp1.selected === 0 && out.c1.bg === 'rgb(255, 102, 204)' && out.c1.ink === 'rgb(92, 10, 62)'
+            && out.c1.sq === out.c1.bg && out.c1.shoot === 'rgb(226, 240, 217)' && out.c1.saved === 11,
+            'C1 the Tandem square opens the colour picker ("Follow Production" first, chosen); a pick colours every tandem pill and the square, not Production, and is saved as phaseColorOverride.doubleUp');
+      tab('phases'); await T.sleep(150);
+      $('swatch-production').click();
+      await T.until(function () { return document.querySelectorAll('.phase-color-pop .pc-sw').length > 10; }, 'the colour picker', 40, 100);
+      document.querySelectorAll('.phase-color-pop .pc-sw')[10].click();
+      await settle();
+      await toMonth('March 2027');
+      out.c2 = (duPillOn('Tandem 302', '2027-03-03') || {}).bg;
+      check(out.c2 === 'rgb(255, 102, 204)', 'C2 a picked tandem colour holds when Production is recoloured');
+      await undo();
+      var cp3 = await duPick(0);
+      await toMonth('March 2027');
+      var cs3 = JSON.parse(await save());
+      out.c3 = {selected: cp3.selected, bg: (duPillOn('Tandem 302', '2027-03-03') || {}).bg, saved: cs3.phaseColorOverride};
+      check(cp3.selected === 12 && out.c3.bg === 'rgb(181, 217, 158)' && !('doubleUp' in (out.c3.saved || {})),
+            'C3 "Follow Production" puts it back to Production’s darker shade, and the file holds no tandem colour again');
       // R5: the last unit's double-up sits beside its own last day, loose, under its shoot pill.
       await toMonth('April 2027');
       var ar = rowsOnScreen().filter(function (r) { return r.start === '2027-04-11'; })[0];
-      var s305 = ar.bars.filter(function (b) { return b.text.indexOf('Shoot 305') === 0; })[0], d305 = ar.bars.filter(function (b) { return b.text === 'Double-up 305'; })[0];
+      var s305 = ar.bars.filter(function (b) { return b.text.indexOf('Shoot 305') === 0; })[0], d305 = ar.bars.filter(function (b) { return b.text === 'Tandem 305'; })[0];
       check(s305 && d305 && d305.days.join() === '2027-04-14' && d305.lane > s305.lane && !d305.joinL && !d305.line,
             'R4 (R5) the last episode’s double-up sits under its own last day (4/14), not joined and not past wrap');
       // R11: the menu. A joined one: Rename…, Remove. A moved one: Rename…, Put back, Remove.
-      var m = await menuOn('Double-up 306', '2027-04-08');
+      var m = await menuOn('Tandem 306', '2027-04-08');
       out.r5 = m && {items: m.items, head: m.head};
-      check(m && m.items.join() === 'du-rename,du-remove' && /^Double-up 306 1 day$/.test(m.head),
-            'R5 (R11) right-click a joined double-up: exactly Rename… and Remove double-up, headed "Double-up 306 · 1 day"');
+      check(m && m.items.join() === 'du-rename,du-remove' && /^Tandem 306 1 day$/.test(m.head),
+            'R5 (R11) right-click a joined double-up: exactly Rename… and Remove double-up, headed "Tandem 306 · 1 day"');
       closeMenu(); await T.sleep(150);
-      m = await menuOn('Double-up 303', '2027-04-09');
+      m = await menuOn('Tandem 303', '2027-04-09');
       out.r5b = m && {items: m.items, head: m.head};
       check(m && m.items.join() === 'du-rename,du-back,du-remove', 'R5 a moved one adds "Put back on its default days"');
       await menuPick(m, 'du-back');
       out.r5c = await duMap();
-      check(out.r5c['Double-up 303'] === '2027-04-01', 'R5 Put back: Double-up 303 goes to its default day, 4/1 (joined to 303)');
+      check(out.r5c['Tandem 303'] === '2027-04-01', 'R5 Put back: Double-up 303 goes to its default day, 4/1 (joined to 303)');
       await undo();
-      check((await duMap())['Double-up 303'] === '2027-04-09', 'R5 ...and one Undo moves it back to 4/9');
+      check((await duMap())['Tandem 303'] === '2027-04-09', 'R5 ...and one Undo moves it back to 4/9');
       // Rename… through the menu: that episode's own name.
       await toMonth('April 2027');
-      m = await menuOn('Double-up 306', '2027-04-08');
+      m = await menuOn('Tandem 306', '2027-04-08');
       m.el.querySelector('[data-item="du-rename"]').click();
       await T.until(function () { return !!document.querySelector('.du-rename-pop .du-rename-input'); }, 'the Rename box', 40, 100);
       var inp = document.querySelector('.du-rename-pop .du-rename-input');
@@ -391,21 +449,21 @@ window.addEventListener('load', function () { (async function () {
       inp.dispatchEvent(new KeyboardEvent('keydown', {key: 'Enter', bubbles: true}));
       await settle();
       out.r6 = {map: await duMap(), row: cardList().filter(function (x) { return x.tag === '306'; })[0]};
-      check(out.r6pre.focused && out.r6pre.ph === 'Double-up' && out.r6.map['Splinter 306'] === '2027-04-08' && out.r6.row.name === 'Splinter' && out.r6.row.nameOwn,
+      check(out.r6pre.focused && out.r6pre.ph === 'Tandem' && out.r6.map['Splinter 306'] === '2027-04-08' && out.r6.row.name === 'Splinter' && out.r6.row.nameOwn,
             'R6 (R11) Rename… names that episode’s own double-up: "Splinter 306", bold in its row');
       await undo();
-      check(!!(await duMap())['Double-up 306'], 'R6 ...one Undo');
+      check(!!(await duMap())['Tandem 306'], 'R6 ...one Undo');
       // Remove double-up: the count to 0 (its own), the move with it.
       await toMonth('April 2027');
-      m = await menuOn('Double-up 303', '2027-04-09');
+      m = await menuOn('Tandem 303', '2027-04-09');
       await menuPick(m, 'du-remove');
       out.r7 = {map: await duMap(), row: cardList().filter(function (x) { return x.tag === '303'; })[0]};
-      check(!out.r7.map['Double-up 303'] && out.r7.row.typed === '0' && out.r7.row.own, 'R7 (R11) Remove double-up: 303 has none, its box reads 0 (its own)');
+      check(!out.r7.map['Tandem 303'] && out.r7.row.typed === '0' && out.r7.row.own, 'R7 (R11) Remove double-up: 303 has none, its box reads 0 (its own)');
       var saved7 = JSON.parse(await save());
       check(saved7.episodeDefs.filter(function (e) { return e.id === 'ep3'; })[0].doubleUpDays === 0 && !(saved7.doubleUps.moved || {}).ep3,
             'R7 ...saved as doubleUpDays 0, and its moved position is gone');
       await undo();
-      check((await duMap())['Double-up 303'] === '2027-04-09', 'R7 ...one Undo brings it back where it was');
+      check((await duMap())['Tandem 303'] === '2027-04-09', 'R7 ...one Undo brings it back where it was');
       // R12: double-click opens the card at the episode's row.
       tab('show'); await T.sleep(200);
       await toMonth('March 2027');
@@ -422,35 +480,91 @@ window.addEventListener('load', function () { (async function () {
       // R8 / R9: the drag.
       await settle();
       await toMonth('February 2027');
-      var dr = await dragDu('Double-up 302', '2027-03-03', '2027-02-23');
+      var dr = await dragDu('Tandem 302', '2027-03-03', '2027-02-23');
       out.r9a = dr;
-      check(dr.toast.indexOf('never before the shoot starts') >= 0 && dr.after === 0 && (await duMap())['Double-up 302'] === '2027-03-03',
+      check(dr.toast.indexOf('never before the shoot starts') >= 0 && dr.after === 0 && (await duMap())['Tandem 302'] === '2027-03-03',
             'R9 a drop before the shoot starts is refused: it snaps back with a one-line reason');
       await toMonth('February 2027');
-      dr = await dragDu('Double-up 302', '2027-03-03', '2027-03-01');
+      dr = await dragDu('Tandem 302', '2027-03-03', '2027-03-01');
       out.r9b = dr;
       check(dr.toast.indexOf('can only go on another episode’s days, or after wrap') >= 0 && dr.bad > 0 && dr.nodrop > 0 && dr.ghost === 1
-            && (await duMap())['Double-up 302'] === '2027-03-03',
+            && (await duMap())['Tandem 302'] === '2027-03-03',
             'R9 a drop on its OWN episode’s days is refused (red outline, its own days greyed, the moving copy shown), and it snaps back');
       await toMonth('March 2027');
-      dr = await dragDu('Double-up 301', '2027-03-10', '2027-03-11');
+      dr = await dragDu('Tandem 301', '2027-03-10', '2027-03-11');
       out.r9c = {dr: dr, map: await duMap()};
-      check(dr.toast === '' && dr.bad === 0 && out.r9c.map['Double-up 301'] === '2027-03-11', 'R9 a drop on another episode’s day (304’s 3/11) is allowed');
+      check(dr.toast === '' && dr.bad === 0 && out.r9c.map['Tandem 301'] === '2027-03-11', 'R9 a drop on another episode’s day (304’s 3/11) is allowed');
       var s9 = JSON.parse(await save());
       check(JSON.stringify(s9.doubleUps.moved.ep1) === '{"day":12}', 'R9 ...and kept by its shoot-day number, {day: 12}, never a date');
       await undo();
-      check((await duMap())['Double-up 301'] === '2027-03-10', 'R9 the drag is ONE undo step');
+      check((await duMap())['Tandem 301'] === '2027-03-10', 'R9 the drag is ONE undo step');
       await toMonth('April 2027');
-      dr = await dragDu('Double-up 306', '2027-04-08', '2027-04-16');
+      dr = await dragDu('Tandem 306', '2027-04-08', '2027-04-16');
       out.r9d = {dr: dr, map: await duMap()};
       var s9d = JSON.parse(await save());
-      check(out.r9d.map['Double-up 306'] === '2027-04-16' && JSON.stringify(s9d.doubleUps.moved.ep7) === '{"after":2}',
+      check(out.r9d.map['Tandem 306'] === '2027-04-16' && JSON.stringify(s9d.doubleUps.moved.ep7) === '{"after":2}',
             'R9 a drop after wrap is allowed, kept as {after: 2} (working days after wrap)');
       await toMonth('April 2027');
-      dr = await dragDu('Double-up 306', '2027-04-16', '2027-04-08');
+      dr = await dragDu('Tandem 306', '2027-04-16', '2027-04-08');
       out.r9e = {map: await duMap(), saved: JSON.parse(await save())};
-      check(out.r9e.map['Double-up 306'] === '2027-04-08' && !('ep7' in (out.r9e.saved.doubleUps.moved || {})),
+      check(out.r9e.map['Tandem 306'] === '2027-04-08' && !('ep7' in (out.r9e.saved.doubleUps.moved || {})),
             'R9 dragged back onto its default day it is PUT BACK: the move is gone from the file');
+      // R20 (owner, 17 Nov 2026, "None during episode 1"): no double-up on ANY of the first episode's days (302 in
+      // shooting order: slots 0-4, 2/24-3/2). Its last day refused; the next episode's first day (3/3, 301's) allowed.
+      await toMonth('March 2027');
+      dr = await dragDu('Tandem 301', '2027-03-10', '2027-03-02');
+      out.r20a = {dr: dr, map: await duMap()};
+      check(dr.toast.indexOf('can’t go on the first episode’s days') >= 0 && dr.bad > 0 && out.r20a.map['Tandem 301'] === '2027-03-10',
+            'R20 a drop on the FIRST episode’s days (302’s 3/2) is refused with a one-line reason, and snaps back');
+      await toMonth('April 2027');
+      var firstGrey = await (async function () {
+        // While dragging, 302's days are greyed too (on March's page, which shows them).
+        await toMonth('March 2027');
+        var b = duPillOn('Tandem 301', '2027-03-10'), c = cellOf('2027-03-01'), r = b.el.getBoundingClientRect(), cr = c.getBoundingClientRect();
+        b.el.dispatchEvent(new MouseEvent('mousedown', {bubbles: true, cancelable: true, clientX: r.left + 6, clientY: r.top + 5, button: 0, buttons: 1}));
+        window.dispatchEvent(new MouseEvent('mousemove', {clientX: r.left + 14, clientY: r.top + 5, buttons: 1}));
+        window.dispatchEvent(new MouseEvent('mousemove', {clientX: r.left + 14, clientY: r.top + 6, buttons: 1}));
+        var hit = Array.prototype.some.call(document.querySelectorAll('.du-drop-box.is-nodrop'), function (x) {
+          var q = x.getBoundingClientRect(); return Math.abs(q.left - cr.left) < 2 && Math.abs(q.top - cr.top) < 2; });
+        document.dispatchEvent(new KeyboardEvent('keydown', {key: 'Escape', bubbles: true}));
+        window.dispatchEvent(new MouseEvent('mouseup', {clientX: r.left + 14, clientY: r.top + 6, button: 0}));
+        await settle();
+        return hit;
+      })();
+      check(firstGrey, 'R20 ...and while a double-up is dragged, the first episode’s days are greyed');
+      await toMonth('March 2027');
+      dr = await dragDu('Tandem 304', '2027-03-24', '2027-03-03');
+      out.r20b = {dr: dr, map: await duMap()};
+      check(dr.toast === '' && out.r20b.map['Tandem 304'] === '2027-03-03,2027-03-04', 'R20 the earliest a double-up can go is the next episode’s first day (3/3, 301’s)');
+      await undo();
+      check((await duMap())['Tandem 304'] === '2027-03-24,2027-03-25', 'R20 ...one Undo');
+      // THE GRIPS (owner, 17 Nov 2026: "i should be able to extend tandem day just like any other phase"; picker "Both ends").
+      await toMonth('March 2027');
+      var g1 = await gripDrag('Tandem 302', '2027-03-03', 'end', '2027-03-05');
+      out.g1 = {g: g1, map: await duMap()};
+      await toMonth('March 2027');
+      var g1row = rowsOnScreen()[0], g1du = g1row.bars.filter(function (b) { return b.text === 'Tandem 302'; })[0];
+      var s1 = JSON.parse(await save());
+      check(g1.edges === 'start,end' && g1.ids === 0 && out.g1.map['Tandem 302'] === '2027-03-03,2027-03-04,2027-03-05' && g1du && g1du.line && g1du.joinL
+            && s1.episodeDefs.filter(function (e) { return e.id === 'ep2'; })[0].doubleUpDays === 3 && !('ep2' in (s1.doubleUps.moved || {})),
+            'G1 a tandem has a grip at each end (no id); dragging its END to Friday makes 302’s 3 days, still joined to its shoot bar, saved as its own count');
+      await undo();
+      check((await duMap())['Tandem 302'] === '2027-03-03', 'G1 ...the drag is ONE undo step');
+      await toMonth('March 2027');
+      var g2 = await gripDrag('Tandem 304', '2027-03-24', 'start', '2027-03-25');
+      out.g2 = {map: await duMap(), saved: JSON.parse(await save())};
+      check(out.g2.map['Tandem 304'] === '2027-03-25' && out.g2.saved.episodeDefs.filter(function (e) { return e.id === 'ep4'; })[0].doubleUpDays === 1
+            && JSON.stringify(out.g2.saved.doubleUps.moved.ep4) === '{"day":17}',
+            'G2 dragging its START later holds its end: 304’s is 3/25 alone, its count 1, its start now a moved position (unjoined)');
+      await undo();
+      check((await duMap())['Tandem 304'] === '2027-03-24,2027-03-25', 'G2 ...one Undo');
+      await toMonth('March 2027');
+      await gripDrag('Tandem 302', '2027-03-03', 'start', '2027-03-01');
+      await toMonth('March 2027');
+      await gripDrag('Tandem 301', '2027-03-10', 'end', '2027-03-12', true);
+      out.g3 = await duMap();
+      check(out.g3['Tandem 302'] === '2027-03-03' && out.g3['Tandem 301'] === '2027-03-10',
+            'G3 a start pulled onto its own episode’s days stops where it was (R9), and Esc during a drag puts it back');
       // R17: Production's own days, and the waterfall, untouched. R10: Shift keeps a moved one on its shoot day.
       out.prodOn = await prodBars();
       var total = (document.querySelector('.prod-total-readout strong') || {}).textContent;
@@ -468,6 +582,24 @@ window.addEventListener('load', function () { (async function () {
             'S0 ...and fields.byId holds no double-up id (the card has none)');
       await load(JSON.stringify(base));
       check(sameMap(await duMap(), WANT), 'S1 Save then Load: every double-up as it was');
+      // R20 and a v1.17.0 file: a double-up saved moved onto the first episode's days keeps opening, is drawn at its
+      // default, and its saved move is kept (nothing in the file is lost).
+      var onFirst = JSON.parse(JSON.stringify(base));
+      onFirst.doubleUps.moved.ep7 = {day: 2};
+      await load(JSON.stringify(onFirst));
+      out.r20c = {map: await duMap(), saved: JSON.parse(await save()).doubleUps};
+      check(out.r20c.map['Tandem 306'] === '2027-04-08' && JSON.stringify(out.r20c.saved.moved.ep7) === '{"day":2}' && sameMap(out.r20c.map, WANT),
+            'R20 a file whose double-up was moved onto episode 1 (v1.17.0 allowed it) opens with it on its default day, and the saved move is kept');
+      // The owner's exception (picker "Allow it there"): a show of ONE episode keeps its double-up on its own last day.
+      var one = JSON.parse(JSON.stringify(base));
+      one.fields.byId['num-episodes'] = {value: '1'};
+      one.episodeDefs = [Object.assign({}, one.episodeDefs.filter(function (e) { return e.id === 'ep2'; })[0], {doubleUpDays: 1})];
+      one.episodeShootOrder = [];
+      delete one.doubleUps.moved;
+      await load(JSON.stringify(one));
+      out.r20d = {map: await duMap(), list: cardList().map(function (x) { return x.tag + '=' + x.n; }).join()};
+      check(Object.keys(out.r20d.map).length === 1 && out.r20d.map[Object.keys(out.r20d.map)[0]] === '2027-03-02',
+            'R20 the one exception: a ONE-episode show keeps its double-up on its own last day (3/2), episode 1 though it is');
       var bare = JSON.parse(JSON.stringify(base));
       delete bare.doubleUps;
       bare.episodeDefs.forEach(function (e) { delete e.doubleUpDays; delete e.doubleUpName; });
@@ -491,7 +623,7 @@ window.addEventListener('load', function () { (async function () {
       hostile.episodeDefs[1].doubleUpName = {x: 1};
       await load(JSON.stringify(hostile));
       out.hostile = {map: await duMap(), list: cardList().map(function (x) { return x.n + (x.name ? ':' + x.name : ''); }).join(), health: T.appHealth()};
-      check(sameMap(out.hostile.map, wantMap({'Tandem 304': ['2027-03-24', '2027-03-25'], 'Double-up 305': ['2027-04-14']}))
+      check(sameMap(out.hostile.map, wantMap({'Tandem 304': ['2027-03-24', '2027-03-25'], 'Tandem 305': ['2027-04-14']}))
             && !((out.hostile.health || {}).errors || []).filter(function (e) { return !/^warn: SPTCal: \d+ value\(s\) in this calendar were not in a form the app writes/.test(e); }).length,
             'S5 a hostile file: every bad double-up value dropped (default, name, moves, an episode’s count and name), no error but the app’s own "were ignored" notice');
     }
@@ -511,9 +643,9 @@ window.addEventListener('load', function () { (async function () {
       }); }); });
       out.firsts = firsts;
       check(out.list.map(function (x) { return x.tag + '=' + x.n; }).join() === 'Block 1=1,Block 2=1,Block 3=–', 'B0 the card lists the blocks; the last has none (R5)');
-      check(Object.keys(out.map).join() === 'Double-up Block 1,Double-up Block 2' && out.map['Double-up Block 1'] === firsts['Block 2']
-            && out.map['Double-up Block 2'] === firsts['Block 3'],
-            'B1 "Double-up Block 1" sits on Block 2’s first shoot day, "Double-up Block 2" on Block 3’s');
+      check(Object.keys(out.map).join() === 'Tandem Block 1,Tandem Block 2' && out.map['Tandem Block 1'] === firsts['Block 2']
+            && out.map['Tandem Block 2'] === firsts['Block 3'],
+            'B1 "Tandem Block 1" sits on Block 2’s first shoot day, "Tandem Block 2" on Block 3’s');
     }
 
     if(out.run === 'half'){
@@ -530,17 +662,17 @@ window.addEventListener('load', function () { (async function () {
         b.days.forEach(function (d) { shot[d] = 1; if(m2 && (!lastOf[m2[1]] || d > lastOf[m2[1]])) lastOf[m2[1]] = d; });
       }); }); });
       var days = Object.keys(shot).sort(), next = function (d) { return days.filter(function (x) { return x > d; })[0]; };
-      out.half = {last202: lastOf['202'], du202: out.map['Double-up 202'], next202: next(lastOf['202'] || '')};
+      out.half = {last202: lastOf['202'], du202: out.map['Tandem 202'], next202: next(lastOf['202'] || '')};
       // 202 is 4.5 days: its last day is a switch day it shares with 203, and its double-up is the next FULL day.
       var shared = days.indexOf(lastOf['202']) >= 0 && Object.keys(lastOf).length > 3;
       check(shared && out.half.du202 && out.half.du202 === out.half.next202 && out.half.du202 !== out.half.last202,
             'H1 (R15) 202 ends half way through ' + out.half.last202 + '; its double-up starts on the first full day after the switch, ' + out.half.next202);
-      check(Object.keys(out.map).length === 9 && !out.map['Double-up 210'], 'H2 nine double-ups, none for 210, the last');
+      check(Object.keys(out.map).length === 9 && !out.map['Tandem 210'], 'H2 nine double-ups, none for 210, the last');
       // R6 with two double-ups in one week (Sun 7/26): 204's on Monday, 205's joined on Friday; the next episode, 206,
       // takes the line BELOW 205's double-up, never a line above it that 204's left free.
       await toMonth('July 2026');
       var wk = rowsOnScreen().filter(function (r) { return r.start === '2026-07-26'; })[0];
-      var d205 = wk && wk.bars.filter(function (b) { return b.text === 'Double-up 205'; })[0];
+      var d205 = wk && wk.bars.filter(function (b) { return b.text === 'Tandem 205'; })[0];
       var s205 = wk && wk.bars.filter(function (b) { return b.text.indexOf('Shoot 205') === 0; })[0];
       var s206 = wk && wk.bars.filter(function (b) { return /^(Shoot|Ep\.) 206/.test(b.text); })[0];
       out.h3 = {d205: d205 && [d205.cols, d205.lane, d205.joinL], s205: s205 && [s205.cols, s205.lane, s205.joinR], s206: s206 && [s206.cols, s206.lane]};

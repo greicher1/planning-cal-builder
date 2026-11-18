@@ -50,6 +50,10 @@ instead of 11, and draws the bars meeting mid-day.
 | R16 | **Frozen month-view edit APPROVED.** Acceptance gate: every calendar with no double-ups prints byte-identical month PDFs (gate 10, the print path, and gate 13, the written PDF), and the full `gate.sh` stays green. | picker "Approve" |
 | R17 | **Production's days never change**: its length, shoot days, Day N numbers, prep, wrap and every main-unit date ignore double-ups. | the model, agreed throughout |
 | R19 | **Number boxes, not − / +** (replaces R3): the default and each episode's or block's count are typed into boxes with "days" inside, like every other phase's (Episodic Prep's: blank uses the default, 0 is none, a typed number is the unit's own, in bold). And the card's two explanatory lines ("Every episode but the last, joined to the end of its shoot…" and "Bold = its own. The last episode starts with none…") are deleted. | "lets not do the plus and minus symbols lets do open text boxes like all other phases use"; "Delete: …" (both lines) |
+| R23 | **The Tandem colour can be picked** (replaces §9 / §10.5's "no picker"): the card's colour square opens the phase colour picker like every phase's, with "Follow Production" first. A pick holds whatever Production's colour; "Follow Production" goes back to R7's darker shade. | "Allow me to change the color of tandem" |
+| R22 | **A tandem's edges drag like any phase's**: a grip on each end of the pill in the month view. The END grip changes that unit's tandem days with the start held (a joined one stays joined); the START grip changes them with the end held, and its start becomes a moved position (unjoined) unless it lands on its default. The count written is the unit's own. An edge never takes a day the drop rules refuse (its own unit's, the first unit's, before the shoot): it stops at the last day it may take. One undo per drag; Esc puts it back. | "i should be able to extend tandem day just like any other phase"; picker "Both ends" (over "End only") |
+| R21 | **They are called Tandem by default**: an un-named pill reads "Tandem 101" ("Tandem Block 1"), the card's head reads "Tandem" while its name is the default ("Tandem days" in v1.17.2; the owner the same evening: *"Call the phase just \"Tandem\""*), and the menu, refusals, labels, summary and Help say tandem. Real calendars and dailies records call them tandem days ("Tandem Unit"); "double-up" only describes two units shooting at once. Only words change: every saved key, id, class and code name keeps "double-up". A calendar with no typed name reads Tandem; a typed name, "Double-up" included, stays as typed. | asked "are they actually called Double-up days on a calendar or does calling them tandem days make more sense", then "Yes, use Tandem" |
+| R20 | **No double-up during episode 1**: none may sit on ANY of the first episode's (or first block's) days, in shooting order. The earliest one can start is the next episode's first full day, where the first episode's own sits by default; a drag onto episode 1 snaps back with a one-line reason. A v1.17.0 file holding a move onto episode 1 opens with that double-up at its default, the saved move kept. ⭐ **Exception:** a show of ONE episode or block keeps its double-up on its own last days (R5). | "there also shouldnt be double up days at the beginning of the 1st episode"; picker "None during episode 1 (Recommended)" over "Just not its first day"; for one-episode shows, picker "Allow it there" (over "Right after wrap" and "No double-up at all") |
 | R18 | **Where a shoot pill meets its joined double-up, ONE faint line**, not the two dark rings side by side the first build drew (~3 px of dark line). The shoot pill loses its ring on that side; the double-up's left edge is one 1 px line in its own ink at 40%; the top and bottom rims run straight across. Layout-neutral. Given after trying the built branch (`60883ac`); spec: [`mockups/double-up-join-line.html`](mockups/double-up-join-line.html), "Proposed: ONE thin line". | picker "A: one faint line" (asked: "can you make it a single fainter line that seperates the edge of the phase and the double up coming out of it") |
 
 Turned down on the way (do not reintroduce): a dashed pill in a row of its own (look A), a hatched stretch of the
@@ -224,6 +228,42 @@ marks `duLine`, `joinL` / `joinR` and the next unit's run `duBelow`. The writer:
 writes them back in place, never into the focused box, and leaves a box that already READS as the stored count (so "2.5"
 keeps its ring). Both boxes are in `PREP_FIELDS` (whole days). The two explanatory lines are gone from the card; the
 mockup `double-up-days-ui.html` still shows the − / + and the lines, and is superseded on both.
+
+### 10.3c R20, nothing during episode 1 (17 Nov 2026, after v1.17.0)
+`appendDoubleUps` works out `minSlot`, the first slot after the first unit's last day (0 on a show of one unit, the
+owner's exception), and stores it on the segment. A moved position below it is drawn at its default with the key kept
+(only a v1.17.0 file can hold one); the last unit's default never reaches below it. `duDropVerdict` refuses a drop below
+it (`why: 'first'`, "Double-up 104 can’t go on the first episode’s days: it has no double-ups."), after the "own days"
+test, whose reason is the more specific for the first episode's own double-up; the drag greys those days. Leg
+`doubleups` RESTORE R20 (5 checks: refused with its reason, greyed while dragging, the next episode's first day allowed,
+a v1.17.0-style file, the one-episode exception).
+
+### 10.3d R21, the word is Tandem (17 Nov 2026, after v1.17.1)
+`DU_NAME` is "Tandem" (the default pill prefix) and `DU_TITLE` "Tandem" too since the owner's *"Call the phase just
+\"Tandem\""* (it was "Tandem days" in v1.17.2); `isDuDefaultTitle` reads blank, "Tandem" and "Tandem days" as the
+default, so the head never stores any of them.
+The other strings: the default box's label "Default tandem days", the summary "7 tandem days · 6 episodes · 302–305",
+"Remove tandem days", the refusals, the Rename box, the aria labels, Help's "Tandem days" paragraph. ⛔ Not renamed:
+`doubleUps`, `doubleUpDays`, `doubleUpName`, `doubleUpMoved`, `data-du`, `DU_KEY` ('doubleUp'), the `du-` classes,
+`appendDoubleUps` and the leg's name: they are file format or code, and Load's `data-action="open"` is the precedent.
+
+### 10.3e R22, the grips (17 Nov 2026, after v1.17.3)
+`installDoubleUpGrips` (Prep's start grip as the pattern): the pooled body-level `.phase-edge-handle`s, `data-ph="doubleUp"`,
+created only when a tandem pill is hovered (so a calendar with none has no handle element at all), shown at the left
+edge of the pill holding its first day and the right edge of the one holding its last. `solve()` turns the pointer's day
+into a span (the nearest slot, floor for an end and ceiling for a start, `mayTake()` stopping at R9/R20's days, 1..99
+days), `writeSpan()` writes `doubleUpDays` and the moved start (none when it is the default for the new length;
+`du.unitLast` gives the last unit's default), and a live `update()` per step is checked against the derivation, as every
+grip is. A right-click on a grip opens the tandem's menu. Leg `doubleups` RESTORE G1-G3.
+
+### 10.3f R23, the Tandem colour (17 Nov 2026, after v1.17.4)
+`duLookFor()` is the one place the tandem's colour is decided: `phaseColorOverride.doubleUp` (an index into
+PHASE_COLOR_OPTIONS, Prep's `episodePrep` pattern, so it saves, restores, sanitizes and resets with the other picks and
+needs no new key) when set, else `duShade()` of Production's. `appendDoubleUps` and the card's square both read it.
+`openDuColorPop()` opens the shared picker with "Follow Production" (the automatic shade) before the palette; picking it
+deletes the entry, so a calendar that never picks one saves byte for byte as before. ⛔ `doubleUp` is permanent in that
+map from the first file saved with a pick; an older build ignores it (it reads only PHASES' keys there). Leg `doubleups`
+RESTORE C1-C3.
 
 ### 10.4 Interaction (step 4)
 - **Drag** (`installDoubleUpDrag`): mouse events, as every month drag; the whole pill in slots; `duSlotLine()` maps a

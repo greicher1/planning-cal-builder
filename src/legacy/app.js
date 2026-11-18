@@ -28,7 +28,7 @@ export function initLegacyApp() {
   // They are one action, not two: version.json alone makes every user see an update that
   // isn't there, and APP_VERSION alone makes a real update invisible. The release-cut step in
   // README's changelog rules lists them together for exactly this reason.
-  const APP_VERSION = '1.17.0';
+  const APP_VERSION = '1.17.5';
 
   // ---------- Embedded Carlito ----------
   // The two <script type="text/plain"> blocks above hold Carlito, subset and zlib-compressed,
@@ -9914,12 +9914,21 @@ export function initLegacyApp() {
   // the keys and draws no double-up, which is safe. ⛔ The card's controls carry NO id (UI-CONVENTIONS §8, plan §9's
   // recommendation), so fields.byId and gate 5 do not move; these variables are the one store.
   const DU_KEY = 'doubleUp';
-  const DU_NAME = 'Double-up';
+  // ⭐ R21 (owner, 17 Nov 2026: "Yes, use Tandem"): the WORD people read is "Tandem" -- the default pill prefix ("Tandem 101")
+  // -- and the card's head reads "Tandem days" while its name is the default (Prep's pattern: "Episodic Prep" over "Prep
+  // 303"). Real calendars and dailies call them tandem days; "double-up" only describes two units shooting at once.
+  // ⛔ Only words changed. Every saved key, id, class and code name keeps "double-up" (doubleUps, doubleUpDays,
+  // doubleUpName, data-du, DU_KEY 'doubleUp'), as Load kept data-action="open": renaming one would stop saved calendars
+  // opening. A calendar with no typed name reads Tandem now; a typed name, "Double-up" included, is kept as typed.
+  const DU_NAME = 'Tandem';
+  // The card head's text while the name is the default. "Tandem days" in v1.17.2; the owner, the same evening: "Call the
+  // phase just \"Tandem\"", so the card and its pills read the same word.
+  const DU_TITLE = 'Tandem';
   const DU_MAX = 99;             // a typed count's ceiling (R19: the boxes are typed, so no stepper's 0..9)
   const DU_NAME_MAX = 40;
   const DU_SEL_PILL = '.mv-pill[data-du]';   // a double-up pill in the month view (frozen edit DU1's marker)
   let doubleUpDays = 0;          // the card's default count (R2); 0 = none
-  let doubleUpName = '';         // the card's default name; '' reads "Double-up"
+  let doubleUpName = '';         // the card's default name; '' reads "Tandem" (R21)
   let doubleUpMoved = {};        // unit id -> {day: n} | {after: n}
   // A count as stored: a whole number 0..DU_MAX, or NaN.
   function duCountOf(v){ return (typeof v === 'number' && Number.isInteger(v) && v >= 0 && v <= DU_MAX) ? v : NaN; }
@@ -9930,6 +9939,9 @@ export function initLegacyApp() {
     return typeof v === 'string' ? v.replace(/[\u0000-\u001f\u007f]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, DU_NAME_MAX) : '';
   }
   function duDefaultName(){ return doubleUpName || DU_NAME; }
+  // A name in the card's head that means "the default": blank, "Tandem", or v1.17.2's head text "Tandem days" (never saved:
+  // it read as the default there too).
+  function isDuDefaultTitle(t){ return t === '' || t === DU_TITLE || t === DU_NAME || t === 'Tandem days'; }
   // A moved position as stored, or null.
   function duMovedOf(v){
     if(!isPlainObj(v)) return null;
@@ -9974,10 +9986,35 @@ export function initLegacyApp() {
     }
     return {color: fillHex, textColor: inkHex || textColorFor(fillHex)};
   }
-  // Production's colour as drawn (its def, picked colour included), and so the double-ups'.
+  // ⭐ THE TANDEM'S OWN COLOUR (owner, 17 Nov 2026, after v1.17.4: "Allow me to change the color of tandem"; this
+  // replaces plan §9's "no picker"). The card's colour square opens the phase colour picker, as every phase's does. A
+  // pick is kept as phaseColorOverride.doubleUp (an index into PHASE_COLOR_OPTIONS, like Prep's episodePrep), so it
+  // saves, restores, sanitizes and resets with the other phases' picks and needs no key of its own; ABSENT until picked,
+  // so no calendar's file changes until someone picks one. Absent, the tandem follows Production, R7's darker shade.
+  // ⛔ 'doubleUp' is permanent in that map from the first file saved with a pick.
+  function duLookFor(prodFill, prodInk){
+    const i = phaseColorOverride[DU_KEY];
+    const opt = (Number.isInteger(i) && PHASE_COLOR_OPTIONS[i]) || null;
+    return opt ? {color: opt.color, textColor: opt.text} : duShade(prodFill, prodInk);
+  }
+  function duProdDef(){
+    return (getAllPhaseDefs().find(d=> d.key === 'production')) || PHASES.find(d=> d.key === 'production') || {};
+  }
+  // The tandem's colour as drawn: its own pick, else Production's (its def, picked colour included) made darker.
   function duColors(){
-    const p = (getAllPhaseDefs().find(d=> d.key === 'production')) || PHASES.find(d=> d.key === 'production') || {};
-    return duShade(p.color, p.textColor);
+    const p = duProdDef();
+    return duLookFor(p.color, p.textColor);
+  }
+  // The picker: "Follow Production" (R7's automatic shade) first, then the phase palette. Picking the first removes
+  // the pick, so the tandem follows Production again. One step, through update(), as every swatch's pick is.
+  function openDuColorPop(sw){
+    const p = duProdDef(), auto = duShade(p.color, p.textColor);
+    const i = phaseColorOverride[DU_KEY];
+    const opts = [{name: 'Follow Production (a darker shade of it)', color: auto.color}].concat(PHASE_COLOR_OPTIONS);
+    openPhaseColorPop(sw, Number.isInteger(i) && PHASE_COLOR_OPTIONS[i] ? i + 1 : 0, k=>{
+      if(k === 0) delete phaseColorOverride[DU_KEY]; else phaseColorOverride[DU_KEY] = k - 1;
+      update();
+    }, opts);
   }
   // What readState() hands computeSchedule(): the default count, the default name and the moved positions, so a
   // computeSchedule() over a modified state (the solvers, spanCulprit) carries them. The per-unit counts and names are
@@ -10003,7 +10040,7 @@ export function initLegacyApp() {
     const d = duCountOf(v.days);
     if(d > 0) doubleUpDays = d;
     doubleUpName = cleanDuName(v.name);
-    if(doubleUpName === DU_NAME) doubleUpName = '';
+    if(isDuDefaultTitle(doubleUpName)) doubleUpName = '';
     if(isPlainObj(v.moved)) Object.keys(v.moved).forEach(id=>{
       const m = duMovedOf(v.moved[id]);
       if(m && SNAP_ID.test(id)) doubleUpMoved[id] = m;
@@ -10041,20 +10078,22 @@ export function initLegacyApp() {
     const look = duColors();
     row.style.setProperty('--phase-color', look.color);
     row.innerHTML = `
-        <div class="swatch du-swatch" id="swatch-${DU_KEY}" style="background:${look.color};" title="A darker shade of Production&rsquo;s colour. It follows Production&rsquo;s colour."></div>
-        ${phaseHeadHtml(`<input type="text" class="phase-name-input du-name-input" value="${DU_NAME}" placeholder="${DU_NAME}" maxlength="${DU_NAME_MAX}" aria-label="Double-up name" title="What the pills say. Each episode or block can have its own name below.">`,
+        <div class="swatch clickable du-swatch" id="swatch-${DU_KEY}" style="background:${look.color};" title="Change colour" aria-label="Change colour"></div>
+        ${phaseHeadHtml(`<input type="text" class="phase-name-input du-name-input" value="${DU_TITLE}" placeholder="${DU_TITLE}" maxlength="${DU_NAME_MAX}" aria-label="Tandem name" title="What the pills say: Tandem 101 unless you type another name. Each episode or block can have its own name below.">`,
           MVONLY_TAG(false, 'A second crew&rsquo;s days, drawn in the month view and its PDF only. They never change Production&rsquo;s days.'),
           `<div class="phase-meta du-meta"></div>`)}
         <div class="phase-fields du-fields">
-          <label class="du-default" title="Working days a second crew shoots on the next episode, for every episode but the last">Default double-ups ${duBoxHtml('du-default-in', 'None', 'Default double-up days')}</label>
+          <label class="du-default" title="Working days a second crew shoots on the next episode, for every episode but the last">Default tandem days ${duBoxHtml('du-default-in', 'None', 'Default tandem days')}</label>
         </div>
         <div class="du-body">
           <div class="du-panel"><div class="du-rows"></div></div>
         </div>`;
+    const sw = row.querySelector('.du-swatch');
+    sw.addEventListener('click', ()=> openDuColorPop(sw));
     const nameIn = row.querySelector('.du-name-input');
     nameIn.addEventListener('input', ()=>{
       const t = cleanDuName(nameIn.value);
-      const next = t === DU_NAME ? '' : t;
+      const next = isDuDefaultTitle(t) ? '' : t;
       if(next === doubleUpName) return;
       doubleUpName = next;
       update();
@@ -10126,13 +10165,15 @@ export function initLegacyApp() {
     if(units.length) units[units.length - 1].last = true;
     return units;
   }
-  // The head's name box: the default name, unless it is being typed in. `force` (its change event) writes it even then.
+  // The head's name box: a typed name, or "Tandem days" for the default (R21), unless it is being typed in. `force` (its
+  // change event) writes it even then.
   function reflectDuName(force){
     const el = document.querySelector('#du-row .du-name-input');
     if(!el) return;
-    if((force || document.activeElement !== el) && cleanDuName(el.value) !== duDefaultName()) el.value = duDefaultName();
+    const want = doubleUpName || DU_TITLE;
+    if((force || document.activeElement !== el) && cleanDuName(el.value) !== want) el.value = want;
   }
-  // The card's list, its − / + values and its summary line, from update(). REBUILT only when its rows change (the
+  // The card's list, its count boxes and its summary line, from update(). REBUILT only when its rows change (the
   // mode, which units, their order or tags), never on a keystroke in one of its own boxes; otherwise written back in
   // place from the store, skipping the box being typed in (refreshPrepUI's rule).
   function refreshDoubleUpUI(schedule){
@@ -10150,12 +10191,12 @@ export function initLegacyApp() {
       wrap._duKey = key;
       wrap.innerHTML = !units.length ? '' :
         '<div class="ep-sec-head"><span class="ep-sec-title">' + (info.blocks ? 'Blocks' : 'Episodes') + '</span>'
-        + '<span class="ep-sec-note" title="Blank uses the default. 0 gives ' + (info.blocks ? 'that block' : 'that episode') + ' no double-up.">Blank = default · 0 = none</span></div>'
+        + '<span class="ep-sec-note" title="Blank uses the default. 0 gives ' + (info.blocks ? 'that block' : 'that episode') + ' no tandem days.">Blank = default · 0 = none</span></div>'
         + '<div class="ep-list">' + units.map(u=> `
           <div class="du-unit-row" data-kind="${u.kind}" data-id="${escHtml(u.def.id)}"${u.last ? ' data-last="1"' : ''}>
             <span class="du-unit-tag" title="${escHtml(u.tag)}">${escHtml(u.tag)}</span>
-            <input type="text" class="du-unit-name" maxlength="${DU_NAME_MAX}" value="" aria-label="${escHtml(u.tag)} double-up name">
-            <label class="du-unit-count" title="Double-up days for ${escHtml(u.tag)}">${duBoxHtml('du-unit-days', '–', escHtml(u.tag) + ' double-up days')}</label>
+            <input type="text" class="du-unit-name" maxlength="${DU_NAME_MAX}" value="" aria-label="${escHtml(u.tag)} tandem name">
+            <label class="du-unit-count" title="Tandem days for ${escHtml(u.tag)}">${duBoxHtml('du-unit-days', '–', escHtml(u.tag) + ' tandem days')}</label>
           </div>`).join('') + '</div>';
     }
     // Values written back in place from the store, never into the box being typed in (Prep's rule), so an undo, a
@@ -10192,7 +10233,7 @@ export function initLegacyApp() {
   }
   // The summary line (the mockup's): "7 double-ups · 7 days · 101–107", or why there are none.
   function duSummary(schedule, info, units){
-    if(!info.complete) return 'Complete Show Info to add double-ups.';
+    if(!info.complete) return 'Complete Show Info to add tandem days.';
     const seg = duSegOf(schedule);
     if(!seg) return 'None yet';
     const n = seg.dus.length, days = seg.dus.reduce((a, d)=> a + d.n, 0);
@@ -10202,7 +10243,9 @@ export function initLegacyApp() {
       range = tags.length > 1 ? ' · ' + tags[0] + '–' + tags[tags.length - 1] : tags.length ? ' · ' + tags[0] : '';
     }
     const moved = seg.dus.filter(d=> d.moved).length;
-    return n + ' double-up' + (n === 1 ? '' : 's') + ' · ' + days + ' day' + (days === 1 ? '' : 's') + range
+    // R21's words: "7 tandem days · 6 episodes · 302–305", one count of days and one of the units that have them.
+    const unitWord = info.blocks ? 'block' : 'episode';
+    return days + ' tandem day' + (days === 1 ? '' : 's') + ' · ' + n + ' ' + unitWord + (n === 1 ? '' : 's') + range
       + (moved ? ' · ' + moved + ' moved' : '');
   }
   // ⭐ R12: double-click a double-up pill opens this card at that unit's row, as every month bar opens its phase's card.
@@ -13085,16 +13128,21 @@ export function initLegacyApp() {
   }
   // R9: where a double-up may go. Its own default days always (that is Put back); otherwise never on its own unit's
   // days and never before the shoot starts. Another unit's days and days after wrap are fine.
+  // R20: never on the FIRST unit's days either (the segment's minSlot, appendDoubleUps' one copy of the rule; 0 on a
+  // show of one unit, the owner's exception).
   function duDropVerdict(du, start, S){
     if(start === du.defSlot) return {ok: true};
+    const minSlot = (duSegOf(currentSchedule) || {}).minSlot || 0;
     for(let k = start; k < start + du.n; k++){
       if(k < 0) return {ok: false, why: 'before'};
-      if(S.ownDay(k, du.unit)) return {ok: false, why: 'own'};
+      if(S.ownDay(k, du.unit)) return {ok: false, why: 'own'};   // the more specific reason, for the first unit's own
+      if(k < minSlot) return {ok: false, why: 'first'};
     }
     return {ok: true};
   }
   function duRefusal(du, why){
     const word = du.kind === 'block' ? 'block' : 'episode';
+    if(why === 'first') return duPillLabel(du) + ' can’t go on the first ' + word + '’s days: it has no tandem days.';
     return duPillLabel(du) + ' can only go on another ' + word + '’s days, or after wrap'
       + (why === 'before' ? ', never before the shoot starts.' : '.');
   }
@@ -13156,9 +13204,9 @@ export function initLegacyApp() {
     const pop = document.createElement('div');
     pop.className = 'du-rename-pop';
     pop.setAttribute('role', 'dialog');
-    pop.setAttribute('aria-label', 'Name of ' + unit + '’s double-up');
-    pop.innerHTML = '<div class="du-rename-title">Name of ' + escHtml(unit) + '’s double-up</div>'
-      + '<input type="text" class="du-rename-input" maxlength="' + DU_NAME_MAX + '" aria-label="Double-up name">'
+    pop.setAttribute('aria-label', 'Name of ' + unit + '’s tandem days');
+    pop.innerHTML = '<div class="du-rename-title">Name of ' + escHtml(unit) + '’s tandem days</div>'
+      + '<input type="text" class="du-rename-input" maxlength="' + DU_NAME_MAX + '" aria-label="Tandem name">'
       + '<div class="du-rename-acts"><button type="button" class="du-rename-default"></button>'
       + '<button type="button" class="du-rename-done">Done</button></div>';
     const inp = pop.querySelector('.du-rename-input');
@@ -13220,7 +13268,7 @@ export function initLegacyApp() {
         if(k === null) return;
         const inTarget = d.to !== null && k >= d.to && k < d.to + d.du.n;
         if(inTarget) box(c, 'is-target' + (d.ok ? '' : ' is-bad'));
-        else if(k < 0 || (S.ownDay(k, d.du.unit) && !(k >= d.du.defSlot && k < d.du.defSlot + d.du.n))) box(c, 'is-nodrop');
+        else if(k < 0 || k < d.minSlot || (S.ownDay(k, d.du.unit) && !(k >= d.du.defSlot && k < d.du.defSlot + d.du.n))) box(c, 'is-nodrop');
       });
     };
     const end = (commit, e)=>{
@@ -13244,7 +13292,8 @@ export function initLegacyApp() {
       const grab = iso != null ? S.slotOf(iso) : null;
       if(!du || grab === null) return;
       e.preventDefault();
-      drag = {du, S, pill, grab: grab - du.slot, x0: e.clientX, y0: e.clientY, live: false, ghost: null, boxes: [], to: null, ok: false, why: ''};
+      drag = {du, S, pill, grab: grab - du.slot, x0: e.clientX, y0: e.clientY, live: false, ghost: null, boxes: [], to: null, ok: false, why: '',
+              minSlot: (duSegOf(currentSchedule) || {}).minSlot || 0};   // R20: the first unit's days are greyed too
     });
     window.addEventListener('mousemove', e=>{
       const d = drag;
@@ -13273,6 +13322,185 @@ export function initLegacyApp() {
       end(false);
     }, true);
     window.addEventListener('scroll', ()=>{ if(drag && drag.live) drawBoxes(); }, true);
+  })();
+
+  // ---------- A tandem's two grips: drag either end to change its days (owner, 17 Nov 2026) ----------
+  // "i should be able to extend tandem day just like any other phase"; picker "Both ends". Prep's start grip is the
+  // pattern (installPrepEdgeHandles): body-level .phase-edge-handle chrome over the pill, never written into the grid, a
+  // live redraw per step, ONE undo step for the gesture, Esc puts it back.
+  //   END grip    on the pill holding its last day: the start is held, the days change. A joined tandem stays joined.
+  //   START grip  on the pill holding its first day: the end is held, the days change, and the start becomes a MOVED
+  //               position (unjoined, drawn on its own), unless it lands on its default.
+  // Either way the count written is that unit's OWN (a drag is a statement about that episode, Prep's Q1(a)), 1..99.
+  // ⛔ It never takes a day the drop rules refuse (R9, R20): an edge pulled onto its own unit's days, the first unit's
+  // days or before the shoot stops at the last day it may take. Days it already covers stay (the last unit's own).
+  (function installDoubleUpGrips(){
+    const wrap = document.getElementById('table-wrap');
+    if(!wrap) return;
+    const HANDLE_W = 10;
+    const pool = [];
+    let shownFor = null, shield = null, drag = null;
+
+    // The slot nearest a day: the day's own, else the nearest one before it (an end) or after it (a start).
+    const slotNear = (S, iso, dir)=>{
+      let d = parseDateUTC(iso);
+      for(let i = 0; i < 14 && d; i++){ const k = S.slotOf(isoOf(d)); if(k !== null) return k; d = addDays(d, dir); }
+      return null;
+    };
+    function specFor(pill){
+      const du = duOfId(pill.getAttribute('data-du')), g = du && pillRange(pill);
+      if(!du || !g) return [];
+      const out = [];
+      if(g.from === du.days[0]) out.push({kind: 'start', side: 'left', du, pill});
+      if(g.to === du.days[du.days.length - 1]) out.push({kind: 'end', side: 'right', du, pill});
+      return out;
+    }
+    function handleAt(k){
+      while(pool.length <= k){
+        const h = document.createElement('div');
+        h.className = 'phase-edge-handle';
+        h.hidden = true;
+        h.addEventListener('mousedown', e=> beginDrag(e, h));
+        document.body.appendChild(h);
+        pool.push(h);
+      }
+      return pool[k];
+    }
+    function hideHandles(except){ shownFor = null; pool.forEach(h=>{ if(h !== except) h.hidden = true; }); }
+    function place(h, spec){
+      const v = visibleRect(spec.pill);
+      if(!v){ h.hidden = true; return; }
+      const x = spec.side === 'left' ? v.full.left : v.full.right - HANDLE_W;
+      if(x < v.left - 1 || x + HANDLE_W > v.right + 1){ h.hidden = true; return; }
+      h._spec = spec;
+      h._pill = spec.pill;
+      h.setAttribute('data-edge', spec.kind);
+      h.setAttribute('data-ph', DU_KEY);
+      h.style.left = x + 'px';
+      h.style.top = v.top + 'px';
+      h.style.height = (v.bottom - v.top) + 'px';
+      h.style.color = getComputedStyle(spec.pill).color;
+      h.title = spec.kind === 'end' ? 'Drag to change how many tandem days ' + duPillLabel(spec.du) + ' has; its start stays'
+                                    : 'Drag to change where ' + duPillLabel(spec.du) + ' starts; its end stays';
+      h.hidden = false;
+    }
+    function showFor(pill){
+      if(pill === shownFor) return;
+      hideHandles();
+      const specs = specFor(pill);
+      if(!specs.length) return;
+      shownFor = pill;
+      specs.forEach((sp, i)=> place(handleAt(i), sp));
+    }
+    document.addEventListener('mousemove', e=>{
+      if(drag) return;
+      const t = e.target;
+      if(t && t.classList && t.classList.contains('phase-edge-handle') && t.getAttribute('data-ph') === DU_KEY) return;
+      if(viewMode !== 'month' || document.body.classList.contains('du-dragging')){ hideHandles(); return; }
+      const pill = t && t.closest && t.closest(DU_SEL_PILL);
+      if(!pill || !wrap.contains(pill)){ hideHandles(); return; }
+      showFor(pill);
+    }, {passive: true});
+    window.addEventListener('scroll', ()=>{ if(!drag) hideHandles(); }, true);
+    window.addEventListener('resize', ()=>{ if(!drag) hideHandles(); });
+    new MutationObserver(()=>{ if(!drag) hideHandles(); }).observe(wrap, {childList: true, subtree: true});
+
+    // Writes a span [start, start + n) as the unit's own count and, when it is not its default, a moved start.
+    function writeSpan(d, start, n){
+      const def = d.def, S = d.S;
+      if(start === d.start0 && n === d.n0){
+        if(d.hadN) def.doubleUpDays = d.wasN; else delete def.doubleUpDays;
+        if(d.wasMv) doubleUpMoved[d.id] = Object.assign({}, d.wasMv); else delete doubleUpMoved[d.id];
+        return;
+      }
+      def.doubleUpDays = n;
+      const dflt = d.last ? Math.max(d.minSlot, d.unitLast - n + 1) : d.unitLast + 1;
+      if(start === dflt) delete doubleUpMoved[d.id];
+      else doubleUpMoved[d.id] = start < S.N ? {day: start + 1} : {after: start - S.N + 1};
+    }
+    function apply(start, n){
+      const d = drag;
+      writeSpan(d, start, n);
+      d.cur = {start, n};
+      update();
+      cancelPendingUndoPush();
+      // ⛔ The real derivation must agree: the tandem exactly where it was computed to land. If not, put it back and
+      // let the gesture go inert (every grip's guard).
+      const now = duOfId(d.id);
+      if(!(now && now.slot === start && now.n === n)){ d.broken = true; writeSpan(d, d.start0, d.n0); d.cur = {start: d.start0, n: d.n0}; update(); cancelPendingUndoPush(); }
+      follow();
+    }
+    // Keep the dragged handle on its edge as the grid redraws.
+    function follow(){
+      const d = drag, du = duOfId(d.id);
+      const pills = du ? Array.prototype.filter.call(wrap.querySelectorAll(DU_SEL_PILL), p=> p.getAttribute('data-du') === d.id) : [];
+      for(const p of pills){
+        const sp = specFor(p).filter(x=> x.kind === d.kind)[0];
+        if(sp){ place(d.handle, sp); return; }
+      }
+      d.handle.hidden = true;
+    }
+    // Is slot k one this tandem may newly take (R9, R20)?
+    const mayTake = (d, k)=> k >= 0 && k >= d.minSlot && !d.S.ownDay(k, d.unit);
+    function solve(d, iso){
+      const k0 = d.start0, e0 = d.start0 + d.n0 - 1;
+      if(d.kind === 'end'){
+        let k = slotNear(d.S, iso, -1);
+        if(k === null) return null;
+        k = Math.max(k0, Math.min(k, k0 + DU_MAX - 1));
+        let e = Math.min(k, e0);
+        for(let j = e0 + 1; j <= k && mayTake(d, j); j++) e = j;
+        return {start: k0, n: e - k0 + 1};
+      }
+      let k = slotNear(d.S, iso, 1);
+      if(k === null) return null;
+      k = Math.min(e0, Math.max(k, e0 - DU_MAX + 1));
+      let s = Math.max(k, k0);
+      for(let j = k0 - 1; j >= k && mayTake(d, j); j--) s = j;
+      return {start: s, n: e0 - s + 1};
+    }
+    function endDrag(){
+      const d = drag;
+      drag = null;
+      if(shield){ shield.remove(); shield = null; }
+      hideHandles();
+      if(d && (d.cur.start !== d.start0 || d.cur.n !== d.n0)){ pushUndoSnapshot(); markDirty(); }
+    }
+    function beginDrag(e, h){
+      if(e.button !== 0 || drag || viewMode !== 'month') return;
+      const spec = h._spec, du = spec && duOfId(spec.du.id), def = du && duDefOf(du.id), S = du && duSlotLine();
+      if(!du || !def || !S) return;
+      e.preventDefault();
+      e.stopPropagation();
+      const edgeIso = spec.kind === 'end' ? du.days[du.days.length - 1] : du.days[0];
+      const cell = Array.prototype.find.call(wrap.querySelectorAll('.mv-body > .mv-week > .mv-daygrid > .mv-daycell'),
+        c=>{ const loc = cellDate(c); return !!loc && isoOf(loc.date) === edgeIso; });
+      const cr = cell ? cell.getBoundingClientRect() : null;
+      pushUndoSnapshot();
+      drag = {handle: h, kind: spec.kind, id: du.id, unit: du.unit, def, S, last: du.last, unitLast: du.unitLast,
+              minSlot: (duSegOf(currentSchedule) || {}).minSlot || 0, start0: du.slot, n0: du.n,
+              hadN: hasDuDays(def), wasN: def.doubleUpDays, wasMv: doubleUpMoved[du.id] ? Object.assign({}, doubleUpMoved[du.id]) : null,
+              dx: cr ? e.clientX - (cr.left + cr.width / 2) : 0, cur: {start: du.slot, n: du.n}, broken: false};
+      hideHandles(h);
+      shield = document.createElement('div');
+      shield.className = 'phase-edge-shield';
+      document.body.appendChild(shield);
+    }
+    window.addEventListener('mousemove', e=>{
+      if(!drag) return;
+      if(!(e.buttons & 1)){ endDrag(); return; }
+      if(drag.broken) return;
+      const iso = dayAtPoint(e.clientX - drag.dx, e.clientY);
+      const step = iso && solve(drag, iso);
+      if(step && (step.start !== drag.cur.start || step.n !== drag.cur.n)) apply(step.start, step.n);
+    });
+    window.addEventListener('mouseup', ()=>{ if(drag) endDrag(); });
+    document.addEventListener('keydown', e=>{
+      if(!drag || e.key !== 'Escape') return;
+      e.preventDefault();
+      if(drag.cur.start !== drag.start0 || drag.cur.n !== drag.n0) apply(drag.start0, drag.n0);
+      endDrag();
+    }, true);
   })();
 
   // ---------- Hiatus drag: move a hiatus, or change its first or last week, in the month view ----------
@@ -14179,7 +14407,7 @@ export function initLegacyApp() {
       if(pill && !wrap.contains(pill)) pill = null;
       const key = (handle && handle.getAttribute('data-ph')) || (pill && pill.getAttribute('data-ph')) || null;
       // A double-up pill (DOUBLE-UP-DAYS-PLAN.md R11) opens its own lean menu: menuSections() below.
-      const du = (!handle && pill && pill.hasAttribute('data-du')) ? duOfId(pill.getAttribute('data-du')) : null;
+      const du = (pill && pill.hasAttribute('data-du')) ? duOfId(pill.getAttribute('data-du')) : null;   // its grips too
       return {iso, date, key, target: t, pill, du, x: e.clientX, y: e.clientY};
     }
 
@@ -14289,7 +14517,7 @@ export function initLegacyApp() {
       if(du.moved) items.push({id: 'du-back', icon: 'undo', text: 'Put back on its default days', note: duPillLabel(du) + ' goes back where it started',
         run: ()=> setDoubleUpAt(du, du.defSlot)});
       return [{id: 'du', items},   // no label: the menu's head already names the pill
-              {id: 'du-out', items: [{id: 'du-remove', icon: 'trash', text: 'Remove double-up', danger: true,
+              {id: 'du-out', items: [{id: 'du-remove', icon: 'trash', text: 'Remove tandem days', danger: true,
                 run: ()=> removeDoubleUp(du)}]}];
     }
 
@@ -18007,8 +18235,17 @@ export function initLegacyApp() {
       }
       return after[k - N] || null;
     };
-    const look = duShade(prod.color, prod.textColor);
+    const look = duLookFor(prod.color, prod.textColor);   // its own pick, else Production's darker
     const last = U.units[U.units.length - 1];
+    // ⭐ R20 (owner, 17 Nov 2026, after v1.17.0: "there also shouldnt be double up days at the beginning of the 1st
+    // episode", then the picker "None during episode 1"): NO double-up sits on any of the FIRST unit's days (episode 1 in
+    // shooting order, or block 1). `minSlot` is the first slot after its last day (a half switch day is its day too), so
+    // the earliest a double-up can start is the next unit's first full day, where the first unit's own sits by default.
+    // ⭐ The one exception (owner's picker, "Allow it there"): a show of ONE unit keeps its double-up on its own last days
+    // (R5), so with one unit there is no limit. The drag (duDropVerdict) and its grey days read this same `minSlot` off
+    // the segment, so the rule has one copy.
+    const firstDays = U.units.length > 1 ? Array.from(U.units[0].days) : [];
+    const minSlot = firstDays.length ? (index.get(firstDays[firstDays.length - 1]) + 1) : 0;
     const dus = [], all = new Set();
     let firstDay = null, lastDay = null;
     U.units.forEach(u=>{
@@ -18021,10 +18258,13 @@ export function initLegacyApp() {
       // A unit's days were added in shoot order, so the last one is its last day.
       const ud = Array.from(u.days), lastK = index.get(ud[ud.length - 1]);
       if(lastK === undefined) return;
-      const defSlot = isLast ? Math.max(0, lastK - n + 1) : lastK + 1;
+      // The last unit's own last days, never reaching back into the first unit's (R20; only a short last unit could).
+      const defSlot = isLast ? Math.max(minSlot, lastK - n + 1) : lastK + 1;
       const mv = duMovedOf(cfg.moved && cfg.moved[def.id]);
       let slot = defSlot;
-      if(mv){ const k = mv.day ? mv.day - 1 : N - 1 + mv.after; if(k >= 0) slot = k; }
+      // A move onto the first unit's days (only a v1.17.0 file can hold one: R20 came after it) is drawn at its default,
+      // and the saved move is KEPT, so the file opens and nothing in it is lost.
+      if(mv){ const k = mv.day ? mv.day - 1 : N - 1 + mv.after; if(k >= minSlot) slot = k; }
       const moved = slot !== defSlot;
       const list = [];
       for(let j = 0; j < n; j++){ const iso = slotIso(slot + j); if(iso) list.push(iso); }
@@ -18033,13 +18273,13 @@ export function initLegacyApp() {
       const f = parseDateUTC(list[0]), l = parseDateUTC(list[list.length - 1]);
       if(!firstDay || f < firstDay) firstDay = f;
       if(!lastDay || l > lastDay) lastDay = l;
-      dus.push({kind: U.kind, unit: u, id: def.id, n, slot, defSlot, moved, last: isLast, joined: !isLast && !moved,
+      dus.push({kind: U.kind, unit: u, id: def.id, n, slot, defSlot, unitLast: lastK, moved, last: isLast, joined: !isLast && !moved,
                 days: list, daySet: new Set(list), first: f, lastDay: l, color: look.color, textColor: look.textColor});
     });
     if(!dus.length) return;
     schedule.segments.push({key: DU_KEY, label: duDefaultName(), name: duDefaultName(), color: look.color,
       textColor: look.textColor, start: prod.start, end: addDays(lastDay, 1), firstDay, lastDay, weeks: 0,
-      days: all, dus, shotCount: N, shootDays: null, phaseHiatus: null, doubleUp: true});
+      days: all, dus, shotCount: N, minSlot, shootDays: null, phaseHiatus: null, doubleUp: true});
   }
   // A derived, month-only segment that is not a phase: prep and double-ups.
   function duIsDerived(s){ return !!s && (s.key === PREP_KEY || s.key === DU_KEY); }
