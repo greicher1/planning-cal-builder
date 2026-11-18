@@ -22,7 +22,10 @@
   handle drags (pointer events; the drag's own click swallowed by a guard the next press drops), Alt+Up/Down moves. The title can be
   unticked; all off = the words alone. Ticks and order are PER COMPUTER (`prefs.fileNameOff` / `fileNameOrder`, `cleanPrefs` checks
   both) and every export's name follows them. ⚠️ Open: whether they should travel with the calendar instead. The owner went chips →
-  list with handles (mockup `mockups/export-file-name-parts.html`, layouts A–C). ⚠️ The list makes the window taller: on a laptop-height
+  list with handles (mockup `mockups/export-file-name-parts.html`, layouts A–C). ⭐ The window WIDENS to show the whole name (owner: *"extend the width of the window if
+  necessary to always show the full file name"*): a hidden copy of the name is measured on every change, typing included, and the
+  modal is sized from it (`windowWidth()`: 440 px or the name plus the box's padding, capped at the screen less 32 px; past that the
+  box scrolls). ⚠️ The list makes the window taller: on a laptop-height
   screen Cancel / Export sit just below the fold (the modal scrolls).
 - ⛔ **THE VERSION: REVERSES THE 3 NOV RULING** (owner, 18 Nov 2026: *"if they leave out the v in version number it should auto add
   it"*, picker "File names and header" + "Only a bare number", then *"the Show info box should also be changed back to enter a number

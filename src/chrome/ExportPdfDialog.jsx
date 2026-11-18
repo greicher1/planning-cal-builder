@@ -87,7 +87,7 @@ function joinName(parts, off, ext) {
   return out + (ext || '')
 }
 
-function FileNameRow({ parts, off, setOff, offDefault, order, setOrder, orderDefault, ext, typed, setTyped }) {
+function FileNameRow({ parts, off, setOff, offDefault, order, setOrder, orderDefault, ext, typed, setTyped, onWidth }) {
   const [dragK, setDragK] = useState(null)
   const orderRef = useRef(order)
   orderRef.current = order
@@ -99,6 +99,14 @@ function FileNameRow({ parts, off, setOff, offDefault, order, setOrder, orderDef
   const offKey = (list) => parts.filter((p) => list.includes(p.k)).map((p) => p.k).join()
   const changed = typed !== null || offKey(off) !== offKey(offDefault) || order.join() !== orderDefault.join()
   const built = joinName(sorted, off, '')
+  // ⭐ THE WINDOW WIDENS TO SHOW THE WHOLE NAME (owner, 18 Nov 2026: "extend the width of the window if necessary to
+  // always show the full file name"). A hidden copy of the name, in the box's own font, is measured after every change
+  // (typing included) and reported up; ExportPdfDialog sizes the modal from it (WINDOW_W, capped by the screen).
+  const measureRef = useRef(null)
+  const shownName = typed !== null ? typed : built
+  useLayoutEffect(() => {
+    if (measureRef.current && onWidth) onWidth(Math.ceil(measureRef.current.getBoundingClientRect().width))
+  }, [shownName, onWidth])
   // ⭐ A LIST WITH DRAG HANDLES (owner, 18 Nov 2026: "we might need to change it to the list version with drag handles
   // so you can easily reoder"; it was chips). A click on a row ticks it; its handle (six dots) drags it; Alt + Up / Down
   // moves it from the keyboard. A DRAG is a press on the handle that moves more than 4 px. Pointer events, not the
@@ -158,6 +166,9 @@ function FileNameRow({ parts, off, setOff, offDefault, order, setOrder, orderDef
           </UnstyledButton>
         )}
       </Group>
+      <span ref={measureRef} aria-hidden="true"
+        style={{ position: 'absolute', visibility: 'hidden', whiteSpace: 'pre', fontSize: 'var(--mantine-font-size-sm)',
+                 fontFamily: 'inherit', left: -9999, top: 0 }}>{shownName}</span>
       <TextInput size="sm" className="pdfdlg-name-input" aria-label="File name" spellCheck={false}
         value={typed !== null ? typed : built} onChange={(e) => setTyped(e.currentTarget.value)}
         rightSection={<Text size="sm" c="dimmed">{ext}</Text>} rightSectionWidth={44} />
@@ -215,6 +226,16 @@ function FileNameRow({ parts, off, setOff, offDefault, order, setOrder, orderDef
   )
 }
 
+// The window's width for a name `nameW` px wide: its usual 440 (Mantine's md), or wide enough for the whole name in the
+// box (the box's 12 px left padding, the 44 px ".pdf" section, its border, a little room for the caret, and the modal's
+// own 16 px padding each side), never wider than the screen less 16 px each side. Past that the box scrolls.
+const WINDOW_W = 440
+function windowWidth(nameW) {
+  const need = (nameW || 0) + 12 + 44 + 2 + 12 + 32
+  const cap = Math.max(WINDOW_W, (typeof window !== 'undefined' ? window.innerWidth : 1200) - 32)
+  return Math.max(WINDOW_W, Math.min(need, cap))
+}
+
 export function ExportPdfDialog() {
   const [dlg, setDlg] = useState(null)   // the opts the engine passed, plus `n` to remount per opening
   const [paper, setPaper] = useState('letter')
@@ -223,6 +244,13 @@ export function ExportPdfDialog() {
   const [nameOff, setNameOff] = useState([])
   const [nameOrder, setNameOrder] = useState([])
   const [nameTyped, setNameTyped] = useState(null)   // null = built from the parts
+  const [nameW, setNameW] = useState(0)              // the name's measured width (FileNameRow), for windowWidth()
+  const [, setVw] = useState(0)                      // re-render on a window resize, so the cap follows the screen
+  useLayoutEffect(() => {
+    const onResize = () => setVw(window.innerWidth)
+    window.addEventListener('resize', onResize)
+    return () => window.removeEventListener('resize', onResize)
+  }, [])
   const resolveRef = useRef(null)
   const openCount = useRef(0)
 
@@ -280,7 +308,7 @@ export function ExportPdfDialog() {
       closeOnClickOutside={false}
       withinPortal={false}
       centered
-      size="md"
+      size={windowWidth(nameW)}
       radius="lg"
       shadow="xl"
       title="Export PDF"
@@ -320,7 +348,7 @@ export function ExportPdfDialog() {
             <FileNameRow parts={dlg.nameParts} off={nameOff} setOff={setNameOff} offDefault={dlg.nameOffDefault || []}
               order={nameOrder} setOrder={setNameOrder}
               orderDefault={dlg.nameOrderDefault || nameOrder} ext={dlg.nameExt || '.pdf'}
-              typed={nameTyped} setTyped={setNameTyped} />
+              typed={nameTyped} setTyped={setNameTyped} onWidth={setNameW} />
           )}
           <Text size="xs" c="dimmed">
             The paper and orientation are saved with this calendar, and Export to Excel uses them too.
