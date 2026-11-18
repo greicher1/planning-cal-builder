@@ -4,7 +4,7 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### 🔨 17 Nov 2026: THE NOTE EDITOR'S DAY — "No date", and a TYPED date works like a picked one. Branch `note-day-shift` (worktree `.claude/worktrees/note-day-shift`, from `origin/main` `aa16ffe`). Owner tried it on localhost, then *"Finish it"*. NOT pushed. Tracker cards `note-day-default-no-date`, `linked-note-day-follows-phase`
+### 🔨 17 Nov 2026: THE NOTE EDITOR'S DAY — "No date", and a TYPED date works like a picked one. Branch `note-day-shift` (worktree `.claude/worktrees/note-day-shift`, from `origin/main` `aa16ffe`). Owner tried it on localhost, then *"Finish it"*, then *"push"*. PUSHED 18 Nov 2026. Tracker cards `note-day-default-no-date`, `linked-note-day-follows-phase`
 - **The asks (17 Nov 2026, in order):** *"In waterfall view, the default, for Day should be "No date" rather than Mon
   (default)"*; *"When you do select a date and ALSO have stays with set to a week of a phase (not a specific week) then
   when you shift the phase/calendar the date should auto-change to the same day of the week"*; *"what if you hand type
@@ -46,8 +46,12 @@
   autonoteview, mvtextstyle, mvkeys, wfnotelines month/drag, mvdragcarry, phaselink, notedates).
 - **Full gate on `80fd3b0` (build sha256 `5b23371e…`, port 8957, 17 Nov 2026, alone): 5,605 PASS / 12 FAIL.** No
   baseline compare failed (gates 2, 3, 10, 13, restore). The 12: eleven `pilllabel` (blocks) cases, all "months 18 vs
-  1" (the leg flaky on `main` too, HANDOFF v1.13.0 notes), and `hostile` (xss-proto) S2, a Load. ⚠️ NOT yet re-run
-  alone (the session hit its usage limit): do that first, then the push picker.
+  1" (the leg flaky on `main` too, HANDOFF v1.13.0 notes), and `hostile` (xss-proto) S2, a Load. Re-run alone on 18
+  Nov: `hostile` (xss-proto) 18/18; `pilllabel` (blocks), judged by the gate's own checker, 29/35 once ("months 1 vs
+  18" again: its month walk saw one month), then 35/35 twice; `releases/v1.16.0.html` 35/35 twice. A flake, not this
+  change (which touches no month walk).
+- **Pushed** on the owner's *"push"* (18 Nov 2026) as a fast-forward of `origin/main` `aa16ffe`. No version cut (README:
+  Unreleased).
 
 ### 🚂 v1.16.0 — wave 4. Branch `release-wave4` (worktree `.claude/worktrees/release-wave4`), cut from `origin/main` `7e1d8b4`; `origin/main` `8af4298` merged in at `91619e1`. The owner said *"Yes, prep it"* (16 Nov 2026): merge the newest live changes, write the owed docs and test wiring, cut v1.16.0. Tagged v1.16.0 and pushed to `main` on 17 Nov 2026 (owner's picker *"Push v1.16.0 now"*), after two full gates and the merges of `d44a52e` and `b8f4ccf`.
 - ⛔ **This section SUPERSEDES the "WIP", "NOT merged, NOT pushed", "the owner tries it first", "not in gate.sh yet" and
