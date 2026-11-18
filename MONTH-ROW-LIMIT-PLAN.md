@@ -148,6 +148,9 @@ The day menu has no Add note item (trimmed on 23 Oct 2026).
 - **A full day with a free line higher up** (under a bar that starts later in the week) is still full: the test is
   the lowest line the day reaches, so an over-full day never grows.
 - **The "+" still shows on a full day** (section 4).
+- **A full day that is out of view** (a paste onto the day last clicked, after scrolling): the message cannot sit by
+  the day, so it shows at the top of the calendar and names the date. Found after the gate; a refusal with no
+  message was the one way the first build broke the ruling "refuses and says so" (case L2d).
 - Arrivals can take any day past the limit (R3). Nothing is ever hidden.
 
 ## 7. Build steps
@@ -162,21 +165,30 @@ was measured.**
    on `mvnotes`, `notewrap`, `monthscale` and `month-dense60`.
 4. Hand over on localhost; `HANDOFF.md`; tracker to `building`; local WIP commit.
 
-**Stage 2, only after the owner says to finish:**
-5. A harness leg `monthrowlimit` in `tests/harness/t/`, wired into `gate.sh`, each case shown red on a mutant:
-   - L1 a "+" on a day with room opens the editor; on a full day it does not, and the chip says the words;
-   - L2 ⌘V of three notes onto a day with one line of room lands one and says so; onto a full day lands none and
-     banks no undo step;
-   - L3 Paste notes…: a full day's line is an error naming its date, Add is off; with the line removed the rest add;
-   - L4 a note dragged onto a full day goes back and nothing is banked; onto a day with room it lands;
-   - L5 never refused: an existing note on a full day edited to three lines saves; a Waterfall note typed for a full
-     day shows in the month; a phase moved onto a full week shows;
-   - L6 `month-lanecap` (51 lines) opens, draws all 25 notes, and its written PDF is the baseline's;
-   - L7 the count is the full-size one in a shrunk month (`monthscale`, August).
-   Mutants: the limit raised to 99 (L1 to L4 red), the door check removed from each door in turn, the count taken
-   from the screen instead of the print render (L7 red).
-6. The full gate. Gates 10 and 13 and the waterfall gates byte-identical is the proof that no output moved.
-7. README changelog, `CLAUDE.md` (the Month view's notes), `UI-CONVENTIONS.md`, `HANDOFF.md`, the tracker.
+**Stage 2 (the owner said "Finish it", 17 Nov 2026):**
+5. The leg `tests/harness/t/monthrowlimit.js`, wired into `gate.sh` as three runs. As built (the plan's L5 "a phase
+   moved onto a full week" became "the full day's holiday is still drawn": the same claim, with no mover to drive):
+   - `g=doors`, the standard calendar loaded as a file with July 2026's notes (a day over the limit, a day at 9
+     lines): C0 the premise; L1 the "+" (L1b controls); L2 a paste onto the full day, L2b onto the day at 9 lines
+     ("1 of 3 notes were pasted", one Undo), L2c onto an empty day; L3 Paste notes… (the full day's row), L3b a day
+     that fills as the rows above land, L3c the calendar untouched while it previews, L3d the rest are added; L4 the
+     drag onto the full day, L4b across it onto a day with room; L5 an edit that grows a note, L5b a Waterfall note
+     typed with the full day's date, L5c the holiday on a day holding ten notes.
+   - `g=over` on `month-lanecap`: L6 all 25 notes drawn, L6b that day takes no note and the day beside it does.
+   - `g=shrunk`: L7 a day showing 5 lines in a month shrunk to 26/64, 13 at full size, is full; L7b the premise.
+   Red on the build before the limit at L1 L2 L2b L3 L3b L4, L6b and L7. Nine mutants, each red where it should be
+   and nowhere else: the limit at 99; the check removed from the "+", the paste, Paste notes… and the drag in turn;
+   the count taken as the screen draws it (L7); an edit refused (L5); Waterfall lines dropped from a full day
+   (L5b, L5c); notes past the 10th dropped on load (L6). Added after the gate: L2d in `g=doors` (a paste onto a
+   full day scrolled out of view at 200% zoom still says so, by date), red on a tenth mutant.
+6. The full gate. Gates 2, 3, 10 and 13 byte-identical is the proof that no output moved. **RUN 17 Nov 2026:
+   5,530 pass, 81 fail; gates 1-3, 10 and 13 all green.** 80 of the failures are the month-shrink build's and fail
+   identically on the build before the limit (`monthemit` / `monthwriter` / `monthlayout` F0, `monthexport` X1,
+   `monthlanes` L16b, `mvnotesize` on `month-dense60`, `monthpage` T and B on `monthscale`); one was a `phasefill`
+   run that stopped early (green alone); one was this change's: `textfit`'s lines run added a note to a day the
+   limit calls full, and now uses a day with room. `HANDOFF.md` has the detail.
+7. README changelog, `CLAUDE.md` (the state table's `mvExtraLanes` row), `UI-CONVENTIONS.md` (§7 and §10),
+   `HANDOFF.md`, the tracker.
 8. Pickers: commit, and separately push. ⚠️ This branch carries the unpushed month-shrink build: a push publishes
    that too, so the owner must have approved finishing the shrink build first.
 

@@ -1023,6 +1023,36 @@ bar and note heights; no symbol; the zoom; a line added to a week stays inside i
 `mvnotesize`, `autonoterename` and `mvkeys` were re-premised for it. Gate 13 holds the PDF itself; gate 10 was re-cut
 (the print rollback now sizes notes for the page, not the window).
 
+### ✅ AS BUILT — a day in the month view holds 10 lines (17 Nov 2026, `MONTH-ROW-LIMIT-PLAN.md`)
+
+Owner: *"there reall should be a max limit on how tall a calendar row can be"*. Five pickers: **Stop adding notes**,
+**10 lines in a week**, **No new notes until under**, **Never refused**, **Short message by the day**.
+
+- **The rule.** A day's lines are the lowest line any bar, band or note covering it ends on. A day that already
+  reaches its 10th line takes no new note added by hand in the month view. Every day is capped, so the row is: 10
+  lines is 226 px of the 631 px the weeks share.
+- **Four refusals**: a "+" on a full day (no editor opens), ⌘V (notes land one by one while there is room), Paste
+  notes… (a full day's row is an error row), a note dragged onto a full day (it goes back).
+- **Never refused**: an edit to a note that is already there; everything that arrives on its own (the Waterfall's
+  notes, notes that stay with a phase, automatic notes, holidays, bars, bands, the moving tools); Load and Undo. A
+  calendar already over the limit shows everything it holds.
+- **The words** are the grid's short message, the chip the month view already shows for "Holidays and automatic notes
+  stay on their own dates" (the owner's picker chose it over §4's blocking-error dialog: one more click every time a
+  full day is tried), drawn over the day it is about and kept inside the window: *"This day is full (10 lines)."* and, on its own line, *"Delete or move a note to
+  add another."* or *"1 of 3 notes were pasted."*. It lasts about 5 seconds and goes at once when a note does land.
+  In the Paste notes… box the row reads *"11/3/26 is full (10 lines)"*.
+- ⛔ **A refusal is never silent.** A paste goes to the day last clicked, which can have been scrolled out of view.
+  With no day on screen to sit by, the message shows at the top of the calendar and names the date (*"7/3/26 is
+  full (10 lines)…"*). A message placed by something must have a fallback for when that thing is not in view.
+- **At the door, at full size.** The check asks whether the day is full before the note is added (a note being typed
+  is saved whole, so a row can end a line or two over), and lines are counted as the month draws at full size, so a
+  day is full or not whichever month page it is seen on. ⚠️ A shrunk month can show fewer lines than are counted.
+- ⚠️ **The "+" still shows on a full day**, and in a week whose tallest day is far over the limit, on every empty
+  line beside a full day. The frozen renderer draws them; a click says the day is full.
+- **No setting, nothing saved, no output changes.** The week's own "+" strip keeps its 6 blank lines.
+
+**Held by** `monthrowlimit` (three runs: the doors, the over-limit fixture, a shrunk month).
+
 ### ✅ AS BUILT — the install gate's page (30 Sep 2026, `PWA-ONLY-PLAN.md`)
 
 On the hosted link, an ordinary browser tab shows `#app-gate` instead of the app: one full-screen
@@ -1518,6 +1548,10 @@ Nothing in this document ships without all of these, every stage:
       `softlines` (which deletes only the Soft Lines block and still passes with this one in place).
     - ⚠️ A new rule in that block must stay paint only. A font-size, padding or weight change on a box that sizes
       itself turns `softlines` L1 red.
+    - `monthrowlimit` (17 Nov 2026; §7, "a day in the month view holds 10 lines"): no frozen edit and no output, so
+      it is held on screen and in the stores: the four refusals with their words, what is never refused, an
+      over-limit calendar that opens whole, and the full-size count in a shrunk month. Gates 2, 3, 10 and 13
+      byte-identical are the proof that no file moved.
 21. **NEW — the month view's day menu stays as the owner trimmed it** (23 Oct 2026, MONTH-CONTEXT-MENU-PLAN.md §13,
     rulings T1–T4). `gate.sh`'s `mvmenu` leg: the EXACT item list of every menu it checks (a bar on a shoot day, a
     weekday holiday, a weekend, a hiatus day, a hiatus day with a holiday, Post's bar, a custom phase's bar, the

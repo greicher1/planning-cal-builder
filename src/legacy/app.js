@@ -25861,6 +25861,13 @@ export function initLegacyApp() {
       if(c && v){
         const top = Math.min(Math.max(c.top + (by.dy || 0), v.top), v.bottom);
         mvSelFlash.at = { left: c.left, right: c.right, top, bottom: top };
+      } else {
+        // ⭐ NEVER SILENT (17 Nov 2026, found on the way to the gate): ⌘V goes to the day last clicked, which can have
+        // been scrolled out of view since, and then there was no day to put the message by, so the refusal said
+        // nothing at all. It shows at the top of the calendar instead, naming the date ("This day" would point at
+        // nothing). Leg `monthrowlimit` L2d.
+        const w = document.getElementById('table-wrap'), q = w && w.getBoundingClientRect();
+        mvSelFlash.at = q ? { left: q.left + 12, right: q.left + 12, top: q.top + 4, bottom: q.top + 4, away: true } : null;
       }
     }
     else if(at) mvSelFlash.at = at;
@@ -25868,13 +25875,14 @@ export function initLegacyApp() {
     if(!r) return;
     const chip = document.createElement('div');
     chip.className = 'text-sel-chip month-sel-chip' + (by ? ' is-lines' : '');
-    chip.textContent = mvSelFlash.msg;
+    const awayDay = r.away ? parseDateUTC(by.iso) : null;
+    chip.textContent = awayDay ? mvSelFlash.msg.replace(/^This day/, fmtShort(awayDay)) : mvSelFlash.msg;
     chip.style.left = Math.max(0, r.left) + 'px';
     document.body.appendChild(chip);
     mvSelBoxes.push(chip);
     if(by) chip.style.left = Math.max(0, Math.min(r.left, window.innerWidth - chip.offsetWidth - 6)) + 'px';
     const top = r.top - chip.offsetHeight - 4;
-    chip.style.top = (top >= 2 ? top : r.bottom + 4) + 'px';
+    chip.style.top = ((top >= 2 && !r.away) ? top : r.bottom + 4) + 'px';
   }
   // A pick: alone, or added/removed with ⌘ or Shift.
   function pickMvText(el, add){

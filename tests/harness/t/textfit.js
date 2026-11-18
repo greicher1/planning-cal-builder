@@ -216,7 +216,10 @@ window.addEventListener('load', function () { (async function () {
         return {boxed: boxed, shown: shown};
       }
       var r4 = await addNote('2026-07-22', 'Call times:\nCast 6:00a\nCrew 7:00a\nBG 8:30a');
-      var r3 = await addNote('2026-07-28', 'Unit move\nLunch at basecamp\nWrap by 7p');
+      // ⚠️ Tue 7/14, not Tue 7/28 as until 17 Nov 2026: on this fixture 7/28 already reaches 10 lines at full size, and a
+      // day that full takes no new note from its "+" (MONTH-ROW-LIMIT-PLAN.md), so the editor never opened and this leg
+      // threw. What is tested here (three lines kept exactly) does not depend on the day.
+      var r3 = await addNote('2026-07-14', 'Unit move\nLunch at basecamp\nWrap by 7p');
       out.r4 = r4; out.r3 = r3;
       var want4 = 'Call times:\nCast 6:00a\nCrew 7:00a BG 8:30a';
       add('L1', 'four lines pasted into a day note: the box keeps three, the fourth joined to the third', r4.boxed === want4, r4.boxed, want4);

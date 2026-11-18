@@ -29,6 +29,75 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+## Unreleased
+
+### A day in the Month view holds 10 lines (17 Nov 2026)
+
+The owner, looking at a month where one week took most of the page: *"there reall should be a max limit on how tall a
+calendar row can be"*. Until now only the week's own "+" strip had a limit (6 blank lines). Notes typed onto a day,
+automatic notes and holidays had none, so one week could grow to dozens of lines and the whole month shrank to fit
+its page. Five pickers settled it: **Stop adding notes** (not a "+N more" collapse: nothing is ever hidden),
+**10 lines in a week**, **No new notes until under**, **Never refused**, **Short message by the day**. The plan is
+[`MONTH-ROW-LIMIT-PLAN.md`](MONTH-ROW-LIMIT-PLAN.md).
+
+- **The rule.** A day's lines are the lowest line any phase bar, hiatus band or note covering it ends on. A day that
+  already reaches its 10th line takes no new note added by hand in the Month view. A week is as tall as its tallest
+  day, so this caps the row: 10 lines is about 230 px, a bit over a third of the page.
+- **What is refused**, each with the Month view's short message by the day, *"This day is full (10 lines). Delete or
+  move a note to add another."*:
+  - a "+" on a full day opens no editor;
+  - ⌘V lands the copied notes one by one while the day has room, then says *"This day is full (10 lines). 1 of 3
+    notes were pasted."*; onto a full day it lands none and makes no undo step;
+  - Paste notes… lists a full day's row as *"11/3/26 is full (10 lines)"*, counting the rows above it in the same
+    box, and Add stays off until the row is removed, as for any other row it cannot read;
+  - a note dragged onto a full day goes back where it was.
+  - **Never silent.** A paste goes to the day last clicked, which may have been scrolled out of view since. Then
+    there is no day on screen to put the message by, so it shows at the top of the calendar and names the date:
+    *"7/3/26 is full (10 lines)…"*.
+- **What is never refused.** Editing a note that is already there, however it wraps, and its colour, style and
+  "Stays with"; anything typed, pasted or dragged in the Waterfall; notes that stay with a phase; automatic notes and
+  holidays; phase bars and hiatus bands; Shift, Build Around and every other moving tool; Load, recovery and Undo.
+  They all show, and they count toward the day's 10 lines.
+- **A calendar already over the limit** opens exactly as before and shows everything. Its over-full days take no new
+  note until enough notes are deleted or moved.
+- **The check is at the door.** It asks whether the day is full before the note is added. A note being typed is
+  saved whole, so a row can end a line or two past 10.
+- **Counted at full size.** A month the page shrinks re-wraps its notes smaller on screen, so a day there can show
+  fewer than 10 lines and still be full. Counting at full size means a day is full or not whichever month page it is
+  seen on.
+- **Nothing is saved and no output changes.** There is no setting and no new key in a calendar file. The limit only
+  keeps a new note out, so the workbook and every PDF are what they were.
+- ⚠️ **A full day's "+" still appears on hover.** It is drawn by the frozen month renderer, and hiding it would be a
+  frozen edit the owner has not been asked for. A click on it says the day is full.
+
+**How it is built.** No frozen line changed. The count is asked of the frozen renderer, never copied:
+`mvMonthLines()` has `renderMonthView` draw the month as the export does (`printingCursor` set and put back,
+synchronously) and reads the place the renderer writes on each bar. The check sits at four places outside it:
+`openMvNoteEditor` (a "+"), `mvNotesPaste`, the Paste notes… box's preview, and the note drag. The week's "+" strip
+and its 6-line cap are untouched.
+
+**Verified.** New leg `monthrowlimit`, three runs (the four doors on the standard calendar, 17 cases; the over-limit
+fixture `month-lanecap`, 3; a shrunk month, 3), all green. On the build before the change the refusals are red, and
+ten mutants each turn their own cases red: the limit raised to 99, the check removed from each door in turn, the
+count taken as the screen draws it, an edit refused, Waterfall lines dropped from a full day, notes past the 10th
+dropped on load, the out-of-view message taken out. Before any test was written, the waterfall PDF, the written
+month PDF, the workbook (all 16 parts) and the print rollback's document were compared byte for byte with the build
+before the change on `mvnotes`, `notewrap`, `monthscale` and `month-dense60`: identical. `npm run check` 42/42.
+
+**Full gate, 17 Nov 2026: 5,530 pass, 81 fail**, with every byte-for-byte output check green (the waterfall PDF, every
+workbook part, the print path's month document, the written month PDF). Each failing test was then run alone on the
+build before this change and on this one:
+
+- **80 fail identically without this change.** They belong to the month-shrink build this branch sits on, whose own
+  tests are not finished: `monthemit`, `monthwriter` and `monthlayout` F0, `monthexport` X1, `monthlanes` L16b,
+  `mvnotesize` on `month-dense60`, `monthpage` T and B on `monthscale`.
+- **1 was a run that stopped early** (`phasefill`): alone it passes on both builds.
+- **1 was this change's:** `textfit`'s "lines" run added its second note to a day that already holds 10 lines on its
+  crowded fixture, and the limit refused it. The test now uses a day with room.
+
+The out-of-view message (12 lines of chrome) was added after that gate; after it, `npm run check`, the three
+`monthrowlimit` runs, `textfit`'s lines run and both `mvkeys` runs that read the same message are green.
+
 ## v1.16.0 — wave 4: day marks and a break's own notes stay put when a hiatus ripples, Changes since last save, keys named for your computer, a month note no longer cut off on Windows, a contrast theme keeps the calendar's colours, long titles fit a file name, the season beside the title in export names; plus everything since v1.15.0: the month view on screen is the month PDF's page, a toolbar that keeps its size, folds, and stays on one line while the window is resized, a click outside closes Shift, the recents as cards, every phase switch on show again (16 Nov 2026)
 
 ### A very long show title is cut to fit the workbook's and the waterfall PDF's file names too (16 Nov 2026)

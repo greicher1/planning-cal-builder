@@ -2668,6 +2668,45 @@ sys.exit(1 if bad else 0)
 PYMP
 done
 
+# ---- monthrowlimit: a day in the Month view holds 10 lines (owner, 17 Nov 2026; MONTH-ROW-LIMIT-PLAN.md) ---------
+# The owner, at a month where one week took most of the page: "there reall should be a max limit on how tall a calendar
+# row can be"; by picker, "Stop adding notes", "10 lines in a week", "No new notes until under", "Never refused",
+# "Short message by the day". A day that already reaches its 10th line (bars count) takes no new note added by hand in
+# the Month view; everything that arrives on its own still shows, and an edit is never refused.
+# t/monthrowlimit.js, three runs:
+#   g=doors   the standard calendar loaded as a file: L1 the "+", L2 a paste (none, then 1 of 3), L3 Paste notes… (a
+#             full day's row is an error; a day fills as the rows above land), L4 the note drag, L5 what is never
+#             refused (an edit that grows a note, a Waterfall note, a holiday), each with its controls; L2d a paste
+#             onto a full day scrolled out of view (200% zoom) still says so, at the top of the calendar, by date;
+#   g=over    month-lanecap (25 notes, 51 lines on one day): L6 it opens and draws them all, L6b that day refuses a note;
+#   g=shrunk  L7 the count is the FULL-SIZE one: a day showing 5 lines in a month shrunk to 26/64, 13 at full size, is full.
+# Red on the build before it (01dac2f) at L1 L2 L2b L3 L3b L4, L6b and L7 (and at L3c and L5, which only count what
+# the paste let onto the full day). Nine mutants, each red where it should be and green elsewhere: the limit at 99 (the
+# same cases as the build before); the check gone from the "+" (L1, L6b, L7), from the paste (L2 L2b), from Paste
+# notes… (L3 L3b), from the drag (L4); the count taken as the screen draws it (L7 alone: g=doors stays 16/16); an edit
+# refused (L5); Waterfall lines dropped from a full day (L5b L5c); notes past the 10th dropped on load (L6). A tenth,
+# the out-of-view message taken out again, is red at L2d alone (it says nothing).
+# Screen and stores only: the limit keeps a note out and changes no output, so gates 2, 3, 10 and 13 are what hold
+# the files still.
+for RLSPEC in "g=doors::400" "g=shrunk::400" "g=over:month-lanecap:300"; do
+  RLQ="${RLSPEC%%:*}"; RLR="${RLSPEC#*:}"; RLSTATE="${RLR%%:*}"; RLSECS="${RLR#*:}"
+  rm -f "$HERE/monthrowlimit.json"
+  HARNESS_PAGE="$PAGE" HARNESS_STATE="$RLSTATE" HARNESS_QUERY="$RLQ" "$HERE/run.sh" monthrowlimit "$RLSECS" >/dev/null 2>&1
+  python3 - "$HERE/monthrowlimit.json" "monthrowlimit (${RLSTATE:-new}; $RLQ)" <<'PYRL' || FAIL=1
+import json,sys
+path, label = sys.argv[1], sys.argv[2]
+try: a=json.load(open(path))
+except Exception as e:
+    print('  FAIL  '+label+' produced no result: '+str(e)); sys.exit(1)
+cases = a.get('cases') or []
+bad = [c for c in cases if c.get('pass') is not True]
+for c in cases:
+    print(('  PASS  ' if c.get('pass') is True else '  FAIL  ')+label+' '+str(c.get('id'))+': '+str(c.get('title',''))[:110])
+if not cases: print('  FAIL  '+label+': no cases'); sys.exit(1)
+sys.exit(1 if bad else 0)
+PYRL
+done
+
 # The three trusted-input drivers (real Chrome over CDP, as mvkeysreal.mjs above), each judged on its own minimum count:
 # backuptwowin.mjs (3.7, AUD2-074): TWO real windows of one profile with real IndexedDB and Web Locks: window B is never
 #   offered window A's live work, nor lists it (W1, W2); once A closes, B's file menu opened with a real Enter lists it

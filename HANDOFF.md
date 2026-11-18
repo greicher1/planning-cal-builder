@@ -181,10 +181,58 @@
 - **Known edges, by design** (plan §6): a shrunk month can show fewer lines than are counted; a row can end up to 2
   lines over (a note is saved whole); a full day's "+" still shows on hover, and in a week whose tallest day is far
   over, a full day shows a "+" on every empty line beside it, each of which says the day is full.
-- **NOT DONE (stage 2, only after the owner says to finish):** the leg `monthrowlimit` (plan §7, cases L1 to L7,
-  each red on a mutant), its wiring into `gate.sh`, the full gate, README, CLAUDE.md, UI-CONVENTIONS, the commit and
-  push pickers. ⛔ This branch sits on the unpushed month-shrink build: a push publishes that too, so the owner must
-  have approved finishing the shrink build first, and the shrink build's own stage 2 (its red legs) comes first.
+- **STAGE 2 (the owner said *"Finish it"*, then *"Run the gate"*, 17 Nov 2026). ✅ DONE in the working tree: the
+  leg, its wiring, README, CLAUDE.md, UI-CONVENTIONS and the plan are written and THE FULL GATE HAS RUN. COMMITTED
+  LOCALLY (owner's picker *"Commit locally"*, the commit after `1419b25`). ⛔ NOT PUSHED: a push of this branch
+  publishes the unfinished month-shrink build too, so it waits for that build's stage 2 and the owner's own word.**
+  - **Full gate** (port 8961, 19:02–20:04, alone on the machine; build `316e617c…`): **5,530 PASS, 81 FAIL.** Every
+    byte-for-byte output gate green: gates 1–3 (the waterfall PDF, its mark and seams, every Excel part), gate 10
+    (the print path's month document, all 11) and gate 13 (the written month PDF, all 25). `monthrowlimit` 22/22
+    over its three runs. Each failing leg was then run alone on the build of `01dac2f` (`zzbase.html`, before the
+    limit) and on this one, and the observed values compared:
+    - **80 are the month-shrink build's, identical with and without the limit** (same cases, same observed values):
+      `monthemit` F0 (17 runs) and `monthwriter` F0 (19), which that build's notes already listed; and four it did
+      NOT list, because its own stage 2 never ran the gate: `monthlayout` F0 (4; the month page region names
+      `MVL_GEOMETRY`, `MVL_FONT_WEIGHTS`, `loadInterPdfFont`, `mvlTextWidth`, `mvlMonthLayout` outside the export,
+      and the loader appears 5 times, not 4), `monthexport` X1 (29; the page fit decodes the Inter programs when the
+      month is drawn, so hiding `font-inter-600` no longer makes the first export fail and the "Print instead"
+      dialog never comes up), `monthlanes` L16b on `month-lanecap` (1; the shrunk month's last lane is 51, the case
+      wants past 60), `mvnotesize` on `month-dense60` N0, N1-11..14, N2, N5 (7; bars and lanes of the shrunk August
+      are 15 / 13 px against the full-size 19 / 17 the case measures), and `monthpage` T and B on `monthscale` (2,
+      listed). ⚠️ So the shrink build's stage 2 owes more than its notes say: those four legs need re-premising too.
+    - **1 was a run that stopped early:** `phasefill (fill-intent)` EX; alone it is 13/13 on both builds.
+    - **1 was this change's, and it is a leg's premise, not a bug:** `textfit (textfit-shared; g=lines)` threw,
+      4/4 on the old build. Its second note went onto Tue 7/28, which on that fixture already reaches 10 lines at
+      full size, so the "+" opened no editor. The leg now uses Tue 7/14 (what it tests, three lines kept exactly,
+      does not depend on the day); 4/4 on this build. ⛔ **A leg that adds a note with a month "+" needs a day under
+      10 lines at full size**; on a crowded fixture the screen's count can be lower than the full-size one.
+  - **One gap found on the way, closed after the gate (chrome only, 12 lines in `drawMvSelFlash`, build
+    `db5e3012…`):** a paste goes to the day last clicked, which can have been scrolled out of view since; the
+    message is placed by the day's cell, so with no cell in view the refusal said nothing. It now shows at the top
+    of the calendar and names the date ("7/3/26 is full (10 lines)…"). New case **L2d** (200% zoom, the full day's
+    row scrolled away, ⌘V), red on a tenth mutant (`silentaway`: said ""), green on the build. ⚠️ The full gate ran
+    BEFORE this hunk; after it: `npm run check` 42/42, `monthrowlimit` 17/17 + 3/3 + 3/3, `textfit` lines 4/4,
+    `mvkeys` `g=pick` 24/24 and `g=enter` 16/16 (the other leg that reads the month's message chip). No writer, no
+    renderer and no saved key is in the hunk.
+  - ⚠️ Run beside another session's full gate (load average over 100), `monthrowlimit` `g=shrunk` timed out once in
+    its setup ("the Save As write"); alone again it was 3/3. A no-result under load is not a red: rerun it.
+  - **The leg** `tests/harness/t/monthrowlimit.js`, three runs wired into `gate.sh` (its own block after `monthpage`):
+    `g=doors` 17/17 (the standard calendar loaded as a file: L1 the "+", L2 the paste, L2d the paste onto a day out
+    of view, L3 Paste notes…, L4 the drag, L5 what is never refused, with controls), `g=over` 3/3 on
+    `month-lanecap` (L6), `g=shrunk` 3/3 (L7: a day
+    showing 5 lines in a month shrunk to 26/64, 13 at full size, is full).
+  - **Red where it should be.** On the build before the limit (`tests/harness/zzbase.html`, the build of `01dac2f`):
+    L1 L2 L2b L3 L3b L4, L6b, L7 (and L3c, L5, which count what the paste let onto the full day). Nine mutants, each
+    built into an untracked `dist-mut/<name>/` from the repo root (`npx vite build --outDir ../dist-mut/<name>`),
+    the source restored and hashed after: the limit at 99 (the same cases); the check gone from the "+" (L1, L6b,
+    L7), from the paste (L2 L2b), from Paste notes… (L3 L3b), from the drag (L4); the count taken as the screen
+    draws it (L7 alone, `g=doors` still 16/16); an edit refused (L5); Waterfall lines dropped from a full day
+    (L5b L5c); notes past the 10th dropped on load (L6).
+  - ⚠️ A leg that must keep going on a RED build has to undo what the red build let in: on a build with no limit the
+    dragged note landed on the full day, and the next case threw looking for it (fixed in the leg: one Undo first).
+  - ⛔ **This branch sits on the unpushed month-shrink build**, whose own stage 2 is not done: the 80 failures
+    listed above are RED here until that build is finished. A full gate on this branch cannot be green before
+    then, and a push of this branch publishes the shrink build too.
 - **Try it:** `http://localhost:8893/dist/index.html?state=month-lanecap`, Month, August 2026 (12 Aug is far over
   the limit); also `?state=monthscale` (August: days of 6 notes) and `?state=mvnotes` (an ordinary calendar: add
   notes to one day until it stops). Port 8893 is `srv.js` run in the background with Bash.
