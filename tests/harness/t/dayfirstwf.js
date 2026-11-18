@@ -22,8 +22,11 @@
 //   R3     ...and across weeks: Wrap drinks dragged from Fri 31 Jul to Tue 4 Aug leaves the week of 27 Jul, joins the
 //          week of 3 Aug as "Wrap drinks 4/8/26", and is drawn on 4 Aug
 //   R4     one Undo puts R3's drag back
-//   M1     the SAME calendar back on MM/DD/YY reads exactly as it always did (the month-first control: a line whose date
-//          reads only day first sits on its week's Monday, a month-first line on its day)
+//   M1     the SAME calendar back on MM/DD/YY (the month-first control: a line whose date reads only day first sits on its
+//          week's Monday, a month-first line on its day). ⚠️ Since 17 Nov 2026 (notedates, owner's picker "Pin it") a
+//          ONE-LINE note's typed date is its Day, so Table read (dragged to 15 Jul by R2; the drag now takes its Day along)
+//          and Score spotting (8/3's last line, beside the dated Cast dinner) stay on 15 Jul and 7 Aug; the three-line
+//          27 Jul note has an undated line, so it pins nothing and its day-first lines go back to Monday as before
 //   E0     no console error, no native alert
 // v1.15.0 (the stand-in) is green on every case: the frozen edit moves the reading, it changes no result. A mutant of
 // v1.15.0 with the stand-in removed and no frozen edit is red at T1-T3, H1, H2, R1-R4 and M1 (M1 only because R2 could
@@ -179,9 +182,9 @@ window.addEventListener('load', function () { (async function () {
     var mf = await census(['July 2026', 'August 2026']);
     await view('sheet');
     out.mf = mf;
-    var want = ['2026-07-13 | Table read 15/7/26', '2026-07-27 | Crew call', '2026-07-27 | Fitting 29/7/26', '2026-07-27 | Wrap drinks 31/7/26',
-                '2026-08-03 | Score spotting 7/8/26', '2026-08-06 | Cast dinner 8/6/26'];
-    add('M1', 'back on MM/DD/YY a line whose date reads only day first sits on its week’s Monday, a month-first line on its day, as before',
+    var want = ['2026-07-15 | Table read 15/7/26', '2026-07-27 | Crew call', '2026-07-27 | Fitting 29/7/26', '2026-07-27 | Wrap drinks 31/7/26',
+                '2026-08-06 | Cast dinner 8/6/26', '2026-08-07 | Score spotting 7/8/26'];
+    add('M1', 'back on MM/DD/YY: the one-line notes stay on the days they were typed for (their Day: Table read 15 Jul after R2\'s drag, Score spotting 7 Aug); the three-line note\'s day-first lines sit on Monday; a month-first line on its day',
       same(on(mf, /^(Table read|Fitting|Wrap drinks|Crew call|Cast dinner|Score spotting)/), want),
       on(mf, /^(Table read|Fitting|Wrap drinks|Crew call|Cast dinner|Score spotting)/), want);
 

@@ -4,6 +4,46 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### 🔨 17 Nov 2026: THE NOTE EDITOR'S DAY — "No date", and a TYPED date works like a picked one. Branch `note-day-shift` (worktree `.claude/worktrees/note-day-shift`, from `origin/main` `aa16ffe`). Owner tried it on localhost, then *"Finish it"*. NOT pushed. Tracker cards `note-day-default-no-date`, `linked-note-day-follows-phase`
+- **The asks (17 Nov 2026, in order):** *"In waterfall view, the default, for Day should be "No date" rather than Mon
+  (default)"*; *"When you do select a date and ALSO have stays with set to a week of a phase (not a specific week) then
+  when you shift the phase/calendar the date should auto-change to the same day of the week"*; *"what if you hand type
+  7/29/25 as 7/29 or 7-29-25 or 7-29. All should be recognized"*; *"Yes, plain notes too"*.
+- **What was found:** a day PICKED from Day already followed the phase (`phaseNotes[k].dow`, drawn fresh by
+  `placePhaseNotes`). A date TYPED at the end of the note stayed in its text, so after a move the note sat in its new
+  week reading the old date. Reproduced in the browser before any change ("Lens test 7/29/26" in the week of 8/3).
+- **As built** (`src/legacy/app.js`, all in the waterfall note editor; no frozen code, no save-format change):
+  - The Day list's empty choice is "No date" for every cell (`reflectLinkRow` no longer relabels it). Words only.
+  - `typedDateInWeek(line, weekIso)` reads a date at the END of a line: a/b with "/" or "-", with or without a 2- or
+    4-digit year, in the calendar's order (and month first on DD/MM when only that reading is in the week), and ONLY a
+    day of that week, with no rollover. `{at, day, full}`.
+  - `wfTypedDayIso` (the user's last line, skipping `dayForeign`: automatic, holiday, month and visiting linked lines),
+    `wfStandardLineDate` / `wfStandardTypedDate` (a SHORT form rewritten as `fmtShort`; ⛔ a full slashed date stays as
+    typed, slashNamesFlipped's rule), `stripTypedDate` (for a linked note's text), `wfTypedPinOk` (below).
+  - The Day list follows the typing (an `input` listener; `dayBeforeTyped` puts the list back when the date is typed
+    away; a pick from the list ends it). `activeNoteEditor.dayChoice()` is the user's own pick, never the sync's.
+  - `commitActiveNoteEditor`: the box's short date is rewritten first; `linkDay = typedIso || chosenDate` for the two
+    link branches (`dow`); `chosenDate` (a plain note's pin) is the typed day only while the Day row shows AND
+    `wfTypedPinOk`. `renameOfSingle` reads the line as it will be saved.
+  - The Day handler replaces a typed short date in the week rather than adding a second.
+- ⚠️ **`wfTypedPinOk`, found by checking the gate's own base leg before running it:** a pinned plain note's UNDATED lines
+  go to the pinned day in the Month view (frozen `notesForWaterfallDate`: "fall back to the note's pinned day"). So
+  pinning `base.js`'s "Studio Cut Due\nNetwork Cut Due 9/11/26" would have moved Studio Cut Due from Mon to Fri. A
+  typed date pins only when every other line of the box carries its own m/d/yy in the week; otherwise the note keeps
+  its lines where they were, as a typed full date always did. A day PICKED from the list still pins, as before.
+- **Behaviour change, RULED (owner's picker, 17 Nov 2026, *"Pin it"*, asked when three day-first cases went red):** a
+  one-line plain note with a date typed by hand ("Table read 7/29/26") now gets a Day (`userNotes[wk].date`) when
+  saved, as a picked one: Shift keeps it on its date (it moved a week with the old date in its words), a four-digit year
+  places it (it sat on Monday), and a Dates switch leaves it on the day it was typed for (a day-first date went back to
+  Monday on MM/DD). Re-expected: `dayfirstin` W4, F1; `dayfirstwf` M1. Notes already saved change only when edited.
+- **Fixed on the way (`moveWfLine`):** a Month-view drag of a waterfall line to another day IN ITS WEEK now moves the
+  note's pin when the pin was that line's day. It rewrote the date and kept the old pin, which only showed once the date
+  became unreadable (`dayfirstwf` M1: "Table read 15/7/26" back on 17 Jul after a switch to MM/DD). A pinned note
+  dragged ACROSS weeks still lands with no pin, as before (its date is in its text); not changed.
+- **Proof:** new leg `notedates` 18/18 on the build (wired in `gate.sh` after `phasemonth`, `notedates:phasenotes:900`),
+  14 of 18 red on `releases/v1.16.0.html`; `phaselink` R1 re-expected ("No date"). `npm run check` 42/42. Related legs
+  and the gate: below when they land.
+
 ### 🚂 v1.16.0 — wave 4. Branch `release-wave4` (worktree `.claude/worktrees/release-wave4`), cut from `origin/main` `7e1d8b4`; `origin/main` `8af4298` merged in at `91619e1`. The owner said *"Yes, prep it"* (16 Nov 2026): merge the newest live changes, write the owed docs and test wiring, cut v1.16.0. Tagged v1.16.0 and pushed to `main` on 17 Nov 2026 (owner's picker *"Push v1.16.0 now"*), after two full gates and the merges of `d44a52e` and `b8f4ccf`.
 - ⛔ **This section SUPERSEDES the "WIP", "NOT merged, NOT pushed", "the owner tries it first", "not in gate.sh yet" and
   "no README / HANDOFF yet" lines in each wave-4 item's own section below and in its branch's commits** (`ripple-marks`,

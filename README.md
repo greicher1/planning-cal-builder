@@ -29,6 +29,49 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+## Unreleased
+
+### The note editor's Day says "No date", and a date you type works like one you pick (17 Nov 2026)
+
+The owner, 17 Nov 2026: *"In waterfall view, the default, for Day should be "No date" rather than Mon (default)"*;
+*"When you do select a date and ALSO have stays with set to a week of a phase ... when you shift the phase/calendar the
+date should auto-change to the same day of the week but in whatever new week its in"*; *"what if you hand type 7/29/25
+as 7/29 or 7-29-25 or 7-29. All should be recognized"*; *"Yes, plain notes too"*. Tried on localhost, then *"Finish it"*.
+
+- **"No date".** The waterfall note editor's Day list opens on "No date" (it read "Mon (default)", or "First day
+  (default)" on a note that stays with a phase). Only the words changed: a note left on it still sits on its week's
+  Monday in the Month view (a linked one on its phase's first day that week).
+- **A note that stays with a phase keeps its weekday.** A day PICKED from the list already did (saved as the note's
+  weekday, `dow`, and drawn fresh). A date TYPED at the end of the note did not: it stayed in the note's words, so after
+  a Shift, a ▲ / ▼ or a new start date the note sat in its new week still reading the old date. Now a date typed at the
+  end of the note, on a day of that week, is its Day: taken out of its words and drawn on the same weekday wherever the
+  phase lands.
+- **Typed dates in every form.** 7/29, 7-29, 7-29-26, 7/29/26 and 7/29/2026 are all read (29/7 and 29-7 on a DD/MM
+  calendar, and a date written month first still found there), but only when it is a day of that note's week, so
+  "Scenes 12-14" or a wrong year stays words. As you type it, Day shows the day; delete it and Day goes back. A short
+  form is saved the way the Day list writes a date (7/29/26), so the Month view places it; a full 7/29/26 stays exactly
+  as typed. Picking a day after typing one replaces it rather than adding a second.
+- **On a plain note it is the note's Day too**, as if picked (owner's picker, *"Pin it"*): the Month view places it,
+  Shift keeps it on its date, and switching Dates between MM/DD and DD/MM leaves it on the day it was typed for. Until
+  now a full date typed by hand gave the note no Day, so a Shift moved the note a week and left the old date in its
+  words, a four-digit year (7/29/2026) put it on Monday in the Month view, and a date typed day first went back to
+  Monday once Dates was MM/DD. ⚠️ **Except in a note of several lines** whose other lines have no date of their own ("Studio Cut
+  Due" above "Network Cut Due 9-11"): a Day there would carry the undated lines onto that day in the Month view. Such a
+  note keeps every line where it was (the dated one on its day by its date, the rest on Monday) and Day stays "No
+  date"; picking a day from the list still pins it, as it always did.
+- A short date typed over an automatic note's own date ("Start Shooting 6-29") is a rename, as "6/29/26" is; another
+  day ("6-30") makes it a note, as "6/30/26" did.
+- **Fixed on the way:** dragging a waterfall line to another day of its week in the Month view now takes the note's Day
+  with it. It rewrote the line's date and kept the old Day, so once the date could not be read (a Dates switch), the
+  note went back to the day it was dragged from. Found by `dayfirstwf` M1 once typed dates pinned.
+
+Notes already saved with a stale typed date are not repaired: open and save them once. No frozen code, no save-format
+change (the Day is the `date` / `dow` a picked one has always written).
+
+**Verified:** new leg `notedates` 18/18 (in `gate.sh`; 14 of its cases red on `releases/v1.16.0.html`). Re-expected for
+intended changes: `phaselink` R1 (the label), `dayfirstin` W4 and F1 and `dayfirstwf` M1 (typed dates pin, the owner's
+picker). Related legs on the build and the gate: see HANDOFF.
+
 ## v1.16.0 — wave 4: day marks and a break's own notes stay put when a hiatus ripples, Changes since last save, keys named for your computer, a month note no longer cut off on Windows, a contrast theme keeps the calendar's colours, long titles fit a file name, the season beside the title in export names; plus everything since v1.15.0: the month view on screen is the month PDF's page, a toolbar that keeps its size, folds, and stays on one line while the window is resized, a click outside closes Shift, the recents as cards, every phase switch on show again (16 Nov 2026)
 
 ### A very long show title is cut to fit the workbook's and the waterfall PDF's file names too (16 Nov 2026)
