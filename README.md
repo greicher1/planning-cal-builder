@@ -29,7 +29,7 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
-## Unreleased
+## v1.17.3 — the Tandem card is called just "Tandem" (17 Nov 2026)
 
 ### The Tandem card is called just "Tandem" (17 Nov 2026)
 

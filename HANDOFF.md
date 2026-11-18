@@ -32,7 +32,10 @@
   plan §10.3a. The first full gate (queued at 20:04, 154 PASS / 0 FAIL when stopped) was stopped for it, since the build changed.
 - 🔨 **After v1.17.2 (owner: *"Call the phase just \"Tandem\""*):** the card heading reads "Tandem", not "Tandem days"
   (`DU_TITLE`); "Tandem days" typed there still reads as the default. Counts keep "tandem days". README Unreleased;
-  `doubleups` 58/58. Committed on the branch, NOT pushed.
+  `doubleups` 58/58. Owner's picker *"Push as v1.17.3"*: cut as **v1.17.3** (version files, check 42/42;
+  `releases/v1.17.3.html` cmp-identical, sha256 `96670f67ceb7e743…`; `v1.17.3-saved.sptcal` identical to v1.17.2's but
+  `lastEdited`; on the cut the waterfall PDF identical bar the stamp, gate 13 reference byte-identical, `monthexport` 9/9,
+  `pdfmark` 6/6), tagged `v1.17.3` and pushed with the branch.
 - 🔨 **R21, after v1.17.1 (owner: *"Yes, use Tandem"*): the word is Tandem.** Default pill "Tandem 101", card head
   "Tandem days", and every user-facing string; saved keys, ids, classes and code names keep "double-up" (Load's
   `data-action="open"` precedent). Plan §10.3d. `doubleups` 58/58, writer + export green. Tracker card
