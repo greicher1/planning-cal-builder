@@ -29,7 +29,7 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
-## Unreleased
+## v1.17.1 — no double-up during the first episode (17 Nov 2026)
 
 ### No double-up during the first episode (17 Nov 2026)
 

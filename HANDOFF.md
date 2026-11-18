@@ -34,7 +34,11 @@
   "None during episode 1"; for a one-episode show, picker "Allow it there"):** no double-up on any of the first unit's
   days. `minSlot` on the segment (appendDoubleUps), read by `duDropVerdict` and the drag's grey days; a v1.17.0 move onto
   episode 1 draws at its default with the key kept. Plan §10.3c; README Unreleased. Leg `doubleups` 58/58 (restore 42).
-  Committed on the branch, NOT pushed; no full gate (double-up code only, inert without double-ups). Tracker card
+  No full gate (double-up code only, inert without double-ups); the owner picked *"Push as v1.17.1"*. Cut as **v1.17.1**:
+  the three version files at 1.17.1 (check 42/42), `releases/v1.17.1.html` cmp-identical to the build (sha256
+  `55ca36ef07e9ab53…`), `tests/fixtures/v1.17.1-saved.sptcal` (mintfixture) identical to v1.17.0's but `lastEdited`; on
+  the cut the waterfall PDF identical bar the stamp, gate 13 reference byte-identical, `monthexport` 9/9, `pdfmark` 6/6.
+  Tag `v1.17.1`, pushed with the branch (the push and the live check: the bullet below it). Tracker card
   `double-up-not-first-episode`.
 - **Save format (⛔ permanent):** top-level `doubleUps` {days, name, moved: {<unit id>: {day: n} | {after: n}}}, and
   `doubleUpDays` / `doubleUpName` on an episode or block; each ABSENT while unset, so a calendar with no double-up saves

@@ -207,6 +207,7 @@ holidays. Do not re-mint them without keeping a copy saved with a retired place:
 
 | File | Use |
 |---|---|
+| `v1.17.1-saved.sptcal` | the reference calendar saved by the v1.17.1 build (R20, no double-up during the first episode), `t/mintfixture.js`: 46 keys, 77 ids, 0 clipped, byte-identical to `v1.17.0-saved.sptcal` but `lastEdited` |
 | `v1.17.0-saved.sptcal` | the reference calendar saved by the v1.17.0 build (double-up days), minted with `t/mintfixture.js` (a real Save): 46 snapshot keys, 77 ids, 0 clipped cells, **byte-identical to `v1.16.0-saved.sptcal` but its `lastEdited` line**, so a calendar with no double-up saves exactly as it did before them |
 
 ### Double-up days (DOUBLE-UP-DAYS-PLAN.md, 17 Nov 2026)
