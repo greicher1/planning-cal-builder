@@ -114,20 +114,37 @@
   the next turn: hand over the Bash-run port. `tests/harness/zzbase.html` (untracked, ignored) is `origin/main`'s
   build for side by side.
 
-### 📋 17 Nov 2026: REQUESTED, ONE RULING MADE — A LIMIT ON HOW TALL A MONTH ROW CAN GET. No code, no plan yet. Tracker card `month-row-max-height`
+### 📋 17 Nov 2026: PLANNED, ALL RULINGS MADE — A LIMIT ON HOW TALL A MONTH ROW CAN GET: A DAY HOLDS 10 LINES. Branch `claude/dreamy-keller-2ed2c2` (worktree `.claude/worktrees/dreamy-keller-2ed2c2`, a fast-forward of the month-shrink build's `01dac2f`, so it carries that unpushed build; its `node_modules` is a real directory). Tracker card `month-row-max-height`. ⭐ [`MONTH-ROW-LIMIT-PLAN.md`](MONTH-ROW-LIMIT-PLAN.md) is the design
 - **Owner, 17 Nov 2026**, while trying the month-shrink build: *"there reall should be a max limit on how tall a
   calendar row can be"*. Read as a week row in the Month view.
 - **What exists:** `MV_MAX_LANES = 6` caps only the week's "+" strip (frozen `renderMonthView`: "Manual expansion is
   what's capped", "content is never hidden"). Notes typed onto a day, automatic notes and holidays have no limit, so a
   week grows as tall as its lines need and the month PDF, and now the screen, shrinks the month to fit.
-- **Ruling (picker, 17 Nov 2026): *"Stop adding notes"*.** A full day or week refuses another note and says it is
-  full; nothing is ever hidden, on screen or in the PDF. (The other choices were a "+N more" collapse and no limit.)
-- **Still to rule, with measurements first:** what the limit counts and its value (phase bars take lines too, and a
-  note can wrap to three, so "6 lines" is already passed by ordinary weeks); what a calendar already over the limit
-  does (it must keep opening and showing everything); notes that arrive on their own (automatic notes, holidays,
-  waterfall notes shown in the month); every way a line is added (the note editor, the day menu, the "+" slots,
-  paste, a drag to another day). Probably doable at those add paths, outside the frozen renderer.
-- Independent of the shrink build above, which does not wait for it.
+- **Rulings (pickers, 17 Nov 2026):** *"Stop adding notes"* (a full day refuses another note and says so; nothing is
+  ever hidden; not a "+N more" collapse, not no limit). Then, with the measurements below in the options:
+  *"10 lines in a week"* (bars and notes both count, so it caps the row itself; not 8, not note lines or notes per
+  day), *"No new notes until under"* (a calendar already over opens and shows everything; its over-full days refuse a
+  new note like any full day; nothing is said on opening), *"Never refused"* (lines that arrive on their own always
+  show and count; only notes added by hand in the Month view are refused: the "+", paste, Paste notes…, a note
+  dragged to another day; an edit is never refused and a note being typed is saved whole, so a row can end a line or
+  two over) and *"Short message by the day"* (the Month view's chip: *"This day is full (10 lines). Delete or move a
+  note to add another."*; in Paste notes…, *"11/3/26 is full (10 lines)"* as a line to fix).
+- **Measured** (synthetic fixtures, this branch's build, 100%): the weeks share 631.5 px of the page; a week is about
+  38 px plus 19 px a line (10 lines: 226 px, 36% of that); a month prints full size while its weeks total 25 lines
+  (4 weeks), 23 (5 weeks) or 21 (6 weeks); ordinary weeks use 0 to 4 lines, the busiest ordinary calendar
+  (`textfit-heavy`) 3 to 5 and 7 at most, with up to 5 lines of bars; the shrink fixtures hold 18, 25 and 51 lines in
+  one week. ⚠️ In a SHRUNK month the screen shows fewer lines than full size (frozen edit SK1 re-wraps notes
+  smaller), so lines are counted at full size, through a print render.
+- **The design** (plan §3, §4): a day's lines are the lowest line any bar or note covering it ends on, counted by
+  ASKING frozen `renderMonthView` for the month as the export draws it (`printingCursor` set, as `mvWriterFit()` does)
+  and reading the inline `grid-column` / `grid-row` of its bars. No second copy of the packing rule. A day that
+  reaches its 10th line is full, and the check is at the door, at four places, none frozen: `openMvNoteEditor` (a
+  "+"), `mvNotesPaste`, the Paste notes… box's `refresh`, the note drag's `apply`. **No frozen edit, nothing saved,
+  no output moves.** The week's "+" strip and its 6-line cap are untouched. ⚠️ The "+" still shows on a full day:
+  hiding it would be a frozen edit, not proposed.
+- **Every way a line reaches a week** is the table in plan §5 (16 paths; 4 refused, 12 never).
+- Independent of the shrink build above in what it does, but it sits on that branch: a push of this publishes the
+  shrink build too.
 
 ### 🚂 v1.16.0 — wave 4. Branch `release-wave4` (worktree `.claude/worktrees/release-wave4`), cut from `origin/main` `7e1d8b4`; `origin/main` `8af4298` merged in at `91619e1`. The owner said *"Yes, prep it"* (16 Nov 2026): merge the newest live changes, write the owed docs and test wiring, cut v1.16.0. Tagged v1.16.0 and pushed to `main` on 17 Nov 2026 (owner's picker *"Push v1.16.0 now"*), after two full gates and the merges of `d44a52e` and `b8f4ccf`.
 - ⛔ **This section SUPERSEDES the "WIP", "NOT merged, NOT pushed", "the owner tries it first", "not in gate.sh yet" and
