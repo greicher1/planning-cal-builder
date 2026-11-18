@@ -9905,7 +9905,7 @@ export function initLegacyApp() {
   // recommendation), so fields.byId and gate 5 do not move; these variables are the one store.
   const DU_KEY = 'doubleUp';
   const DU_NAME = 'Double-up';
-  const DU_MAX = 9;              // the − / +'s ceiling (the mockup's)
+  const DU_MAX = 99;             // a typed count's ceiling (R19: the boxes are typed, so no stepper's 0..9)
   const DU_NAME_MAX = 40;
   const DU_SEL_PILL = '.mv-pill[data-du]';   // a double-up pill in the month view (frozen edit DU1's marker)
   let doubleUpDays = 0;          // the card's default count (R2); 0 = none
@@ -10004,16 +10004,25 @@ export function initLegacyApp() {
   // Production (R1), month view only like Episodic Prep's (CSS off the view toggle): hidden, never cleared, in the
   // waterfall. Its head: the colour square (R7's shade, which follows Production: no picker, plan §9), the name box
   // (the default pill name, R2), the "Month view only" tag and a summary line. Its body: "Default double-ups" as a
-  // − / + (R2, R3), then the list of episodes (shooting order) or blocks, each with its own name and its own − / +
-  // (R4), the last one starting at none (R5). Bold is "its own".
+  // number box with its unit inside (R2; R19, the owner, 17 Nov 2026: "lets not do the plus and minus symbols lets do
+  // open text boxes like all other phases use", which replaced R3's − / +), then the list of episodes (shooting order)
+  // or blocks, each with its own name and its own number box (R4), the last one starting at none (R5). Prep's rule
+  // (EPISODE-PREP-PLAN §6): a blank box uses the default, shown as its placeholder; 0 is none; a typed number is that
+  // unit's own, in bold, even when it equals the default.
   //   ⛔ NO ID ON ANY CONTROL (plan §5, recommended id-less): collectFieldValues() sweeps id'd inputs into fields.byId,
   //   so an id would bake a junk key into every saved file and re-cut gate 5. The variables above are the one store,
   //   and this card only reflects them (refreshDoubleUpUI, from update(), so an undo, a Load or New shows at once).
   //   The row's own id (#du-row, a <div>) and the square's (#swatch-doubleUp, which the caret keys the fold off,
   //   phaseRowKey) are not fields.
-  function duStepHtml(kind, attrs, label){
-    return `<span class="du-step" data-du-step="${kind}"${attrs}><button type="button" class="du-step-btn" data-d="-1" aria-label="Fewer ${label}">−</button>`
-      + `<b class="du-step-val"></b><button type="button" class="du-step-btn" data-d="1" aria-label="More ${label}">+</button></span>`;
+  // A count box with its unit inside, Prep's `.num-suffix` (the <label> draws the border, so a click on "days" focuses it).
+  // ⛔ No id: its value lives in doubleUpDays or on the def, never in fields.byId.
+  function duBoxHtml(cls, placeholder, label){
+    return `<span class="num-suffix"><input type="number" class="${cls} du-days-in" min="0" max="${DU_MAX}" step="1" placeholder="${placeholder}" aria-label="${label}"><span>days</span></span>`;
+  }
+  // A count as typed: a whole number 0..DU_MAX, or NaN for a blank or unreadable box (prepDayCount's rule, capped).
+  function duTyped(v){
+    const n = parseInt(v, 10);
+    return (Number.isFinite(n) && n >= 0) ? Math.min(DU_MAX, n) : NaN;
   }
   function buildDoubleUpRow(){
     const row = document.createElement('div');
@@ -10026,11 +10035,11 @@ export function initLegacyApp() {
         ${phaseHeadHtml(`<input type="text" class="phase-name-input du-name-input" value="${DU_NAME}" placeholder="${DU_NAME}" maxlength="${DU_NAME_MAX}" aria-label="Double-up name" title="What the pills say. Each episode or block can have its own name below.">`,
           MVONLY_TAG(false, 'A second crew&rsquo;s days, drawn in the month view and its PDF only. They never change Production&rsquo;s days.'),
           `<div class="phase-meta du-meta"></div>`)}
+        <div class="phase-fields du-fields">
+          <label class="du-default" title="Working days a second crew shoots on the next episode, for every episode but the last">Default double-ups ${duBoxHtml('du-default-in', 'None', 'Default double-up days')}</label>
+        </div>
         <div class="du-body">
-          <div class="du-default"><span class="du-default-label">Default double-ups</span>${duStepHtml('default', '', 'default double-up days')}<span class="du-unit">days</span></div>
-          <div class="du-note du-default-note"></div>
           <div class="du-panel"><div class="du-rows"></div></div>
-          <div class="du-note du-foot"></div>
         </div>`;
     const nameIn = row.querySelector('.du-name-input');
     nameIn.addEventListener('input', ()=>{
@@ -10042,21 +10051,25 @@ export function initLegacyApp() {
     });
     // Leaving the box puts the default name back in it when it was emptied.
     nameIn.addEventListener('change', ()=> reflectDuName(true));
-    row.addEventListener('click', e=>{
-      const btn = e.target.closest && e.target.closest('.du-step-btn');
-      if(!btn || !row.contains(btn)) return;
-      const step = btn.closest('.du-step'), d = Number(btn.dataset.d);
-      if(step.dataset.duStep === 'default'){
-        const next = Math.max(0, Math.min(DU_MAX, doubleUpDays + d));
-        if(next === doubleUpDays) return;
-        doubleUpDays = next;
-        update();
-        return;
-      }
-      const r = btn.closest('.du-unit-row');
+    // The default count: blank (or 0) is none, the default's default, so a calendar with none saves as before.
+    row.querySelector('.du-default-in').addEventListener('input', e=>{
+      const n = duTyped(e.target.value), next = n > 0 ? n : 0;
+      if(next === doubleUpDays) return;
+      doubleUpDays = next;
+      update();
+    });
+    // One unit's own count. Blank goes back to the default by REMOVING the key, so a box typed and cleared leaves the
+    // file as it was; a number typed is the unit's own, 0 included (no double-up), and 0 drops a moved position too.
+    row.addEventListener('input', e=>{
+      const t = e.target;
+      if(!t || !t.classList || !t.classList.contains('du-unit-days')) return;
+      const r = t.closest('.du-unit-row');
       const def = r && duUnitDef(r.dataset.kind, r.dataset.id);
       if(!def) return;
-      setDuUnitCount(def, duUnitCount(def, r.dataset.last === '1') + d, r.dataset.last === '1');
+      const n = duTyped(t.value);
+      if(!Number.isFinite(n)) delete def.doubleUpDays; else def.doubleUpDays = n;
+      if(n === 0) delete doubleUpMoved[def.id];
+      t.classList.toggle('is-edited', hasDuDays(def));
       update();
     });
     // One unit's own name. Blank goes back to the card's name by REMOVING the key, so a box typed and cleared leaves
@@ -10081,8 +10094,9 @@ export function initLegacyApp() {
   function duUnitCount(def, isLast){
     return hasDuDays(def) ? def.doubleUpDays : (isLast ? 0 : doubleUpDays);
   }
-  // A unit's count, set: a value equal to its default is NOT kept as its own (the mockup's rule, so − then + puts a
-  // row back to plain), and 0 drops a moved position with it (plan §4).
+  // A unit's count, set from the pill's menu (R11's Remove): a value equal to its default is not kept as its own, so
+  // removing the last unit's double-up leaves it plain, and 0 drops a moved position with it (plan §4). The card's box
+  // writes the def itself (Prep's rule: typed is its own).
   function setDuUnitCount(def, n, isLast){
     n = Math.max(0, Math.min(DU_MAX, n));
     const dflt = isLast ? 0 : doubleUpDays;
@@ -10120,38 +10134,40 @@ export function initLegacyApp() {
     reflectDuName(false);
     const info = showInfoStatus();
     const units = duCardUnits(info);
-    const word = info.blocks ? 'block' : 'episode';
     const wrap = row.querySelector('.du-rows');
     const key = (info.blocks ? 'B' : 'E') + '|' + units.map(u=> u.def.id + ':' + u.tag).join('|');
     if(wrap._duKey !== key){
       wrap._duKey = key;
       wrap.innerHTML = !units.length ? '' :
         '<div class="ep-sec-head"><span class="ep-sec-title">' + (info.blocks ? 'Blocks' : 'Episodes') + '</span>'
-        + '<span class="ep-sec-note">Name · days</span></div>'
+        + '<span class="ep-sec-note" title="Blank uses the default. 0 gives ' + (info.blocks ? 'that block' : 'that episode') + ' no double-up.">Blank = default · 0 = none</span></div>'
         + '<div class="ep-list">' + units.map(u=> `
           <div class="du-unit-row" data-kind="${u.kind}" data-id="${escHtml(u.def.id)}"${u.last ? ' data-last="1"' : ''}>
             <span class="du-unit-tag" title="${escHtml(u.tag)}">${escHtml(u.tag)}</span>
             <input type="text" class="du-unit-name" maxlength="${DU_NAME_MAX}" value="" aria-label="${escHtml(u.tag)} double-up name">
-            ${duStepHtml('unit', '', escHtml(u.tag) + ' double-up days')}
+            <label class="du-unit-count" title="Double-up days for ${escHtml(u.tag)}">${duBoxHtml('du-unit-days', '–', escHtml(u.tag) + ' double-up days')}</label>
           </div>`).join('') + '</div>';
     }
-    const setStep = (step, n, own)=>{
-      const b = step && step.querySelector('.du-step-val');
-      if(!b) return;
-      const txt = n ? String(n) : (step.dataset.duStep === 'default' ? 'None' : '–');
-      if(b.textContent !== txt) b.textContent = txt;
-      b.classList.toggle('is-own', !!own);
-      const minus = step.querySelector('[data-d="-1"]'), plus = step.querySelector('[data-d="1"]');
-      if(minus) minus.disabled = !(n > 0);
-      if(plus) plus.disabled = n >= DU_MAX;
+    // Values written back in place from the store, never into the box being typed in (Prep's rule), so an undo, a
+    // Load or New shows at once and typing keeps its caret.
+    // A box that already READS as the stored count is left as typed ("2.5" for 2 keeps its "Whole days only" ring, as
+    // Prep's boxes do, since Prep stores the text and this stores the number).
+    const setBox = (inp, want, ph)=>{
+      if(!inp) return;
+      if(ph !== undefined && inp.placeholder !== ph) inp.placeholder = ph;
+      if(document.activeElement === inp) return;
+      const same = want === '' ? inp.value === '' : (inp.value !== '' && duTyped(inp.value) === Number(want));
+      if(!same) inp.value = want;
     };
-    setStep(row.querySelector('.du-default .du-step'), doubleUpDays, false);
+    setBox(row.querySelector('.du-default-in'), doubleUpDays > 0 ? String(doubleUpDays) : '');
     const dName = duDefaultName();
     wrap.querySelectorAll('.du-unit-row').forEach(r=>{
       const def = duUnitDef(r.dataset.kind, r.dataset.id);
       if(!def) return;
-      const n = duUnitCount(def, r.dataset.last === '1');
-      setStep(r.querySelector('.du-step'), n, hasDuDays(def));
+      const isLast = r.dataset.last === '1', n = duUnitCount(def, isLast), dflt = isLast ? 0 : doubleUpDays;
+      const box = r.querySelector('.du-unit-days');
+      setBox(box, hasDuDays(def) ? String(def.doubleUpDays) : '', dflt > 0 ? String(dflt) : '–');
+      box.classList.toggle('is-edited', hasDuDays(def));
       r.classList.toggle('is-none', !n);
       const inp = r.querySelector('.du-unit-name');
       if(inp.placeholder !== dName) inp.placeholder = dName;
@@ -10159,11 +10175,7 @@ export function initLegacyApp() {
       if(document.activeElement !== inp && cleanDuName(inp.value) !== want) inp.value = want;
       inp.classList.toggle('is-own', hasDuName(def));
     });
-    const dNote = row.querySelector('.du-default-note'), foot = row.querySelector('.du-foot');
-    const dText = 'Every ' + word + ' but the last, joined to the end of its shoot. The name above is what the pills say.';
-    if(dNote.textContent !== dText) dNote.textContent = dText;
-    const fText = units.length ? 'Bold = its own. The last ' + word + ' starts with none; give it one and it sits beside its own last days.' : '';
-    if(foot.textContent !== fText) foot.textContent = fText;
+    // (No explanatory lines in the card: the owner took both out, 17 Nov 2026. The rules are in Help and the tooltips.)
     const meta = row.querySelector('.du-meta');
     const mText = duSummary(schedule, info, units);
     if(meta.textContent !== mText) meta.textContent = mText;
@@ -29865,7 +29877,7 @@ export function initLegacyApp() {
   }
   const HALF_FIELDS = '#episode-rows .ep-days, #episode-rows .blk-days, #shoot-days-per-ep, #days-per-block';
   // The prep lengths (EPISODE-PREP-PLAN.md) count WORKING days, whole ones, like a Days phase.
-  const PREP_FIELDS = '.form-panel .prep-days-in';
+  const PREP_FIELDS = '.form-panel .prep-days-in, .form-panel .du-days-in';   // and the double-up counts (R19), whole days too
   const WHOLE_FIELDS = '.form-panel input[id^="weeks-"], #hiatus-list .hiatus-weeks, .phiatus-weeks, #simpost-offset, '
                      + HALF_FIELDS + ', .form-panel .phase-days, ' + PREP_FIELDS;
   function reflectStartDateValidity(state, extraBad){
@@ -29878,14 +29890,14 @@ export function initLegacyApp() {
       bad.add(el);
       // The two Show Info defaults are Mantine NumberInputs, whose input sits in the wrapper rather
       // than inside its <label>, so the wrapper hosts the words (printed under the field).
-      const host = el.closest('.episode-row') || el.closest('.block-head') || el.closest('.prep-unit-row')
+      const host = el.closest('.episode-row') || el.closest('.block-head') || el.closest('.prep-unit-row') || el.closest('.du-unit-row')
                 || el.closest('label') || el.closest('.mantine-InputWrapper-root');
       // Both rules, kept side by side (merged 15 Oct 2026): an episode's or block's count may end in .5
       // (HALF_FIELDS, the half-days ruling), while a custom phase's Days box counts WORKING days,
       // which are whole (CUSTOM-PHASE-UNITS-PLAN.md) -- isWholeNumberTypo() applies the whole rule to
       // it because it is not in HALF_FIELDS.
       if(host) hosts.set(host, el.matches(HALF_FIELDS) ? 'Whole or half days only'
-                             : (el.classList.contains('phase-days') || el.classList.contains('prep-days-in')) ? 'Whole days only'
+                             : (el.classList.contains('phase-days') || el.classList.contains('prep-days-in') || el.classList.contains('du-days-in')) ? 'Whole days only'
                              : 'Whole weeks only');
     });
     document.querySelectorAll('.form-panel [data-whole-err]').forEach(h=>{ if(!hosts.has(h)) h.removeAttribute('data-whole-err'); });

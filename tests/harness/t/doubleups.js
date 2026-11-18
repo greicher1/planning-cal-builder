@@ -4,8 +4,9 @@
 //
 //   HARNESS_PAGE=/dist/index.html ./run.sh doubleups 300
 //     LIVE. The reference calendar (T.buildFixture): the card under Production, month view only, no id on any control,
-//     "None" by default and no pill; the default − / + draws a pill per episode but the last, and back at none the
-//     calendar saves byte for byte what it did (lastEdited aside); one undo per click.
+//     "None" by default and no pill; a default typed in its box draws a pill per episode but the last, and back at none the
+//     calendar saves byte for byte what it did (lastEdited aside); one undo per edit; typed counts are the episode's own
+//     (R19: number boxes like Prep's, not − / +; the card's two explanatory lines are gone).
 //
 //   HARNESS_PAGE=/dist/index.html HARNESS_STATE=doubleups ./run.sh doubleups 600
 //     RESTORE. The hand trace below; the join (R6), the colour (R7), the menu (R11), the double-click (R12), the drag
@@ -181,18 +182,24 @@ window.addEventListener('load', function () { (async function () {
 
   // ---- the card --------------------------------------------------------------------------------------
   function card(){ return $('du-row'); }
+  // Each row as it reads: `n` is the count the box shows, typed or (blank) its placeholder, the default or "–" for none.
   function cardList(){
     return [].map.call(document.querySelectorAll('#du-row .du-unit-row'), function (r) {
-      var v = r.querySelector('.du-step-val'), n = r.querySelector('.du-unit-name');
-      return {id: r.dataset.id, tag: r.querySelector('.du-unit-tag').textContent, n: v.textContent, own: v.classList.contains('is-own'),
+      var v = r.querySelector('.du-unit-days'), n = r.querySelector('.du-unit-name');
+      return {id: r.dataset.id, tag: r.querySelector('.du-unit-tag').textContent, n: v.value || v.placeholder, typed: v.value, own: v.classList.contains('is-edited'),
               name: n.value, ph: n.placeholder, nameOwn: n.classList.contains('is-own'), last: r.dataset.last === '1'};
     });
   }
-  function cardStep(id, d){
-    var s = id ? [].find.call(document.querySelectorAll('#du-row .du-unit-row'), function (r) { return r.dataset.id === id; }).querySelector('.du-step')
-               : document.querySelector('#du-row .du-default .du-step');
-    s.querySelector('[data-d="' + d + '"]').click();
+  // R19: the counts are number boxes (Prep's), typed into.
+  function setVal(el, v){
+    Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(el, v);
+    el.dispatchEvent(new Event('input', {bubbles: true})); el.dispatchEvent(new Event('change', {bubbles: true}));
   }
+  function cardBox(id){
+    return id ? [].find.call(document.querySelectorAll('#du-row .du-unit-row'), function (r) { return r.dataset.id === id; }).querySelector('.du-unit-days')
+              : document.querySelector('#du-row .du-default-in');
+  }
+  function cardType(id, v){ setVal(cardBox(id), v); }
   function noIds(){ return document.querySelectorAll('#du-row input[id], #du-row button[id], #du-row select[id], #du-row textarea[id]').length; }
 
   // ---- Save and Load through the real paths (episodeprep's) ------------------------------------------
@@ -259,34 +266,47 @@ window.addEventListener('load', function () { (async function () {
       var prodRow = $('swatch-production').closest('.phase-row');
       check(shownEl(card()) && prodRow.nextElementSibling === card(), 'L1 in the month view it shows, directly UNDER Production (R1)');
       check(noIds() === 0, 'L2 no id on any of its controls (gate 5 cannot move)');
-      out.l3 = {meta: card().querySelector('.du-meta').textContent, dflt: card().querySelector('.du-default .du-step-val').textContent,
-                name: card().querySelector('.du-name-input').value, list: cardList().length, pills: document.querySelectorAll('#table-wrap .mv-pill[data-du]').length};
-      check(out.l3.meta === 'None yet' && out.l3.dflt === 'None' && out.l3.name === 'Double-up' && out.l3.list === 10 && out.l3.pills === 0,
-            'L3 a new calendar has none: "None yet", default None, named "Double-up", 10 episodes listed, no pill');
+      out.l3 = {meta: card().querySelector('.du-meta').textContent, dflt: cardBox(null).value, dph: cardBox(null).placeholder,
+                name: card().querySelector('.du-name-input').value, list: cardList().length, pills: document.querySelectorAll('#table-wrap .mv-pill[data-du]').length,
+                boxes: card().querySelectorAll('input[type="number"]').length, buttons: card().querySelectorAll('.du-body button, .du-fields button').length,
+                notes: (card().querySelector('.du-body') || {}).innerText};
+      check(out.l3.meta === 'None yet' && out.l3.dflt === '' && out.l3.dph === 'None' && out.l3.name === 'Double-up' && out.l3.list === 10 && out.l3.pills === 0,
+            'L3 a new calendar has none: "None yet", the default box blank ("None"), named "Double-up", 10 episodes listed, no pill');
+      check(out.l3.boxes === 11 && out.l3.buttons === 0 && !/Bold = its own|joined to the end of its shoot/.test(out.l3.notes || ''),
+            'L3 (R19) the counts are number boxes like every other phase’s (the default and one per episode), no − / + buttons, and no explanatory lines');
       var before = await save();
       var s0 = JSON.parse(before);
       check(!('doubleUps' in s0) && !s0.episodeDefs.some(function (e) { return 'doubleUpDays' in e || 'doubleUpName' in e; }),
             'L4 its Save carries no doubleUps key and no per-episode double-up field');
-      cardStep(null, 1); await settle();
-      out.l5 = {dflt: card().querySelector('.du-default .du-step-val').textContent, list: cardList(), map: await duMap()};
-      check(out.l5.dflt === '1' && out.l5.list.filter(function (x) { return x.n === '1'; }).length === 9 && out.l5.list[9].n === '–'
+      cardType(null, '1'); await settle();
+      out.l5 = {dflt: cardBox(null).value, list: cardList(), map: await duMap()};
+      check(out.l5.dflt === '1' && out.l5.list.filter(function (x) { return x.n === '1' && !x.typed; }).length === 9 && out.l5.list[9].n === '–'
             && out.l5.list[9].last && Object.keys(out.l5.map).length === 9 && !out.l5.map['Double-up 210'],
-            'L5 default + gives every episode but the LAST a 1-day double-up (R5), 9 pills, none for 210');
+            'L5 a default of 1 gives every episode but the LAST a 1-day double-up (R5), shown as each box’s placeholder; 9 pills, none for 210');
       await undo();
-      out.l6 = {dflt: card().querySelector('.du-default .du-step-val').textContent, pills: document.querySelectorAll('#table-wrap .mv-pill[data-du]').length};
-      check(out.l6.dflt === 'None' && out.l6.pills === 0, 'L6 one Undo takes it back to none');
-      cardStep(null, 1); await settle(); cardStep(null, -1); await settle();
+      out.l6 = {dflt: cardBox(null).value, pills: document.querySelectorAll('#table-wrap .mv-pill[data-du]').length};
+      check(out.l6.dflt === '' && out.l6.pills === 0, 'L6 one Undo takes it back to none');
+      cardType(null, '1'); await settle(); cardType(null, ''); await settle();
       var after = await save();
       check(noStamp(before) === noStamp(after), 'L7 ⭐ back at none, the calendar saves byte for byte what it saved before (the Date Last Edited stamp aside)');
-      // A unit's own count: equal to its default is not kept as its own; the last unit given one is.
-      cardStep(null, 1); await settle();
+      // A unit's own count (Prep's rule): typed is its own, in bold, even when it equals the default; blank is the default.
+      cardType(null, '1'); await settle();
       var last = cardList()[9];
-      cardStep(last.id, 1); await settle();
+      cardType(last.id, '1'); await settle();
       out.l8 = cardList()[9];
-      cardStep(cardList()[0].id, 1); await settle(); cardStep(cardList()[0].id, -1); await settle();
+      cardType(cardList()[0].id, '1'); await settle();
+      out.l8a = cardList()[0];
+      var s8 = JSON.parse(await save());
+      cardType(cardList()[0].id, ''); await settle();
       out.l8b = cardList()[0];
-      check(out.l8.n === '1' && out.l8.own && !out.l8b.own && out.l8b.n === '1',
-            'L8 the last episode given one shows it bold (its own); − / + back to the default is not kept as its own');
+      var s8b = JSON.parse(await save());
+      check(out.l8.n === '1' && out.l8.own && out.l8a.own && out.l8a.n === '1' && s8.episodeDefs[0].doubleUpDays === 1
+            && !out.l8b.own && out.l8b.typed === '' && out.l8b.n === '1' && !('doubleUpDays' in s8b.episodeDefs[0]),
+            'L8 a number typed is that episode’s own (bold), the last one’s and one equal to the default alike; cleared, it is the default again and leaves the file');
+      cardType(cardList()[1].id, '2.5'); await settle();
+      out.l9 = {err: (cardBox(cardList()[1].id).closest('.du-unit-row') || {}).getAttribute && cardBox(cardList()[1].id).closest('.du-unit-row').getAttribute('data-whole-err'),
+                invalid: cardBox(cardList()[1].id).classList.contains('is-invalid')};
+      check(out.l9.err === 'Whole days only' && out.l9.invalid, 'L9 a fraction is ringed "Whole days only", as Prep’s boxes are');
     }
 
     if(out.run === 'restore'){
@@ -295,7 +315,7 @@ window.addEventListener('load', function () { (async function () {
       await settle();
       out.health = T.appHealth();
       tab('phases'); await T.sleep(200);
-      out.r0 = {list: cardList(), meta: card().querySelector('.du-meta').textContent, dflt: card().querySelector('.du-default .du-step-val').textContent};
+      out.r0 = {list: cardList(), meta: card().querySelector('.du-meta').textContent, dflt: cardBox(null).value};
       check(out.r0.list.map(function (x) { return x.tag + '=' + x.n + (x.own ? '*' : '') + (x.name ? ':' + x.name : ''); }).join()
             === '302=1,301=1,304=2*:Tandem,303=1,306=1,305=1*' && out.r0.dflt === '1',
             'R0 the card restores the default 1, 304 its own 2 named Tandem, 305 (the last) its own 1, in shooting order');
@@ -380,7 +400,7 @@ window.addEventListener('load', function () { (async function () {
       m = await menuOn('Double-up 303', '2027-04-09');
       await menuPick(m, 'du-remove');
       out.r7 = {map: await duMap(), row: cardList().filter(function (x) { return x.tag === '303'; })[0]};
-      check(!out.r7.map['Double-up 303'] && out.r7.row.n === '–' && out.r7.row.own, 'R7 (R11) Remove double-up: 303 has none, its count 0 shown as its own');
+      check(!out.r7.map['Double-up 303'] && out.r7.row.typed === '0' && out.r7.row.own, 'R7 (R11) Remove double-up: 303 has none, its box reads 0 (its own)');
       var saved7 = JSON.parse(await save());
       check(saved7.episodeDefs.filter(function (e) { return e.id === 'ep3'; })[0].doubleUpDays === 0 && !(saved7.doubleUps.moved || {}).ep3,
             'R7 ...saved as doubleUpDays 0, and its moved position is gone');
@@ -452,7 +472,7 @@ window.addEventListener('load', function () { (async function () {
       delete bare.doubleUps;
       bare.episodeDefs.forEach(function (e) { delete e.doubleUpDays; delete e.doubleUpName; });
       await load(JSON.stringify(bare));
-      out.off = {map: await duMap(), dflt: card().querySelector('.du-default .du-step-val').textContent, list: cardList().map(function (x) { return x.n; }).join(),
+      out.off = {map: await duMap(), dflt: cardBox(null).value === '' ? cardBox(null).placeholder : cardBox(null).value, list: cardList().map(function (x) { return x.n; }).join(),
                  meta: card().querySelector('.du-meta').textContent};
       check(sameMap(out.off.map, {}) && out.off.dflt === 'None' && out.off.list === '–,–,–,–,–,–' && out.off.meta === 'None yet',
             'S2 ⛔ the M-5 trap: a calendar with no double-up keys, loaded after one with them, has NONE (default, counts, moves)');
@@ -466,7 +486,7 @@ window.addEventListener('load', function () { (async function () {
       check(!!(out.xlsxOn && out.xlsxOff && out.pdfOn && out.pdfOff), 'S4 (R13) the workbook and the waterfall PDF were exported on and off (gate.sh compares them)');
       // Undo across the Load is not a step back into the old file, so the last Load's state is where Undo stops.
       var hostile = JSON.parse(JSON.stringify(base));
-      hostile.doubleUps = {days: 99, name: 42, moved: {ep1: {day: -3}, ep2: {when: '2027-03-03'}, '<x>': {day: 2}}, extra: 1};
+      hostile.doubleUps = {days: 100, name: 42, moved: {ep1: {day: -3}, ep2: {when: '2027-03-03'}, '<x>': {day: 2}}, extra: 1};
       hostile.episodeDefs[0].doubleUpDays = 'two';
       hostile.episodeDefs[1].doubleUpName = {x: 1};
       await load(JSON.stringify(hostile));

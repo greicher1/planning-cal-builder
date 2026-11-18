@@ -39,8 +39,9 @@ longer, and it is not a half day (`.5`, one crew splitting a day, which is built
 17 Nov 2026 (R1–R17, [`DOUBLE-UP-DAYS-PLAN.md`](DOUBLE-UP-DAYS-PLAN.md); the mockup is
 [`mockups/double-up-days-ui.html`](mockups/double-up-days-ui.html)).
 - **A Double-ups card** in the Phases tab, directly under Production, month view only like Episodic Prep's. Its name box
-  is the default pill name ("Double-up"), its − / + the default count; the list gives each episode (shooting order) or
-  block its own name and its own − / +, bold when it is its own. The last episode or block has none by default; given
+  is the default pill name ("Double-up"), and *Default double-ups* a number box, as every phase's counts are; the list
+  gives each episode (shooting order) or block its own name and its own number box (blank = the default, 0 = none), bold
+  when it is its own. (It was a − / + until the owner tried it: "lets do open text boxes like all other phases use".) The last episode or block has none by default; given
   one, it sits beside its own last days. The colour square is a darker shade of Production's colour and follows it.
 - **The month view and the month PDF.** A double-up comes out of the end of its episode's shoot pill on the same line,
   joined flush (square corners where they meet), in the darker shade, reading "Double-up 102" or the episode's own name

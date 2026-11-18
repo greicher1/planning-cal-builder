@@ -4862,35 +4862,35 @@
   .prep-panel{ padding:0 12px; }
   .prep-panel:has(#prep-rows:not(:empty)){ margin:10px 0 8px; }
 
-  /* ---- The Double-ups card (DOUBLE-UP-DAYS-PLAN.md R1-R5; mockups/double-up-days-ui.html) ----
+  /* ---- The Double-ups card (DOUBLE-UP-DAYS-PLAN.md R1-R5, R19) ----
      Prep's card in look: the phase head (its colour square is R7's darker shade of Production's, no picker), then
-     "Default double-ups" as a − / + with its unit, a note, and the list boxed under its heading: each episode's or
-     block's tag, its own name box and its own − / +. Bold = its own (the name box's and the count's). No id on any
-     control. The square is not clickable: it follows Production's colour. */
+     "Default double-ups" as a number box with its unit inside, and the list boxed under its heading: each episode's or
+     block's tag, its own name box and its own number box. Typed = its own, in bold (the name and the count). R19 (owner,
+     17 Nov 2026): number boxes "like all other phases use", not − / +. No id on any control. The square is not
+     clickable: it follows Production's colour. No explanatory lines in the card (owner, 17 Nov 2026). */
   .du-row .du-swatch{ cursor:default; }
+  .du-row .phase-fields label.du-default{ flex:0 0 150px; }
+  .du-default .num-suffix{
+    display:flex; align-items:center; height:var(--input-height-xs, 30px); box-sizing:border-box;
+    border:1px solid var(--mantine-color-gray-4); border-radius:var(--mantine-radius-default);
+    background:var(--mantine-color-white); padding-right:var(--mantine-spacing-md); cursor:text;
+    transition:border-color 100ms ease;
+  }
+  .du-default .num-suffix:focus-within{ border-color:var(--mantine-primary-color-filled); }
+  .du-default .num-suffix:has(input.is-invalid), .du-unit-row .num-suffix:has(input.is-invalid){
+    border-color:var(--mantine-color-danger-6); box-shadow:0 0 0 2px var(--mantine-color-danger-1);
+  }
+  .du-default .num-suffix input{ flex:1; min-width:0; height:28px; border:0; box-shadow:none; background:transparent; outline:none; }
+  .du-default .num-suffix span{ font-size:var(--mantine-font-size-xs); font-weight:400; color:var(--mantine-color-gray-5); }
   .du-body{ padding:10px 12px 12px; display:flex; flex-direction:column; gap:8px; }
-  .du-default{ display:flex; align-items:center; gap:8px; font-size:var(--mantine-font-size-sm); }
-  .du-default-label{ flex:1; min-width:0; }
-  .du-unit{ font-size:var(--mantine-font-size-xs); color:var(--mantine-color-gray-6); }
-  .du-note{ font-size:var(--mantine-font-size-xxs); line-height:1.4; color:var(--mantine-color-gray-6); }
-  .du-note:empty{ display:none; }
-  .du-default-note{ margin-top:-4px; }
-  /* The − / +: Mantine's NumberInput controls in a row, the value between. */
-  .du-step{ display:inline-flex; align-items:stretch; flex:none; height:30px; box-sizing:border-box;
-    border:1px solid var(--mantine-color-gray-4); border-radius:var(--mantine-radius-default); overflow:hidden;
-    background:var(--mantine-color-white); }
-  .du-step-btn{ width:28px; padding:0; border:0; background:var(--mantine-color-gray-0); color:var(--mantine-color-gray-7);
-    font:inherit; font-size:15px; line-height:1; cursor:pointer; }
-  .du-step-btn:hover:not(:disabled){ background:var(--mantine-color-gray-2); }
-  .du-step-btn:disabled{ color:var(--mantine-color-gray-4); cursor:default; }
-  .du-step-val{ min-width:34px; display:grid; place-items:center; padding:0 4px; font-size:var(--mantine-font-size-sm);
-    font-weight:500; border-left:1px solid var(--mantine-color-gray-3); border-right:1px solid var(--mantine-color-gray-3); }
-  .du-step-val.is-own{ font-weight:700; }
   .du-panel:has(.du-rows:empty){ display:none; }
+  .du-body:has(.du-rows:empty){ display:none; }
   .du-unit-row{ display:flex; align-items:center; gap:6px; min-height:34px; padding:0 8px;
     border-bottom:1px solid var(--mantine-color-gray-2); background:var(--mantine-color-white); transition:background-color .2s; }
   .du-unit-row:last-child{ border-bottom:none; }
   .du-unit-row:hover{ background:var(--mantine-color-gray-0); }
+  .du-unit-row[data-whole-err]{ flex-wrap:wrap; }
+  .du-unit-row[data-whole-err]::after{ flex-basis:100%; text-align:right; padding-bottom:4px; }
   .du-unit-tag{ width:52px; flex:none; font-size:var(--mantine-font-size-sm); font-weight:600; color:var(--mantine-color-black);
     white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   .du-unit-name{ flex:1; min-width:0; height:26px; box-sizing:border-box; padding:0 7px; font:inherit;
@@ -4900,10 +4900,24 @@
   .du-unit-name::placeholder{ color:var(--mantine-color-gray-5); }
   .du-unit-name.is-own{ font-weight:700; }
   .du-unit-row.is-none .du-unit-name{ opacity:.45; }
-  .du-unit-row .du-step{ height:26px; border-radius:var(--mantine-radius-sm); }
-  .du-unit-row .du-step-btn{ width:22px; font-size:13px; }
-  .du-unit-row .du-step-val{ min-width:24px; font-weight:400; }
-  .du-unit-row .du-step-val.is-own{ font-weight:700; }
+  /* Its own count: Prep's per-episode box (#prep-rows .num-suffix), a number with "days" inside. */
+  .du-unit-count{ display:contents; }
+  .du-unit-row .num-suffix{
+    display:inline-flex; align-items:center; flex:none; height:26px; box-sizing:border-box;
+    border:1px solid var(--mantine-color-gray-4); border-radius:var(--mantine-radius-md);
+    background:var(--mantine-color-white); padding-right:var(--mantine-spacing-md); cursor:text;
+  }
+  .du-unit-row .num-suffix:focus-within{ border-color:var(--mantine-primary-color-filled); }
+  .du-unit-row .num-suffix input{
+    width:34px; height:24px; border:0; padding:0 4px 0 var(--mantine-spacing-md); background:transparent;
+    font-size:var(--mantine-font-size-sm); text-align:right; box-shadow:none; outline:none;
+    -moz-appearance:textfield; appearance:textfield;
+  }
+  .du-unit-row .num-suffix input::-webkit-inner-spin-button,
+  .du-unit-row .num-suffix input::-webkit-outer-spin-button{ -webkit-appearance:none; margin:0; }
+  .du-unit-row .num-suffix input::placeholder{ color:var(--mantine-color-gray-5); }
+  .du-unit-row .num-suffix input.is-edited{ font-weight:700; }
+  .du-unit-row .num-suffix span{ font-size:var(--mantine-font-size-xxs); color:var(--mantine-color-gray-6); }
   /* The double-click on a pill (R12) flashes the card and its row. */
   .du-row.is-flash{ box-shadow:0 0 0 3px color-mix(in srgb, var(--mantine-primary-color-filled) 35%, transparent); }
   .du-unit-row.is-flash{ background:var(--mantine-color-yellow-0); }

@@ -34,7 +34,7 @@ instead of 11, and draws the bars meeting mid-day.
 |---|---|---|
 | R1 | **Its own phase section, like Episodic Prep's:** a **Double-ups card** in the Phases tab, directly under Production, month view only. | "could we consider giving double up/tandem days their own phase section similar to how we did for block/episode prep"; then "The Double-ups card" |
 | R2 | **The defaults live in that card**, not Show info: its name box is the default pill name (`Double-up`), and a **− / +** is the default count. Show info does not change. | picker "The Double-ups card (Recommended)" |
-| R3 | **Entry is a − / + box**, not typed "10+2". | picker "Separate − / + box" |
+| R3 | ~~**Entry is a − / + box**, not typed "10+2".~~ ⛔ **Replaced by R19** (number boxes). | picker "Separate − / + box" |
 | R4 | **Each episode (or block) can have its own count AND its own name**, overriding the defaults, in the card's list. | "just like how i can then go and individually change per episode for shooting days, i should be able to change/override per episode/block"; "allow me to change the name per episode/block so one could be tandem and one could be double up and one could be something else" |
 | R5 | **The last episode or block has NO double-up by default**, but can be given one. Given one, it sits **beside its own last days** (under its shoot pill), not joined and not past wrap. | "it shouldn't have one by default (but can be added)"; picker "Beside its last days" |
 | R6 | **The look:** a real pill like a phase bar. At the end of an episode or block it **comes out of the end of the shoot pill, on the same line, joined flush** (square corners where they meet, no gap). The next episode starts on the line below for the overlap days. | "i want the double up pill to come out of the end of the shoot pill, on the same line, and clear that theyre connected"; "I like the flush" |
@@ -49,6 +49,7 @@ instead of 11, and draws the bars meeting mid-day.
 | R15 | **A half day and a double-up can go together**: with 9.5 + 1 the double-up starts on the first full day after the half-day switch. | picker "Yes, double-up starts next day" |
 | R16 | **Frozen month-view edit APPROVED.** Acceptance gate: every calendar with no double-ups prints byte-identical month PDFs (gate 10, the print path, and gate 13, the written PDF), and the full `gate.sh` stays green. | picker "Approve" |
 | R17 | **Production's days never change**: its length, shoot days, Day N numbers, prep, wrap and every main-unit date ignore double-ups. | the model, agreed throughout |
+| R19 | **Number boxes, not − / +** (replaces R3): the default and each episode's or block's count are typed into boxes with "days" inside, like every other phase's (Episodic Prep's: blank uses the default, 0 is none, a typed number is the unit's own, in bold). And the card's two explanatory lines ("Every episode but the last, joined to the end of its shoot…" and "Bold = its own. The last episode starts with none…") are deleted. | "lets not do the plus and minus symbols lets do open text boxes like all other phases use"; "Delete: …" (both lines) |
 | R18 | **Where a shoot pill meets its joined double-up, ONE faint line**, not the two dark rings side by side the first build drew (~3 px of dark line). The shoot pill loses its ring on that side; the double-up's left edge is one 1 px line in its own ink at 40%; the top and bottom rims run straight across. Layout-neutral. Given after trying the built branch (`60883ac`); spec: [`mockups/double-up-join-line.html`](mockups/double-up-join-line.html), "Proposed: ONE thin line". | picker "A: one faint line" (asked: "can you make it a single fainter line that seperates the edge of the phase and the double up coming out of it") |
 
 Turned down on the way (do not reintroduce): a dashed pill in a row of its own (look A), a hatched stretch of the
@@ -217,6 +218,13 @@ marks `duLine`, `joinL` / `joinR` and the next unit's run `duBelow`. The writer:
 - Checked at 600 dpi on `doubleups.sptcal`'s March: Chrome's print of the page and the written PDF draw the same single
   line. Gates 10 and 13 re-run after it.
 
+### 10.3b R19, number boxes (17 Nov 2026, after trying the build)
+`duBoxHtml()` draws Prep's `.num-suffix` box (no id) for the default (`.du-default-in`, in a `.phase-fields` label like
+"Default prep") and each unit (`.du-unit-days`); `duTyped()` reads one (a whole number, capped at 99). `refreshDoubleUpUI`
+writes them back in place, never into the focused box, and leaves a box that already READS as the stored count (so "2.5"
+keeps its ring). Both boxes are in `PREP_FIELDS` (whole days). The two explanatory lines are gone from the card; the
+mockup `double-up-days-ui.html` still shows the − / + and the lines, and is superseded on both.
+
 ### 10.4 Interaction (step 4)
 - **Drag** (`installDoubleUpDrag`): mouse events, as every month drag; the whole pill in slots; `duSlotLine()` maps a
   day to a slot (a working day before the shoot is a negative slot, so it can be refused); `duDropVerdict()` is R9;
@@ -230,8 +238,10 @@ marks `duLine`, `joinL` / `joinR` and the next unit's run `duBelow`. The writer:
 ### 10.5 Decisions of mine the plan left open (cheap to change)
 - §9: the swatch opens **no picker** (R7, "follows Production"); the summary line is **not** in Production's card;
   the defaults are **id-less** with their own snapshot key (gate 5 unmoved).
-- The − / + runs 0..9 (the mockup's). A unit's count equal to its default is not kept as its own (the mockup's rule),
-  so − then + puts a row back to plain; the last unit given one is bold.
+- ~~The − / + runs 0..9 (the mockup's). A unit's count equal to its default is not kept as its own.~~ Since R19 the
+  counts are number boxes, 0..99 (`DU_MAX`), whole days ("Whole days only" rings a fraction, as on Prep's boxes), and a
+  typed number is the unit's own even when it equals the default (Prep's rule). Only R11's Remove still clears the last
+  unit's own count rather than storing 0 (its default is 0).
 - Labelled by Production Week (one bar per week, no unit bars), every double-up is drawn LOOSE: there is no unit bar to
   join.
 - A double-up that does not touch its unit's bar (a half day before it, R15, or a holiday between) keeps the line but

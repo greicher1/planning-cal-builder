@@ -7,7 +7,7 @@
 ### 🔨 17 Nov 2026: DOUBLE-UP DAYS — BUILT on branch `claude/double-up-days-037393` (worktree `.claude/worktrees/double-up-days-037393`, from `main` at `aa16ffe`). Committed locally; NOT merged, NOT pushed. Plan + as-built record: [`DOUBLE-UP-DAYS-PLAN.md`](DOUBLE-UP-DAYS-PLAN.md) §10; mockup [`mockups/double-up-days-ui.html`](mockups/double-up-days-ui.html). Tracker card `double-up-days`.
 - **What it is:** "10+1" = 10 first-unit days plus 1 double-up day (two crews, two episodes, one day). It never lengthens
   Production. NOT a half day (`.5` is one crew splitting a day, already built). All 17 rulings (owner, 17 Nov 2026) are
-  in the plan's §2: a **Double-ups card** under Production, month view only, like Episodic Prep's; − / + counts with a
+  in the plan's §2: a **Double-ups card** under Production, month view only, like Episodic Prep's; counts in number boxes (R19) with a
   card default; each episode or block its own count AND name ("Tandem"); the last unit none by default (given one, it
   sits beside its own last days); the pill joined flush to the end of its episode's shoot pill in a darker Production
   shade; draggable (whole pill) onto another episode's days or after wrap, kept by shoot day; right-click Rename… / Put
@@ -16,7 +16,10 @@
   edit **DU1** in `renderMonthView` (CLAUDE.md's eighth exception), the writer's read-back (`mvlDuJoins`,
   `mvlPackLanes`, square corners), the drag / menu / Rename / double-click (`installDoubleUpDrag`, `duSections`,
   `openDuRename`, `showDoubleUpRow`). Decisions the plan left open are in its §10.5 (no swatch picker; id-less defaults;
-  0..9; labelled by Week = drawn loose; corners squared only where the two bars touch; not stylable).
+  0..99; labelled by Week = drawn loose; corners squared only where the two bars touch; not stylable).
+- ⭐ **R19 (owner, after trying the build):** *"lets not do the plus and minus symbols lets do open text boxes like all
+  other phases use"*, and both explanatory lines in the card deleted. The counts are Prep's number boxes (blank = default,
+  0 = none, typed = its own, bold, "Whole days only" on a fraction); plan §10.3b.
 - ⭐ **One lane rule beyond the first cut, inside the approved scope** (plan §3: "the next episode takes the lane below"):
   on `doubleups-half` (4.5-day episodes) a week held two double-ups, and first-fit lifted the next episode to a line
   ABOVE the second one. The next episode's run right after a double-up now starts its lane search one line under it
