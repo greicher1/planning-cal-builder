@@ -94,7 +94,8 @@ function FileNameRow({ parts, off, setOff, offDefault, order, setOrder, orderDef
   const press = useRef(null)      // {k, x, y, dragging} from pointerdown until pointerup
   const swallow = useRef(false)   // the click that ends a drag must not switch the chip
   const sorted = parts.slice().sort((a, b) => order.indexOf(a.k) - order.indexOf(b.k))
-  const toggle = (k) => { setTyped(null); setOff(off.includes(k) ? off.filter((x) => x !== k) : off.concat([k])) }
+  // Functional, so two clicks before a render both count.
+  const toggle = (k) => { setTyped(null); setOff((cur) => (cur.includes(k) ? cur.filter((x) => x !== k) : cur.concat([k]))) }
   // Changed from the default: the scenario is OFF by default (owner, 18 Nov 2026), so "Put all back" unticks it again.
   const offKey = (list) => parts.filter((p) => list.includes(p.k)).map((p) => p.k).join()
   const changed = typed !== null || offKey(off) !== offKey(offDefault) || order.join() !== orderDefault.join()
@@ -162,12 +163,12 @@ function FileNameRow({ parts, off, setOff, offDefault, order, setOrder, orderDef
     <div className="pdfdlg-name">
       <Group justify="space-between" align="baseline" mb={6} wrap="nowrap">
         <Text size="sm" fw={600}>File name</Text>
-        {changed && (
-          <UnstyledButton onClick={() => { setTyped(null); setOff(offDefault.slice()); setOrder(orderDefault.slice()) }} data-pdfdlg="name-reset"
-            style={{ fontSize: 12, color: 'var(--mantine-color-dimmed)', textDecoration: 'underline' }}>
+        {/* Always laid out, hidden while there is nothing to put back: its appearing must not make the window taller. */}
+          <UnstyledButton onClick={() => { setTyped(null); setOff(offDefault.slice()); setOrder(orderDefault.slice()) }} data-pdfdlg="name-reset" tabIndex={changed ? 0 : -1} aria-hidden={!changed}
+            style={{ fontSize: 12, color: 'var(--mantine-color-dimmed)', textDecoration: 'underline',
+                     visibility: changed ? 'visible' : 'hidden' }}>
             Put all back
           </UnstyledButton>
-        )}
       </Group>
       <span ref={measureRef} aria-hidden="true"
         style={{ position: 'absolute', visibility: 'hidden', whiteSpace: 'pre', fontSize: 'var(--mantine-font-size-sm)',

@@ -30,7 +30,11 @@
 //   ⭐ RE-EXPECTED 18 Nov 2026 (owner's picker, from the execs' ask): the Writers' Room Open date after the season,
 //       "Harbor Test S3 WRO 1.5.26 Planning Calendar …", in X1-X3, X5, X6, X8-X10 and Help's example (X7); Compare (X4)
 //       leaves it out, its tabs can open the room on different days. On v1.17.0 every one of those is red.
-//   X11 a DD/MM calendar: "WRO 5.1.26", day first as its header
+//   ⭐ RE-EXPECTED AGAIN 18 Nov 2026, the owner's default: "Harbor Test S3 Planning Calendar v2 WRO 1.5.26 - a.o. 10.1.26"
+//       (title, season, words, Version, WRO, then the edited date as "a.o. M.D.YY" set off by " - "); the scenario is OFF
+//       by default, so no name here carries " – Scenario A" (leg filenamelist ticks it). Compare: "… Scenario Comparison -
+//       a.o. 10.5.26". The fixture's Version box "v2" opens as "2" and prints "v2".
+//   X11 a DD/MM calendar: "WRO 5.1.26" and "a.o. 18.11.26", day first as its header
 //   X12 no Writers' Room date: no "WRO" in the name
 window.__T.memoryIDB();
 window.addEventListener('load', function () { (async function () {
@@ -39,7 +43,9 @@ window.addEventListener('load', function () { (async function () {
   function qa(s, r){ return [].slice.call((r || document).querySelectorAll(s)); }
   function txt(e){ return ((e && e.textContent) || '').replace(/\s+/g, ' ').trim(); }
   function el(id){ return document.getElementById(id); }
-  var now = new Date(), today = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0');
+  // The edited date as a name writes it (18 Nov 2026): "a.o. M.D.YY", day first on a DD/MM calendar (X11).
+  var now = new Date(), yy = String(now.getFullYear()).slice(2);
+  var today = (now.getMonth() + 1) + '.' + now.getDate() + '.' + yy, todayDM = now.getDate() + '.' + (now.getMonth() + 1) + '.' + yy;
   // The name a download is given, without letting it download.
   async function downloadName(click, label){
     var name = null, realK = HTMLAnchorElement.prototype.click;
@@ -55,7 +61,7 @@ window.addEventListener('load', function () { (async function () {
     await T.appReady();
     await T.until(function(){ return qa('.sc-tab').length === 3 && qa('#table-wrap td.sheet-phase-cell').length > 0; }, 'the three scenarios and the grid', 200, 100);
     await settle();
-    var stem = 'Harbor Test S3 WRO 1.5.26 Planning Calendar 2026-10-01 v2 – Scenario A';
+    var stem = 'Harbor Test S3 Planning Calendar v2 WRO 1.5.26 - a.o. 10.1.26';
 
     var pdf1 = await exportName('export-wf-pdf-btn');
     add('X1', 'the waterfall PDF carries the season beside the title, then the Date Last Edited and the Version, then the scenario',
@@ -73,7 +79,7 @@ window.addEventListener('load', function () { (async function () {
       month = rec.calls[0].suggestedName;
       await T.until(function(){ return rec.files.length > 0 && rec.files[0].closed; }, 'the month PDF write', 100, 100).catch(function(){});
     } finally { rec.restore(); }
-    var mStem = 'Harbor Test S3 WRO 1.5.26 Month Calendar 2026-10-01 v2 – Scenario A';
+    var mStem = 'Harbor Test S3 Month Calendar v2 WRO 1.5.26 - a.o. 10.1.26';
     add('X3', 'the month PDF is named the same way', month === mStem + '.pdf', {name: month}, mStem + '.pdf');
     el('view-sheet-btn').click(); await settle();
 
@@ -84,14 +90,14 @@ window.addEventListener('load', function () { (async function () {
     var cmpPdf = await downloadName(function(){ compareButton('Export PDF').click(); }, 'the comparison PDF');
     var cmpXl = await downloadName(function(){ compareButton('Export to Excel').click(); }, 'the comparison workbook');
     compareButton('Done').click(); await T.sleep(500);
-    var cStem = 'Harbor Test S3 Scenario Comparison 2026-10-05';
+    var cStem = 'Harbor Test S3 Scenario Comparison - a.o. 10.5.26';
     add('X4', 'Compare\'s exports carry the season beside the title and the newest Date Last Edited of any tab (no Version: each tab has its own)',
       cmpPdf === cStem + '.pdf' && cmpXl === cStem + '.xlsx', {pdf: cmpPdf, xlsx: cmpXl}, cStem + '.pdf / .xlsx');
 
     // X5 -- a revised plan is named for its new date.
     T.set('start-production', '2026-07-06'); await settle();
     var pdf2 = await exportName('export-wf-pdf-btn');
-    var want2 = 'Harbor Test S3 WRO 1.5.26 Planning Calendar ' + today + ' v2 – Scenario A.pdf';
+    var want2 = 'Harbor Test S3 Planning Calendar v2 WRO 1.5.26 - a.o. ' + today + '.pdf';
     add('X5', 'after an edit the waterfall PDF takes today\'s date, so the revised plan never shares the old one\'s name',
       pdf2 === want2 && pdf2 !== pdf1, {first: pdf1, revised: pdf2}, want2);
 
@@ -107,14 +113,14 @@ window.addEventListener('load', function () { (async function () {
     await T.until(function(){ return !document.querySelector('.season-pop'); }, 'the Season dropdown to close', 30, 50).catch(function(){});
     await settle();
     var xl2 = await exportName('export-btn');
-    var want8 = 'Harbor Test S3 & S4 WRO 1.5.26 Planning Calendar ' + today + ' v2 – Scenario A.xlsx';
+    var want8 = 'Harbor Test S3 & S4 Planning Calendar v2 WRO 1.5.26 - a.o. ' + today + '.xlsx';
     add('X8', 'two seasons ticked: the name carries "S3 & S4" beside the title, as the header does',
       xl2 === want8, {name: xl2, seasonShown: sel.options[sel.selectedIndex] && sel.options[sel.selectedIndex].text}, want8);
 
     // X6 -- no season, no Version: neither leaves anything behind in the name.
     T.set('season-num', ''); T.set('show-version', ''); await settle();
     var xl3 = await exportName('export-btn');
-    var want3 = 'Harbor Test WRO 1.5.26 Planning Calendar ' + today + ' – Scenario A.xlsx';
+    var want3 = 'Harbor Test Planning Calendar WRO 1.5.26 - a.o. ' + today + '.xlsx';
     add('X6', 'no season and no Version: neither is in the name, and nothing is left behind for them',
       xl3 === want3, {name: xl3}, want3);
 
@@ -135,7 +141,7 @@ window.addEventListener('load', function () { (async function () {
     T.set('show-title', long); await settle();
     var xl9 = await exportName('export-btn');
     var pdf9 = await exportName('export-wf-pdf-btn');
-    var head9 = cutTitle(long), want9 = head9 + ' WRO 1.5.26 Planning Calendar ' + today + ' – Scenario A';
+    var head9 = cutTitle(long), want9 = head9 + ' Planning Calendar WRO 1.5.26 - a.o. ' + today;
     add('X9', 'a 200-character title is cut to fit a file name (150 characters, at a word) in the workbook\'s and the waterfall PDF\'s names, and the rest of each name is whole',
       long.length === 200 && head9.length <= 150 && head9.length >= 120 && xl9 === want9 + '.xlsx' && pdf9 === want9 + '.pdf',
       {titleLength: long.length, cutLength: head9.length, xlsx: xl9, pdf: pdf9, xlsxLength: xl9 && xl9.length},
@@ -144,7 +150,7 @@ window.addEventListener('load', function () { (async function () {
     while(exact.length < 150) exact += 'x';
     T.set('show-title', exact); await settle();
     var xl10 = await exportName('export-btn');
-    var want10 = exact + ' WRO 1.5.26 Planning Calendar ' + today + ' – Scenario A.xlsx';
+    var want10 = exact + ' Planning Calendar WRO 1.5.26 - a.o. ' + today + '.xlsx';
     add('X10', 'a title of exactly 150 characters is kept whole (no real calendar\'s name changes)',
       exact.length === 150 && xl10 === want10, {titleLength: exact.length, name: xl10}, want10);
     T.set('show-title', 'Harbor Test'); await settle();
@@ -152,7 +158,7 @@ window.addEventListener('load', function () { (async function () {
     // X11 -- a DD/MM calendar writes the WRO date day first, as its header's "Writer's Room Opens" line does.
     T.set('wf-date-format', 'd/m/yy'); await settle();
     var xl11 = await exportName('export-btn');
-    var want11 = 'Harbor Test WRO 5.1.26 Planning Calendar ' + today + ' – Scenario A.xlsx';
+    var want11 = 'Harbor Test Planning Calendar WRO 5.1.26 - a.o. ' + todayDM + '.xlsx';
     add('X11', 'on a DD/MM calendar the WRO date is day first (5.1.26), as the header prints it',
       xl11 === want11, {name: xl11}, want11);
     T.set('wf-date-format', ''); await settle();
@@ -160,7 +166,7 @@ window.addEventListener('load', function () { (async function () {
     // X12 -- no Writers' Room date: no "WRO" and nothing left behind for it.
     T.set('start-writersRoom', ''); await settle();
     var xl12 = await exportName('export-btn');
-    var want12 = 'Harbor Test Planning Calendar ' + today + ' – Scenario A.xlsx';
+    var want12 = 'Harbor Test Planning Calendar - a.o. ' + today + '.xlsx';
     add('X12', 'no Writers\' Room date: the name has no WRO and no gap for it',
       xl12 === want12, {name: xl12}, want12);
 
@@ -169,8 +175,8 @@ window.addEventListener('load', function () { (async function () {
     var examples = help.match(/\(e\.g\.[^)]*Planning Calendar[^)]*\)/g) || [];
     add('X7', 'Help\'s examples name the new shape, the season beside the title, and neither older one ("Show Title - Season 1 Planning Calendar.xlsx", "Show Title Planning Calendar S1 …")',
       help.indexOf('Show Title - Season 1 Planning Calendar.xlsx') === -1 && help.indexOf('Show Title Planning Calendar S1') === -1 &&
-      examples.length >= 2 && examples.every(function(e){ return e.indexOf('Show Title S1 WRO 1.5.26 Planning Calendar 2026-11-12 v3.xlsx') !== -1; }),
-      {examples: examples}, 'every example: Show Title S1 WRO 1.5.26 Planning Calendar 2026-11-12 v3.xlsx');
+      examples.length >= 2 && examples.every(function(e){ return e.indexOf('Show Title S1 Planning Calendar v3 WRO 1.5.26 - a.o. 11.12.26.xlsx') !== -1; }),
+      {examples: examples}, 'every example: Show Title S1 Planning Calendar v3 WRO 1.5.26 - a.o. 11.12.26.xlsx');
   } catch(e){
     add('ERR', 'the leg threw', false, String(e && e.stack || e), 'no error');
   }

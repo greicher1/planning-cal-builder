@@ -57,10 +57,17 @@ window.addEventListener('load', function () { (async function () {
     // v3"): a fixture WITHOUT versionAsTyped whose box the old rule printed differently opens with
     // its box rewritten to what it printed. hdrversion.sptcal is that file ("3" -> "v3");
     // hdrversion-astyped.sptcal is the same calendar saved with the marker ("3" stays "3").
+    // ⭐ SINCE 18 Nov 2026 (owner: "the Show info box should also be changed back to enter a number only and it adds the
+    // v itself in the header") a box holding a NUMBER, with or without its v, opens as the bare number and prints "v" +
+    // it, marker or no marker (so hdrversion-astyped's "3" now prints "v3"); only TEXT keeps the rules above.
     out.fixtureAsTyped = fixture.versionAsTyped === true;
     var oldNum = fixtureValue.trim().replace(/^[vV]/, '').trim();
     var oldLabel = oldNum ? 'v' + oldNum : '';
-    out.expectedField = (!out.fixtureAsTyped && oldLabel !== fixtureValue.trim()) ? oldLabel : fixtureValue;
+    var asNumber = fixtureValue.trim().replace(/^[vV]\s*/, '');
+    var isNumber = /^\d+(\.\d+)*\.?$/.test(asNumber) || /^[vV]$/.test(fixtureValue.trim());
+    out.expectedField = isNumber ? (/^[vV]$/.test(fixtureValue.trim()) ? '' : asNumber)
+      : ((!out.fixtureAsTyped && oldLabel !== fixtureValue.trim()) ? oldLabel : fixtureValue);
+    var numberLabel = (isNumber && out.expectedField) ? 'v' + out.expectedField : null;
     // What l2 SHOULD read. Normally the auto default -- "v" plus the version field. But a fixture
     // saved in Manual or Template stores its own l2, and a stored line wins over the default
     // (headerLine checks `id in headerManual` first). In Manual that stored text is literal, which
@@ -73,7 +80,7 @@ window.addEventListener('load', function () { (async function () {
     // template, and the one this leg's fixture carries is exactly `{version}` -- so the expectation
     // is the version label, the same string Auto would have produced. Anything more elaborate
     // belongs in t/hdrtemplate.js, which drives the resolver properly.
-    var versionLabel = out.expectedField.trim();
+    var versionLabel = numberLabel !== null ? numberLabel : out.expectedField.trim();
     if (storedL2 === undefined) out.expectedLabel = versionLabel;
     else if (!isTemplateFixture) out.expectedLabel = String(storedL2).trim();
     else out.expectedLabel = (String(storedL2).trim() === '{version}') ? versionLabel : null;
