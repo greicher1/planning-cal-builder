@@ -52,6 +52,373 @@
   doubleups; `cmdprint` 6/6, `pdfdialog` 15/15, `filekeys` 16/16, `monthpick` 10/10, `scenarios` 23/23, `phasesui` 8/8,
   `cspproof` 15/15.
 
+||||||| 1c9b008
+
+### 🚀 18 Nov 2026: v1.19.0 — THE MONTH SHRINK AND THE 10-LINE DAY, RELEASED TOGETHER from `claude/dreamy-keller-2ed2c2` (the two entries below are the features)
+- **Owner's pickers, 18 Nov:** *"Commit locally"* (`c87655b`) and *"Push to main"*. When the push was approved,
+  `origin/main` had moved to v1.17.5 (five Tandem-day releases since the v1.17.0 merged here), so it was merged in
+  (`61dcadf`); while that tree was being gated another session released **v1.18.0** (Finish before + the note editor's
+  "No date", `714df71`), so that was merged too (`0c30df6`) and this release became **v1.19.0**. Each time only the
+  tops of README and HANDOFF conflicted (both sides kept. ⚠️ This repo's conflict style is diff3: strip the
+  `||||||| base` lines with the other markers). `app.js`, `legacy.css` and `gate.sh` merged clean; `fitMonthPage`'s
+  observer is still the first on `#table-wrap`; main's `moveWfLine` change sits under the row limit's drag door.
+- **Cut:** `APP_VERSION`, `version.json`, `package.json` 1.19.0; README's two entries under a v1.19.0 heading;
+  `releases/v1.19.0.html` cmp-identical to the build (sha256 `8d8ac15af2acc3d6…`); `tests/fixtures/v1.19.0-saved.sptcal`
+  a real Save. `npm run check` 42/42.
+- **Release gate** on that build (port 8961, 13:25–14:24 on 18 Nov): **5,834 PASS, 1 FAIL**. Gates 1–3, the restore
+  (77 ids), **gate 10 11 of 11, gate 13 24 of 24**, all byte-identical. The FAIL is `scenariocompat` on
+  `releases/v1.2.0.html`: red in the gate and twice alone (v1.2.0 never drew its File menu: `menuItems: 0`, the leg
+  timing out on "Open…"), then green three times alone with nothing changed. A headless probe of v1.2.0 (deleted) showed
+  its menu, File System Access and the in-memory IndexedDB all present. It runs only that frozen file and unchanged
+  harness files; a known flake of v1.17.0's gate.
+- **The gate before it** (v1.17.5 merged, cut as a v1.18.0 that was never pushed; 11:55–13:16, a load spike to 106 from
+  two other sessions' Chrome around 12:36): 5,772 PASS, 5 FAIL, gates 10 and 13 byte-identical. `conflict` C3/C4b,
+  `monthwriter` (`mvnotesize-14`) and (`doubleups`): timeouts, each green alone (9/9, 12/12, 12/12).
+- ⭐ **`epnames` (halfdays) N5 was red once more ALONE** in that round (the session that started this one asked for it
+  to be explained before any push). Cause, measured: **a test race, on the live build too.** `openText()` waited 300 ms
+  plus a quiet grid, never for the load; the grid of the calendar before is already a month grid, and a Load now and
+  then lands up to 2 s after the picker (both builds; usually 40–140 ms). N5 then read N4's 11-name episode list while
+  its bars and saved file were already N5's. A loop of the N4 → N5 step (scratch leg, deleted) caught it on **v1.17.5: 1
+  load in 20 at 1.97 s, the old wait returning at 1.2 s**; no revert, just late. Fix (test only): `openText()`
+  waits for the File menu's label to name the loaded file (`renderRecents()` runs after `refreshAfterRestore()` has
+  rebuilt every sidebar list), as `autonoterename` does. With it, 80 loads in a row on both builds read correctly, one
+  landing at 1.69 s, and the label never came before the list; `epnames` 11/11 and 5/5 on both builds, and green in the
+  v1.19.0 gate.
+- ⚠️ Any leg that loads through `openViaFakePicker` and then waits only on TIME has the same race. `autonoterename`'s
+  `load()` is the pattern to copy.
+
+### ✅ 17 Nov 2026: A CROWDED MONTH SHRINKS ON SCREEN EXACTLY AS ITS PDF DOES. STAGE 2 DONE (owner: *"finish"*), ON THE ROW LIMIT'S BRANCH `claude/dreamy-keller-2ed2c2` WITH `origin/main` v1.17.0 MERGED IN; FULL GATE RUN 18 Nov (5,731 PASS, 14 timeouts each green alone, gates 10 and 13 byte-identical); NOT PUSHED. Stage 1 was built on branch `claude/month-shrink-build-c94fac` (worktree `.claude/worktrees/month-shrink-build-c94fac`, cut from the planning branch `month-shrink` at `c6b7830`, which is `origin/main` `aa16ffe` plus the plan; its `node_modules` is a real copy, not a symlink, so there is nothing to unlink). Its own branch stops at the stage 1 WIP commits (`01dac2f`); ⛔ the tests, the docs and the full gate are ONLY on `claude/dreamy-keller-2ed2c2`, which carries this build with the 10-line limit on top, so the two ship together. Tracker card `month-view-shrink-like-pdf`. ⭐ [`MONTH-SHRINK-PLAN.md`](MONTH-SHRINK-PLAN.md) is the design
+- **Owner, 17 Nov 2026**, with a PDF and a screenshot of one crowded month: *"1st image is pdf export, 2nd image is live
+  viewer...the live viewer still looks different and is changing the height and stretching the whole calendar"*, and
+  *"I think id rather the live view look like it will in the pdf"*. That was the month page's "Full size, taller page"
+  (16 Nov, `b8f4ccf`) working as built; the owner now wants the opposite.
+- **Rulings (pickers, 17 Nov 2026):** *"Shrink like the PDF"* (the card stays one page at every month; a crowded
+  month's bars and text shrink by the PDF's own factor and notes wrap where the PDF wraps them; replaces "Full size,
+  taller page") and *"Approve with that gate"* (ONE frozen edit: on screen, in a shrunk month, a note's lines are
+  counted at the smaller size; gate: gates 10 and 13 byte-identical and the screen's weeks equal the PDF's rows on the
+  shrunk test months). Any other frozen edit needs a new approval. Later the same day, after trying the question on
+  the build, *"Stay one page"*: a line the user adds to a week (the row's "+") does NOT make a shrunk month's card
+  taller; the week keeps the PDF's row and a blank line with no room is hidden below its edge.
+- ⛔ The owner's two images are a real show's calendar: nothing from them goes into the repo. The fixtures with a
+  shrunk month are `monthscale` (k = 39/64), `month-dense60` (49/64) and `month-lanecap` (30/64), August 2026 in each.
+- **Built** (`src/legacy/app.js`, `src/styles/legacy.css`; the one approved frozen edit, no other frozen line):
+  - **The writer is asked, not copied** (app.js, "THE MONTH PAGE SHRINKS A CROWDED MONTH", under `fitMonthPage`).
+    `mvWriterFit()` renders the month on screen as the export does (`printingCursor` set to the cursor month, frozen
+    `renderMonthView`, both restored in `finally`, synchronous), models it with `mvlMonthLayout` and takes
+    `mvlFitMonth(...).fit` (`mode`, `scale`, `rows`, `basis`, `grow`). Header Off and the bar size are passed as
+    `exportMonthPdfDirect` passes them. Cached by the print html (12 entries). It needs the four Inter PDF programs:
+    `mvAskPdfFonts()` decodes them the first time a month is drawn (never in a waterfall-only session); until they are
+    in, the month is drawn as before (full size, taller card) and re-fitted when they arrive, a few ms later.
+  - **The factor is session state**, `mvScreenK` (1 = none; beside the note measurers; never saved). The page fit's
+    FIRST observer calls `mvShrinkToFit()` after every render of `#table-wrap`: when the writer's factor is not the one
+    the month was rendered with, it sets it and calls `render(currentSchedule)` once. ⛔ It cannot loop: the fit comes
+    from the PRINT html and SK1 is inert while `printingCursor` is set, so the fit does not depend on the factor; the
+    second pass gets the same fit from the cache. Measured: one render per page turn, two when the factor changes
+    (into and out of the shrunk month), never more.
+  - **Frozen edit SK1** (owner-approved; in `mvNoteLineCount`'s 10 px path and `mvNoteLineCountSized`): when
+    `!printingCursor && mvScreenK !== 1`, the count is taken in a box whose text width is the DRAWN text width
+    (`mvNoteBoxWidth()` less 6/7 px, less 10 px of padding and border) divided by k. The cache keys carry that width.
+    Not in `mvNoteBoxWidth()`, which pills also read.
+  - **The sizes** are screen-only CSS at the end of the month page's block (legacy.css, "THE MONTH PAGE SHRINKS A
+    CROWDED MONTH"), every one `mvlWeekPaint(k)` scales, as `calc(<px> * var(--mvk))`, unscaled borders added to the
+    fixed heights (a Standard bar `17k + 2`, a sized note's `--mvn-h1` box `(h1 - 2)k + 2`). ⚠️ The plan said "under a
+    class on `#table-wrap`"; it is `#table-wrap#table-wrap[style*="--mvk"]` instead, the factor's own presence in
+    `#table-wrap`'s style: one piece of state instead of two, and `buildSavedHtml()` already strips that style. Inline
+    sizes (a month text style's, a note size's) are out-ranked with `!important`, one rule per size 6 to 14 px, both
+    spellings (Chrome re-serialises a touched style attribute as `font-size: 12px`).
+  - **The weeks' heights** in a shrunk month: `--mvp-f<i>` is `<grow x 100> 0 <basis>px` from the writer's own
+    `fit.grow` / `fit.basis`, so flexbox lands on `fit.rows`. ⚠️ The plan said `0 0 <row>px`; fixed rows made the card
+    2.3 px taller than the page at 75% zoom (hairlines draw one device pixel), which the room left over now absorbs,
+    as in a fitting month. ⛔ And the basis is never under what the week's bars need AS DRAWN (`monthPageNumbers`'
+    `need`, read at the factor, plus the week's top line): zoomed out, a note can take a line more than it was counted
+    for, and with the writer's basis alone its week ran 27 px past its bottom edge and was cut (monthscale, 75%).
+- **Measured** (scratch probes, not committed: every month of each fixture walked, the written PDF's rows read out of
+  its content streams, and the writer's own fit run from a slice of `app.js` over the print document):
+  - At 100% zoom, 1600 x 1200 and 1100 x 760: on all three shrink fixtures August's card is 1027.52 x 788.02 px, the
+    screen's factor is the writer's, every week is the written PDF's row within 0.1 px (worst 0.016), every pill and
+    band is `17k + 2` px, and no bar runs past its week. Notes with the PDF's lanes and lines: `month-dense60` 81 of
+    81, `month-lanecap` 46 of 46, `monthscale` 62 of 63 (the one below).
+  - The written month PDF AND the print rollback's document are byte-identical to `origin/main`'s build on
+    `monthscale`, `month-dense60`, `month-lanecap`, `mvnotes`, `notewrap`, `mvbarsize-large`, `mvnotesize-mixed`,
+    `mvtextstyle`, and again on the three shrink fixtures exported WHILE the shrunk month is on screen. `npm run check`
+    42/42.
+  - Editing a note in a shrunk month (double-click, type, Save, by hand in the pane and by probe) re-fits it: the
+    factor moved 39/64 to 38/64 in the probe's case, the card stayed one page, the note drawn in full.
+  - Bar and note sizes in a shrunk month: `monthscale` at Extra large bars (k = 38/64), `monthscale` at 11 px bars
+    with 12 px notes (47/64) and `month-dense60` at 13 px notes (46/64): one page, rows the PDF's within 0.02 px,
+    bars `(line + 2)k + 2` px.
+  - The existing `monthpage` leg: 10 of 10 on `mvnotes` (1600 x 1200 and 1100 x 760), `notewrap`,
+    `mvbarsize-large`, `mvnotesize-mixed` (months that fit are unchanged). On `monthscale` with `tall=1`: T and B red,
+    as they must be until re-premised (T holds "taller card", B holds 19 px bars); G0, P, S, Z, X, V, F, E0 green,
+    F on the shrunk month itself (from the waterfall it lands on the same lanes and rows as a later render).
+  - Cost, on this Mac: a page turn's month render is 6 to 7 ms and the writer's fit adds about 5 (a second, print
+    render and the fit); a turn into a shrunk month is 60 to 80 ms (two renders and the six-step fit), out of it about
+    30. ⚠️ Timings taken from the Browser pane while it is HIDDEN run about seven times slower, plain renders included
+    (it cost a false alarm here): read `tabs_context` before believing one.
+- **What does not match the PDF, and why:**
+  - ⭐ **Chrome draws a font at a size CUT to a hundredth of a device pixel** (measured: 6.09375 px draws as 6.09 at
+    1x, 6.715 for 6.71875 at 2x; whole and half sizes are exact). So shrunk text on screen is up to about 0.16%
+    narrower than the PDF's. SK1 counts at the exact factor, as the PDF does, so the LANES are the PDF's; a note
+    within that margin of its box draws one line fewer inside them (`monthscale`: one note of 63, three lanes, two
+    lines drawn, three in the PDF). The direction is always narrower, so text is never cut by it.
+  - **At a zoom other than 100%** Chrome snaps a 1 px border to whole device pixels, which moves a note's text box by
+    up to 2 px (narrower zoomed out, wider zoomed in), as it already does in every month. Zoomed in, some notes draw a
+    line fewer than their lanes; zoomed out, a line more, and that week and the card grow (`monthscale` at 75%: ten of
+    its near-identical notes, card 823 px; `month-dense60` at 75% and `month-lanecap` at 125%: one page). Nothing is cut.
+  - **A line added with the row's "+" in a shrunk month** (owner's picker, *"Stay one page"*): `fitMonthPage` writes
+    `--mvp-m<i>` as 0 there, so the week keeps the PDF's row. Measured on `monthscale`'s August, first week: before the
+    ruling one "+" made the week 73 px instead of 39 and the card 812 px instead of 788; now the week stays 38.95 px
+    and the card 788.02 px, the added line is in the DOM (5 lines, 30 slots) and 9 slots show, as before the click.
+    A fitting month is unchanged (July: the added line stays inside its week, all 26 slots showing). ⚠️ So in a
+    crowded month "+" can look as if it did nothing; the owner chose that knowingly. ⚠️ In a shrunk month a light
+    week is as short as in the PDF, so only some of its blank "+" note slots show at all (9 of 23 in that week).
+  - **Chrome breaks a line after a hyphen** ("2026-" / "08-10", "Scale-" / "mode"); the writer breaks only at
+    spaces. So a note holding such a word can wrap to fewer lines on screen than in the PDF, at every size and in
+    every month, shrunk or not (not new; seen here on `monthscale`'s notes at 12 px, three lines against four, the
+    third and fourth behind the two-line cut either way).
+  - The usual knife edges (Chrome's text measure against the writer's font tables) remain. One found on the way that
+    is NOT this change's: at note size 13, two FITTING months of `month-dense60` (June and July 2026) are 1 px off
+    the PDF's rows, identically on `origin/main`'s build.
+- **STAGE 2 (owner, 17 Nov 2026: *"finish"*, said in the row limit's session once it reported that its push waited on
+  this build).** Done on `claude/dreamy-keller-2ed2c2` after merging `origin/main` (`3db79a0`, v1.17.0 double-up days;
+  the only conflicts were the top of README and of this file, both sides kept). Seven legs had failed on the stage 1
+  build in the row limit's full gate (80 checks); each is re-premised and green, and every re-premised case was shown
+  RED on a mutant of the build (`dist-mut/<name>/`, untracked; the sources restored after each build):
+  - **`monthpage`**: G0 the card is exactly one page in every month; P every PRINTED month's weeks are the written PDF's
+    rows, a shrunk one too (a month the PDF does not print is left out, as before); **T** (new premise) the factor on
+    screen is the PDF's, read from the PDF's own day-number type (8.25 pt x k), a whole number of 64ths, and a shrunk
+    month's card is one page; **N** (new) a shrunk month's notes are in the PDF's boxes: each note is paired with the
+    PDF's clipped text group by its text, and its lanes are the PDF's lines, its width the PDF's, never taller, the
+    PDF's height for all but 3% (the 1/100 px knife edge: 1 of 42 on `monthscale`); B at k (`17k + 2`, `(13n + 4)k + 2`);
+    **K** (new) Stay one page. The query is `shrunk=1` now (was `tall=1`); gate runs added for `month-dense60`,
+    `month-lanecap` and `monthscale` at 1100 x 760. Mutants: SK1 off (G0 P T N K: lanes 3 against the PDF's 2), the
+    shrink CSS off (G0 P T N B K), no factor (G0 P T N K), Stay one page off (K alone: the week 73 px, the card 812).
+  - **`monthemit` / `monthwriter` F0**: the month page's region runs from `monthPageNumbers` to the end of
+    `mvShrinkToFit` and must use EXACTLY `MVL_FONT_WEIGHTS`, `MVL_GEOMETRY`, `loadInterPdfFont`, `mvlFitMonth`,
+    `mvlFitNumbers`, `mvlMonthLayout`, `mvlTextWidth`; the loader appears 5 times. **`monthlayout` F0**: the same
+    region, the five model names among those, and the programs asked for in the month view only (the `viewMode !==
+    'month'` return in `mvAskPdfFonts`); `monthlayout` now takes `?src=` like the other two. Mutants: an eighth name,
+    `mvlWrapText` (all three), the month-view guard dropped (`monthlayout`).
+  - **`monthexport` X1**: `font-inter-600` is taken out at `readystatechange` 'interactive', BEFORE the app's module
+    runs (phase 1 only), and put back after X1. ⚠️ The leg's own slice of the writer reads the same block, so it goes
+    back for exactly the four synchronous `loadInterPdfFont` calls (the element is read before the loader's first
+    await) and out again. The X1 check itself is unchanged; it was red on the build with the block taken out after the
+    month view was up, which is why it moved.
+  - **`monthlanes` L16b**: 8/12's 25 notes are read at FULL size from the print document (print path by its localhost
+    switch, `print()` stood in for): 76 lanes, disjoint. On screen they take 51 and could never reach the old cap.
+    Mutant: the 60-lane cap put back in frozen `takeLane` (15 clashes in the print document, last lane 61; the
+    screen, 0 clashes and 51, would have passed it).
+  - **`mvnotesize`** (on `month-dense60`): `judge` reads each month's factor (`--mvk`; walks record it) and holds every
+    rule at k (bars `(h - 2)k + 2`, an empty lane `17k`, the lane gap `2k`, type and lines times k, a sized note's box
+    `(h - 2)k + 2`, natural lines from `(h - 2 - 4k) / line`); N2's absolute 14 px / 8 px compare at k. k = 1 is every
+    rule as it was (green on `mvnotes`). Mutant: the shrink CSS off (N0, N1-11 to N1-14, N2, N5: lanes 19 / 17 px
+    against `15.02` / `13.02` at k = 49/64). ⚠️ SK1 off leaves it GREEN (12/12, run 18 Nov): it judges heights and
+    sizes, not where a note wraps. SK1 is held by `monthpage` N (and G0 P T K).
+  - Docs: README (an entry of its own, above the row limit's), CLAUDE.md (the month page's bullet: the shrunk month and
+    frozen edit SK1), UI-CONVENTIONS (the month page's as-built section), the plan (status and §5 as built), gate.sh's
+    notes.
+  - ✅ **FULL GATE, of this build and the row limit together** (port 8961, 22:41 on 17 Nov to 10:25 on 18 Nov, alone
+    among gates but under a machine load of up to 60 from other sessions; build `19edc0f9…`): **5,731 PASS, 14 FAIL.**
+    Every byte-for-byte gate identical: gates 1–3 (the waterfall's cells, the waterfall PDF with its mark and seams,
+    every Excel part), the restore and `fields.byId` (77 ids), **gate 10: 11 of 11** print documents, and **gate 13:
+    24 of 24** written month PDFs (20 in the gate; the 4 whose `monthexport` runs wrote no file, `mvheader`,
+    `dayoverrides-onhalf`, `monthnotes`, `shootorder`, rerun alone and each byte-identical) plus `blocksoff`'s text
+    check. That is the gate the owner's approval of SK1 set. Every re-premised leg green in the gate: `monthpage`
+    110/110 (ten runs), `monthemit` 293, `monthwriter` 366, `monthlayout` 56, `monthlanes` 6, `mvnotesize` 24;
+    `monthrowlimit` 23/23. **All 14 failures are timeouts or runs that stopped early, and each passes alone on the same
+    build:** `monthexport` "produced no result" ×5 (`mvheader`, `dayoverrides-onhalf`, `monthnotes`, `shootorder`, and
+    `mvnotesize-mixed` in the note-size block; 9/9 each alone) and gate 13's 4 missing files with them; `phasesui`
+    (hidewf) P5 (the colour square's pop-up not open after 150 ms; 8/8 alone); `datetoday` (tokyo) Z0 (6/6 alone);
+    `dblclickdlg` D5 (14/14 alone); `hoverchipreal` (its 240 s deadline; 8/8 alone).
+- **Traps paid for here:** ⛔ a new worktree can ALREADY hold a real `node_modules` (this one did): `ln -s` then
+  makes `node_modules/node_modules`, the build bundles two Reacts and every leg dies with "Cannot read properties of
+  null (reading 'useState')"; `ls -ld node_modules` first. A test edit made in the pane leaves a crash backup in that
+  localhost origin's IndexedDB, and the next load asks to "Recover unsaved work": delete the `unsavedBackup:*` keys
+  before handing the link over.
+- **Try it:** `http://localhost:8874/dist/index.html?state=monthscale`, Month, page to August 2026 (also
+  `?state=month-dense60`, `?state=month-lanecap`). Port 8874 is `srv.js` run in the background with Bash. ⚠️ The
+  launch entry `month-shrink-8872` (this worktree's `.claude/launch.json`, port 8872) also works, but the app STOPPED
+  that preview server about fifteen minutes after the turn that started it ended, and the owner's link was dead until
+  the next turn: hand over the Bash-run port. `tests/harness/zzbase.html` (untracked, ignored) is `origin/main`'s
+  build for side by side.
+
+### ✅ 17 Nov 2026: A DAY IN THE MONTH VIEW HOLDS 10 LINES (the limit on how tall a month row can get). FINISHED, COMMITTED LOCALLY (`2b9439a`), NOT PUSHED. Branch `claude/dreamy-keller-2ed2c2` (worktree `.claude/worktrees/dreamy-keller-2ed2c2`, a fast-forward of the month-shrink build's `01dac2f`, so it carries that build, whose stage 2 was then finished here too; `origin/main` v1.17.0 merged in; its `node_modules` is a real directory). Local commits only. Tracker card `month-row-max-height`. ⭐ [`MONTH-ROW-LIMIT-PLAN.md`](MONTH-ROW-LIMIT-PLAN.md) is the design
+- **Owner, 17 Nov 2026**, while trying the month-shrink build: *"there reall should be a max limit on how tall a
+  calendar row can be"*. Read as a week row in the Month view.
+- **What exists:** `MV_MAX_LANES = 6` caps only the week's "+" strip (frozen `renderMonthView`: "Manual expansion is
+  what's capped", "content is never hidden"). Notes typed onto a day, automatic notes and holidays have no limit, so a
+  week grows as tall as its lines need and the month PDF, and now the screen, shrinks the month to fit.
+- **Rulings (pickers, 17 Nov 2026):** *"Stop adding notes"* (a full day refuses another note and says so; nothing is
+  ever hidden; not a "+N more" collapse, not no limit). Then, with the measurements below in the options:
+  *"10 lines in a week"* (bars and notes both count, so it caps the row itself; not 8, not note lines or notes per
+  day), *"No new notes until under"* (a calendar already over opens and shows everything; its over-full days refuse a
+  new note like any full day; nothing is said on opening), *"Never refused"* (lines that arrive on their own always
+  show and count; only notes added by hand in the Month view are refused: the "+", paste, Paste notes…, a note
+  dragged to another day; an edit is never refused and a note being typed is saved whole, so a row can end a line or
+  two over) and *"Short message by the day"* (the Month view's chip: *"This day is full (10 lines). Delete or move a
+  note to add another."*; in Paste notes…, *"11/3/26 is full (10 lines)"* as a line to fix).
+- **Measured** (synthetic fixtures, this branch's build, 100%): the weeks share 631.5 px of the page; a week is about
+  38 px plus 19 px a line (10 lines: 226 px, 36% of that); a month prints full size while its weeks total 25 lines
+  (4 weeks), 23 (5 weeks) or 21 (6 weeks); ordinary weeks use 0 to 4 lines, the busiest ordinary calendar
+  (`textfit-heavy`) 3 to 5 and 7 at most, with up to 5 lines of bars; the shrink fixtures hold 18, 25 and 51 lines in
+  one week. ⚠️ In a SHRUNK month the screen shows fewer lines than full size (frozen edit SK1 re-wraps notes
+  smaller), so lines are counted at full size, through a print render.
+- **The design** (plan §3, §4): a day's lines are the lowest line any bar or note covering it ends on, counted by
+  ASKING frozen `renderMonthView` for the month as the export draws it (`printingCursor` set, as `mvWriterFit()` does)
+  and reading the inline `grid-column` / `grid-row` of its bars. No second copy of the packing rule. A day that
+  reaches its 10th line is full, and the check is at the door, at four places, none frozen: `openMvNoteEditor` (a
+  "+"), `mvNotesPaste`, the Paste notes… box's `refresh`, the note drag's `apply`. **No frozen edit, nothing saved,
+  no output moves.** The week's "+" strip and its 6-line cap are untouched. ⚠️ The "+" still shows on a full day:
+  hiding it would be a frozen edit, not proposed.
+- **Every way a line reaches a week** is the table in plan §5 (16 paths; 4 refused, 12 never).
+- **Built** (`src/legacy/app.js`, the block "A DAY IN THE MONTH VIEW HOLDS 10 LINES" above `relocateNoteAnchor`;
+  three lines of chrome CSS; no frozen line):
+  - `MV_DAY_MAX_LINES = 10`; `mvMonthLines(month)` (the print render and the read of each bar's inline place),
+    `mvDayLines`, `mvDayIsFull`; `mvSayDayFull(iso, near, msg)`, which gives `flashMvSel` a third argument `by`
+    (`{iso, dy}`): the chip is then drawn over that day's cell (found again on every draw), may run to two lines
+    (`.is-lines`) and is kept inside the window. `mvClearDayFull()` takes a stale "full" chip away when a note does
+    go in.
+  - Door 1, `openMvNoteEditor`: a "+" (`.mv-note-add`, the full-day overlay too) on a full day says so and returns.
+  - Door 2, `mvNotesPaste`: how many notes land is worked out on the day's list extended and put back; none landing
+    banks no undo step; some landing says *"This day is full (10 lines). 6 of 8 notes were pasted."* ⚠️ That partial
+    wording is mine, in the ruled message's form: the owner has not seen it yet.
+  - Door 3, `openPasteNotes`' `refresh`: `mvMarkFullPasteRows(parsePastedNotes(...))` turns a full day's rows into
+    error rows, counting the rows above them.
+  - Door 4, the note drag: `lines0` (every day's lines at the press) on the drag; `apply()` returns false for another
+    day that was full then; the mousemove says it once per day and does not redraw while the pointer stays there.
+- **Measured** (the Browser pane on `month-lanecap`, whose 12 Aug holds 25 notes, 51 lines; and scratch legs, not
+  committed):
+  - The over-limit calendar opens as before: 25 notes drawn, the same factor (30/64).
+  - "+" on the over-full day: no editor, the chip with the ruled words. "+" on a day with room: the editor, 13 ms
+    for the click including the count. An existing note on a full day opens, and edited to three lines it saves.
+  - ⌘V of three notes onto the over-full day: 25 notes still, the chip, Undo still off. Onto a day with room: all
+    three. Eight onto a day holding 4 lines: six land (10 lines), "6 of 8 notes were pasted", and that day's "+" then
+    refuses.
+  - Paste notes…: rows for the two full days read "8/12/26 is full (10 lines)" and Add is off; eleven rows for one
+    day with a bar let nine in and mark the last two; the calendar on screen is untouched while the box previews;
+    nine rows add.
+  - A note dragged onto a full day goes back (counts and order unchanged, the chip by the day under the pointer);
+    dragged across two full days onto a day with room, it lands there.
+  - Never refused: a Waterfall note typed with the over-full day's date shows on it (26 notes).
+  - ⭐ **No output moved.** The waterfall PDF, the written month PDF and the workbook (all 16 parts, and the file)
+    are byte-identical to the starting commit's build (`01dac2f`) on `mvnotes`, `notewrap`, `monthscale` and
+    `month-dense60`, and so is the print rollback's document (543,246 / 506,519 / 546,507 / 536,614 characters,
+    same SHA-256). `npm run check` 42/42.
+  - ⚠️ A trap in such a probe: the export button has a re-click guard on the real clock, so a second export clicked
+    right after the first is silently ignored. Wait for the month to settle and click once per page load.
+- **Known edges, by design** (plan §6): a shrunk month can show fewer lines than are counted; a row can end up to 2
+  lines over (a note is saved whole); a full day's "+" still shows on hover, and in a week whose tallest day is far
+  over, a full day shows a "+" on every empty line beside it, each of which says the day is full.
+- **STAGE 2 (the owner said *"Finish it"*, then *"Run the gate"*, 17 Nov 2026). ✅ DONE in the working tree: the
+  leg, its wiring, README, CLAUDE.md, UI-CONVENTIONS and the plan are written and THE FULL GATE HAS RUN. COMMITTED
+  LOCALLY (owner's picker *"Commit locally"*, the commit after `1419b25`). ⛔ NOT PUSHED: a push of this branch
+  publishes the month-shrink build too, so it waited for that build's stage 2 (now done here, with a second full gate
+  of both: see the shrink entry above) and waits for the owner's own word.**
+  - **Full gate** (port 8961, 19:02–20:04, alone on the machine; build `316e617c…`): **5,530 PASS, 81 FAIL.** Every
+    byte-for-byte output gate green: gates 1–3 (the waterfall PDF, its mark and seams, every Excel part), gate 10
+    (the print path's month document, all 11) and gate 13 (the written month PDF, all 25). `monthrowlimit` 22/22
+    over its three runs. Each failing leg was then run alone on the build of `01dac2f` (`zzbase.html`, before the
+    limit) and on this one, and the observed values compared:
+    - **80 are the month-shrink build's, identical with and without the limit** (same cases, same observed values):
+      `monthemit` F0 (17 runs) and `monthwriter` F0 (19), which that build's notes already listed; and four it did
+      NOT list, because its own stage 2 never ran the gate: `monthlayout` F0 (4; the month page region names
+      `MVL_GEOMETRY`, `MVL_FONT_WEIGHTS`, `loadInterPdfFont`, `mvlTextWidth`, `mvlMonthLayout` outside the export,
+      and the loader appears 5 times, not 4), `monthexport` X1 (29; the page fit decodes the Inter programs when the
+      month is drawn, so hiding `font-inter-600` no longer makes the first export fail and the "Print instead"
+      dialog never comes up), `monthlanes` L16b on `month-lanecap` (1; the shrunk month's last lane is 51, the case
+      wants past 60), `mvnotesize` on `month-dense60` N0, N1-11..14, N2, N5 (7; bars and lanes of the shrunk August
+      are 15 / 13 px against the full-size 19 / 17 the case measures), and `monthpage` T and B on `monthscale` (2,
+      listed). ⚠️ So the shrink build's stage 2 owes more than its notes say: those four legs need re-premising too.
+    - **1 was a run that stopped early:** `phasefill (fill-intent)` EX; alone it is 13/13 on both builds.
+    - **1 was this change's, and it is a leg's premise, not a bug:** `textfit (textfit-shared; g=lines)` threw,
+      4/4 on the old build. Its second note went onto Tue 7/28, which on that fixture already reaches 10 lines at
+      full size, so the "+" opened no editor. The leg now uses Tue 7/14 (what it tests, three lines kept exactly,
+      does not depend on the day); 4/4 on this build. ⛔ **A leg that adds a note with a month "+" needs a day under
+      10 lines at full size**; on a crowded fixture the screen's count can be lower than the full-size one.
+  - **One gap found on the way, closed after the gate (chrome only, 12 lines in `drawMvSelFlash`, build
+    `db5e3012…`):** a paste goes to the day last clicked, which can have been scrolled out of view since; the
+    message is placed by the day's cell, so with no cell in view the refusal said nothing. It now shows at the top
+    of the calendar and names the date ("7/3/26 is full (10 lines)…"). New case **L2d** (200% zoom, the full day's
+    row scrolled away, ⌘V), red on a tenth mutant (`silentaway`: said ""), green on the build. ⚠️ The full gate ran
+    BEFORE this hunk; after it: `npm run check` 42/42, `monthrowlimit` 17/17 + 3/3 + 3/3, `textfit` lines 4/4,
+    `mvkeys` `g=pick` 24/24 and `g=enter` 16/16 (the other leg that reads the month's message chip). No writer, no
+    renderer and no saved key is in the hunk.
+  - ⚠️ Run beside another session's full gate (load average over 100), `monthrowlimit` `g=shrunk` timed out once in
+    its setup ("the Save As write"); alone again it was 3/3. A no-result under load is not a red: rerun it.
+  - **The leg** `tests/harness/t/monthrowlimit.js`, three runs wired into `gate.sh` (its own block after `monthpage`):
+    `g=doors` 17/17 (the standard calendar loaded as a file: L1 the "+", L2 the paste, L2d the paste onto a day out
+    of view, L3 Paste notes…, L4 the drag, L5 what is never refused, with controls), `g=over` 3/3 on
+    `month-lanecap` (L6), `g=shrunk` 3/3 (L7: a day
+    showing 5 lines in a month shrunk to 26/64, 13 at full size, is full).
+  - **Red where it should be.** On the build before the limit (`tests/harness/zzbase.html`, the build of `01dac2f`):
+    L1 L2 L2b L3 L3b L4, L6b, L7 (and L3c, L5, which count what the paste let onto the full day). Nine mutants, each
+    built into an untracked `dist-mut/<name>/` from the repo root (`npx vite build --outDir ../dist-mut/<name>`),
+    the source restored and hashed after: the limit at 99 (the same cases); the check gone from the "+" (L1, L6b,
+    L7), from the paste (L2 L2b), from Paste notes… (L3 L3b), from the drag (L4); the count taken as the screen
+    draws it (L7 alone, `g=doors` still 16/16); an edit refused (L5); Waterfall lines dropped from a full day
+    (L5b L5c); notes past the 10th dropped on load (L6).
+  - ⚠️ A leg that must keep going on a RED build has to undo what the red build let in: on a build with no limit the
+    dragged note landed on the full day, and the next case threw looking for it (fixed in the leg: one Undo first).
+  - ⛔ **This branch sits on the month-shrink build.** The 80 failures listed above were that build's; its stage 2
+    was then done here (owner: *"finish"*; its entry above), so a push of this branch publishes both. The full gate
+    after that (18 Nov): 5,731 PASS, 14 FAIL, gates 10 and 13 byte-identical, every failure a timeout green alone;
+    the shrink entry above has the detail. `monthrowlimit` 23/23 in it, the out-of-view message (L2d) included.
+- **Try it:** `http://localhost:8893/dist/index.html?state=month-lanecap`, Month, August 2026 (12 Aug is far over
+  the limit); also `?state=monthscale` (August: days of 6 notes) and `?state=mvnotes` (an ordinary calendar: add
+  notes to one day until it stops). Port 8893 is `srv.js` run in the background with Bash.
+  `tests/harness/zzbase.html` (untracked, ignored) is the starting commit's build, for side by side.
+
+### 🚀 18 Nov 2026: FINISH BEFORE — BUILD A CALENDAR BACKWARDS FROM A PHASE ON ENDS. v1.18.0, built on branch `build-backwards` (worktree `.claude/worktrees/build-backwards`, from `origin/main` `f48df5b`; `node_modules` is a symlink, unlink it before `git worktree remove`), `origin/main` `1c9b008` (the note editor's "No date" / typed dates) merged in, cut as **v1.18.0** and pushed to `main` as a fast-forward with the tag on the owner's picker *"Push as v1.18.0"*. Owner tried it on localhost first (launch entry `build-backwards-8774`): *"Looks good, finish it"*. Local `main` NOT moved (the main checkout has another session's uncommitted work). Tracker card `build-backwards`
+- **The ask (executives' review, 17 Nov 2026):** they often work back from a delivery date (a fiscal year end), and asked
+  whether "Start after previous phase" could get a button "that moves it the other direction", obvious without
+  training; and when a phase is set by its end, the buttons should switch to the backwards one by themselves.
+- **Rulings (owner's pickers, 18 Nov 2026):**
+  - **R1, contextual, by chain position** (the owner's own answer, not either offered option): *"if you use end by on a
+    phase, the phases before it then swap to showing the end button. Phases after that phase keep showing the start
+    after buttons"*. As built: a card shows Finish before while ANY later `PHASE_CHAIN` phase is on Ends; an Ends phase
+    with no Ends phase after it shows neither (as before); one with an Ends phase after it shows Finish before.
+  - **R2, the words:** "↳ Finish before <next phase>" (offered: End before / Finish before / Start before).
+  - **R3, holding the delivery date:** no new control. Build Around pinned to Post "ends by" already rebuilds the earlier
+    phases from their lengths in one run; teach it at the training (14 Dec). An automatic pull (and the matching
+    automatic push when a phase grows) gets its own plan after the training. ⛔ So a phase that grows does NOT move the
+    phases before it; leg F3 holds that.
+  - **R4, a click puts the card on Ends** with that end in its box (recommended; offered: stays on Starts).
+- **As built** (`src/legacy/app.js`, after `autostartPhase`; CSS beside `.autostart-btn` in `legacy.css`):
+  - Markup: `<button class="finish-before-btn" data-phase>` after Start after's, on every built-in card but
+    Localization's (the chain's last). NO id. Delegated click on `#phase-rows`, beside Start after's.
+  - `reflectFinishBefore()` runs in `update()` right after `reflectPhaseEnds()`: the card's `chain-back` class
+    (`chainEndsAfter(key)`, read from the stores, so an Ends phase whose box is still empty counts) and the label
+    (`nextChainSegment()`, the mirror of `prevChainSegment()`: the next SCHEDULED chain phase, named as typed). ⚠️
+    Frozen `render()` writes Start after's label and `disabled`; it never touches this button, so the two never fight.
+    CSS: `.phase-row:not(.chain-back) .finish-before-btn` and `.phase-row.chain-back .autostart-btn` are hidden.
+  - `finishBeforePhase(key)`, inside `asShootDayMove`, one `update()` = one undo step:
+    - **Weeks phase:** `phaseEnds[key] = true`, `end-<key>` = the Friday of the week before the next phase's first
+      week, stepped back a week at a time while it is inside an all-phase hiatus.
+    - **Production:** Ends as `setProductionEnds(true)` puts it (Snap to Monday off), then the wrap as
+      `setProductionWrap()` takes it: `productionEnds` = the day before the next phase, normalised by
+      `solveProductionEndsStart()` to the last real shoot day (a weekend, holiday or hiatus reads as the day before).
+    - **Dates built-in** (no Ends): both dates move by the same days through `setPhaseStart()`, its last day the last
+      weekday before the next phase (not in a hiatus).
+  - No frozen edit, no save-format change, no new id.
+- **Proof:** new leg `finishbefore` 12/12 (C1-C3 the rule, N1 a renamed phase, F1 Production with undo and redo, F2 a
+  Weeks phase, F3 R3, D1 Dates, H1/H2 over the 12/21/26 hiatus, K1 custom, E0), wired into `gate.sh` beside
+  `prodends`. Related legs green on the build: `endsdate` 17/17, `prodends` 14/14, `snaptools` (dayoverrides) 14/14,
+  `overrides` (dayoverrides) 20/20, `builtindates` live 17 + restore 15; `npm run check` 42/42. No full gate (nothing
+  frozen, no export or save-path change).
+  - ⚠️ Running `snaptools` / `overrides` / `builtindates` by hand needs their fixture (`HARNESS_STATE=dayoverrides`,
+    `builtindates`), as `gate.sh` passes it; without it they time out "waiting for the restored calendar".
+  - ⚠️ F1 learned: finishing Production right before Post can move its start LATER (Fri 7/10/26 on the fixture), when
+    it was wrapping well before Post. That is correct, the gap closes from Production's side, not a bug.
+- **The release (v1.18.0):** `origin/main` had moved to `1c9b008` (note dates, pushed without a version): merged in as
+  `3d9ce00`, README / HANDOFF conflicts only (both kept; both Unreleased entries now sit under v1.18.0), `app.js` and
+  `gate.sh` merged clean. On the merged build: `finishbefore` 12/12, `notedates` (phasenotes) 18/18, `endsdate` 17/17,
+  `prodends` 14/14, check 42/42. Cut: `APP_VERSION`, `version.json`, `package.json` at 1.18.0; `releases/v1.18.0.html`
+  cmp-identical to the build; `tests/fixtures/v1.18.0-saved.sptcal` a real Save (`mintfixture`), 46 keys, 77 ids,
+  0 clipped, byte-identical to v1.17.5's but `lastEdited`. On the cut: check 42/42, the waterfall PDF
+  identical bar the date stamp (mark checked), gate 13 reference byte-identical, `monthexport` 9/9, `pdfmark` 6/6,
+  `phaselink` (phasenotes) 14/14. Tagged `v1.18.0`; the push and the live check are in the tracker card.
+
+
 ### 🔨 17 Nov 2026: THE NOTE EDITOR'S DAY — "No date", and a TYPED date works like a picked one. Branch `note-day-shift` (worktree `.claude/worktrees/note-day-shift`, from `origin/main` `aa16ffe`). Owner tried it on localhost, then *"Finish it"*, then *"push"* (18 Nov 2026). `origin/main` `f48df5b` (v1.17.0-v1.17.5, Tandem days) merged in first: README / HANDOFF conflicts only, both kept; `app.js` merged clean (main's 56 hunks touch none of the note editor's code). Tracker cards `note-day-default-no-date`, `linked-note-day-follows-phase`
 - **The asks (17 Nov 2026, in order):** *"In waterfall view, the default, for Day should be "No date" rather than Mon
   (default)"*; *"When you do select a date and ALSO have stays with set to a week of a phase (not a specific week) then

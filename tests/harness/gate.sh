@@ -1892,6 +1892,12 @@ done
 # Juneteenth), a typed Saturday or holiday wrapping on the shoot day before, the picker's shoot days only, Shift All
 # moving the shoot and the new wrap holding, Save / Load / a file with no key / a hostile key, back to Starts, and a
 # round trip saving byte for byte as before. Own line.
+# finishbefore (owner, 18 Nov 2026, from the executives' review: build a calendar backwards; rulings R1-R4 by picker,
+# HANDOFF "Finish before") holds the backwards twin of "Start after previous phase": shown IN PLACE of it on every card
+# before a phase on Ends and nowhere else (Writer's Rm gains one, Localization never has one, custom phases none, no
+# id), its label following a renamed phase, a click putting the card on Ends with its last working week before the
+# next phase (Production: its last shoot day), one undo step, the end holding while Production grows (no automatic
+# pull, R3), a Dates built-in moving whole, and both kinds stepping back over the 12/21/26 hiatus. Own line.
 # spancounts (owner, 2 Nov 2026: "three icons: one that says the number of production weeks, one that says the number
 # of holidays costing a shoot day, and something that says the number of Off Days"; version D, then "D replaces the
 # whole line") holds the counts under Production's span: weeks = the meta line's, the holidays and Off days that cost
@@ -2306,6 +2312,7 @@ for AFSPEC in pwagate:-:120 pwagatelogic:-:120 settingswin:-:240 newtab:-:120 \
               snapbox:-:300 \
               endsdate:-:400 \
               prodends:-:400 \
+              finishbefore:-:300 \
               spancounts:-:300 \
               retiredplaces:-:300 \
               caholidays:-:400 \
@@ -2641,12 +2648,18 @@ done
 # (MVL_GEOMETRY: 1027.53 px wide, at least 788.03 px tall, a day column 141.07 px), its weeks sharing the page by the
 # writer's own rule (legacy.css "THE MONTH PAGE"; app.js fitMonthPage), bars and notes at their printed heights.
 # t/monthpage.js: G0 the card is the page in every month; P every week's height is the WRITTEN PDF's row within 0.1 px
-# on every month that fits a page; T a month the PDF shrinks stays full size in a taller card (monthscale has one);
+# on every month the PDF prints, a shrunk one too; T the factor on screen is the PDF's in every month (a shrunk month's
+# card one page); N a shrunk month's notes are in the PDF's boxes (lanes = the PDF's lines); K "Stay one page", a line
+# added to a shrunk month's week leaves the card one page. ⚠️ RE-PREMISED 17 Nov 2026 ("Shrink like the PDF",
+# MONTH-SHRINK-PLAN.md): until then T held a shrunk month full size in a taller card. The three shrink fixtures each
+# run with shrunk=1 (T, N and K must find their month); mutants red: SK1 off (N), the shrink CSS off (P, N, B), no
+# factor (T, P, G0), "Stay one page" off (K).
 # B printed bar and note heights; S no note symbol; Z the zoom scales the page only; X a line added to a week stays
 # inside it; V the fit's numbers are on #table-wrap in the month view only; E the empty state keeps the panel's width.
 # The second mvnotes run is a small window (1100 x 760): the same numbers. Red on the build before it at G0, P, B, S,
 # Z, X and V. Screen only: gate 13 (the written month PDF, byte for byte) is what holds the PDF itself still.
-for MPSPEC in "mvnotes:::300" "mvnotes::1100,760:300" "notewrap:::300" "monthscale:tall=1::300" \
+for MPSPEC in "mvnotes:::300" "mvnotes::1100,760:300" "notewrap:::300" "monthscale:shrunk=1::300" \
+              "monthscale:shrunk=1:1100,760:300" "month-dense60:shrunk=1::300" "month-lanecap:shrunk=1::300" \
               "mvbarsize-large:::300" "mvnotesize-mixed:::300" ":::90"; do
   MPSTATE="${MPSPEC%%:*}"; MPR="${MPSPEC#*:}"
   MPQ="${MPR%%:*}"; MPR="${MPR#*:}"
@@ -2667,6 +2680,45 @@ for c in cases:
 if not cases: print('  FAIL  '+label+': no cases'); sys.exit(1)
 sys.exit(1 if bad else 0)
 PYMP
+done
+
+# ---- monthrowlimit: a day in the Month view holds 10 lines (owner, 17 Nov 2026; MONTH-ROW-LIMIT-PLAN.md) ---------
+# The owner, at a month where one week took most of the page: "there reall should be a max limit on how tall a calendar
+# row can be"; by picker, "Stop adding notes", "10 lines in a week", "No new notes until under", "Never refused",
+# "Short message by the day". A day that already reaches its 10th line (bars count) takes no new note added by hand in
+# the Month view; everything that arrives on its own still shows, and an edit is never refused.
+# t/monthrowlimit.js, three runs:
+#   g=doors   the standard calendar loaded as a file: L1 the "+", L2 a paste (none, then 1 of 3), L3 Paste notes… (a
+#             full day's row is an error; a day fills as the rows above land), L4 the note drag, L5 what is never
+#             refused (an edit that grows a note, a Waterfall note, a holiday), each with its controls; L2d a paste
+#             onto a full day scrolled out of view (200% zoom) still says so, at the top of the calendar, by date;
+#   g=over    month-lanecap (25 notes, 51 lines on one day): L6 it opens and draws them all, L6b that day refuses a note;
+#   g=shrunk  L7 the count is the FULL-SIZE one: a day showing 5 lines in a month shrunk to 26/64, 13 at full size, is full.
+# Red on the build before it (01dac2f) at L1 L2 L2b L3 L3b L4, L6b and L7 (and at L3c and L5, which only count what
+# the paste let onto the full day). Nine mutants, each red where it should be and green elsewhere: the limit at 99 (the
+# same cases as the build before); the check gone from the "+" (L1, L6b, L7), from the paste (L2 L2b), from Paste
+# notes… (L3 L3b), from the drag (L4); the count taken as the screen draws it (L7 alone: g=doors stays 16/16); an edit
+# refused (L5); Waterfall lines dropped from a full day (L5b L5c); notes past the 10th dropped on load (L6). A tenth,
+# the out-of-view message taken out again, is red at L2d alone (it says nothing).
+# Screen and stores only: the limit keeps a note out and changes no output, so gates 2, 3, 10 and 13 are what hold
+# the files still.
+for RLSPEC in "g=doors::400" "g=shrunk::400" "g=over:month-lanecap:300"; do
+  RLQ="${RLSPEC%%:*}"; RLR="${RLSPEC#*:}"; RLSTATE="${RLR%%:*}"; RLSECS="${RLR#*:}"
+  rm -f "$HERE/monthrowlimit.json"
+  HARNESS_PAGE="$PAGE" HARNESS_STATE="$RLSTATE" HARNESS_QUERY="$RLQ" "$HERE/run.sh" monthrowlimit "$RLSECS" >/dev/null 2>&1
+  python3 - "$HERE/monthrowlimit.json" "monthrowlimit (${RLSTATE:-new}; $RLQ)" <<'PYRL' || FAIL=1
+import json,sys
+path, label = sys.argv[1], sys.argv[2]
+try: a=json.load(open(path))
+except Exception as e:
+    print('  FAIL  '+label+' produced no result: '+str(e)); sys.exit(1)
+cases = a.get('cases') or []
+bad = [c for c in cases if c.get('pass') is not True]
+for c in cases:
+    print(('  PASS  ' if c.get('pass') is True else '  FAIL  ')+label+' '+str(c.get('id'))+': '+str(c.get('title',''))[:110])
+if not cases: print('  FAIL  '+label+': no cases'); sys.exit(1)
+sys.exit(1 if bad else 0)
+PYRL
 done
 
 # The three trusted-input drivers (real Chrome over CDP, as mvkeysreal.mjs above), each judged on its own minimum count:
@@ -2954,6 +3006,14 @@ done
 # N3, N4); the setter not redrawing (EX); a calendar size overriding a note's own (N2); the style bar not switching the
 # lane rules (N2); a 21 px bar at 11 px (N5); New keeping the size (N7). Removing markDirty() from the setter was ALSO
 # tried and stays green, because the redraw marks the file dirty by itself.
+# ⚠️ RE-PREMISED 17 Nov 2026 ("Shrink like the PDF", MONTH-SHRINK-PLAN.md): month-dense60's August is drawn on screen
+# at the PDF's factor (k = 49/64), so every rule is judged there at k (a bar (h - 2)k + 2, an empty lane 17k, type
+# times k; a 1 px border not scaled). Red on the shrink CSS switched off; k = 1 everywhere else, rules unchanged.
+# Beside it, re-premised the same day for the same build: monthlanes L16b reads 8/12's FULL-SIZE lanes from the
+# print document (on screen the shrunk month's notes take 51 lanes, never the old cap; red on the 60-lane cap put
+# back); monthexport X1 takes font-inter-600 out before the app boots (the first month drawn now decodes the
+# programs, and a decoded weight is cached); monthemit / monthwriter / monthlayout F0 let the month page reach exactly
+# the writer names its fit uses (red on an eighth name, and monthlayout on the month-view-only guard dropped).
 # ---- mvtextstyle on the writer and on older builds (MONTH-TEXT-STYLE-PLAN.md §6 item 2, §4) ------------------------
 # ⭐ ADDED 27 Oct 2026. monthemit holds the writer's display list to Chrome's print layout of the same document; here on
 # the styled fixture (tests/fixtures/mvtextstyle.sptcal: every month text kind styled at once, minted by the mvtextstyle

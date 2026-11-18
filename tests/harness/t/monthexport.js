@@ -23,7 +23,10 @@
 //   X0  the clock is pinned: `new Date()` is 22 Sep 2026, and the month header shows "9.22.26" (a Manual header's date
 //       slot shows its own text instead: mvheaderlegacy's is "{version}")
 //   X1  a build that FAILS offers the print path (owner ruling 2): Cancel prints nothing and writes nothing; "Print
-//       instead" runs the print path, one page per month; nothing is written either way
+//       instead" runs the print path, one page per month; nothing is written either way. The failure is a missing
+//       font-inter-600 block, taken out BEFORE THE APP BOOTS (phase 1 only) and put back after X1: since 17 Nov 2026
+//       ("Shrink like the PDF") the first month drawn decodes the four programs, and a decoded weight is cached, so a
+//       block taken out after the month view is up no longer makes the export fail.
 //   X2  ⭐ Export PDF writes the month PDF through the Save dialog: one call, named "<title> <season> Month Calendar <yyyy-mm-dd> <version>.pdf", PDF
 //       typed, one write, closed; a PDF with one page per month; no print; the button busy, then not. And its bytes
 //       ARE the sliced source's for the same calendar
@@ -59,6 +62,21 @@
     try { if(typeof window[k] === 'function') Object.defineProperty(window, k, {value: undefined, configurable: true, writable: true}); } catch (e) {}
   });
   window.__NOFSA = typeof window.showSaveFilePicker;
+})();
+// X1's failure, set up before the app boots (phase 1 only). The app's script is a module, so it runs after parsing
+// ends, and readyState turns 'interactive' just BEFORE it runs: the block is parsed by then, and nothing has read it.
+(function hideFontBeforeBoot(){
+  var phase = null; try { phase = sessionStorage.getItem('monthexport-phase'); } catch (e) {}
+  if(phase === '2') return;
+  function hide(){
+    if(window.__x1Block) return;
+    var el = document.getElementById('font-inter-600');
+    if(!el) return;
+    window.__x1Block = {el: el, parent: el.parentNode, next: el.nextSibling};
+    el.parentNode.removeChild(el);
+  }
+  if(document.readyState !== 'loading') hide();
+  else document.addEventListener('readystatechange', function on(){ if(document.readyState !== 'loading'){ document.removeEventListener('readystatechange', on); hide(); } });
 })();
 window.__T.memoryIDB();
 window.addEventListener('load', function () { (async function () {
@@ -210,8 +228,15 @@ window.addEventListener('load', function () { (async function () {
       slice('  const MVL_GEOMETRY = (function(){', "return { tag: 'F' + w, ttf: fonts[w].font, raw: fonts[w].bytes, deflated: fonts[w].deflated };\n    }));\n  }", 'the writer') +
       '\nreturn {G: MVL_GEOMETRY, loadInterPdfFont: loadInterPdfFont, mvlMonthLayout: mvlMonthLayout, fitMonthLayout: fitMonthLayout,' +
       ' buildMonthPdf: buildMonthPdf, mvlUnprintable: mvlUnprintable, mvlTextWidth: mvlTextWidth};')();
-    var fonts = {};
-    for(var fw of ['400', '500', '600', '700']) fonts[fw] = await F.loadInterPdfFont(fw);
+    var fonts = {}, fontsP = {};
+    // X1's block is out of the page (hideFontBeforeBoot), and the slice's loader reads the same block. Its read is
+    // synchronous (the element is looked up before the loader's first await), so the block goes back for exactly the
+    // four calls and out again: no code of the app's can run in between.
+    var hb = window.__x1Block;
+    if(hb) hb.parent.insertBefore(hb.el, hb.next);
+    try { ['400', '500', '600', '700'].forEach(function (w) { fontsP[w] = F.loadInterPdfFont(w); }); }
+    finally { if(hb){ hb.next = hb.el.nextSibling; hb.parent.removeChild(hb.el); } }
+    for(var fw of ['400', '500', '600', '700']) fonts[fw] = await fontsP[fw];
     var noteW = function (s) { return F.mvlTextWidth(fonts['500'].font, s, F.G.noteFontPx); };
     // A one-day custom pill wraps at the bar's own type, 600 (MONTH-NOTES-PLAN.md §6), as buildMonthLayout does.
     var pillW = function (s) { return F.mvlTextWidth(fonts['600'].font, s, F.G.noteFontPx); };
@@ -252,10 +277,14 @@ window.addEventListener('load', function () { (async function () {
         {date: pinned.toString(), header: hdrToday, manualSlot: manualSlot}, '22 Sep 2026; 9.22.26, or a Manual slot\'s text');
 
     // ---- X1: a build that fails offers the print path --------------------------------------------------------------
-    // The fonts are decoded on first use and a failed decode is not cached, so hiding one block makes the FIRST exports
-    // fail, and putting it back lets the rest succeed.
-    var block = document.getElementById('font-inter-600'), parent = block.parentNode, next = block.nextSibling;
-    parent.removeChild(block);
+    // The fonts are decoded on first use and a failed decode is not cached, so a missing block makes the FIRST exports
+    // fail, and putting it back lets the rest succeed. ⚠️ Since 17 Nov 2026 "first use" is the first MONTH DRAWN (the
+    // month page asks the writer for its fit, "Shrink like the PDF"), so the block was taken out before the app booted
+    // (hideFontBeforeBoot, above), and is only put back here.
+    var hid = window.__x1Block || null;
+    if(!hid){ var b0 = document.getElementById('font-inter-600'); hid = {el: b0, parent: b0.parentNode, next: b0.nextSibling}; b0.parentNode.removeChild(b0); }
+    var block = hid.el, parent = hid.parent, next = hid.next;
+    info.x1HiddenBeforeBoot = !!window.__x1Block;
     var sp1 = T.fakeSavePicker(), prints1 = 0, realPrint1 = window.print;
     window.print = function () { prints1++; window.__x1pages = document.querySelectorAll('#print-root .print-page').length; };
     var m1 = await modal(function () { clickExport(); }, 'the failure dialog');
@@ -269,6 +298,7 @@ window.addEventListener('load', function () { (async function () {
     window.print = realPrint1;
     sp1.restore();
     parent.insertBefore(block, next);
+    window.__x1Block = null;
     await T.until(function () { return !busy(); }, 'the button to come free', 100, 100).catch(function () {});
     add('X1', 'a build that fails offers the print path: Cancel prints and writes nothing, "Print instead" prints one page per month',
         /Something went wrong writing the month PDF/.test(m1) && /font-inter-600/.test(m1) && /Print it with the browser instead/.test(m1) &&

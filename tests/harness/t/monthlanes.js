@@ -8,6 +8,12 @@
 //       ones. month-lanecap.sptcal holds 25 day notes on Wed 8/12/26. The fix loops until a lane
 //       is free. Proof: in August 2026 no two bars share a lane AND a day column, and 8/12's notes
 //       run past lane 60 instead of folding back onto lane 0.
+//       ⚠️ RE-PREMISED 17 Nov 2026 ("Shrink like the PDF", MONTH-SHRINK-PLAN.md): the PDF shrinks this
+//       August, and the screen now draws it at the PDF's factor with every note re-wrapped at the
+//       smaller size, so on screen 8/12's notes take 51 lanes and never reach the old cap. L16b reads
+//       the renderer's FULL-SIZE lanes instead, from the print document (the print path, by its
+//       localhost switch), where frozen edit SK1 is inert: the same frozen takeLane(), at the size
+//       it was fixed at. L16a still holds the screen.
 // L-17  when the month range shrank below the month on screen, the view jumped to the FIRST
 //       month. It now clamps to the NEAREST month in range.
 //       ⭐ Owner ruling, 29 Sep 2026: a DIFFERENT calendar arriving (Load) still opens on its FIRST
@@ -113,8 +119,37 @@ window.addEventListener('load', function () { (async function () {
     }
     kase('L16a', 'August 2026: no two bars share a lane AND a day column (every note has its own space)',
          reached && overlaps.length === 0, { reached: reached, overlaps: overlaps.length, sample: overlaps.slice(0, 3) });
-    kase('L16b', "8/12/26's 25 day notes all render, each in lanes of its own, running past the old 60-lane cap",
-         aug12.length === 25 && aug12Clash === 0 && maxRow > 60, { notes: aug12.length, clashes: aug12Clash, lastLane: maxRow });
+    // L16b, at full size: the print document's August (see the header). The print path prints every month and asks
+    // nothing; print() is stood in for, and afterprint clears #print-root as a real print's does.
+    T.monthPrintPath();
+    var printed = null, prints = 0, realPrint = window.print;
+    window.print = function () { prints++; var h = document.getElementById('print-root'); printed = h ? h.innerHTML : null; };
+    document.getElementById('export-btn').click();
+    var gotPrint = await T.until(function () { return prints > 0; }, 'the print document', 200, 100).then(function () { return true; }, function () { return false; });
+    window.dispatchEvent(new Event('afterprint'));
+    window.print = realPrint;
+    T.monthPrintPath(false);
+    var pAug12 = [], pClash = 0, pMax = 0, pFound = false;
+    if (printed) {
+      var pdoc = new DOMParser().parseFromString('<div id="x">' + printed + '</div>', 'text/html');
+      Array.prototype.forEach.call(pdoc.querySelectorAll('#x > .print-page'), function (pg) {
+        var lab = pg.querySelector('.mv-monthyear');
+        if (!lab || !/August 2026/.test(lab.textContent)) return;
+        pFound = true;
+        Array.prototype.forEach.call(pg.querySelectorAll('.mv-week .mv-bar:not(.mv-note-add):not(.mv-row-expand)'), function (b) {
+          if (b.getAttribute('data-note-day') !== '2026-08-12' || b.getAttribute('data-note-kind') !== 'day') return;
+          var gr = String(b.style.gridRow || '').match(/^\s*(\d+)(?:\s*\/\s*span\s*(\d+))?/);
+          if (gr) pAug12.push({ r0: +gr[1], r1: +gr[1] + (+(gr[2] || 1)) });
+        });
+      });
+      for (var pi = 0; pi < pAug12.length; pi++) for (var pj = pi + 1; pj < pAug12.length; pj++) {
+        if (pAug12[pi].r0 < pAug12[pj].r1 && pAug12[pj].r0 < pAug12[pi].r1) pClash++;
+      }
+      pMax = pAug12.reduce(function (m, b) { return Math.max(m, b.r1 - 1); }, 0);
+    }
+    kase('L16b', "8/12/26's 25 day notes all render, each in lanes of its own, running past the old 60-lane cap at full size (the print document; on screen the month is drawn shrunk, and the notes there are disjoint too)",
+         gotPrint && pFound && pAug12.length === 25 && pClash === 0 && pMax > 60 && aug12.length === 25 && aug12Clash === 0,
+         { printed: gotPrint, augustPrinted: pFound, notes: pAug12.length, clashes: pClash, lastLane: pMax, screen: { notes: aug12.length, clashes: aug12Clash, lastLane: maxRow } });
 
     // ---- L-17: a range that shrinks in-session clamps to the NEAREST month -----------------------
     var lastBefore = await goLast();

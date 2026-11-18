@@ -29,7 +29,163 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
-## Unreleased
+## v1.19.0 — a crowded month shrinks on screen like its PDF; a day in the Month view holds 10 lines (18 Nov 2026)
+
+### A crowded month shrinks on screen exactly as its PDF does (17 Nov 2026)
+
+The owner, with a month PDF and a screenshot of the same crowded month side by side: *"the live viewer still looks
+different and is changing the height and stretching the whole calendar"*, then *"I think id rather the live view look
+like it will in the pdf"*. The month PDF shrinks a month with too much in it to fit one Letter page; the screen kept it
+full size in a card taller than the page (the 16 Nov ruling "Full size, taller page"), so its notes wrapped differently
+and the card's height changed from month to month. Three pickers: **Shrink like the PDF**, **Approve with that gate**
+(one frozen edit), **Stay one page**. The plan is [`MONTH-SHRINK-PLAN.md`](MONTH-SHRINK-PLAN.md).
+
+- **The card is one page at every month.** A crowded month is drawn at the PDF's own factor (one factor for every week,
+  a whole number of 64ths): its bars, notes, day numbers and lines are smaller by exactly what the PDF takes off, and
+  its weeks are the PDF's rows.
+- **Notes wrap where the PDF wraps them**, so each note has the PDF's lines.
+- **Stay one page.** A blank line added to a week of a crowded month (the row's "+") does not make the card taller;
+  the line sits below the week's edge when there is no room for it. In a month that fits, it still opens the week.
+- **The zoom still enlarges it**, and a month that fits is drawn exactly as before.
+- **Nothing is saved and no output changes.** The PDFs, the workbook and the print rollback are byte for byte what they
+  were.
+
+**How it is built.** The month PDF writer is asked, never copied: the app draws the month as the export does and takes
+the writer's own fit of it. The sizes are a screen-only block of CSS that applies only while the month on screen is
+shrunk. One frozen edit, approved by the owner (SK1): on screen, in a shrunk month, a note's lines are counted at the
+smaller size. It is inert at full size and while printing. The page's PDF fonts are now decoded the first time a month
+is drawn, never in a waterfall-only session; until they arrive (a few ms), a crowded month is drawn at full size.
+
+**Known differences.** Chrome draws type at sizes cut to a hundredth of a pixel, so a note within about 0.16% of its
+box can draw one line fewer than the PDF inside the same space (1 of 42 on the `monthscale` test month). Zoomed out, a
+1 px border takes a whole screen pixel, so a few notes can take a line more and that month's card grows; nothing is
+cut. Chrome breaks a line after a hyphen and the PDF only at spaces (as before, at every size).
+
+**Verified.** `monthpage` holds every month's weeks to the written PDF's rows within 0.1 px, a shrunk one too, on eight
+calendars and a small window, and adds three cases: the factor on screen is the PDF's (T), a shrunk month's notes are in
+the PDF's boxes (N: 42, 60 and 25 notes on the three test months, every one in the PDF's lines), and Stay one page (K).
+Six more tests that the shrink broke were re-premised: `mvnotesize` judges a shrunk month at its factor, `monthlanes`
+reads the full-size lanes from the print document, `monthexport` takes its font out before the app boots, and the
+three writer guards (`monthemit`, `monthwriter`, `monthlayout`) allow exactly the writer names the screen's fit uses.
+Each re-premised case is red on a mutant of the build: the frozen edit off, the CSS off, the factor never set, Stay one
+page off, an eighth writer name, the month-view-only font guard dropped, the 60-lane cap put back. Gates 10 and 13 (the
+print rollback's document and the written month PDF) are byte-identical, as the owner's approval required.
+
+**Full gate:** 5,731 pass, 14 fail, with gates 10 and 13 byte-identical (11 of 11 print documents, 24 of 24 written
+month PDFs) and every one of the 14 a slow-machine timeout that passes alone; the next entry has the detail, since
+both changes were gated together.
+
+### A day in the Month view holds 10 lines (17 Nov 2026)
+
+The owner, looking at a month where one week took most of the page: *"there reall should be a max limit on how tall a
+calendar row can be"*. Until now only the week's own "+" strip had a limit (6 blank lines). Notes typed onto a day,
+automatic notes and holidays had none, so one week could grow to dozens of lines and the whole month shrank to fit
+its page. Five pickers settled it: **Stop adding notes** (not a "+N more" collapse: nothing is ever hidden),
+**10 lines in a week**, **No new notes until under**, **Never refused**, **Short message by the day**. The plan is
+[`MONTH-ROW-LIMIT-PLAN.md`](MONTH-ROW-LIMIT-PLAN.md).
+
+- **The rule.** A day's lines are the lowest line any phase bar, hiatus band or note covering it ends on. A day that
+  already reaches its 10th line takes no new note added by hand in the Month view. A week is as tall as its tallest
+  day, so this caps the row: 10 lines is about 230 px, a bit over a third of the page.
+- **What is refused**, each with the Month view's short message by the day, *"This day is full (10 lines). Delete or
+  move a note to add another."*:
+  - a "+" on a full day opens no editor;
+  - ⌘V lands the copied notes one by one while the day has room, then says *"This day is full (10 lines). 1 of 3
+    notes were pasted."*; onto a full day it lands none and makes no undo step;
+  - Paste notes… lists a full day's row as *"11/3/26 is full (10 lines)"*, counting the rows above it in the same
+    box, and Add stays off until the row is removed, as for any other row it cannot read;
+  - a note dragged onto a full day goes back where it was.
+  - **Never silent.** A paste goes to the day last clicked, which may have been scrolled out of view since. Then
+    there is no day on screen to put the message by, so it shows at the top of the calendar and names the date:
+    *"7/3/26 is full (10 lines)…"*.
+- **What is never refused.** Editing a note that is already there, however it wraps, and its colour, style and
+  "Stays with"; anything typed, pasted or dragged in the Waterfall; notes that stay with a phase; automatic notes and
+  holidays; phase bars and hiatus bands; Shift, Build Around and every other moving tool; Load, recovery and Undo.
+  They all show, and they count toward the day's 10 lines.
+- **A calendar already over the limit** opens exactly as before and shows everything. Its over-full days take no new
+  note until enough notes are deleted or moved.
+- **The check is at the door.** It asks whether the day is full before the note is added. A note being typed is
+  saved whole, so a row can end a line or two past 10.
+- **Counted at full size.** A month the page shrinks re-wraps its notes smaller on screen, so a day there can show
+  fewer than 10 lines and still be full. Counting at full size means a day is full or not whichever month page it is
+  seen on.
+- **Nothing is saved and no output changes.** There is no setting and no new key in a calendar file. The limit only
+  keeps a new note out, so the workbook and every PDF are what they were.
+- ⚠️ **A full day's "+" still appears on hover.** It is drawn by the frozen month renderer, and hiding it would be a
+  frozen edit the owner has not been asked for. A click on it says the day is full.
+
+**How it is built.** No frozen line changed. The count is asked of the frozen renderer, never copied:
+`mvMonthLines()` has `renderMonthView` draw the month as the export does (`printingCursor` set and put back,
+synchronously) and reads the place the renderer writes on each bar. The check sits at four places outside it:
+`openMvNoteEditor` (a "+"), `mvNotesPaste`, the Paste notes… box's preview, and the note drag. The week's "+" strip
+and its 6-line cap are untouched.
+
+**Verified.** New leg `monthrowlimit`, three runs (the four doors on the standard calendar, 17 cases; the over-limit
+fixture `month-lanecap`, 3; a shrunk month, 3), all green. On the build before the change the refusals are red, and
+ten mutants each turn their own cases red: the limit raised to 99, the check removed from each door in turn, the
+count taken as the screen draws it, an edit refused, Waterfall lines dropped from a full day, notes past the 10th
+dropped on load, the out-of-view message taken out. Before any test was written, the waterfall PDF, the written
+month PDF, the workbook (all 16 parts) and the print rollback's document were compared byte for byte with the build
+before the change on `mvnotes`, `notewrap`, `monthscale` and `month-dense60`: identical. `npm run check` 42/42.
+
+**Full gate, 17–18 Nov 2026, of this change and the month-shrink build together (v1.17.0 merged in): 5,731 pass,
+14 fail, and every byte-for-byte output check identical to its baseline.** Gates 1–3 (the waterfall's cells, the
+waterfall PDF, every workbook part), the restore and its 77 saved field ids, gate 10 (the print path's month
+document, all 11 calendars) and gate 13 (the written month PDF, all 24 runs: 20 in the gate, and the 4 whose runs
+wrote no file, rerun alone, each byte-identical). This change's own `monthrowlimit` is 23 of 23 across its three
+runs. The 14 failures were all runs that timed out or stopped early under a machine load of up to 60 from other
+sessions (the gate took 11 h 45 min instead of about one), and each passes alone on the same build: `monthexport` on
+`mvheader`, `dayoverrides-onhalf`, `monthnotes`, `shootorder` and `mvnotesize-mixed` (9 of 9 each), `phasesui` 8/8,
+`datetoday` in Tokyo 6/6, `dblclickdlg` 14/14, `hoverchipreal` 8/8.
+
+An earlier full gate (17 Nov, before the shrink build's tests were finished) was 5,530 pass, 81 fail, every
+byte-for-byte check green. 80 of those failures were the shrink build's tests, which still described the old
+full-size month; they were rewritten for the shrunk month (see the entry above). 1 was a run that stopped early
+(`phasefill`, green alone). 1 was this change's: `textfit`'s "lines" run added its second note to a day that already
+holds 10 lines on its crowded fixture, and the limit refused it, so the test now uses a day with room. The out-of-view
+message (12 lines of chrome) was added between the two gates; the second covers it.
+
+**The release gate, 18 Nov 2026: v1.19.0** (the two changes on top of `origin/main`'s v1.18.0, Finish before and the
+note editor's "No date"): **5,834 pass, 1 fail**, with gates 1–3, the restore, gate 10 (11 of 11) and gate 13 (24 of 24)
+byte-identical. The one failure is `scenariocompat` on `releases/v1.2.0.html`, the frozen v1.2.0 app opening a
+scenarios file: in three runs in a row (the gate's and two alone) v1.2.0 never drew its File menu, then it passed three
+times alone with nothing changed. It runs only that old file and unchanged test files, and it was one of v1.17.0's
+known flakes.
+
+An earlier gate of the same two changes on v1.17.5 (5,772 pass, 5 fail, gates 10 and 13 byte-identical) turned up
+`epnames` N5, red once more when run alone. The cause is in the test, not the app: after a Load it waited a fixed time
+instead of for the load itself, and once in a while a Load lands up to 2 s late, so N5 read the previous calendar's
+episode list. The same slow load was caught on v1.17.5, the build that was live (1 load in 20 at 1.97 s). The test now
+waits for the File menu to name the loaded file, as `autonoterename` does; 80 loads in a row on both builds were read
+correctly, one of them 1.69 s late, and `epnames` passed in the v1.19.0 gate.
+
+## v1.18.0 — Finish before: build a calendar backwards from a phase on Ends; the note editor's Day says "No date" and a typed date works like a picked one (18 Nov 2026)
+
+### Finish before: build a calendar backwards from a phase on Ends (18 Nov 2026)
+
+At the executives' review (17 Nov 2026) they said they often work back from a delivery date (a fiscal year end, say),
+and asked for the "Start after previous phase" button to work the other way, obvious without training. The owner
+ruled it by picker on 18 Nov 2026 (R1-R4, HANDOFF "Finish before").
+- **It depends on where the card sits (R1).** While a later phase is on **Ends** (its end held), every phase card
+  before it shows **↳ Finish before <next phase>** in place of ↳ Start after. Phases after it keep Start after, and the
+  Ends phase itself shows neither, unless a phase after it is on Ends too. With every phase on Starts nothing changes.
+  Writer's Rm gains the button; custom phases, which are not in the chain, have none, as with Start after.
+- **What a click does (R4).** The card goes on Ends. Its end is the last working week before the next phase starts,
+  stepping back over an all-phase hiatus, so the two never overlap. Production's wrap is the last shoot day before the
+  next phase (the same search a typed wrap uses). From then on the end holds: an episode that gains days moves
+  Production's start earlier instead of running into Post. A built-in phase on Dates, which has no Ends, keeps its
+  length and moves. One click is one undo step, and Production's day marks travel by shoot-day number.
+- **Holding a delivery date (R3) is not automatic.** When a phase grows, the phases before it stay where they are.
+  Build Around pinned to Post's "ends by" rebuilds them all in one run, and is what the training will show; an
+  automatic pull gets its own plan after the training.
+- No frozen edit and no save-format change: a click writes the existing Ends stores (`phaseEnds`, `productionEnds`,
+  `end-<key>`). Frozen `render()` writes Start after's label, so Finish before's is written after it, by `update()`.
+- Verified: new leg `finishbefore` 12/12 (the rule on Starts and with one or two phases on Ends, a renamed phase,
+  Production and a Weeks phase, undo and redo, the end holding while Production grows, a Dates phase, both kinds
+  stepping back over the hiatus, custom phases, no console errors), `endsdate` 17/17, `prodends` 14/14, `snaptools`
+  14/14, `overrides` 20/20, `builtindates` 17 + 15, `npm run check` 42/42. Tried by the owner on localhost first
+  ("Looks good, finish it").
+
 
 ### Export file names: the WRO date, "a.o." date, and a File name list in Export PDF; the Version gets its "v" back (18 Nov 2026)
 

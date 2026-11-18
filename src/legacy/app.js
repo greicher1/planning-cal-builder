@@ -28,7 +28,7 @@ export function initLegacyApp() {
   // They are one action, not two: version.json alone makes every user see an update that
   // isn't there, and APP_VERSION alone makes a real update invisible. The release-cut step in
   // README's changelog rules lists them together for exactly this reason.
-  const APP_VERSION = '1.17.5';
+  const APP_VERSION = '1.19.0';
 
   // ---------- Embedded Carlito ----------
   // The two <script type="text/plain"> blocks above hold Carlito, subset and zlib-compressed,
@@ -1429,6 +1429,16 @@ export function initLegacyApp() {
     if(drawn.length && !mvFontsIn()) mvDrawnBeforeFonts = true;
     else if(fresh && viewMode === 'month' && currentSchedule && !printingCursor){
       try { render(currentSchedule); } catch(e){ /* the first render stands */ }
+    }
+    // ⭐ ...AND A MONTH THE PDF SHRINKS IS RENDERED AGAIN AT THE PDF'S FACTOR, ONCE (17 Nov 2026, "THE MONTH PAGE
+    // SHRINKS A CROWDED MONTH", further down). Whatever was just drawn in #table-wrap (a month, the waterfall, the
+    // empty state), ask the month PDF writer for its fit of the month on screen; when its factor is not the one that
+    // month was rendered with, mvShrinkToFit() sets it and renders once more, here, before any later observer looks.
+    // That render comes back here with the same answer (the fit is worked out from the print html, which does not
+    // depend on the factor), so it is one render more at most.
+    if(recs.some(r=> r.target === tw)){
+      if(drawn.length) mvAskPdfFonts();
+      mvShrinkToFit();
     }
     fitMonthPage();
   }).observe(document.getElementById('table-wrap'), { childList: true, subtree: true });
@@ -9380,6 +9390,7 @@ export function initLegacyApp() {
           ${fieldsHtml}
         </div>
         ${p.key !== 'writersRoom' ? `<button class="autostart-btn" id="autostart-${p.key}" data-phase="${p.key}" type="button">↳ Start after previous phase</button>` : ''}
+        ${p.key !== 'localization' ? `<button class="finish-before-btn" data-phase="${p.key}" type="button">↳ Finish before next phase</button>` : ''}
         <div class="phase-switches">
           ${switchesHtml}
         </div>
@@ -16651,8 +16662,30 @@ export function initLegacyApp() {
   // Four, not 10 px's three: measured at 12 and 14 px in an 1100 / 1280 px window, "Independence Day (Observed) 7/3/26"
   // and "Principal Photography Wraps 10/27/26" wrap to four. Its key carries `|k`, so it never meets a two-lane count.
   // Without `keep` nothing here changed.
+  // ⛔ FROZEN EDIT SK1 (owner sign-off by picker, 17 Nov 2026, "Approve with that gate"; MONTH-SHRINK-PLAN.md R2): ON
+  // SCREEN ONLY, IN A MONTH THE PDF SHRINKS, a note's lines are counted at the smaller text size. The month PDF writer
+  // shrinks a crowded month's weeks by one factor k and RE-WRAPS every note at that size in the same box
+  // (mvlShrinkWeeks), so a note that takes two lines at full size often takes one. The screen now draws such a month at
+  // the same k (mvScreenK; "THE MONTH PAGE SHRINKS A CROWDED MONTH", further down), so each note must get the lanes its
+  // text needs at that size, or every note keeps a full-size lane count and the weeks no longer match the PDF's rows.
+  //  - Type shrunk by k in the same box wraps exactly as full-size type in a box 1/k as wide, so only the measuring
+  //    WIDTH changes: the note's text width (its DRAWN box, 6/7 px inside frozen mvNoteBoxWidth()'s, less the 4 px
+  //    padding and 1 px border each side) divided by k. The measurer's font, line and the counting rule are untouched.
+  //  - ⛔ Not in mvNoteBoxWidth(): one-day pills read that width too, and the PDF does not re-wrap a pill.
+  //  - The cache keys carry the measuring width (`k` + two decimals at 10 px; the sized key always did), so a shrunk
+  //    count never meets a full-size one.
+  //  - ⛔ INERT at full size (mvScreenK is 1 in every month that fits a page, which is every month before this edit)
+  //    and WHILE PRINTING (printingCursor: the print rollback's document and the html the writer parses are counted
+  //    exactly as before). Its gate: gates 10 and 13 byte-identical, and the screen's week heights equal to the written
+  //    PDF's rows on the shrunk test months (monthscale, month-dense60, month-lanecap: August 2026).
+  // Session state, never saved: 1 = the month on screen is not shrunk.
+  let mvScreenK = 1;
+  const MV_NOTE_TEXT_INSET = 10;   // .mv-note-block{ padding:2px 4px } + .mv-bar's 1px border, both sides
+  function mvShrunkNoteW(drawnBoxW){ return Math.max(24, (drawnBoxW - MV_NOTE_TEXT_INSET) / mvScreenK + MV_NOTE_TEXT_INSET); }
   function mvNoteLineCountSized(t, boxW, fmt, px, keep){
-    const G = MV_NOTE_SIZES[px], f = fmt || {}, w = Math.max(24, boxW - 6 / 7);
+    const G = MV_NOTE_SIZES[px], f = fmt || {};
+    let w = Math.max(24, boxW - 6 / 7);
+    if(!printingCursor && mvScreenK !== 1) w = mvShrunkNoteW(w);   // SK1
     const key = w.toFixed(2) + '|' + t + '|n' + px + '/' + (f.bold === undefined ? '' : f.bold ? 'b' : 'r') + '/' + (f.italic ? 'i' : '') + (keep ? '|k' : '');
     if(_mvNoteLineCache.has(key)) return _mvNoteLineCache.get(key);
     const el = mvNoteMeasurer();
@@ -16675,10 +16708,12 @@ export function initLegacyApp() {
     const px = mvNoteEffPx(fmt);
     if(px > 10 && MV_NOTE_SIZES[px]){ mvNoteMeasurer(); return mvNoteLineCountSized(t, boxW, fmt, px, !!keep); }
     const sig = mvMeasureSig(fmt);
-    const key = Math.round(boxW) + '|' + t + (sig ? '|' + sig : '');
+    // SK1 (above mvNoteLineCountSized): on screen, in a shrunk month, the width the count is taken at.
+    const shrunkW = (!printingCursor && mvScreenK !== 1) ? mvShrunkNoteW(boxW - 6 / 7) : 0;
+    const key = (shrunkW ? 'k' + shrunkW.toFixed(2) : Math.round(boxW)) + '|' + t + (sig ? '|' + sig : '');
     if(_mvNoteLineCache.has(key)) return _mvNoteLineCache.get(key);
     mvNoteMeasurer();
-    _mvNoteMeasureEl.style.width = Math.max(24, boxW) + 'px';
+    _mvNoteMeasureEl.style.width = (shrunkW || Math.max(24, boxW)) + 'px';
     mvMeasureFont(_mvNoteMeasureEl, fmt, 500, 1.3, MV_TEXT_LINE_PX.note);
     _mvNoteMeasureEl.textContent = t;
     const h = _mvNoteMeasureEl.offsetHeight; // = lines*13 (line-height) + 4 (padding) + 2 (border)
@@ -27046,25 +27081,45 @@ export function initLegacyApp() {
   // outlines (.month-sel-chip), above the active pick; with the pick gone (a cut), where that pick was. Session UI. ----
   let mvSelFlash = null;          // {msg, at}: the text, and the last rect it was drawn over
   let _mvSelFlashTimer = 0;
-  function flashMvSel(msg, ms){
+  // `by` ({iso, dy}; the day's 10 lines, mvSayDayFull): the message is about a DAY, not the pick. It is drawn over that
+  // day's cell, `dy` px down it (where the "+" that was clicked sits), found again on every draw so it follows a
+  // scroll or a redraw, and it may run to two lines (.is-lines) and is kept inside the window.
+  function flashMvSel(msg, ms, by){
     if(_mvSelFlashTimer) clearTimeout(_mvSelFlashTimer);
-    mvSelFlash = msg ? { msg, at: null } : null;
+    mvSelFlash = msg ? { msg, at: null, by: by || null } : null;
     _mvSelFlashTimer = mvSelFlash ? setTimeout(()=>{ _mvSelFlashTimer = 0; mvSelFlash = null; drawMvSel(); }, ms || 4200) : 0;
     drawMvSel();
   }
   function drawMvSelFlash(at){
     if(!mvSelFlash) return;
-    if(at) mvSelFlash.at = at;
+    const by = mvSelFlash.by;
+    if(by){
+      const cell = mvDayCellEl(by.iso), c = cell && cell.getBoundingClientRect(), v = cell && visibleRect(cell);
+      if(c && v){
+        const top = Math.min(Math.max(c.top + (by.dy || 0), v.top), v.bottom);
+        mvSelFlash.at = { left: c.left, right: c.right, top, bottom: top };
+      } else {
+        // ⭐ NEVER SILENT (17 Nov 2026, found on the way to the gate): ⌘V goes to the day last clicked, which can have
+        // been scrolled out of view since, and then there was no day to put the message by, so the refusal said
+        // nothing at all. It shows at the top of the calendar instead, naming the date ("This day" would point at
+        // nothing). Leg `monthrowlimit` L2d.
+        const w = document.getElementById('table-wrap'), q = w && w.getBoundingClientRect();
+        mvSelFlash.at = q ? { left: q.left + 12, right: q.left + 12, top: q.top + 4, bottom: q.top + 4, away: true } : null;
+      }
+    }
+    else if(at) mvSelFlash.at = at;
     const r = mvSelFlash.at;
     if(!r) return;
     const chip = document.createElement('div');
-    chip.className = 'text-sel-chip month-sel-chip';
-    chip.textContent = mvSelFlash.msg;
+    chip.className = 'text-sel-chip month-sel-chip' + (by ? ' is-lines' : '');
+    const awayDay = r.away ? parseDateUTC(by.iso) : null;
+    chip.textContent = awayDay ? mvSelFlash.msg.replace(/^This day/, fmtShort(awayDay)) : mvSelFlash.msg;
     chip.style.left = Math.max(0, r.left) + 'px';
     document.body.appendChild(chip);
     mvSelBoxes.push(chip);
+    if(by) chip.style.left = Math.max(0, Math.min(r.left, window.innerWidth - chip.offsetWidth - 6)) + 'px';
     const top = r.top - chip.offsetHeight - 4;
-    chip.style.top = (top >= 2 ? top : r.bottom + 4) + 'px';
+    chip.style.top = ((top >= 2 && !r.away) ? top : r.bottom + 4) + 'px';
   }
   // A pick: alone, or added/removed with ⌘ or Shift.
   function pickMvText(el, add){
@@ -27352,6 +27407,19 @@ export function initLegacyApp() {
       return e;
     }).filter(Boolean);
     if(!notes.length) return false;
+    // ⭐ DOOR 2 OF THE DAY'S 10 LINES (MONTH-ROW-LIMIT-PLAN.md; mvMonthLines): the notes land one by one while the day
+    // is not full. How many is worked out first, on the day's list extended and put back, so a paste onto a full day
+    // changes nothing and banks no undo step.
+    const all = notes.length, had = dayNotes[iso];
+    let took = 0;
+    try {
+      let trial = dayNoteList(iso).slice();
+      while(took < all && !mvDayIsFull(iso)){ trial = trial.concat([notes[took]]); dayNotes[iso] = trial; took++; }
+    } finally {
+      if(had === undefined) delete dayNotes[iso]; else dayNotes[iso] = had;
+    }
+    if(!took){ mvSayDayFull(iso); return false; }
+    notes.length = took;
     pushUndoSnapshot();
     const list = dayNoteList(iso).slice(), at = list.length;
     dayNotes[iso] = list.concat(notes);
@@ -27364,6 +27432,8 @@ export function initLegacyApp() {
     mvSelActive = [...mvSel].pop() || null;
     if(mvSel.size && styleTarget !== 'month') setStyleTarget('month');
     drawMvSel(); syncStyleBar();
+    if(took < all) mvSayDayFull(iso, null, MV_DAY_FULL + '\n' + took + ' of ' + all + ' notes were pasted.');
+    else mvClearDayFull();
     return true;
   }
   function mvClipReady(){
@@ -30135,6 +30205,7 @@ export function initLegacyApp() {
     reflectHiatusRipple();   // the Settings switch (HIATUS-RIPPLE-PLAN.md §5; its only place since 10 Nov 2026)
     refreshCustomUnitMeta(currentSchedule);
     reflectPhaseEnds();   // the Starts / Ends selects, the Ends boxes and each card's ends-mode class
+    reflectFinishBefore(); // which cards show "Finish before" in place of "Start after", and its label (after the line above)
     reflectPhaseNudges(); // which cards show the week arrows (the waterfall, and a phase with a date), and their labels
     refreshPrepUI(currentSchedule);
     refreshDoubleUpUI(currentSchedule);
@@ -31943,7 +32014,11 @@ export function initLegacyApp() {
   //          shorter than its empty lines the week clips them (legacy.css, overflow-y:clip).
   // ⚠️ The tracks read here never depend on the numbers written here: the layer cannot shrink (legacy.css, flex:1 0
   // auto), so its lines are always at their own height, whatever basis the week still carries from the last render.
-  // A month the PDF has to shrink is not shrunk here: no week can go under its basis, so the card grows instead.
+  // A month the PDF has to shrink is shrunk here too since 17 Nov 2026, at the PDF's own factor ("THE MONTH PAGE
+  // SHRINKS A CROWDED MONTH", under fitMonthPage): there the weeks share the page by the writer's own numbers, and
+  // from here comes only `need` (the floor no week goes under, so no bar or note is ever cut); `min` is not used
+  // there (owner, "Stay one page": an added blank line does not make the card taller). 16 to 17 Nov 2026 such a
+  // month stayed full size and its card grew.
   // With no numbers (a week it cannot read) the CSS falls back to equal growth, still page-shaped.
   const MV_PAGE_WEEKS = 6;   // a month never spans more; legacy.css names exactly this many :nth-child rules
   function monthPageNumbers(tw){
@@ -31952,6 +32027,9 @@ export function initLegacyApp() {
     if(!weeks.length || weeks.length > MV_PAGE_WEEKS) return null;
     let F = null;
     try { F = mvlFitNumbers(); } catch(e){ return null; }   // the writer's constants, not a copy of them
+    // In a shrunk month (--mvk on #table-wrap, written by fitMonthPage just before this runs) the lines read below are
+    // the shrunk ones, so the floor and the four-line height are taken at the same factor, as the writer takes them.
+    const k = parseFloat(tw.style.getPropertyValue('--mvk')) || 1;
     const rows = [];
     for(const wk of weeks){
       const layer = wk.querySelector(':scope > .mv-bars');
@@ -31973,8 +32051,8 @@ export function initLegacyApp() {
       // `min` only for lines the USER added to the week (the row's "+": mvExtraLanes), which the renderer draws
       // past both the four it always gives and the ones the bars reach. The PDF has no empty lines at all, so a
       // week holding one is the one place a fitting month's rows leave the PDF's, for as long as the line is empty.
-      rows.push({ need: Math.max(bottomOf(used) + padBottom, F.floor),
-                  nice: F.chrome + Math.max(used, MV_MIN_LANES) * F.lane,
+      rows.push({ need: Math.max(bottomOf(used) + padBottom, F.floor * k),
+                  nice: (F.chrome + Math.max(used, MV_MIN_LANES) * F.lane) * k,
                   // ...plus the week's own top line, which is inside its height (box-sizing:border-box).
                   min: tracks.length > Math.max(used, MV_MIN_LANES)
                     ? bottomOf(tracks.length) + (parseFloat(getComputedStyle(wk).borderTopWidth) || 0) : 0 });
@@ -31983,23 +32061,138 @@ export function initLegacyApp() {
     const any = grow.some(g=> g > 0);
     // x100: flexbox shares out only part of the room when the grow factors sum to less than 1.
     return rows.map((r, i)=>({ f: (Math.round((any ? grow[i] : r.nice) * 1000) / 10) + ' 0 ' + r.need.toFixed(3) + 'px',
+                               need: r.need,
                                m: r.min.toFixed(3) + 'px' }));
   }
   function fitMonthPage(){
     const tw = document.getElementById('table-wrap');
     if(!tw) return;
-    let nums = null;
-    try { nums = monthPageNumbers(tw); } catch(e){ nums = null; }
     // Written only when it changes: a style write is a mutation the grid fit observes.
     const put = (prop, val)=>{
       if(val){ if(tw.style.getPropertyValue(prop) !== val) tw.style.setProperty(prop, val); }
       else if(tw.style.getPropertyValue(prop)) tw.style.removeProperty(prop);
     };
+    // A SHRUNK MONTH ("THE MONTH PAGE SHRINKS A CROWDED MONTH", below): the factor goes on first, because the numbers
+    // read next are the layer's computed lines, and those are the shrunk ones only once legacy.css sees --mvk.
+    const fit = mvScreenFit;
+    const nWeeks = viewMode === 'month' ? tw.querySelectorAll(':scope > .month-view > .mv-body > .mv-week').length : 0;
+    const shrunk = mvScreenK !== 1 && !!fit && fit.mode === 'shrink' && fit.scale === mvScreenK && nWeeks > 0 && fit.basis.length === nWeeks;
+    put('--mvk', shrunk ? String(mvScreenK) : '');
+    let nums = null;
+    try { nums = monthPageNumbers(tw); } catch(e){ nums = null; }
+    // Its weeks share the page by the writer's OWN numbers for the shrunk month (mvlFitMonth's `basis`, each week's
+    // height at the factor, and `grow`, mvlShareRows' shares of the room left over), handed to flexbox exactly as a
+    // fitting month's are, so the rows are the PDF's (fit.rows = basis + the room left x grow / the grows' sum) and
+    // the card is one page. Flexbox, not fixed heights, for the fitting month's reason: what the screen's header or
+    // a zoom's hairlines take is absorbed by the room left over instead of making the card taller (measured at 75%
+    // zoom, fixed rows: 2.3 px taller than the page).
+    // ⛔ AND NEVER UNDER WHAT THE WEEK'S BARS NEED AS DRAWN (`need`, read from the layer's own lines, plus the week's
+    // top line). At 100% that is never more than the writer's basis: the same lanes at the same sizes. But a note can
+    // take a line more on screen than the PDF gives it, and then its lanes grow: zoomed out, Chrome draws a 1 px
+    // border one whole device pixel wide, so a note's text has up to 2 px less room than it was counted in (measured
+    // on monthscale at 75%: ten notes a line longer, and with the writer's basis alone their week ran 27 px past its
+    // bottom edge and was cut there). With this floor that week is as tall as its bars and the card grows instead, as
+    // a fitting month's does. Nothing is ever cut.
     for(let i = 0; i < MV_PAGE_WEEKS; i++){
-      put('--mvp-f' + (i + 1), nums && nums[i] ? nums[i].f : '');
-      put('--mvp-m' + (i + 1), nums && nums[i] ? nums[i].m : '');
+      let f = nums && nums[i] ? nums[i].f : '';
+      if(f && shrunk){
+        const wk = tw.querySelector(':scope > .month-view > .mv-body > .mv-week:nth-child(' + (i + 1) + ')');
+        const top = wk ? (parseFloat(getComputedStyle(wk).borderTopWidth) || 0) : 0;
+        f = (Math.round(fit.grow[i] * 1000) / 10) + ' 0 ' + Math.max(fit.basis[i], nums[i].need + top).toFixed(3) + 'px';
+      }
+      put('--mvp-f' + (i + 1), f);
+      // ⛔ A LINE THE USER ADDED TO A WEEK (the row's "+") DOES NOT HOLD A SHRUNK MONTH'S WEEK OPEN (owner's picker,
+      // 17 Nov 2026, "Stay one page"). In a fitting month `min` keeps that line inside the week. In a shrunk one the
+      // card stays one page: the week keeps the PDF's row (the PDF draws no blank lines), and a blank line with no
+      // room is clipped below the week's edge. Measured before the ruling, on monthscale's August: one "+" on its
+      // first week made that week 73 px instead of 39 and the card 812 px instead of 788.
+      put('--mvp-m' + (i + 1), nums && nums[i] ? (shrunk ? '0.000px' : nums[i].m) : '');
     }
     if(tw.getAttribute('style') === '') tw.removeAttribute('style');
+  }
+  // ⭐ THE MONTH PAGE SHRINKS A CROWDED MONTH, EXACTLY AS ITS PDF DOES (owner, 17 Nov 2026, with a PDF and a screenshot
+  // of one crowded month side by side: "the live viewer still looks different and is changing the height and
+  // stretching the whole calendar", "I think id rather the live view look like it will in the pdf"; by picker, "Shrink
+  // like the PDF", which REPLACES the 16 Nov "Full size, taller page"; MONTH-SHRINK-PLAN.md).
+  // A month with more in its weeks than a sheet holds is shrunk by the month PDF writer: one factor k for every week
+  // (a whole number of 64ths, the largest at which the month fits), every note re-wrapped at the smaller size, the
+  // rows shared out again (mvlFitMonth). Until now the screen drew such a month at full size in a card taller than the
+  // page. Now the card is one page at every month, and a crowded month is drawn at the writer's own factor:
+  //  1. THE WRITER IS ASKED, never copied. mvWriterFit() renders the month on screen as the export renders it (the
+  //     print html: printingCursor set to the cursor month, frozen renderMonthView called, both put back in `finally`,
+  //     as buildMonthLayout does it, synchronously), models it (mvlMonthLayout) and takes mvlFitMonth's `fit`. So the
+  //     factor and the rows are the PDF's own for that month, whatever the header's height or the bar and note sizes.
+  //     It needs the four Inter PDF programs (loadInterPdfFont), which are decoded the first time a month is drawn,
+  //     never at boot of a waterfall session; until they are in, the month is drawn as before and fitted when they
+  //     arrive. Cached by the print html.
+  //  2. THE FACTOR IS SESSION STATE (mvScreenK, beside the note measurers; 1 = not shrunk; never in captureSnapshot()).
+  //     When the writer's factor is not the one the month on screen was rendered with, mvShrinkToFit() sets it and
+  //     calls render(currentSchedule) once, from the page fit's own first observer. ⛔ IT CANNOT LOOP: the fit is
+  //     worked out from the PRINT html, and frozen edit SK1 is inert while printingCursor is set, so the fit does not
+  //     depend on the factor; the render it causes asks again, gets the same fit from the cache, and stops.
+  //  3. FROZEN EDIT SK1 (owner-approved; at mvNoteLineCountSized) counts each note's lines at the smaller size, so a
+  //     note gets the lanes it has in the PDF.
+  //  4. THE SIZES are screen-only CSS (legacy.css, "THE MONTH PAGE SHRINKS A CROWDED MONTH"), every one mvlWeekPaint
+  //     scales, as calc(<px> * var(--mvk)). fitMonthPage() writes --mvk on #table-wrap's own style, and the rules
+  //     match only while it is there, so a month that fits is drawn by exactly the rules it had.
+  //  5. THE WEEKS' HEIGHTS in a shrunk month come from the writer's own `fit.basis` and `fit.grow`, handed to flexbox
+  //     as a fitting month's numbers are (fitMonthPage), so they are the writer's `fit.rows`.
+  // ⛔ Nothing here is saved, nothing is written inside #table-wrap, and neither month PDF can see any of it.
+  let mvPdfFonts = null, mvPdfFontsBusy = false, mvPdfFontTries = 0;
+  function mvAskPdfFonts(){
+    if(mvPdfFonts || mvPdfFontsBusy || mvPdfFontTries >= 3 || viewMode !== 'month') return;
+    mvPdfFontsBusy = true; mvPdfFontTries++;
+    Promise.all(MVL_FONT_WEIGHTS.map(w=> loadInterPdfFont(w))).then(list=>{
+      const f = {};
+      MVL_FONT_WEIGHTS.forEach((w, i)=>{ f[w] = list[i]; });
+      mvPdfFonts = f; mvPdfFontsBusy = false;
+      mvShrinkToFit();
+      fitMonthPage();
+    }, ()=>{ mvPdfFontsBusy = false; });   // the month stays as drawn; a later month draw asks again (three times at most)
+  }
+  let mvScreenFit = null;                  // the writer's fit of the month on screen ({ mode, scale, rows, basis, grow }), or null
+  const _mvScreenFitCache = new Map();     // the print html (and the two settings stamped outside it) -> that fit
+  function mvWriterFit(){
+    if(viewMode !== 'month' || !currentSchedule || printingCursor || !monthCursor || !mvPdfFonts || !mvFontsIn()) return null;
+    if(!document.querySelector('#table-wrap > .month-view')) return null;
+    let html = '';
+    const savedCursor = monthCursor;
+    // ⛔ SYNCHRONOUS, as buildMonthLayout: printingCursor is module state the live renderer reads.
+    try {
+      printingCursor = new Date(monthCursor.getTime());
+      html = renderMonthView(currentSchedule);
+    } finally {
+      printingCursor = null;
+      monthCursor = savedCursor;
+    }
+    if(!html) return null;
+    const key = (mvHeaderOff ? '1' : '0') + '|' + (mvBarSize || '') + '|' + html;
+    if(_mvScreenFitCache.has(key)) return _mvScreenFitCache.get(key);
+    const F = mvPdfFonts, px = MVL_GEOMETRY.noteFontPx;
+    // The model and the fit, as exportMonthPdfDirect makes them for this month (buildMonthLayout's two measurers, the
+    // bar size as its argument, the header's Off stamped between the model and the fit).
+    const model = mvlMonthLayout(html, s=> mvlTextWidth(F['500'].font, s, px), s=> mvlTextWidth(F['600'].font, s, px), F, mvBarSize);
+    if(mvHeaderOff) model.headerOff = true;
+    const fitted = mvlFitMonth(model, F).fit;
+    const fit = { mode: fitted.mode, scale: fitted.scale, rows: fitted.rows.slice(), basis: fitted.basis.slice(), grow: fitted.grow.slice() };
+    if(_mvScreenFitCache.size >= 12) _mvScreenFitCache.clear();
+    _mvScreenFitCache.set(key, fit);
+    return fit;
+  }
+  // Sets the factor the month on screen should be drawn at, and renders it again when that is not the one it was
+  // rendered with. True when it rendered.
+  function mvShrinkToFit(){
+    let fit = null;
+    try { fit = mvWriterFit(); } catch(e){ fit = null; }   // a month the writer cannot fit is drawn as before
+    mvScreenFit = fit;
+    const k = (fit && fit.mode === 'shrink' && fit.scale > 0 && fit.scale < 1) ? fit.scale : 1;
+    if(k === mvScreenK) return false;
+    mvScreenK = k;
+    if(viewMode === 'month' && currentSchedule && !printingCursor && document.querySelector('#table-wrap > .month-view')){
+      try { render(currentSchedule); } catch(e){ /* the month as drawn stands */ }
+      return true;
+    }
+    return false;
   }
   // Run after every render, and after anything that redraws a week in place (subtree): the numbers are that week's
   // bars'. Observing mutates nothing, and the write is to #table-wrap's style, which childList does not report.
@@ -32068,6 +32261,12 @@ export function initLegacyApp() {
       const btn = e.target.closest('.autostart-btn');
       if(!btn || btn.disabled) return;
       autostartPhase(btn.dataset.phase);
+    });
+    // ...and their backwards twins, "Finish before next phase" (finishBeforePhase).
+    host.addEventListener('click', (e)=>{
+      const btn = e.target.closest('.finish-before-btn');
+      if(!btn || btn.disabled) return;
+      finishBeforePhase(btn.dataset.phase);
     });
   })();
 
@@ -32273,6 +32472,106 @@ export function initLegacyApp() {
       if(customPhaseUnit(key) !== 'weeks'){ let g = 0; while((d.getUTCDay() === 0 || d.getUTCDay() === 6) && g++ < 7) d = addDays(d, 1); }
       // Through the one writer, so a Dates phase's end moves with its start (plan §8.1).
       if(setPhaseStart(key, isoOf(d))){ update(); syncCustomUnitFallback(key); }
+    });
+  }
+
+  // ⭐ FINISH BEFORE: BUILDING BACKWARDS (owner, 18 Nov 2026, from the executives' review of 17 Nov: they often work back
+  // from a delivery date, and it has to be obvious without training). The backwards twin of "Start after previous
+  // phase". Rulings, by the owner's pickers (HANDOFF, "Finish before"):
+  //   R1  CONTEXTUAL, by where the card sits in the chain: while a LATER phase in PHASE_CHAIN is on Ends (its end held,
+  //       so the calendar is being worked back from it), the card shows "↳ Finish before <next phase>" in place of Start
+  //       after. Phases after every Ends phase keep Start after. An Ends phase with no Ends phase after it shows neither,
+  //       as before ("its start is worked out, never chained"). Custom phases are not in the chain, as for Start after.
+  //   R2  The words: "Finish before".
+  //   R3  Holding a delivery date when a phase grows is NOT done here: Build Around pinned to Post's end does it, and is
+  //       taught. An automatic pull gets its own plan after the training.
+  //   R4  A click puts the card ON ENDS with the end it worked out in its box, so the end then holds: an episode that
+  //       gains days moves Production's start earlier instead of running into Post. (A built-in on Dates has no Ends:
+  //       it keeps its length and both its dates move, as Start after moves a Dates phase.)
+  // Where it ends, the mirror of chainedStart(): its last WORKING week is the one before the next scheduled phase's
+  // first week, stepping back over an all-phase hiatus a whole week at a time, so it can never overlap the next phase.
+  // Production's wrap is the last shoot day before the next phase starts (the Ends search finds it, as for a typed wrap).
+  // One update(), so one undo step. The button has NO id (delegated, data-phase); frozen render() never touches it,
+  // so its label and its card's chain-back class are written here, after render, by update().
+  function nextChainSegment(key, schedule){
+    const idx = PHASE_CHAIN.indexOf(key);
+    if(idx < 0) return null;
+    const segs = (schedule && schedule.segments) || [];
+    for(let i = idx + 1; i < PHASE_CHAIN.length; i++){
+      const seg = segs.find(s => s.key === PHASE_CHAIN[i]);
+      if(seg) return { seg, key: PHASE_CHAIN[i] };
+    }
+    return null;
+  }
+  // R1: is any phase after `key` in the chain on Ends? Read from the stores, not the schedule: an Ends phase whose box
+  // is still empty is unscheduled, but choosing Ends already says the calendar is being worked back from it.
+  function chainEndsAfter(key){
+    const idx = PHASE_CHAIN.indexOf(key);
+    if(idx < 0) return false;
+    return PHASE_CHAIN.slice(idx + 1).some(k => k === 'production' ? productionEnds !== null : phaseEndsOn(k));
+  }
+  function chainPhaseName(key){
+    return ((document.getElementById('name-' + key) || {}).value || '').trim()
+      || (PHASES.find(x => x.key === key) || {}).label || 'next phase';
+  }
+  function reflectFinishBefore(){
+    document.querySelectorAll('#phase-rows > .phase-row').forEach(row=>{
+      const btn = row.querySelector('.finish-before-btn');
+      const key = phaseRowKey(row);
+      const back = !!btn && chainEndsAfter(key);
+      if(row.classList.contains('chain-back') !== back) row.classList.toggle('chain-back', back);
+      if(!btn) return;
+      const next = back ? nextChainSegment(key, currentSchedule) : null;
+      const label = '↳ Finish before ' + (next ? chainPhaseName(next.key) : 'next phase');
+      if(btn.textContent !== label) btn.textContent = label;
+      if(btn.disabled !== !next) btn.disabled = !next;
+    });
+  }
+  // A mover (owner ruling R2, v1.3.1): Production's day marks travel with it by shoot-day number.
+  function finishBeforePhase(key){
+    const next = nextChainSegment(key, currentSchedule);
+    if(!next) return;
+    const hiatuses = (currentSchedule && currentSchedule.hiatuses) || [];
+    const inHiatus = d => hiatuses.some(h => d >= h.start && d < h.end);
+    asShootDayMove(()=>{
+      if(key === 'production'){
+        // Ends, as setProductionEnds(true) puts it (Snap to Monday off), then the wrap as setProductionWrap() takes it:
+        // the latest shoot day on or before the day before the next phase starts. A weekend, a holiday or a hiatus
+        // there reads as the shoot day before it, because the search asks the real scheduler.
+        const startEl = document.getElementById('start-production'), snapEl = document.getElementById('snap-production');
+        const info = currentSchedule && currentSchedule.productionInfo;
+        const days = (info && info.shootDays) || [];
+        if(productionEnds === null){
+          if(days.length && startEl) startEl.value = days[0];
+          if(snapEl) snapEl.checked = false;
+        }
+        productionEnds = isoOf(addDays(next.seg.start, -1));
+        const warm = prodEndsWarm(productionEnds);
+        const r = warm ? solveProductionEndsStart(productionEnds, warm) : null;
+        if(r) productionEnds = r.wrap;
+        prodEndsForward = false;
+        update();
+        return;
+      }
+      if(customPhaseUnit(key) === 'weeks'){
+        const endEl = document.getElementById('end-' + key);
+        if(!endEl) return;
+        let e = addDays(mondayOf(next.seg.start), -3);   // the Friday of the week before the next phase's first week
+        let g = 0;
+        while(inHiatus(e) && g++ < 600) e = addDays(e, -7);
+        phaseEnds[key] = true;
+        endEl.value = isoOf(e);
+        reflectPhaseEnds();
+        update();
+        return;
+      }
+      // Dates: the same length, both dates moved, its last day the last weekday before the next phase starts.
+      const startEl = document.getElementById('start-' + key), endEl = document.getElementById('end-' + key);
+      const s = startEl ? parseDateUTC(startEl.value) : null, en = endEl ? parseDateUTC(endEl.value) : null;
+      if(!s || !en) return;
+      let last = addDays(next.seg.start, -1), g = 0;
+      while(g++ < 600 && (last.getUTCDay() === 0 || last.getUTCDay() === 6 || inHiatus(last))) last = addDays(last, -1);
+      if(setPhaseStart(key, isoOf(addDays(s, Math.round((last - en) / DAY_MS))))){ update(); syncCustomUnitFallback(key); }
     });
   }
 
@@ -44837,6 +45136,110 @@ export function initLegacyApp() {
       });
     }
   }
+  // ---------- A DAY IN THE MONTH VIEW HOLDS 10 LINES (owner, 17 Nov 2026; MONTH-ROW-LIMIT-PLAN.md) ----------
+  // Owner, looking at a month where one week took most of the page: "there reall should be a max limit on how tall a
+  // calendar row can be". Rulings, by picker the same day:
+  //   R0  "Stop adding notes": a full day refuses another note and says so. Nothing is ever hidden;
+  //   R1  "10 lines in a week": bars and notes both count, so it caps the row itself;
+  //   R2  "No new notes until under": a calendar already over opens and shows everything, and its over-full days
+  //       refuse a new note like any full day;
+  //   R3  "Never refused": what arrives on its own (automatic notes, holidays, Waterfall notes, notes that stay with a
+  //       phase, bars, bands, the moving tools) always shows, and counts. Only a note added BY HAND IN THE MONTH VIEW
+  //       is refused: a "+", a paste, Paste notes…, a note dragged to another day. An edit never is, and a note being
+  //       typed is saved whole, so a row can end a line or two over;
+  //   R4  "Short message by the day": the grid's chip, never a dialog.
+  // THE RULE: a day's lines are the lowest line any bar, band or note covering it ends on in its week row, and a day
+  // that reaches MV_DAY_MAX_LINES takes no new note. The check is AT THE DOOR (is the day full now?), never on what
+  // the note would become. A week is as tall as its tallest day, so capping every day caps the row.
+  // ⛔ THE COUNT IS ASKED OF THE FROZEN RENDERER, NEVER COPIED (CLAUDE.md, sanctioned pattern 2). mvMonthLines() has
+  // renderMonthView draw the month as the export does (printingCursor set and put back, synchronously: buildMonthLayout's
+  // and mvWriterFit's own pattern) and reads the grid-column / grid-row the renderer writes on each bar. So there is no
+  // second packing rule to drift, and the count is the FULL-SIZE one: with printingCursor set, frozen edit SK1 is inert,
+  // where the shrunk month on screen counts a note at its smaller size and can show fewer lines. A day is therefore
+  // full or not whichever month page it is seen on.
+  // ⛔ Nothing is saved, no frozen line is edited, nothing inside #table-wrap is written, and no output can move: the
+  // limit only keeps a new note out. The week's own "+" strip (mvExtraLanes, MV_MAX_LANES) is untouched; it adds blank
+  // lines up to 6, under this limit. ⚠️ A full day's "+" still shows (the renderer draws it): a click says why.
+  const MV_DAY_MAX_LINES = 10;
+  const MV_DAY_FULL = 'This day is full (' + MV_DAY_MAX_LINES + ' lines).';
+  const MV_DAY_FULL_MSG = MV_DAY_FULL + '\nDelete or move a note to add another.';
+  // Every day of one month's grid (its spillover days too) -> the lines it reaches at full size. Empty when the month
+  // cannot be drawn, so a day nothing is known about is never called full.
+  function mvMonthLines(monthDate){
+    const out = new Map();
+    if(!monthDate || printingCursor || !currentSchedule || currentSchedule.error) return out;
+    const first = new Date(Date.UTC(monthDate.getUTCFullYear(), monthDate.getUTCMonth(), 1));
+    const savedCursor = monthCursor;
+    let html = '';
+    // ⛔ SYNCHRONOUS, as buildMonthLayout: printingCursor is module state the live renderer reads.
+    try { printingCursor = new Date(first.getTime()); html = renderMonthView(currentSchedule); }
+    catch(e){ html = ''; }
+    finally { printingCursor = null; monthCursor = savedCursor; }
+    if(!html) return out;
+    const tpl = document.createElement('template');
+    tpl.innerHTML = html;
+    const gridStart = addDays(first, -first.getUTCDay());   // the renderer's own: a row runs Sunday to Saturday
+    tpl.content.querySelectorAll('.mv-week').forEach((wk, wi)=>{
+      const reach = [0, 0, 0, 0, 0, 0, 0];
+      // A bar's place is the first thing in its style, exactly as the renderer writes it; a "+" is not a line.
+      wk.querySelectorAll('.mv-bars > .mv-bar:not(.mv-note-add)').forEach(b=>{
+        const m = /^grid-column:(\d+) \/ (\d+); grid-row:(\d+)(?: \/ span (\d+))?;/.exec(b.getAttribute('style') || '');
+        if(!m) return;
+        const end = parseInt(m[3], 10) - 1 + (m[4] ? parseInt(m[4], 10) : 1);
+        for(let c = parseInt(m[1], 10) - 1; c <= parseInt(m[2], 10) - 2; c++){ if(c >= 0 && c < 7 && end > reach[c]) reach[c] = end; }
+      });
+      for(let i = 0; i < 7; i++) out.set(isoOf(addDays(gridStart, wi * 7 + i)), reach[i]);
+    });
+    return out;
+  }
+  function mvDayLines(iso){
+    const d = parseDateUTC(iso);
+    return d ? (mvMonthLines(d).get(iso) || 0) : 0;
+  }
+  function mvDayIsFull(iso){ return mvDayLines(iso) >= MV_DAY_MAX_LINES; }
+  // The day's cell in the month on screen, or null.
+  function mvDayCellEl(iso){
+    return Array.prototype.find.call(document.querySelectorAll('#table-wrap .mv-body > .mv-week > .mv-daygrid > .mv-daycell'),
+      c=>{ const loc = cellDate(c); return !!loc && isoOf(loc.date) === iso; }) || null;
+  }
+  // R4: the grid's short message, by the day. Over `near` (the "+" that was clicked) when given, else over the day.
+  function mvSayDayFull(iso, near, msg){
+    const cell = mvDayCellEl(iso);
+    let dy = 0;
+    if(cell && near && document.body.contains(near)) dy = Math.max(0, near.getBoundingClientRect().top - cell.getBoundingClientRect().top);
+    flashMvSel(msg || MV_DAY_FULL_MSG, 5200, { iso, dy });
+  }
+  // ...and gone again once a note does go in somewhere (a message about a pick is left alone).
+  function mvClearDayFull(){ if(mvSelFlash && mvSelFlash.by) flashMvSel(null); }
+  // Door 3, the Paste notes… box: a row for a full day becomes an error row, the box's own way of refusing ("Fix them
+  // first": Add stays off while any row has one). Counted in order, so a day fills up as the rows above it land: the
+  // day's list is extended for the count and put back, synchronously, and a month is drawn again only when a day in
+  // it has another row to come.
+  function mvMarkFullPasteRows(rows){
+    const lines = new Map(), left = new Map(), touched = new Map();
+    rows.forEach(r=>{ if(!r.error) left.set(r.iso, (left.get(r.iso) || 0) + 1); });
+    try {
+      rows.forEach(r=>{
+        if(r.error) return;
+        const mk = r.iso.slice(0, 7);
+        if(!lines.has(mk)) lines.set(mk, mvMonthLines(r.date));
+        left.set(r.iso, left.get(r.iso) - 1);
+        if((lines.get(mk).get(r.iso) || 0) >= MV_DAY_MAX_LINES){
+          r.error = fmtShort(r.date) + ' is full (' + MV_DAY_MAX_LINES + ' lines)';
+          return;
+        }
+        if(left.get(r.iso) > 0){
+          if(!touched.has(r.iso)) touched.set(r.iso, dayNotes[r.iso]);
+          dayNotes[r.iso] = dayNoteList(r.iso).concat([{text: r.text, lane: null, color: null}]);
+          lines.delete(mk);
+        }
+      });
+    } finally {
+      touched.forEach((v, iso)=>{ if(v === undefined) delete dayNotes[iso]; else dayNotes[iso] = v; });
+    }
+    return rows;
+  }
+
   // Find, in the freshly-rendered grid, the element equivalent to one that was just clicked --
   // used after committing a note (which re-renders and detaches the original click target) so the
   // editor can re-open on the live node. Matches an existing note by day+kind+index, or a "+" by
@@ -44889,6 +45292,13 @@ export function initLegacyApp() {
       kind = fresh.dataset.noteKind || 'day';
     }
     closeMvNoteEditor();
+    // ⭐ DOOR 1 OF THE DAY'S 10 LINES (MONTH-ROW-LIMIT-PLAN.md; mvMonthLines, above): a "+" on a full day says so and
+    // opens nothing. Only a "+" comes here as a new note; a note that exists opens as always, however full its day.
+    if(kind === 'day' && anchor.classList.contains('mv-note-add') && mvDayIsFull(dayIso)){
+      mvSayDayFull(dayIso, anchor);
+      return;
+    }
+    mvClearDayFull();
     // ⭐ A HOLIDAY OPENS ITS OWN EDITOR (owner, 30 Oct 2026: "being able to edit the name of a holiday slightly",
     // and by picker "Just this date", "Everywhere it shows", "Just that holiday"). It used to open its WEEK's
     // waterfall note: Thanksgiving's editor held "Day After Thanksgiving" too, a colour recoloured both, and an edit
@@ -45523,7 +45933,11 @@ export function initLegacyApp() {
               // switched off (moveWfLine), and every redraw starts from the press.
               autoOff0: deep(autoNotesOff), autoOn0: deep(autoNotesOn), autoView0: deep(autoNotesView), autoNames0: deep(autoNoteNames), autoColors0: deep(autoNoteColors),
               // The current redraw's own notes per day, by where each stood at the press ('me' = the dragged one).
-              perm: {}, key: null, redrawn: false, sig0: gridSig()};
+              perm: {}, key: null, redrawn: false, sig0: gridSig(),
+              // ⭐ DOOR 4 OF THE DAY'S 10 LINES (MONTH-ROW-LIMIT-PLAN.md; mvMonthLines): the lines every day on screen
+              // reached at the press, before the note left its own. apply() lets it land on no other day that was full
+              // then. `fullDay` is the full day the pointer is over, so its message is said once, not on every move.
+              lines0: mvMonthLines(monthCursor), fullDay: null};
       const t0 = target(p.x0, p.y0, r.top + r.height / 2);
       drag.key0 = t0 ? t0.key : null;
       drag.key = drag.key0;
@@ -45550,6 +45964,8 @@ export function initLegacyApp() {
       restore();
       if(t.key === d.key0) return true;
       const to = t.iso;
+      // Door 4: another day, full at the press, takes no note. The caller puts the note back where it was.
+      if(to !== from && (d.lines0.get(to) || 0) >= MV_DAY_MAX_LINES) return false;
       let meEntry = null, meText = null, mePlain = null;
       if(d.kind === 'day'){
         const list = (d.dayNotes0[from] || []).slice();
@@ -45655,6 +46071,13 @@ export function initLegacyApp() {
       drag.ghost.moveBy(dx, dy);
       const t = target(e.clientX, e.clientY, drag.top0 + dy + drag.h / 2);
       if(!t || t.key === drag.key) return;
+      // Door 4: over a day that was full at the press. Said once as the pointer comes onto it, and nothing is redrawn
+      // while it stays there with the note already back where it was.
+      const full = !!t.iso && t.iso !== drag.base.iso && (drag.lines0.get(t.iso) || 0) >= MV_DAY_MAX_LINES;
+      if(full && drag.fullDay === t.iso && drag.key === drag.key0) return;
+      if(full && drag.fullDay !== t.iso) mvSayDayFull(t.iso);
+      else if(!full && drag.fullDay) mvClearDayFull();
+      drag.fullDay = full ? t.iso : null;
       if(!apply(t)){ apply({key: drag.key0}); drag.key = drag.key0; }
       else drag.key = t.key;
       drag.redrawn = true;
@@ -45867,7 +46290,8 @@ export function initLegacyApp() {
     const sum = ov.querySelector('.paste-notes-sum'), prev = ov.querySelector('.paste-notes-preview');
     let rows = [];
     const refresh = function(){
-      rows = parsePastedNotes(ta.value, currentSchedule);
+      // Door 3 of the day's 10 lines: a row for a full day is an error row (mvMarkFullPasteRows).
+      rows = mvMarkFullPasteRows(parsePastedNotes(ta.value, currentSchedule));
       const errs = rows.filter(function(r){ return r.error; }).length, good = rows.length - errs;
       prev.innerHTML = rows.map(function(r){
         if(r.error) return '<div class="paste-row is-error"><span class="paste-row-n">Line ' + r.line + '</span>'

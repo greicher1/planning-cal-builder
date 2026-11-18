@@ -993,7 +993,7 @@ consistent proportions despite the window width or height. It should reflect wha
 appear when exported to pdf"*, then *"phase bar size and note size should also reflect the export exactly. essentially
 the live viewer should look just like what it will look like in the pdf export"*. Five pickers: **Full page shape**,
 **Scroll, like waterfall**, grid lines **Leave colours apart**, note symbols **Remove the symbols**, a crowded month
-**Full size, taller page**.
+**Full size, taller page** (REPLACED the next day by **Shrink like the PDF**, below).
 
 - **One fixed card.** In the month view `#table-wrap` is a one-track grid, `calc(11in - 16mm + 32px)` = 1027.53 px:
   the writer's week width (`MVL_GEOMETRY.weekW`, 987.53) plus the card's own borders and padding. A day column is
@@ -1008,20 +1008,70 @@ the live viewer should look just like what it will look like in the pdf export"*
 - **Printed heights.** A Standard bar or band is 19 px (34 px on two lines), a 10 px note 13 px a line plus 6, each
   from the top of its first line; a line is as tall as what prints in it and never under 17 px. Until then the screen
   held every Standard line to 17 px and stretched bars and notes over their lines.
-- **A month the PDF shrinks stays full size**, in a card taller than the page. The export still warns.
+- ⭐ **A month the PDF shrinks is drawn shrunk, exactly as the PDF shrinks it** (owner, 17 Nov 2026: *"I think id rather
+  the live view look like it will in the pdf"*; pickers **Shrink like the PDF**, **Approve with that gate**, **Stay one
+  page**; `MONTH-SHRINK-PLAN.md`). Until then such a month stayed full size in a card taller than the page, and the
+  card's height changed from month to month.
+  - **The writer is asked, never copied.** `mvWriterFit()` renders the month on screen as the export renders it and
+    takes the month PDF writer's own fit (`mvlFitMonth`): one factor k for every week, a whole number of 64ths. So the
+    factor, the rows and every note's lines are the PDF's.
+  - **What scales** is the writer's own list (`mvlWeekPaint`): type, lines, vertical padding, the lane minimum and gap,
+    bar corners, the grey tag, the day number. Widths, horizontal padding and every line weight do not. So a Standard
+    bar is 17k + 2 px and a 10 px note (13 a line + 4)k + 2.
+  - **Notes wrap where the PDF wraps them**: the one approved frozen edit, SK1, counts a note's lines at the smaller
+    size, on screen only.
+  - **The card is one page at every month.** A line added to a shrunk month's week (the row's "+") does not make it
+    taller (**Stay one page**): that week keeps the PDF's row, and a blank line with no room sits below its edge.
+  - ⚠️ The page's four Inter programs are decoded the first time a MONTH is drawn (never in a waterfall-only session);
+    until they are in, a crowded month is drawn at full size, and it is fitted when they arrive, a few ms later.
+  - The export still warns when a month prints below 6 pt.
 - **Soft Lines stays**: 1 px soft grey on screen, 2 px black in the PDF. Sizes and layout match; that is the one
   intended difference.
 - **No note symbols** (↻ / ⚑, 2 Nov 2026): the PDF never had them, and a marked note was measured 10 px narrower.
 - ⛔ **A knife edge can still differ.** A note's lines come from measuring text, and Chrome on screen and the PDF's own
   font tables differ by hundredths of a pixel. A note whose text is within about 0.1 px of its box's width can take a
   line more or less on screen than in the PDF (seen: one note at 13 px on `mvnotes`, one at 14 px on `mvnotesize-14`).
-  No width change closes it.
+  No width change closes it. In a shrunk month Chrome also draws a font at a size cut to 1/100 of a device pixel, so
+  a note within about 0.16% of its box can draw a line fewer inside the same lanes (1 of 42 on `monthscale`'s
+  August); its week and the card are unchanged.
 
-**Held by** `monthpage` (five calendars, a small window, and no calendar): every week's height on screen is the
-written PDF's row within 0.1 px on every month that fits a page; the card, the day column and the scroll rule; printed
-bar and note heights; no symbol; the zoom; a line added to a week stays inside it. `calzoom`, `mvbarsize`,
-`mvnotesize`, `autonoterename` and `mvkeys` were re-premised for it. Gate 13 holds the PDF itself; gate 10 was re-cut
-(the print rollback now sizes notes for the page, not the window).
+**Held by** `monthpage` (eight calendars, a small window, and no calendar): every week's height on screen is the
+written PDF's row within 0.1 px on every month, a shrunk one too; the card, the day column and the scroll rule; printed
+bar and note heights at the month's factor; the factor itself (T), a shrunk month's notes in the PDF's boxes (N), Stay
+one page (K); no symbol; the zoom; a line added to a week stays inside it. `calzoom`, `mvbarsize`, `mvnotesize`,
+`autonoterename` and `mvkeys` were re-premised for the page, and `mvnotesize`, `monthlanes`, `monthexport` and the
+three writer guards (`monthemit`, `monthwriter`, `monthlayout` F0) for the shrink. Gate 13 holds the PDF itself; gate
+10 was re-cut (the print rollback now sizes notes for the page, not the window).
+
+### ✅ AS BUILT — a day in the month view holds 10 lines (17 Nov 2026, `MONTH-ROW-LIMIT-PLAN.md`)
+
+Owner: *"there reall should be a max limit on how tall a calendar row can be"*. Five pickers: **Stop adding notes**,
+**10 lines in a week**, **No new notes until under**, **Never refused**, **Short message by the day**.
+
+- **The rule.** A day's lines are the lowest line any bar, band or note covering it ends on. A day that already
+  reaches its 10th line takes no new note added by hand in the month view. Every day is capped, so the row is: 10
+  lines is 226 px of the 631 px the weeks share.
+- **Four refusals**: a "+" on a full day (no editor opens), ⌘V (notes land one by one while there is room), Paste
+  notes… (a full day's row is an error row), a note dragged onto a full day (it goes back).
+- **Never refused**: an edit to a note that is already there; everything that arrives on its own (the Waterfall's
+  notes, notes that stay with a phase, automatic notes, holidays, bars, bands, the moving tools); Load and Undo. A
+  calendar already over the limit shows everything it holds.
+- **The words** are the grid's short message, the chip the month view already shows for "Holidays and automatic notes
+  stay on their own dates" (the owner's picker chose it over §4's blocking-error dialog: one more click every time a
+  full day is tried), drawn over the day it is about and kept inside the window: *"This day is full (10 lines)."* and, on its own line, *"Delete or move a note to
+  add another."* or *"1 of 3 notes were pasted."*. It lasts about 5 seconds and goes at once when a note does land.
+  In the Paste notes… box the row reads *"11/3/26 is full (10 lines)"*.
+- ⛔ **A refusal is never silent.** A paste goes to the day last clicked, which can have been scrolled out of view.
+  With no day on screen to sit by, the message shows at the top of the calendar and names the date (*"7/3/26 is
+  full (10 lines)…"*). A message placed by something must have a fallback for when that thing is not in view.
+- **At the door, at full size.** The check asks whether the day is full before the note is added (a note being typed
+  is saved whole, so a row can end a line or two over), and lines are counted as the month draws at full size, so a
+  day is full or not whichever month page it is seen on. ⚠️ A shrunk month can show fewer lines than are counted.
+- ⚠️ **The "+" still shows on a full day**, and in a week whose tallest day is far over the limit, on every empty
+  line beside a full day. The frozen renderer draws them; a click says the day is full.
+- **No setting, nothing saved, no output changes.** The week's own "+" strip keeps its 6 blank lines.
+
+**Held by** `monthrowlimit` (three runs: the doors, the over-limit fixture, a shrunk month).
 
 ### ✅ AS BUILT — the install gate's page (30 Sep 2026, `PWA-ONLY-PLAN.md`)
 
@@ -1518,6 +1568,10 @@ Nothing in this document ships without all of these, every stage:
       `softlines` (which deletes only the Soft Lines block and still passes with this one in place).
     - ⚠️ A new rule in that block must stay paint only. A font-size, padding or weight change on a box that sizes
       itself turns `softlines` L1 red.
+    - `monthrowlimit` (17 Nov 2026; §7, "a day in the month view holds 10 lines"): no frozen edit and no output, so
+      it is held on screen and in the stores: the four refusals with their words, what is never refused, an
+      over-limit calendar that opens whole, and the full-size count in a shrunk month. Gates 2, 3, 10 and 13
+      byte-identical are the proof that no file moved.
 21. **NEW — the month view's day menu stays as the owner trimmed it** (23 Oct 2026, MONTH-CONTEXT-MENU-PLAN.md §13,
     rulings T1–T4). `gate.sh`'s `mvmenu` leg: the EXACT item list of every menu it checks (a bar on a shoot day, a
     weekday holiday, a weekend, a hiatus day, a hiatus day with a holiday, Post's bar, a custom phase's bar, the
