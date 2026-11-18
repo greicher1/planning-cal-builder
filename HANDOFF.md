@@ -4,6 +4,49 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### ✅ 18 Nov 2026: FINISH BEFORE — BUILD A CALENDAR BACKWARDS FROM A PHASE ON ENDS. FINISHED on branch `build-backwards` (worktree `.claude/worktrees/build-backwards`, from `origin/main` `f48df5b`; `node_modules` is a symlink, unlink it before `git worktree remove`). Committed on the branch; ⛔ NOT merged, NOT pushed, no version cut (README: Unreleased). Owner tried it on localhost (launch entry `build-backwards-8774`) and said *"Looks good, finish it"*. Tracker card `build-backwards`
+- **The ask (executives' review, 17 Nov 2026):** they often work back from a delivery date (a fiscal year end), and asked
+  whether "Start after previous phase" could get a button "that moves it the other direction", obvious without
+  training; and when a phase is set by its end, the buttons should switch to the backwards one by themselves.
+- **Rulings (owner's pickers, 18 Nov 2026):**
+  - **R1, contextual, by chain position** (the owner's own answer, not either offered option): *"if you use end by on a
+    phase, the phases before it then swap to showing the end button. Phases after that phase keep showing the start
+    after buttons"*. As built: a card shows Finish before while ANY later `PHASE_CHAIN` phase is on Ends; an Ends phase
+    with no Ends phase after it shows neither (as before); one with an Ends phase after it shows Finish before.
+  - **R2, the words:** "↳ Finish before <next phase>" (offered: End before / Finish before / Start before).
+  - **R3, holding the delivery date:** no new control. Build Around pinned to Post "ends by" already rebuilds the earlier
+    phases from their lengths in one run; teach it at the training (14 Dec). An automatic pull (and the matching
+    automatic push when a phase grows) gets its own plan after the training. ⛔ So a phase that grows does NOT move the
+    phases before it; leg F3 holds that.
+  - **R4, a click puts the card on Ends** with that end in its box (recommended; offered: stays on Starts).
+- **As built** (`src/legacy/app.js`, after `autostartPhase`; CSS beside `.autostart-btn` in `legacy.css`):
+  - Markup: `<button class="finish-before-btn" data-phase>` after Start after's, on every built-in card but
+    Localization's (the chain's last). NO id. Delegated click on `#phase-rows`, beside Start after's.
+  - `reflectFinishBefore()` runs in `update()` right after `reflectPhaseEnds()`: the card's `chain-back` class
+    (`chainEndsAfter(key)`, read from the stores, so an Ends phase whose box is still empty counts) and the label
+    (`nextChainSegment()`, the mirror of `prevChainSegment()`: the next SCHEDULED chain phase, named as typed). ⚠️
+    Frozen `render()` writes Start after's label and `disabled`; it never touches this button, so the two never fight.
+    CSS: `.phase-row:not(.chain-back) .finish-before-btn` and `.phase-row.chain-back .autostart-btn` are hidden.
+  - `finishBeforePhase(key)`, inside `asShootDayMove`, one `update()` = one undo step:
+    - **Weeks phase:** `phaseEnds[key] = true`, `end-<key>` = the Friday of the week before the next phase's first
+      week, stepped back a week at a time while it is inside an all-phase hiatus.
+    - **Production:** Ends as `setProductionEnds(true)` puts it (Snap to Monday off), then the wrap as
+      `setProductionWrap()` takes it: `productionEnds` = the day before the next phase, normalised by
+      `solveProductionEndsStart()` to the last real shoot day (a weekend, holiday or hiatus reads as the day before).
+    - **Dates built-in** (no Ends): both dates move by the same days through `setPhaseStart()`, its last day the last
+      weekday before the next phase (not in a hiatus).
+  - No frozen edit, no save-format change, no new id.
+- **Proof:** new leg `finishbefore` 12/12 (C1-C3 the rule, N1 a renamed phase, F1 Production with undo and redo, F2 a
+  Weeks phase, F3 R3, D1 Dates, H1/H2 over the 12/21/26 hiatus, K1 custom, E0), wired into `gate.sh` beside
+  `prodends`. Related legs green on the build: `endsdate` 17/17, `prodends` 14/14, `snaptools` (dayoverrides) 14/14,
+  `overrides` (dayoverrides) 20/20, `builtindates` live 17 + restore 15; `npm run check` 42/42. No full gate (nothing
+  frozen, no export or save-path change).
+  - ⚠️ Running `snaptools` / `overrides` / `builtindates` by hand needs their fixture (`HARNESS_STATE=dayoverrides`,
+    `builtindates`), as `gate.sh` passes it; without it they time out "waiting for the restored calendar".
+  - ⚠️ F1 learned: finishing Production right before Post can move its start LATER (Fri 7/10/26 on the fixture), when
+    it was wrapping well before Post. That is correct, the gap closes from Production's side, not a bug.
+- **Next:** the owner's picker on commit / merge / push (and whether to cut a version).
+
 ### 🚀 17 Nov 2026: DOUBLE-UP DAYS — v1.17.0, built on branch `claude/double-up-days-037393` (worktree `.claude/worktrees/double-up-days-037393`, from `main` at `aa16ffe`), full gate green, cut as v1.17.0 and pushed to `main` on the owner's picker *"Push now as v1.17.0"* (the push and the live check are the last bullet). The owner chose *"Leave them, I'll handle it"* for the main checkout's own uncommitted double-up files: this session did not touch the main checkout, so its local `main` is behind `origin/main`. Plan + as-built record: [`DOUBLE-UP-DAYS-PLAN.md`](DOUBLE-UP-DAYS-PLAN.md) §10; mockup [`mockups/double-up-days-ui.html`](mockups/double-up-days-ui.html). Tracker card `double-up-days`.
 - **What it is:** "10+1" = 10 first-unit days plus 1 double-up day (two crews, two episodes, one day). It never lengthens
   Production. NOT a half day (`.5` is one crew splitting a day, already built). All 17 rulings (owner, 17 Nov 2026) are

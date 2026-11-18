@@ -29,6 +29,33 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+## Unreleased
+
+### Finish before: build a calendar backwards from a phase on Ends (18 Nov 2026)
+
+At the executives' review (17 Nov 2026) they said they often work back from a delivery date (a fiscal year end, say),
+and asked for the "Start after previous phase" button to work the other way, obvious without training. The owner
+ruled it by picker on 18 Nov 2026 (R1-R4, HANDOFF "Finish before").
+- **It depends on where the card sits (R1).** While a later phase is on **Ends** (its end held), every phase card
+  before it shows **↳ Finish before <next phase>** in place of ↳ Start after. Phases after it keep Start after, and the
+  Ends phase itself shows neither, unless a phase after it is on Ends too. With every phase on Starts nothing changes.
+  Writer's Rm gains the button; custom phases, which are not in the chain, have none, as with Start after.
+- **What a click does (R4).** The card goes on Ends. Its end is the last working week before the next phase starts,
+  stepping back over an all-phase hiatus, so the two never overlap. Production's wrap is the last shoot day before the
+  next phase (the same search a typed wrap uses). From then on the end holds: an episode that gains days moves
+  Production's start earlier instead of running into Post. A built-in phase on Dates, which has no Ends, keeps its
+  length and moves. One click is one undo step, and Production's day marks travel by shoot-day number.
+- **Holding a delivery date (R3) is not automatic.** When a phase grows, the phases before it stay where they are.
+  Build Around pinned to Post's "ends by" rebuilds them all in one run, and is what the training will show; an
+  automatic pull gets its own plan after the training.
+- No frozen edit and no save-format change: a click writes the existing Ends stores (`phaseEnds`, `productionEnds`,
+  `end-<key>`). Frozen `render()` writes Start after's label, so Finish before's is written after it, by `update()`.
+- Verified: new leg `finishbefore` 12/12 (the rule on Starts and with one or two phases on Ends, a renamed phase,
+  Production and a Weeks phase, undo and redo, the end holding while Production grows, a Dates phase, both kinds
+  stepping back over the hiatus, custom phases, no console errors), `endsdate` 17/17, `prodends` 14/14, `snaptools`
+  14/14, `overrides` 20/20, `builtindates` 17 + 15, `npm run check` 42/42. Tried by the owner on localhost first
+  ("Looks good, finish it").
+
 ## v1.17.5 — pick the Tandem colour (17 Nov 2026)
 
 ### Pick the Tandem colour (17 Nov 2026)
