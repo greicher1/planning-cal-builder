@@ -6,8 +6,12 @@
 
 ### 🛠️ 18 Nov 2026: EXPORT FILE NAMES (WRO date, "a.o." date, the File name list) + THE VERSION GETS ITS "v" BACK — WIP on branch `export-name-wro` (worktree `.claude/worktrees/export-name-wro`, from `origin/main` `1c9b008`). NOT merged, NOT pushed, no full gate. Tracker cards `save-name-wro-date`, `export-file-name-parts`, `version-auto-v`.
 - **Export names** (`exportNameParts()` → `exportNameFrom()`, through `exportFileName()`, which the frozen workbook / waterfall-PDF name
-  lines already call: NO frozen edit): "<title> <season> WRO <M.D.YY> <words> <version> a.o. <M.D.YY> – <scenario>", e.g. "The Keleigh
-  Show S3 WRO 1.5.26 Planning Calendar v3 a.o. 11.18.26 – Plan B.pdf". The execs' ask (17 Nov meeting: "Show title, season, W-R-O
+  lines already call: NO frozen edit). ⭐ THE DEFAULT, the owner's last word (18 Nov 2026): "Test Show S3 Planning Calendar v3 WRO 1.4.27
+  - a.o. 11.18.26.pdf": title, season, words, Version, WRO, then the scenario and the edited date, each SET OFF by " - " (a spaced
+  hyphen) from its neighbours wherever it is moved (`setOff`); every other part joined by a space. ⭐ The SCENARIO IS OFF BY DEFAULT
+  (*"scenario name should not be adding by default"*, overriding ruling D6 for names): `FILE_NAME_OFF_DEFAULT`, so an absent
+  `prefs.fileNameOff` means ['scenario'] and a stored [] means all on; ticked it reads "… WRO 1.4.27 - Plan B - a.o. 11.18.26". The
+  steps on the way there: the execs' ask (17 Nov meeting: "Show title, season, W-R-O
   date, and then the file date"), then the owner's pickers: exports only (Save's `.sptcal` name unchanged); WRO as the header prints it
   (`wrHeaderOpenDay`, day first on DD/MM); "Planning Calendar" kept; the edited date in the same style with "a.o." before it (was
   yyyy-mm-dd: a folder sorted by name no longer lists revisions by date, told to the owner); the Version right after the words.

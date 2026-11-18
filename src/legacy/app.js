@@ -32972,9 +32972,12 @@ export function initLegacyApp() {
   function scenarioNameSuffix(){
     return (scenarioTabs && scenarioTabs.length > 1) ? ' \u2013 ' + currentScenario().name.replace(/[\\/:*?"<>|]/g, '-') : '';
   }
-  // ⭐ WHAT AN EXPORT'S NAME SAYS: "<title> <season> WRO <date> <words> <version> a.o. <date> – <scenario><ext>",
-  // e.g. "The Keleigh Show S3 WRO 1.5.26 Planning Calendar v3 a.o. 11.18.26 – Plan B.pdf". The Version right after the
-  // words, before the edited date (owner, 18 Nov 2026; it came after the date until then).
+  // ⭐ WHAT AN EXPORT'S NAME SAYS, BY DEFAULT (owner, 18 Nov 2026: "lets do this format as the default: Test Show S3
+  // Planning Calendar v3 WRO 1.4.27 - Scenario Name - a.o. 11.18.26"): "<title> <season> <words> <version> WRO <M.D.YY> -
+  // <scenario> - a.o. <M.D.YY><ext>". The scenario and the edited date are SET OFF by " - " (a hyphen, spaced) from
+  // whatever is beside them, wherever they are moved; every other part is joined by a space (exportNameFrom). With one
+  // scenario: "Test Show S3 Planning Calendar v3 WRO 1.4.27 - a.o. 11.18.26.pdf". ⚠️ The scenario is OFF by default
+  // (FILE_NAME_OFF_DEFAULT below): ticked in the Export PDF window, it reads "… WRO 1.4.27 - Plan B - a.o. 11.18.26".
   //  - History: audit 2026-11 AUD2-025 (decision D8 = c, 13 Nov 2026) added the date and the Version; the owner's
   //    "Work on it now" (16 Nov 2026) put the season BESIDE THE TITLE (frozen edits S1b / S2b); the owner's pickers of
   //    18 Nov 2026 added the Writers' Room Open date (the execs' ask, 17 Nov: "Show title, season, W-R-O date, and then
@@ -33013,12 +33016,12 @@ export function initLegacyApp() {
     const parts = [
       { k:'title',    label:'Show title',  val: clean(safeTitle) },
       { k:'season',   label:'Season',      val: clean(seasonLabel()) },
-      { k:'wro',      label:'WRO date',    val: opts.noWro ? '' : exportNameWro() },
       { k:'words',    label:'Calendar',    val: clean(words) },
       { k:'version',  label:'Version',     val: opts.noVersion ? '' : clean(versionLabel()) },
-      { k:'date',     label:'Edited date', val: 'a.o. ' + nameDate(d.getMonth() + 1, d.getDate(), d.getFullYear()) },
-      { k:'scenario', label:'Scenario',    join: ' – ',
+      { k:'wro',      label:'WRO date',    val: opts.noWro ? '' : exportNameWro() },
+      { k:'scenario', label:'Scenario',    setOff: true,
         val: (!opts.noScenario && scenarioTabs && scenarioTabs.length > 1) ? currentScenario().name.replace(/[\\/:*?"<>|]/g, '-') : '' },
+      { k:'date',     label:'Edited date', setOff: true, val: 'a.o. ' + nameDate(d.getMonth() + 1, d.getDate(), d.getFullYear()) },
     ];
     return parts.filter(p => p.val);
   }
@@ -33029,7 +33032,7 @@ export function initLegacyApp() {
   // (owner, 18 Nov 2026, "also allow removing show title"; it was locked on until then). With every part off, the name
   // is the calendar's words alone ("Planning Calendar.pdf"), never empty (exportNameFrom).
   // ⚠️ Whether it should travel with the calendar instead is the owner's open call (tracker export-file-name-parts).
-  const FILE_NAME_PART_KEYS = ['title', 'season', 'wro', 'words', 'version', 'date', 'scenario'];
+  const FILE_NAME_PART_KEYS = ['title', 'season', 'words', 'version', 'wro', 'scenario', 'date'];
   // ⭐ AND THEIR ORDER (owner, 18 Nov 2026: "Allow me to be able to drag and reorder the chips to reorder the file
   // name"): `fileNameOrder` in sptcal.prefs, every part's key including the title, absent = exportNameParts' order. A key
   // the store lacks (a part added by a later build) goes in where it sits by default, after the part before it.
@@ -33053,19 +33056,23 @@ export function initLegacyApp() {
     if(order.join() === known.join()) delete prefs.fileNameOrder; else prefs.fileNameOrder = order;
     savePrefs();
   }
+  // ⭐ THE SCENARIO IS OFF BY DEFAULT (owner, 18 Nov 2026: "scenario name should not be adding by default"; until then
+  // a calendar with two or more scenarios put the tab's name in every export's name, ruling D6). It stays in the list,
+  // unticked, and a tick puts it in. So an ABSENT `fileNameOff` means this default, and `[]` (stored) means every part on.
+  const FILE_NAME_OFF_DEFAULT = ['scenario'];
   function fileNameOff(){
-    const off = Array.isArray(prefs.fileNameOff) ? prefs.fileNameOff : [];
+    const off = Array.isArray(prefs.fileNameOff) ? prefs.fileNameOff : FILE_NAME_OFF_DEFAULT;
     return FILE_NAME_PART_KEYS.filter(k => off.includes(k));
   }
   function setFileNameOff(list){
     const off = FILE_NAME_PART_KEYS.filter(k => (list || []).includes(k));
     if(off.join() === fileNameOff().join()) return;
-    if(off.length) prefs.fileNameOff = off; else delete prefs.fileNameOff;
+    if(off.join() === FILE_NAME_OFF_DEFAULT.join()) delete prefs.fileNameOff; else prefs.fileNameOff = off;
     savePrefs();
   }
-  // The parts in the chosen order, less the ones switched off, joined by spaces. The scenario keeps its " – " only when
-  // it is LAST ("… a.o. 11.18.26 – Plan B"); moved anywhere else it is joined like any part. ⛔ The Export PDF window's
-  // preview (ExportPdfDialog.jsx, joinName) repeats this rule: change both together.
+  // The parts in the chosen order, less the ones switched off. Two neighbours are joined by " - " when either is SET OFF
+  // (the scenario, the edited date), else by a space. ⛔ The Export PDF window's preview (ExportPdfDialog.jsx, joinName)
+  // repeats this rule: change both together.
   function exportNameFrom(parts, ext){
     const off = fileNameOff(), order = fileNameOrder();
     let shown = parts.filter(p => p.locked || !off.includes(p.k))
@@ -33073,7 +33080,7 @@ export function initLegacyApp() {
     if(!shown.length) shown = parts.filter(p => p.k === 'words');   // every part off: never an empty name
     let out = '';
     shown.forEach((p, i) => {
-      out += (i ? ((p.join && i === shown.length - 1) ? p.join : ' ') : '') + p.val;
+      out += (i ? ((p.setOff || shown[i - 1].setOff) ? ' - ' : ' ') : '') + p.val;
     });
     return out + (ext || '');
   }
@@ -40748,7 +40755,8 @@ export function initLegacyApp() {
       nameExt: '.pdf',
       nameOff: fileNameOff(),
       nameOrder: fileNameOrder(),
-      nameOrderDefault: FILE_NAME_ORDER_DEFAULT.slice()
+      nameOrderDefault: FILE_NAME_ORDER_DEFAULT.slice(),
+      nameOffDefault: FILE_NAME_OFF_DEFAULT.slice()
     });
     if(!choice) return false;
     // A per-computer preference, written only when it changed, so Export at the window's defaults still writes nothing.

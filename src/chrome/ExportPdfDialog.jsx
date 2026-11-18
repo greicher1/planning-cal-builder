@@ -75,19 +75,19 @@ export function Row({ label, children }) {
 // names this one export (the answer's `nameTyped`; the engine never remembers it). A click on a chip, a drag or Put all
 // back builds the name from the parts again. The title chip can be switched off like any part ("also allow removing
 // show title").
-// ⛔ joinName repeats the engine's exportNameFrom (app.js): the scenario keeps its " – " only when it is last, and with
-// every part off the name is the calendar's words alone.
+// ⛔ joinName repeats the engine's exportNameFrom (app.js): two neighbours are joined by " - " when either is set off
+// (the scenario, the edited date), else by a space; with every part off the name is the calendar's words alone.
 function joinName(parts, off, ext) {
   let shown = parts.filter((p) => p.locked || !off.includes(p.k))
   if (!shown.length) shown = parts.filter((p) => p.k === 'words')
   let out = ''
   shown.forEach((p, i) => {
-    out += (i ? ((p.join && i === shown.length - 1) ? p.join : ' ') : '') + p.val
+    out += (i ? ((p.setOff || shown[i - 1].setOff) ? ' - ' : ' ') : '') + p.val
   })
   return out + (ext || '')
 }
 
-function FileNameRow({ parts, off, setOff, order, setOrder, orderDefault, ext, typed, setTyped }) {
+function FileNameRow({ parts, off, setOff, offDefault, order, setOrder, orderDefault, ext, typed, setTyped }) {
   const [dragK, setDragK] = useState(null)
   const orderRef = useRef(order)
   orderRef.current = order
@@ -95,7 +95,9 @@ function FileNameRow({ parts, off, setOff, order, setOrder, orderDefault, ext, t
   const swallow = useRef(false)   // the click that ends a drag must not switch the chip
   const sorted = parts.slice().sort((a, b) => order.indexOf(a.k) - order.indexOf(b.k))
   const toggle = (k) => { setTyped(null); setOff(off.includes(k) ? off.filter((x) => x !== k) : off.concat([k])) }
-  const changed = typed !== null || parts.some((p) => !p.locked && off.includes(p.k)) || order.join() !== orderDefault.join()
+  // Changed from the default: the scenario is OFF by default (owner, 18 Nov 2026), so "Put all back" unticks it again.
+  const offKey = (list) => parts.filter((p) => list.includes(p.k)).map((p) => p.k).join()
+  const changed = typed !== null || offKey(off) !== offKey(offDefault) || order.join() !== orderDefault.join()
   const built = joinName(sorted, off, '')
   // ⭐ A LIST WITH DRAG HANDLES (owner, 18 Nov 2026: "we might need to change it to the list version with drag handles
   // so you can easily reoder"; it was chips). A click on a row ticks it; its handle (six dots) drags it; Alt + Up / Down
@@ -150,7 +152,7 @@ function FileNameRow({ parts, off, setOff, order, setOrder, orderDefault, ext, t
       <Group justify="space-between" align="baseline" mb={6} wrap="nowrap">
         <Text size="sm" fw={600}>File name</Text>
         {changed && (
-          <UnstyledButton onClick={() => { setTyped(null); setOff([]); setOrder(orderDefault.slice()) }} data-pdfdlg="name-reset"
+          <UnstyledButton onClick={() => { setTyped(null); setOff(offDefault.slice()); setOrder(orderDefault.slice()) }} data-pdfdlg="name-reset"
             style={{ fontSize: 12, color: 'var(--mantine-color-dimmed)', textDecoration: 'underline' }}>
             Put all back
           </UnstyledButton>
@@ -315,7 +317,8 @@ export function ExportPdfDialog() {
             <SegmentedControl fullWidth size="sm" value={grid} onChange={setGrid} aria-label="Grid lines" data={gridData} />
           </Row>
           {Array.isArray(dlg.nameParts) && dlg.nameParts.length > 0 && (
-            <FileNameRow parts={dlg.nameParts} off={nameOff} setOff={setNameOff} order={nameOrder} setOrder={setNameOrder}
+            <FileNameRow parts={dlg.nameParts} off={nameOff} setOff={setNameOff} offDefault={dlg.nameOffDefault || []}
+              order={nameOrder} setOrder={setNameOrder}
               orderDefault={dlg.nameOrderDefault || nameOrder} ext={dlg.nameExt || '.pdf'}
               typed={nameTyped} setTyped={setNameTyped} />
           )}
