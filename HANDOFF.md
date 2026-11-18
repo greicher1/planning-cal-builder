@@ -36,6 +36,10 @@
   `releases/v1.17.3.html` cmp-identical, sha256 `96670f67ceb7e743…`; `v1.17.3-saved.sptcal` identical to v1.17.2's but
   `lastEdited`; on the cut the waterfall PDF identical bar the stamp, gate 13 reference byte-identical, `monthexport` 9/9,
   `pdfmark` 6/6), tagged `v1.17.3` and pushed with the branch.
+  - ✅ **PUSHED AND LIVE:** ONE `git push origin HEAD:main refs/tags/v1.17.3` at 22:24:21 (`9545b6d..cd8db12`, a
+    fast-forward after a re-fetch; it also carried v1.17.2's HANDOFF note `44e1e26`). Deploy run 44251085104. At 22:25:02
+    the live `version.json` read 1.17.3 and the live `index.html` was byte-identical to the build (sha256
+    `96670f67ceb7e743…`). This sub-bullet is a later, unpushed docs commit.
 - 🔨 **R21, after v1.17.1 (owner: *"Yes, use Tandem"*): the word is Tandem.** Default pill "Tandem 101", card head
   "Tandem days", and every user-facing string; saved keys, ids, classes and code names keep "double-up" (Load's
   `data-action="open"` precedent). Plan §10.3d. `doubleups` 58/58, writer + export green. Tracker card
