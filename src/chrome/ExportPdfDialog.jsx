@@ -26,7 +26,7 @@
 // withinPortal={false}, as in Dialogs.jsx: Mantine's portal would append after #print-root, which must stay
 // <body>'s last child (MANTINE-SEAM §3.1).
 import { useState, useLayoutEffect, useCallback, useRef } from 'react'
-import { Modal, Button, Text, Group, Stack, SegmentedControl } from '@mantine/core'
+import { Modal, Button, Text, Group, Stack, SegmentedControl, Chip, UnstyledButton } from '@mantine/core'
 import { installChrome } from './bridge.js'
 import { useOutsideCloseGuard } from './modalGuard.js'
 
@@ -63,11 +63,59 @@ export function Row({ label, children }) {
   )
 }
 
+// ⭐ THE FILE NAME (owner, 18 Nov 2026: "an easy to use system that lets you add/unadd parts of the file name", then
+// "make it actually work"; mockups/export-file-name-parts.html, layout A). The engine passes `nameParts`, the parts
+// in order as the PDF will be named ({k, label, val, join?, locked?}: exportNameParts, the list the name itself is
+// built from), `nameExt` and `nameOff` (the keys switched off, a per-computer preference). One chip per part; the
+// name above them is exactly what will download. The title is locked on. The answer carries `nameOff`, which the
+// engine stores only if it changed, and which every export's name then follows.
+function joinName(parts, off, ext) {
+  let out = ''
+  parts.forEach((p) => {
+    if (!p.locked && off.includes(p.k)) return
+    out += (out ? (p.join || ' ') : '') + p.val
+  })
+  return out + (ext || '')
+}
+
+function FileNameRow({ parts, off, setOff, ext }) {
+  const toggle = (k) => setOff(off.includes(k) ? off.filter((x) => x !== k) : off.concat([k]))
+  const anyOff = parts.some((p) => !p.locked && off.includes(p.k))
+  return (
+    <div className="pdfdlg-name">
+      <Group justify="space-between" align="baseline" mb={6} wrap="nowrap">
+        <Text size="sm" fw={600}>File name</Text>
+        {anyOff && (
+          <UnstyledButton onClick={() => setOff([])} data-pdfdlg="name-reset"
+            style={{ fontSize: 12, color: 'var(--mantine-color-dimmed)', textDecoration: 'underline' }}>
+            Put all back
+          </UnstyledButton>
+        )}
+      </Group>
+      <Text size="sm" className="pdfdlg-name-preview"
+        style={{ background: 'var(--mantine-color-gray-0)', border: '1px solid var(--mantine-color-gray-2)',
+                 borderRadius: 7, padding: '7px 10px', wordBreak: 'break-word', lineHeight: 1.45 }}>
+        {joinName(parts, off, '')}<span style={{ color: 'var(--mantine-color-dimmed)' }}>{ext}</span>
+      </Text>
+      <Group gap={6} mt={8}>
+        {parts.map((p) => (
+          <Chip key={p.k} size="xs" checked={p.locked || !off.includes(p.k)} disabled={p.locked}
+            onChange={() => { if (!p.locked) toggle(p.k) }} data-namepart={p.k}
+            title={p.locked ? 'The show title always stays' : p.val}>
+            {p.label}
+          </Chip>
+        ))}
+      </Group>
+    </div>
+  )
+}
+
 export function ExportPdfDialog() {
   const [dlg, setDlg] = useState(null)   // the opts the engine passed, plus `n` to remount per opening
   const [paper, setPaper] = useState('letter')
   const [orient, setOrient] = useState('')   // '' = follow the paper's recommendation
   const [grid, setGrid] = useState('none')
+  const [nameOff, setNameOff] = useState([])
   const resolveRef = useRef(null)
   const openCount = useRef(0)
 
@@ -81,6 +129,7 @@ export function ExportPdfDialog() {
           setPaper(opts.paper || 'letter')
           setOrient(opts.orientation || '')
           setGrid(opts.gridlines || 'none')
+          setNameOff(Array.isArray(opts.nameOff) ? opts.nameOff : [])
           setDlg({ ...opts, n: openCount.current })
         }),
     })
@@ -103,7 +152,7 @@ export function ExportPdfDialog() {
   const paperRec = (dlg.paperRec || {})[orient || 'follow'] || { paper: 'letter', gain: 0 }
   const gridData = GRID_OPTIONS.some((g) => g.value === grid)
     ? GRID_OPTIONS : GRID_OPTIONS.concat([{ value: grid, label: grid.charAt(0).toUpperCase() + grid.slice(1) }])
-  const doExport = () => finish({ paper, orientation: shown, gridlines: grid })
+  const doExport = () => finish({ paper, orientation: shown, gridlines: grid, nameOff })
   // Enter exports, as the app's other dialogs confirm on Enter -- except on a button, whose own Enter
   // (a native click) must stay the button's: Enter on Cancel cancels.
   const onKey = (e) => {
@@ -157,9 +206,12 @@ export function ExportPdfDialog() {
           <Row label="Grid lines">
             <SegmentedControl fullWidth size="sm" value={grid} onChange={setGrid} aria-label="Grid lines" data={gridData} />
           </Row>
+          {Array.isArray(dlg.nameParts) && dlg.nameParts.length > 0 && (
+            <FileNameRow parts={dlg.nameParts} off={nameOff} setOff={setNameOff} ext={dlg.nameExt || '.pdf'} />
+          )}
           <Text size="xs" c="dimmed">
             The paper and orientation are saved with this calendar, and Export to Excel uses them too.
-            Grid lines stay on this computer.
+            Grid lines and the file name’s parts stay on this computer, and every export’s name follows them.
           </Text>
         </Stack>
         <Group justify="flex-end" mt="lg" gap="sm">
