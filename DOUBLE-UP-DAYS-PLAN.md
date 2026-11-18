@@ -49,6 +49,7 @@ instead of 11, and draws the bars meeting mid-day.
 | R15 | **A half day and a double-up can go together**: with 9.5 + 1 the double-up starts on the first full day after the half-day switch. | picker "Yes, double-up starts next day" |
 | R16 | **Frozen month-view edit APPROVED.** Acceptance gate: every calendar with no double-ups prints byte-identical month PDFs (gate 10, the print path, and gate 13, the written PDF), and the full `gate.sh` stays green. | picker "Approve" |
 | R17 | **Production's days never change**: its length, shoot days, Day N numbers, prep, wrap and every main-unit date ignore double-ups. | the model, agreed throughout |
+| R18 | **Where a shoot pill meets its joined double-up, ONE faint line**, not the two dark rings side by side the first build drew (~3 px of dark line). The shoot pill loses its ring on that side; the double-up's left edge is one 1 px line in its own ink at 40%; the top and bottom rims run straight across. Layout-neutral. Given after trying the built branch (`60883ac`); spec: [`mockups/double-up-join-line.html`](mockups/double-up-join-line.html), "Proposed: ONE thin line". | picker "A: one faint line" (asked: "can you make it a single fainter line that seperates the edge of the phase and the double up coming out of it") |
 
 Turned down on the way (do not reintroduce): a dashed pill in a row of its own (look A), a hatched stretch of the
 episode's bar (look B), split / slanted / darker-days / chip / note / label-only looks (C–H), and an arrow join.
@@ -200,6 +201,21 @@ As §3 asked, plus one lane rule §3 named ("the next episode takes the lane bel
 `mvJoinDoubleUps()` (not frozen) puts each joined double-up's runs among Production's, right after its own unit's, and
 marks `duLine`, `joinL` / `joinR` and the next unit's run `duBelow`. The writer: `mvlDuJoins`, `mvlPackLanes`
 (`duLine` / `duBelow`), the painter's `sq` corners in `mvlPageOps`' `path()`.
+
+### 10.3a R18, one faint line at the join (17 Nov 2026, after the first build)
+- **Screen and print path** (`mvDuJoinCss`, which frozen edit DU1 appends): `joinR` (the shoot pill) is `border-right:0;
+  padding-right:9px` (8 + the 1 px border it gives up, so neither box nor text moves) and the ring's half pixel on its
+  other three sides (`box-shadow:inset 0 .5px 0 currentColor, inset 0 -.5px 0 currentColor, inset .5px 0 0
+  currentColor`); `joinL` (the double-up) is `border-left:0; padding-left:9px` and `box-shadow:inset 1px 0 0
+  color-mix(in srgb, currentColor 40%, transparent), …` the other three half pixels.
+  ⛔ The divider is a shadow, never a border: a faint or transparent border met the dark top and bottom borders on a
+  diagonal at each corner and left a 1 px stripe (the owner saw two lines with notches).
+- **The writer:** `mvlDuJoins` checks all six declarations of a side to the character (any other mix throws); the ring
+  has no band on the `sq` side, so the top and bottom rims run straight across (`mvlPageOps`); and a joined double-up
+  gets one 1 px fill on its left edge inside the top and bottom borders, its ink at 40% over its fill
+  (`mvlMix(ink, 0.4, fill)`: #7B9968 on the default green), painted after the ring as the first CSS shadow is on top.
+- Checked at 600 dpi on `doubleups.sptcal`'s March: Chrome's print of the page and the written PDF draw the same single
+  line. Gates 10 and 13 re-run after it.
 
 ### 10.4 Interaction (step 4)
 - **Drag** (`installDoubleUpDrag`): mouse events, as every month drag; the whole pill in slots; `duSlotLine()` maps a

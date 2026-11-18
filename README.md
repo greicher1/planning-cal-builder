@@ -51,6 +51,9 @@ longer, and it is not a half day (`.5`, one crew splitting a day, which is built
   With a half day (9.5 + 1) the double-up starts on the first full day after the switch.
 - **Nothing else moves.** Production's days, shoot-day numbers, prep, wrap and every main-unit date ignore double-ups;
   the waterfall, Excel and the waterfall PDF do not show them (proven byte for byte with them on and off).
+- **Where they meet, one faint line** (R18, the owner's pick after trying the first build): the shoot pill loses its
+  outline on that side and the double-up's edge is a single 1 px line in its own ink at 40%, so the two read as one
+  shape instead of two dark rings side by side. Nothing moves; the month PDF draws the same line.
 - **Frozen edit DU1** in `renderMonthView`, owner-approved (R16): a double-up run's colour, its `data-ph="doubleUp"` /
   `data-du` marker, the flush-join CSS, and the lane hints that keep it on its episode's line and the next episode
   below. Inert on a calendar without double-ups: gates 10 and 13 byte-identical (all 11 print documents, all 24 written

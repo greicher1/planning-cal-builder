@@ -21,6 +21,12 @@
   on `doubleups-half` (4.5-day episodes) a week held two double-ups, and first-fit lifted the next episode to a line
   ABOVE the second one. The next episode's run right after a double-up now starts its lane search one line under it
   (`duBelow`, `data-du-below`); the writer copies it. Gates 10 and 13 re-run after it.
+- ⭐ **R18 (owner's picker *"A: one faint line"*, after trying `60883ac`):** where a shoot pill meets its joined double-up,
+  ONE faint line instead of the two dark rings side by side. Shoot pill: `border-right:0; padding-right:9px`, the ring's
+  half pixel on its other three sides; double-up: `border-left:0; padding-left:9px` and a 1 px inset shadow line in its
+  ink at 40%. ⛔ Never a border for the divider (it notched at the corners). The writer paints the same (no ring band on
+  the joined side, a 1 px fill of `mvlMix(ink, .4, fill)`). Spec: [`mockups/double-up-join-line.html`](mockups/double-up-join-line.html);
+  plan §10.3a. The first full gate (queued at 20:04, 154 PASS / 0 FAIL when stopped) was stopped for it, since the build changed.
 - **Save format (⛔ permanent):** top-level `doubleUps` {days, name, moved: {<unit id>: {day: n} | {after: n}}}, and
   `doubleUpDays` / `doubleUpName` on an episode or block; each ABSENT while unset, so a calendar with no double-up saves
   byte for byte as before (leg `doubleups` L7). No id on any card control; no SNAPSHOT_VERSION bump.
@@ -28,8 +34,12 @@
   with Production moved to a Wednesday so double-ups join mid-week), `doubleups-half.sptcal`, `doubleups-blocks.sptcal`
   (tests/fixtures/README.md). The plan, the mockups and this entry were uncommitted in the main checkout when the build
   session started; they are committed on this branch.
-- **Not done / open:** a Help paragraph for double-ups; text-style picks on a double-up pill; the owner has not yet
-  tried it in the browser. Merging into `main` and pushing wait on the owner's picker (CLAUDE.md).
+- **Not done / open:** text-style picks on a double-up pill; a month note dragged right under a double-up pill files
+  itself `under: 'doubleUp'` (it falls back to the bottom of its day if no double-up is drawn there, so it is never
+  lost). Help has a "Double-up days" paragraph. Merging into `main` and pushing wait on the owner's picker (CLAUDE.md).
+- ⚠️ **Merging into `main` in the main checkout:** that checkout still has its own UNCOMMITTED `DOUBLE-UP-DAYS-PLAN.md`,
+  `mockups/double-up-days-*.html`, `mockups/double-up-join-line.html` and a 17 Nov HANDOFF entry; move them aside first
+  (this branch carries all of them, newer).
 
 ### 🚂 v1.16.0 — wave 4. Branch `release-wave4` (worktree `.claude/worktrees/release-wave4`), cut from `origin/main` `7e1d8b4`; `origin/main` `8af4298` merged in at `91619e1`. The owner said *"Yes, prep it"* (16 Nov 2026): merge the newest live changes, write the owed docs and test wiring, cut v1.16.0. Tagged v1.16.0 and pushed to `main` on 17 Nov 2026 (owner's picker *"Push v1.16.0 now"*), after two full gates and the merges of `d44a52e` and `b8f4ccf`.
 - ⛔ **This section SUPERSEDES the "WIP", "NOT merged, NOT pushed", "the owner tries it first", "not in gate.sh yet" and

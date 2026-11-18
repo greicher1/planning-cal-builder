@@ -18091,10 +18091,24 @@ export function initLegacyApp() {
   }
   // What frozen edit DU1 appends to a run's style and its data: '' for a run with no double-up mark, which is every run
   // of a calendar without double-ups.
+  // ⭐ THE JOIN IS ONE FAINT LINE (owner, 17 Nov 2026, R18: "A: one faint line", mockups/double-up-join-line.html). Every
+  // pill is ringed in its ink (a 1 px currentColor border plus an inset .5 px shadow, the 21 Oct 2026 frozen CSS edit),
+  // so two squared ends side by side made a ~3 px dark double line. So, where the two meet:
+  //   the shoot pill (joinR)  no right border, its padding 1 px wider (8 + 1: the box and the text stay exactly where
+  //                            they were), and the ring's half pixel on its other three sides only;
+  //   the double-up (joinL)   no left border, padding 1 px wider, the half pixel on its other three sides, and ONE 1 px
+  //                            inset line on its left edge in its own ink at 40% (DU_JOIN_LINE).
+  // ⛔ The divider is a SHADOW, never a border, not even a faint or transparent one: a border met the dark top and bottom
+  // borders on a diagonal at each corner and left a 1 px stripe beside the line, which read as two lines with notches.
+  // The top and bottom borders run straight across. ⚠️ 9px is .mv-bar's padding (8px, at every bar size) plus the 1 px
+  // border it replaces; the month-PDF writer reads all of this back exactly (mvlDuJoins) and paints the same.
+  const DU_JOIN_LINE = 'color-mix(in srgb, currentColor 40%, transparent)';
   function mvDuJoinCss(r){
     if(!r || !(r.joinL || r.joinR)) return '';
-    return (r.joinL ? ' border-top-left-radius:0; border-bottom-left-radius:0; margin-left:0;' : '')
-         + (r.joinR ? ' border-top-right-radius:0; border-bottom-right-radius:0; margin-right:0;' : '');
+    if(r.joinL) return ' border-top-left-radius:0; border-bottom-left-radius:0; margin-left:0; border-left:0; padding-left:9px;'
+      + ' box-shadow:inset 1px 0 0 ' + DU_JOIN_LINE + ', inset 0 .5px 0 currentColor, inset 0 -.5px 0 currentColor, inset -.5px 0 0 currentColor;';
+    return ' border-top-right-radius:0; border-bottom-right-radius:0; margin-right:0; border-right:0; padding-right:9px;'
+      + ' box-shadow:inset 0 .5px 0 currentColor, inset 0 -.5px 0 currentColor, inset .5px 0 0 currentColor;';
   }
   function mvDuAttrs(r){
     if(!r) return '';
@@ -41984,23 +41998,37 @@ export function initLegacyApp() {
     if(d['color']) f.color = d['color'];
     return Object.keys(f).length ? f : null;
   }
-  // ⭐ A DOUBLE-UP'S FLUSH JOIN (DOUBLE-UP-DAYS-PLAN.md R6, frozen edit DU1): mvDuJoinCss() writes, on the side where a
-  // unit's bar and its double-up meet, `border-top-…-radius:0; border-bottom-…-radius:0; margin-…:0`. Read back here as
-  // joinL / joinR and DELETED from `d`, so mvlHalfInset never meets that margin. All three or none, and joinL only on a
-  // double-up, joinR only on Production's bar: anything else throws, as an inset does, because a join drawn on the
-  // wrong side would misstate whose day it is.
+  // ⭐ A DOUBLE-UP'S FLUSH JOIN (DOUBLE-UP-DAYS-PLAN.md R6, R18, frozen edit DU1): mvDuJoinCss() writes, on the side
+  // where a unit's bar and its double-up meet, square corners, `margin-…:0`, `border-…:0`, `padding-…:9px` and the
+  // box-shadow that keeps the ring on the other three sides (the double-up's with its one faint line). Read back here as
+  // joinL / joinR, checked to the character, and DELETED from `d`, so mvlHalfInset never meets that margin. joinL only
+  // on a double-up, joinR only on Production's bar, never both: anything else throws, as an inset does, because a join
+  // drawn on the wrong side would misstate whose day it is. ⚠️ The strings are written out here, not read from
+  // mvDuJoinCss's DU_JOIN_LINE: the writer is sliced out of this file on its own (the monthwriter leg, S0).
   function mvlDuJoins(d, ph, isDu){
     const out = {};
-    [['left', 'joinL'], ['right', 'joinR']].forEach(function(p){
-      const ks = ['border-top-' + p[0] + '-radius', 'border-bottom-' + p[0] + '-radius', 'margin-' + p[0]];
-      const zero = ks.filter(function(k){ return d[k] === '0'; });
-      const radii = ks.slice(0, 2).filter(function(k){ return k in d; });
-      if(!zero.length && !radii.length) return;
-      if(zero.length !== 3) throw new Error('Month layout: a bar with a part of a join (' + p[0] + ').');
-      if(p[1] === 'joinL' ? !isDu : !(ph === 'production' && !isDu)) throw new Error('Month layout: a join on the wrong bar.');
-      ks.forEach(function(k){ delete d[k]; });
-      out[p[1]] = true;
+    const want = {
+      joinL: {'border-top-left-radius': '0', 'border-bottom-left-radius': '0', 'margin-left': '0', 'border-left': '0',
+              'padding-left': '9px', 'box-shadow': 'inset 1px 0 0 color-mix(in srgb, currentColor 40%, transparent), inset 0 .5px 0 currentColor, inset 0 -.5px 0 currentColor, inset -.5px 0 0 currentColor'},
+      joinR: {'border-top-right-radius': '0', 'border-bottom-right-radius': '0', 'margin-right': '0', 'border-right': '0',
+              'padding-right': '9px', 'box-shadow': 'inset 0 .5px 0 currentColor, inset 0 -.5px 0 currentColor, inset .5px 0 0 currentColor'},
+    };
+    const side = ('border-top-left-radius' in d) ? 'joinL' : ('border-top-right-radius' in d) ? 'joinR' : null;
+    if(!side){
+      if('box-shadow' in d || 'border-left' in d || 'border-right' in d || 'padding-left' in d || 'padding-right' in d
+         || 'border-bottom-left-radius' in d || 'border-bottom-right-radius' in d){
+        throw new Error('Month layout: a bar with a part of a join.');
+      }
+      return out;
+    }
+    const w = want[side];
+    Object.keys(w).forEach(function(k){
+      if(d[k] !== w[k]) throw new Error('Month layout: a join with ' + k + ':' + d[k] + '.');
+      delete d[k];
     });
+    if(side === 'joinL' ? !isDu : !(ph === 'production' && !isDu)) throw new Error('Month layout: a join on the wrong bar.');
+    if('border-top-right-radius' in d || 'border-top-left-radius' in d || 'box-shadow' in d) throw new Error('Month layout: a bar joined on both sides.');
+    out[side] = true;
     return out;
   }
   // One bar: what it is, where the renderer put it, and what it says.
@@ -42797,6 +42825,10 @@ export function initLegacyApp() {
     // drawn once over the fill and again, clipped to each slice, over the shade.
     out.push(clr(tag(sqd({ k: 'ring', x: x, y: y, w: w, h: h, r: r, t: pillRim ? B.pillRim : B.border,
                        c: pillRim ? ink : mvlMix(black, B.borderAlpha, fill), role: 'bar-ring' }))));
+    // R18 (owner, 17 Nov 2026): a joined bar has NO ring on the side where it meets the other (the ring's `sq` side,
+    // mvlPageOps), and the double-up's left edge is ONE 1 px line in its ink at 40% over its fill, inside the top and
+    // bottom borders, over the ring there as the first box-shadow is in CSS (mvDuJoinCss).
+    if(it.joinL) out.push(tag({ k: 'fill', x: x, y: y + B.border, w: 1, h: h - 2 * B.border, r: 0, c: mvlMix(ink, 0.4, fill), role: 'bar-join' }));
     if(!pillRim) slices.forEach(function(s){
       out.push({ k: 'clip', x: s.x, y: s.y, w: s.w, h: s.h, r: 0 });
       out.push(tag({ k: 'ring', x: x, y: y, w: w, h: h, r: r, t: B.border, c: mvlMix(black, B.borderAlpha, shade), role: 'bar-ring' }));
@@ -43116,9 +43148,11 @@ export function initLegacyApp() {
       if(o.clear) return;                       // a No fill note's fill and ring: listed, never painted
       if(o.k === 'fill'){ setFill(o.c); ops.push(path(o.x, o.y, o.w, o.h, o.r, o.sq) + ' f'); }
       else if(o.k === 'ring'){
-        // The band between the outer edge and the edge `t` inside it, filled even-odd.
+        // The band between the outer edge and the edge `t` inside it, filled even-odd. A joined bar's `sq` side has no
+        // ring at all (R18): there the inner edge IS the outer one, so the top and bottom rims run straight across.
         setFill(o.c);
-        ops.push(path(o.x, o.y, o.w, o.h, o.r, o.sq) + ' ' + path(o.x + o.t, o.y + o.t, o.w - 2 * o.t, o.h - 2 * o.t, Math.max(0, o.r - o.t), o.sq) + ' f*');
+        const iL = (o.sq && o.sq.indexOf('L') >= 0) ? 0 : o.t, iR = (o.sq && o.sq.indexOf('R') >= 0) ? 0 : o.t;
+        ops.push(path(o.x, o.y, o.w, o.h, o.r, o.sq) + ' ' + path(o.x + iL, o.y + o.t, o.w - iL - iR, o.h - 2 * o.t, Math.max(0, o.r - o.t), o.sq) + ' f*');
       }
       else if(o.k === 'hatch'){
         // repeating-linear-gradient(135deg): along the gradient a point (u, v) from the box's top-left

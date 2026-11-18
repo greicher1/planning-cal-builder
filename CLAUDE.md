@@ -207,13 +207,17 @@ there for a specific, measured reason, and the reasons are not visible from the 
   days in the month view and both month PDFs.** In `renderMonthView`'s pill loop only. A run carrying `du` (a joined
   double-up, put among Production's runs right after its own episode's by `mvJoinDoubleUps()`; or a loose one, the
   `doubleUp` segment's) is drawn in `du.color` (R7's darker shade of Production's, `duShade`), with
-  `data-ph="doubleUp"` and `data-du="<unit id>"` (`mvDuAttrs`). `mvDuJoinCss(r)` appends the flush join (square
-  corners and margin 0 where an episode's bar and its double-up touch, `joinR` / `joinL`). A run marked `duLine` starts
+  `data-ph="doubleUp"` and `data-du="<unit id>"` (`mvDuAttrs`). `mvDuJoinCss(r)` appends the flush join where an
+  episode's bar and its double-up touch (`joinR` / `joinL`): square corners, margin 0, and since R18 (owner's picker
+  *"A: one faint line"*) no border on that side, padding 9px (8 + 1, so nothing moves), the ring's half pixel on the
+  other three sides as box-shadows, and on the double-up ONE 1 px inset line in its ink at 40%. ⛔ That divider is a
+  shadow, never a border (a border met the top and bottom borders on a diagonal and left a stripe). A run marked `duLine` starts
   its lane search at the lane the run before it took (place()'s minLane), and the next episode's run marked `duBelow`
   one lane under it, so the double-up rides its episode's line and the next episode sits below (R6).
   - ⛔ Inert on a calendar without double-ups: both helpers return '' and minLane stays undefined. Gates 10 (all 11)
     and 13 (all 24) byte-identical is the proof.
-  - The month-PDF writer reads it back (not frozen): `mvlDuJoins` (all three declarations or it throws),
+  - The month-PDF writer reads it back (not frozen): `mvlDuJoins` (all six declarations of a side, or it throws; no ring
+    band on that side, and the double-up's line painted as a 1 px fill),
     `data-du-line` / `data-du-below` in `mvlPackLanes`, and `sq` square corners in the painter. `monthwriter` du / duh
     / dub hold every joined box to Chrome's print (A3).
   - ⛔ Nothing keyed on `data-ph="production"` (its grips, its drag, the reorder grip) may take a double-up pill: they

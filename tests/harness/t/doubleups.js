@@ -311,6 +311,18 @@ window.addEventListener('load', function () { (async function () {
       check(p302 && d302 && s301 && p302.cols === '2/4' && d302.cols === '4/5' && d302.lane === p302.lane && p302.joinR && d302.joinL && d302.line
             && d302.ph === 'doubleUp' && s301.lane === p302.lane + 1,
             'R2 (R6) the double-up comes out of the end of the shoot pill on the SAME line, flush (square corners, no margin), and the next episode sits on the line below that week');
+      // R18 (owner, 17 Nov 2026, "A: one faint line"): where they meet, no border on either side, padding 9 px (8 + the
+      // border given up, so no box or text moves), and ONE 1 px line on the double-up's edge, a shadow in its ink at 40%.
+      var cP = getComputedStyle(p302.el), cD = getComputedStyle(d302.el), rP = p302.el.getBoundingClientRect(), rD = d302.el.getBoundingClientRect();
+      var tP = document.createRange(); tP.selectNodeContents(d302.el.firstChild || d302.el);
+      out.r18 = {pBorderR: cP.borderRightWidth, pPadR: cP.paddingRight, pShadow: cP.boxShadow, dBorderL: cD.borderLeftWidth, dPadL: cD.paddingLeft,
+                 dShadow: cD.boxShadow, meet: Math.abs(rP.right - rD.left), textX: tP.getBoundingClientRect().left - rD.left,
+                 pBorderT: cP.borderTopWidth, dBorderT: cD.borderTopWidth};
+      check(out.r18.pBorderR === '0px' && out.r18.pPadR === '9px' && out.r18.dBorderL === '0px' && out.r18.dPadL === '9px'
+            && out.r18.pBorderT === '1px' && out.r18.dBorderT === '1px' && out.r18.meet < 0.01 && Math.abs(out.r18.textX - 9) < 0.01
+            && /\/ 0\.4\) 1px 0px 0px 0px inset/.test(out.r18.dShadow) && (out.r18.pShadow.match(/inset/g) || []).length === 3
+            && (out.r18.dShadow.match(/inset/g) || []).length === 4,
+            'R2 (R18) where they meet, ONE faint line: no border on either side, padding 9 px (the text 9 px in, as before), the top and bottom borders kept, and a 1 px shadow line in the double-up’s ink at 40%');
       var row2 = rowsOnScreen()[1], s301b = row2.bars.filter(function (b) { return b.text.indexOf('Shoot 301') === 0; })[0];
       check(s301b && s301b.lane === p302.lane, 'R2 ...and is back on its usual line the next week');
       // R7: a darker shade of Production's own colour, following it.
