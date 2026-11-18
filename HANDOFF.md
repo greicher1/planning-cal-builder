@@ -50,8 +50,14 @@
   Nov: `hostile` (xss-proto) 18/18; `pilllabel` (blocks), judged by the gate's own checker, 29/35 once ("months 1 vs
   18" again: its month walk saw one month), then 35/35 twice; `releases/v1.16.0.html` 35/35 twice. A flake, not this
   change (which touches no month walk).
-- **Pushed** on the owner's *"push"* (18 Nov 2026) as a fast-forward of `origin/main` `aa16ffe`. No version cut (README:
-  Unreleased).
+- **`origin/main` had moved to `f48df5b` (v1.17.0-v1.17.5, Tandem days) by the push:** merged in as `188d9fa` (README /
+  HANDOFF conflicts only). On the merged build (sha256 `fbb8f7fd…`): `npm run check` 42/42 and 21 legs green:
+  `notedates` 18, `phaselink` 14, `phasenotes` 21, `phasemonth` 21, `dayfirstin` 13, `dayfirstwf` 11, `dayfirst` 14,
+  `wfkeys` 84, `noteviews` 15, `mvnotes` 30 + 14, `holidayrename` 14, `autonoterename` 25, `doubleups` live 11 / 50 / 3 /
+  2, `hidewf` 19, `phasesui` 8, `wfnotelines` drag 9, `mvdragcarry` 15. No second full gate (the two sides touch
+  different code, each fully gated on its own).
+- **Pushed** on the owner's *"push"* (18 Nov 2026) as a fast-forward of `origin/main` `f48df5b`. No version cut (README:
+  Unreleased; `APP_VERSION` stays 1.17.5).
 
 ### 🚀 17 Nov 2026: DOUBLE-UP DAYS — v1.17.0, built on branch `claude/double-up-days-037393` (worktree `.claude/worktrees/double-up-days-037393`, from `main` at `aa16ffe`), full gate green, cut as v1.17.0 and pushed to `main` on the owner's picker *"Push now as v1.17.0"* (the push and the live check are the last bullet). The owner chose *"Leave them, I'll handle it"* for the main checkout's own uncommitted double-up files: this session did not touch the main checkout, so its local `main` is behind `origin/main`. Plan + as-built record: [`DOUBLE-UP-DAYS-PLAN.md`](DOUBLE-UP-DAYS-PLAN.md) §10; mockup [`mockups/double-up-days-ui.html`](mockups/double-up-days-ui.html). Tracker card `double-up-days`.
 - **What it is:** "10+1" = 10 first-unit days plus 1 double-up day (two crews, two episodes, one day). It never lengthens
