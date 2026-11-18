@@ -50,6 +50,12 @@
 //        writes mvBarSize "11" / "13", and Load opens it there; 12 and 14 px are still saved as "large" and "xl"
 //   N6   14 px notes at 75%, 150% and 200% zoom: the first four months have exactly their 100% lanes and boxes, own px
 //   N7   New, from 14 px, starts at 10 px (the dropdown and the class)
+//   ⭐ A MONTH THE PDF SHRINKS (17 Nov 2026, "Shrink like the PDF", MONTH-SHRINK-PLAN.md) is drawn on screen at the
+//        PDF's factor k (--mvk on #table-wrap). Every rule above holds there at k, as the writer's mvlWeekPaint scales:
+//        type, lines, vertical padding, the lane minimum and the lane gap times k; a 1 px border NOT scaled. So a bar is
+//        (h - 2)k + 2, an empty lane 17k, a 10 px note (13 a line + 4)k + 2, a sized note's box (h - 2)k + 2. Until then
+//        this leg held every month to full size, and month-dense60's August (k = 49/64) went red on all of them. monthpage
+//        holds the shrunk month's rows and notes to the written PDF's.
 //   E0   no console errors, and exactly the four validator warnings N4 opens on purpose
 window.__T.memoryIDB();
 window.addEventListener('load', function () { (async function () {
@@ -133,6 +139,8 @@ window.addEventListener('load', function () { (async function () {
     return monthShown() === title;
   }
   function zz(el) { return el.currentCSSZoom || 1; }
+  // The factor the month on screen is drawn at (1 when the PDF does not shrink it).
+  function kNow() { return parseFloat($('table-wrap').style.getPropertyValue('--mvk')) || 1; }
   function hOf(el) { return el.getBoundingClientRect().height / zz(el); }
   function r2(v) { return Math.round(v * 100) / 100; }
   function kindOf(b) {
@@ -141,12 +149,13 @@ window.addEventListener('load', function () { (async function () {
       : c.contains('mv-note-block') ? 'note' : 'other';
   }
   // A sized note's natural line count: the element itself, laid out for a moment with no clamp and no fixed height.
-  function naturalLines(b, line) {
+  // Its box is its lines plus 4 px of padding times k plus a 2 px border (k = 1: lines + 6).
+  function naturalLines(b, line, k) {
     var s = b.style, keep = [s.display, s.height, s.webkitLineClamp];
     s.display = 'block'; s.height = 'auto'; s.webkitLineClamp = 'none';
     var h = b.getBoundingClientRect().height / zz(b);
     s.display = keep[0]; s.height = keep[1]; s.webkitLineClamp = keep[2];
-    return Math.round((h - 6) / line);
+    return Math.round((h - 2 - 4 * (k || 1)) / line);
   }
   // How far the note's text, set on ONE line, is from filling its box exactly (px; negative = wider than the box).
   function edgeSlack(b) {
@@ -180,7 +189,8 @@ window.addEventListener('load', function () { (async function () {
                  clamp: String(cs.webkitLineClamp), display: cs.display,
                  text: (b.textContent || '').replace(/\s+/g, ' ').trim().slice(0, 40) };
       });
-      if (withLines) items.forEach(function (o) { if (o.sized) { o.natural = naturalLines(o.el, o.lineH); o.slack = edgeSlack(o.el); } });
+      var kM = kNow();
+      if (withLines) items.forEach(function (o) { if (o.sized) { o.natural = naturalLines(o.el, o.lineH, kM); o.slack = edgeSlack(o.el); } });
       items.forEach(function (o) { delete o.el; });
       return { wi: wi, tracks: tracks, items: items };
     });
@@ -189,7 +199,7 @@ window.addEventListener('load', function () { (async function () {
     await goFirst();
     var months = [];
     for (var i = 0; i < 120; i++) {
-      months.push({ month: monthShown(), html: $('table-wrap').innerHTML, weeks: measureMonth(withLines) });
+      months.push({ month: monthShown(), k: kNow(), html: $('table-wrap').innerHTML, weeks: measureMonth(withLines) });
       if (!(await step('mv-next'))) break;
     }
     return months;
@@ -200,8 +210,12 @@ window.addEventListener('load', function () { (async function () {
   function judge(months, barKey, px) {
     var B = BAR[barKey], R = { n: {}, bad: {}, counts: { sizedNotes: 0, cut: 0, twoLane: 0, plainLanes: 0, noteLanes: 0, barLanes: 0 } };
     function miss(rule, s) { R.n[rule] = (R.n[rule] || 0) + 1; R.bad[rule] = R.bad[rule] || []; if (R.bad[rule].length < 4) R.bad[rule].push(s); }
-    months.forEach(function (m) { m.weeks.forEach(function (w) {
-      var where0 = m.month + ' wk' + (w.wi + 1);
+    months.forEach(function (m) {
+      // The month's factor (the header): every vertical size times k, a 1 px border not. k = 1 is every rule as it was.
+      var k = m.k || 1, tol = k === 1 ? 0.02 : 0.06, at = function (h) { return (h - 2) * k + 2; };
+      if (k !== 1) R.counts.shrunkMonths = (R.counts.shrunkMonths || 0) + 1;
+      m.weeks.forEach(function (w) {
+      var where0 = m.month + (k !== 1 ? ' (k ' + k + ')' : '') + ' wk' + (w.wi + 1);
       var reach = w.items.reduce(function (x, it) { return Math.max(x, it.lane + it.span); }, 0);
       if (w.tracks.length < reach) miss('tracks', where0);
       for (var L = 0; L < w.tracks.length; L++) {
@@ -210,20 +224,21 @@ window.addEventListener('load', function () { (async function () {
         var bars = cover.filter(function (it) { return it.kind === 'pill' || it.kind === 'band'; });
         // A lane is as tall as what prints in it (16 Nov 2026): a one-lane note of any size sets it, as a sized one did.
         var notes1 = cover.filter(function (it) { return it.sized || (it.kind === 'note' && it.span === 1); });
-        var want = bars.length ? B.h : 17;
+        var want = bars.length ? at(B.h) : 17 * k;
         notes1.forEach(function (it) { want = Math.max(want, it.h); });
         if (notes1.length) R.counts.noteLanes++; else if (bars.length) R.counts.barLanes++; else R.counts.plainLanes++;
-        if (Math.abs(w.tracks[L] - want) > 0.01) miss('lane', where0 + ' lane' + (L + 1) + ': ' + w.tracks[L] + ' vs ' + want);
+        if (Math.abs(w.tracks[L] - want) > (k === 1 ? 0.01 : tol)) miss('lane', where0 + ' lane' + (L + 1) + ': ' + w.tracks[L] + ' vs ' + r2(want));
       }
       w.items.forEach(function (it) {
         var where = where0 + ' ' + it.kind + ' "' + it.text + '"';
-        var lanes = sum(w.tracks.slice(it.lane, it.lane + it.span)) + 2 * (it.span - 1);
+        var lanes = sum(w.tracks.slice(it.lane, it.lane + it.span)) + 2 * k * (it.span - 1);
         if (it.sized) {
           R.counts.sizedNotes++;
-          var G = NOTE[it.font];
-          if (!G) { miss('sizedFont', where + ': ' + it.font); return; }
-          if (px && it.font !== +px) miss('atSize', where + ': ' + it.font + ' vs ' + px);
-          if (it.lineH !== G.line) miss('lineH', where + ': ' + it.lineH + ' vs ' + G.line);
+          // Its size at full size: the drawn type over k, to the nearest whole px.
+          var full = Math.round(it.font / k), G = NOTE[full];
+          if (!G || Math.abs(it.font - full * k) > 0.02) { miss('sizedFont', where + ': ' + it.font + (k !== 1 ? ' at k ' + k : '')); return; }
+          if (px && full !== +px) miss('atSize', where + ': ' + full + ' vs ' + px);
+          if (Math.abs(it.lineH - G.line * k) > (k === 1 ? 0 : 0.02)) miss('lineH', where + ': ' + it.lineH + ' vs ' + r2(G.line * k));
           // ⭐ FROZEN EDIT D1 (audit item 3.1, AUD2-045; owner's picker 14 Nov 2026, "Month notes keep date"): a waterfall
           // line ending in its date may take 3 or 4 lanes at 11-14 px, so the date is never what the cut takes. Its 3- and
           // 4-line boxes are a line more each (legacy.css: 2*h2 - h1, 3*h2 - 2*h1), clamped at 3 and 4. The release gate
@@ -233,9 +248,9 @@ window.addEventListener('load', function () { (async function () {
           if (it.span > most) miss('span', where + ': ' + it.span);
           if (it.span === 2) R.counts.twoLane++;
           if (it.span > 2) R.counts.dated34 = (R.counts.dated34 || 0) + 1;
-          var wantH = it.span === 1 ? G.h1 : G.h2 + (it.span - 2) * (G.h2 - G.h1);
-          if (Math.abs(it.h - wantH) > 0.02) miss('noteH', where + ': ' + it.h + ' vs ' + wantH);
-          if (it.h > lanes + 0.02) miss('noteFit', where + ': ' + it.h + ' in ' + r2(lanes));
+          var wantH = at(it.span === 1 ? G.h1 : G.h2 + (it.span - 2) * (G.h2 - G.h1));
+          if (Math.abs(it.h - wantH) > tol) miss('noteH', where + ': ' + it.h + ' vs ' + r2(wantH));
+          if (it.h > lanes + tol) miss('noteFit', where + ': ' + it.h + ' in ' + r2(lanes));
           // Chrome 156 reports a clamped -webkit-box as flow-root; the clamp is what matters.
           if (it.clamp !== String(Math.max(2, it.span)) || (it.display !== '-webkit-box' && it.display !== 'flow-root')) miss('clamp', where + ': ' + it.clamp + ' ' + it.display);
           if (it.natural != null) {
@@ -247,15 +262,16 @@ window.addEventListener('load', function () { (async function () {
             if (it.natural > most) R.counts.cut++;
           }
         } else if (it.kind === 'pill' || it.kind === 'band') {
-          var wb = it.twoLine ? B.h2 : B.h;
-          if (Math.abs(it.h - wb) > 0.02) miss('barH', where + ': ' + it.h + ' vs ' + wb);
-          if (it.font !== B.px && it.font >= 10) miss('barFont', where + ': ' + it.font + ' vs ' + B.px);
-          if (it.tagFont != null && it.tagFont !== B.tag) miss('tagFont', where + ': ' + it.tagFont + ' vs ' + B.tag);
+          var wb = at(it.twoLine ? B.h2 : B.h);
+          if (Math.abs(it.h - wb) > tol) miss('barH', where + ': ' + it.h + ' vs ' + r2(wb));
+          if (k === 1 ? (it.font !== B.px && it.font >= 10) : Math.abs(it.font - B.px * k) > 0.02) miss('barFont', where + ': ' + it.font + ' vs ' + r2(B.px * k));
+          if (it.tagFont != null && Math.abs(it.tagFont - B.tag * k) > (k === 1 ? 0 : 0.02)) miss('tagFont', where + ': ' + it.tagFont + ' vs ' + r2(B.tag * k));
         } else if (it.kind === 'note') {
-          // A 10 px note is the height it prints (16 Nov 2026): 13 px a line plus 6, from the top of its first lane.
-          var nl = (it.h - 6) / 13;
-          if (it.h > lanes + 0.02 || nl < 0.99 || Math.abs(nl - Math.round(nl)) > 0.01) miss('fill-note', where + ' lane' + (it.lane + 1) + ': ' + it.h + ' in ' + r2(lanes));
-        } else if (Math.abs(it.h - lanes) > 0.02) miss('fill-' + it.kind, where + ' lane' + (it.lane + 1) + ': ' + it.h + ' vs ' + r2(lanes));
+          // A 10 px note is the height it prints (16 Nov 2026): 13 px a line plus 6, from the top of its first lane;
+          // in a shrunk month (13 a line + 4)k + 2.
+          var nl = ((it.h - 2) / k - 4) / 13;
+          if (it.h > lanes + tol || nl < 0.98 || Math.abs(nl - Math.round(nl)) > (k === 1 ? 0.01 : 0.02)) miss('fill-note', where + ' lane' + (it.lane + 1) + ': ' + it.h + ' in ' + r2(lanes));
+        } else if (Math.abs(it.h - lanes) > tol) miss('fill-' + it.kind, where + ' lane' + (it.lane + 1) + ': ' + it.h + ' vs ' + r2(lanes));
       });
     }); });
     R.ok = Object.keys(R.n).length === 0;
@@ -327,8 +343,10 @@ window.addEventListener('load', function () { (async function () {
       if (szSel) { szSel.value = '14'; szSel.dispatchEvent(new Event('change', { bubbles: true })); await T.sleep(300); await settle('styled'); }
       var after = measureMonth(true), sizedNow = [];
       after.forEach(function (w) { w.items.forEach(function (it) { if (it.sized) sizedNow.push({ wk: w.wi, text: it.text, font: it.font, h: it.h, span: it.span, natural: it.natural }); }); });
-      var JN = judge([{ month: monthShown(), weeks: after }], '', null);
+      var JN = judge([{ month: monthShown(), k: kNow(), weeks: after }], '', null);
       var changedWeeks = after.map(function (w, i) { return JSON.stringify(w.tracks) !== JSON.stringify(before[i]) ? i : -1; }).filter(function (i) { return i >= 0; });
+      // In a month the PDF shrinks every size is drawn at k (the header): the note's 14 px is 14k on screen.
+      n2.k = kNow();
       n2.sized = sizedNow; n2.cls = sized(); n2.changedWeeks = changedWeeks; n2.misses = JN.n; n2.first = JN.bad; n2.dirty = dirty();
       // Back to the calendar's size: picking 10 stores nothing, and the month is the one first drawn.
       szSel = document.querySelector('.view-toggle-row .style-bar-host .style-bar .hf-size');
@@ -347,20 +365,20 @@ window.addEventListener('load', function () { (async function () {
         await T.sleep(250);
         szSel = document.querySelector('.view-toggle-row .style-bar-host .style-bar .hf-size');
         if (szSel) { szSel.value = '8'; szSel.dispatchEvent(new Event('change', { bubbles: true })); await T.sleep(300); await settle('styled 8'); }
-        var m8 = measureMonth(true), own = null, others14 = 0, othersBad = 0;
+        var m8 = measureMonth(true), own = null, others14 = 0, othersBad = 0, k8 = kNow();
         m8.forEach(function (w) { w.items.forEach(function (it) {
           if (it.kind !== 'note') return;
           if (it.text === n2.text) own = { font: it.font, sized: it.sized };
-          else if (it.sized) { if (it.font === 14) others14++; else othersBad++; }
+          else if (it.sized) { if (Math.abs(it.font - 14 * k8) <= 0.02) others14++; else othersBad++; }
         }); });
-        var J8 = judge([{ month: monthShown(), weeks: m8 }], '', null);
-        n2.b = { own: own, others14: others14, othersBad: othersBad, misses: J8.n, first: J8.bad };
+        var J8 = judge([{ month: monthShown(), k: k8, weeks: m8 }], '', null);
+        n2.b = { k: k8, own: own, others14: others14, othersBad: othersBad, misses: J8.n, first: J8.bad };
       }
     }
-    var okN2 = !!n2.sized && n2.sized.length === 1 && n2.sized[0].font === 14 && n2.cls && n2.changedWeeks.length === 1 &&
+    var okN2 = !!n2.sized && n2.sized.length === 1 && Math.abs(n2.sized[0].font - 14 * (n2.k || 1)) <= 0.02 && n2.cls && n2.changedWeeks.length === 1 &&
                n2.changedWeeks[0] === n2.sized[0].wk && Object.keys(n2.misses).length === 0 && n2.sizes === '6,7,8,9,10,11,12,13,14' &&
                n2.dirty && !n2.backCls && n2.backSame &&
-               !!n2.b && !!n2.b.own && n2.b.own.font === 8 && !n2.b.own.sized && n2.b.others14 > 0 && n2.b.othersBad === 0 &&
+               !!n2.b && !!n2.b.own && Math.abs(n2.b.own.font - 8 * n2.b.k) <= 0.02 && !n2.b.own.sized && n2.b.others14 > 0 && n2.b.othersBad === 0 &&
                Object.keys(n2.b.misses).length === 0;
     kase('N2', 'R4: a day note set to 14 px in the style bar, in a 10 px calendar, is the only sized note, in its own taller lanes (only its week changes); the bar offers notes 6-14; picking 10 stores nothing and gives back the first month exactly; then, the calendar at 14 px, the same note set to 8 px keeps 8 px and the 10 px rule while every other note is at 14',
          okN2, n2);

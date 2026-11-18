@@ -6,27 +6,41 @@
 //
 //   HARNESS_PAGE=/dist/index.html HARNESS_STATE=mvnotes ./run.sh monthpage 300
 //   HARNESS_WINDOW=1100,760 ... the same leg in a small window: every number below is the same
-//   HARNESS_QUERY=tall=1 ... on a calendar with a month the PDF shrinks (monthscale): T must find one
+//   HARNESS_QUERY=shrunk=1 ... on a calendar with a month the PDF shrinks (monthscale, month-dense60, month-lanecap):
+//                              T, N and K must find one
 //
 // Rulings (owner's pickers, 16 Nov 2026): the full page shape (width AND the weeks stretched over a Letter landscape
-// page); 100% is one fixed size and a smaller window scrolls, the spare room on the right; a month the PDF shrinks
-// stays full size on screen, in a card taller than the page; no note symbols.
+// page); 100% is one fixed size and a smaller window scrolls, the spare room on the right; no note symbols.
+// ⭐ 17 Nov 2026, "Shrink like the PDF" (MONTH-SHRINK-PLAN.md), which REPLACES the 16 Nov "Full size, taller page": the
+// card is one page at EVERY month, and a month the PDF shrinks is drawn at the PDF's own factor, its notes in the
+// PDF's lanes. And "Stay one page": a line added to a shrunk month's week does not make its card taller.
+// (Until then T held the opposite: such a month stayed full size in a card taller than the page.)
 //
 // The numbers are MVL_GEOMETRY's (the month PDF writer's page), which a leg cannot read (the engine is one IIFE):
-// Letter landscape 1056 x 816 px, 8 mm margins, so the card is 11in - 16mm + 32px = 1027.528 px wide and at least
+// Letter landscape 1056 x 816 px, 8 mm margins, so the card is 11in - 16mm + 32px = 1027.528 px wide and
 // 8.5in - 16mm + 32.5px = 788.028 px tall, and a day column is 141.075 px.
+// What the PDF did is read from the WRITTEN PDF's own page streams, never from the app: a page's factor is its day
+// numbers' type over the full-size 8.25 pt, and a note is the clipped group of text lines the writer draws in its box.
 //
-//   G0  the card is the page: 1027.53 px wide in the month view, at least 788.03 px tall, a day column 141.07 px; the
-//       card starts at the left of its scroll box, and the box scrolls sideways exactly when it is narrower than the card
-//   P   EVERY month: the screen's week heights are the written PDF's rows, within 0.1 px, on every month that fits a page
-//   T   a month the PDF shrinks is full size on screen, in a card taller than the page (every week at least the PDF's)
-//   B   bars and notes at the height they print: a Standard pill 19 px (34 px on two lines), a band 19 px, a 10 px note
-//       13 px a line plus 6
+//   G0  the card is the page in EVERY month: 1027.53 px wide in the month view, 788.03 px tall, a day column 141.07 px;
+//       the card starts at the left of its scroll box, and the box scrolls sideways exactly when it is narrower than it
+//   P   EVERY month the PDF prints, a shrunk one too: the screen's week heights are the written PDF's rows, within
+//       0.1 px
+//   T   the factor on screen is the PDF's in every month: --mvk on #table-wrap where the PDF shrinks the month (a whole
+//       number of 64ths, the PDF's own), absent where it does not; a shrunk month's card is one page
+//   N   in a month the PDF shrinks, every note is in the PDF's box: the lanes it spans are the lines the PDF sets it
+//       in, its box the PDF's width, never taller than the PDF's, and the PDF's height for all but a knife-edge few
+//       (Chrome draws a font at a size cut to 1/100 of a device pixel, so a note within about 0.16% of its box can
+//       draw a line fewer inside the same lanes: 1 of 42 on monthscale's August)
+//   B   bars and notes at the height they print, at the month's factor k: a Standard pill or band 17k + 2 px (32k + 2
+//       on two lines; 19 and 34 px in a month that fits), a 10 px note (13 a line + 4)k + 2
 //   S   no note symbol anywhere in the month view
 //   Z   the calendar zoom scales the page and nothing else: at 50, 75 and 150% the card's own size is unchanged and
 //       every week within 2 px of its 100% height (a hairline draws at least one device pixel, so zoomed out the
 //       page's lines take a little more of it: 1.5 px a week at 50%); back at 100% the weeks are exactly as they were
 //   X   a line added to a week (the row's "+") stays inside the week, and the "+" strip sits at the week's bottom edge
+//   K   "Stay one page": in a month the PDF shrinks, a line added to a week (the row's "+") leaves the card one page
+//       and that week the height it had (the PDF's row; the PDF draws no blank lines)
 //   V   the fit's numbers are on #table-wrap's own style in the month view only: the waterfall carries none
 //   F   a month drawn where there was none (coming from the waterfall) is already measured at the page's day: every
 //       note has the lines it has after any later render. (Frozen mvNoteBoxWidth() reads a day cell already on screen
@@ -56,6 +70,12 @@ window.addEventListener('load', function () { (async function () {
   function weeks() { return qa('#table-wrap .month-view > .mv-body > .mv-week'); }
   function rows() { var z = zoomOf(); return weeks().map(function (w) { return r2(w.getBoundingClientRect().height / z); }); }
   function card() { var z = zoomOf(), b = q('#table-wrap .month-view').getBoundingClientRect(); return [r2(b.width / z), r2(b.height / z)]; }
+  // The factor the month on screen is drawn at: --mvk on #table-wrap's own style, 1 when it carries none.
+  function kNow() { return parseFloat(tw().style.getPropertyValue('--mvk')) || 1; }
+  // Text as both sides can be compared: printable ASCII, single spaces. (The PDF's strings are WinAnsi with octal
+  // escapes; anything outside ASCII is dropped on both sides.)
+  function norm(s) { return String(s).replace(/[^\x20-\x7e]/g, '').replace(/\s+/g, ' ').trim(); }
+  function pdfText(s) { return String(s).replace(/\\[0-7]{3}/g, '').replace(/\\(.)/g, function (_, c) { return c; }); }
   function settle(label) {
     var last = -1, st = 0;
     return T.until(function () {
@@ -87,7 +107,13 @@ window.addEventListener('load', function () { (async function () {
       for (g = 0; g < 300; g++) {
         var mv = q('#table-wrap .month-view'), box = tw(), bcs = getComputedStyle(box);
         var mb = mv.getBoundingClientRect(), bb = box.getBoundingClientRect();
-        screen.push({ label: q('#table-wrap .mv-monthyear').textContent.trim(), rows: rows(), card: card(),
+        var kS = kNow(), zS = zoomOf();
+        screen.push({ label: q('#table-wrap .mv-monthyear').textContent.trim(), rows: rows(), card: card(), k: kS,
+          notes: qa('#table-wrap .mv-bars > .mv-note-block').map(function (n) {
+            var nb = n.getBoundingClientRect(), sp = /span\s*(\d+)/.exec(n.style.gridRow || '');
+            return { text: norm(n.textContent), span: sp ? +sp[1] : 1, w: r2(nb.width / zS), h: r2(nb.height / zS),
+              own: !!(n.style.fontSize || n.querySelector('[style*="font-size"]')) };
+          }),
           day: r2(q('#table-wrap .mv-daycell').getBoundingClientRect().width),
           left: r2(mb.left - bb.left - (parseFloat(bcs.borderLeftWidth) || 0) - (parseFloat(bcs.paddingLeft) || 0) + box.scrollLeft),
           nnotes: qa('#table-wrap .mv-note-block').length, track: bcs.gridTemplateColumns, scrolls: box.scrollWidth > box.clientWidth + 1, narrow: box.clientWidth - (parseFloat(bcs.paddingLeft) || 0) - (parseFloat(bcs.paddingRight) || 0) < PAGE_W - 0.5 });
@@ -95,13 +121,13 @@ window.addEventListener('load', function () { (async function () {
         if (standard) {
           qa('#table-wrap .mv-pill, #table-wrap .mv-hiatus-bar').forEach(function (p) {
             if (p.style.fontSize) return;
-            pills.push(r2(p.getBoundingClientRect().height));
+            pills.push({ h: r2(p.getBoundingClientRect().height), k: kS });
           });
         }
         if (!sized) {
           qa('#table-wrap .mv-note-block').forEach(function (n) {
             if (n.style.fontSize || n.querySelector('[style*="font-size"]')) return;
-            notes.push(r2(n.getBoundingClientRect().height));
+            notes.push({ h: r2(n.getBoundingClientRect().height), k: kS });
           });
         }
         if (next().disabled) break;
@@ -109,12 +135,13 @@ window.addEventListener('load', function () { (async function () {
       }
       var s0 = screen[0];
       var badG = screen.filter(function (s) {
-        return Math.abs(s.card[0] - PAGE_W) > 0.1 || s.card[1] < PAGE_H - 0.1 || Math.abs(s.day - DAY_W) > 0.1 || Math.abs(s.left) > 0.6 ||
+        return Math.abs(s.card[0] - PAGE_W) > 0.1 || Math.abs(s.card[1] - PAGE_H) > 0.1 || Math.abs(s.day - DAY_W) > 0.1 || Math.abs(s.left) > 0.6 ||
           Math.abs(parseFloat(s.track) - PAGE_W) > 0.1 || s.scrolls !== s.narrow;
       });
-      kase('G0', 'the card is the page in every month: 1027.53 px wide, at least 788.03 px tall, a day column 141.07 px, at the left of its box, which scrolls sideways exactly when it is narrower than the card',
+      var lite = function (s) { var o = {}; Object.keys(s).forEach(function (key) { if (key !== 'notes') o[key] = s[key]; }); return o; };
+      kase('G0', 'the card is the page in every month: 1027.53 px wide, 788.03 px tall, a day column 141.07 px, at the left of its box, which scrolls sideways exactly when it is narrower than the card',
         screen.length > 0 && !badG.length,
-        { months: screen.length, first: s0, bad: badG.slice(0, 3), want: { width: r2(PAGE_W), minHeight: r2(PAGE_H), day: r2(DAY_W) } });
+        { months: screen.length, first: lite(s0), bad: badG.slice(0, 3).map(lite), want: { width: r2(PAGE_W), height: r2(PAGE_H), day: r2(DAY_W) } });
 
       // ---- the written PDF ----
       var rec = T.fakeSavePicker();
@@ -130,7 +157,7 @@ window.addEventListener('load', function () { (async function () {
       }
       rec.restore();
       var u = T.pdfUnmark(rec.files[0].bytes), bytes = u ? u.writer : rec.files[0].bytes;
-      var streams = await T.pdfInflated(bytes), pages = {};
+      var streams = await T.pdfInflated(bytes), pages = {}, pdfK = {}, pdfNotes = {};
       streams.forEach(function (t) {
         if (!/ re\b/.test(t)) return;
         var re = /(-?[\d.]+) (-?[\d.]+) (-?[\d.]+) (-?[\d.]+) re/g, m, wide = [];
@@ -149,28 +176,79 @@ window.addEventListener('load', function () { (async function () {
         var rr = [];
         for (var j = 0; j < edges.length - 1; j++) rr.push(r2((edges[j] - edges[j + 1]) / 0.75));
         pages[lab[1]] = rr;
+        // The page's factor: its day numbers are 11 px (8.25 pt) type times the factor, in the 600 weight.
+        var sizes = {}, dm, reDay = /BT \/F600 ([\d.]+) Tf 1 0 0 1 [\d.]+ [\d.]+ Tm \((\d{1,2})\) Tj ET/g;
+        while ((dm = reDay.exec(t))) sizes[dm[1]] = (sizes[dm[1]] || 0) + 1;
+        var daySize = Object.keys(sizes).sort(function (a, b) { return sizes[b] - sizes[a]; })[0];
+        pdfK[lab[1]] = daySize ? (+daySize) / 8.25 : null;
+        // Every clipped group of text lines: a note's lines are drawn inside a clip of its box less its 1 px border
+        // (0.75 pt a side). Bars are clipped groups too; a note is found among them by its text.
+        var groups = [], gm, reClip = /q ([\d.]+) ([\d.]+) ([\d.]+) ([\d.]+) re W n\n([\s\S]*?)\nQ\n/g, src = t + '\n';
+        while ((gm = reClip.exec(src))) {
+          var lines = [], lm, reRun = /BT \/F\d+ [\d.]+ Tf 1 0 0 1 [\d.]+ [\d.]+ Tm \(((?:[^()\\]|\\.)*)\) Tj ET/g;
+          while ((lm = reRun.exec(gm[5]))) lines.push(pdfText(lm[1]));
+          if (lines.length) groups.push({ text: norm(lines.join(' ')), lines: lines.length, w: r2((+gm[3] + 1.5) / 0.75), h: r2((+gm[4] + 1.5) / 0.75) });
+        }
+        pdfNotes[lab[1]] = groups;
       });
-      var fit = 0, tall = [], off = [], shape = [];
+      var fit = 0, off = [], shape = [], paged = 0;
       screen.forEach(function (s) {
         var p = pages[s.label];
         if (!p) return;
+        paged++;
         if (p.length !== s.rows.length) { shape.push({ month: s.label, screen: s.rows.length, pdf: p.length }); return; }
-        if (s.card[1] > PAGE_H + 0.2) { tall.push({ month: s.label, card: s.card[1], screen: s.rows, pdf: p }); return; }
         var d = Math.max.apply(null, s.rows.map(function (h, i) { return Math.abs(h - p[i]); }));
-        if (d > 0.1) off.push({ month: s.label, worst: r2(d), screen: s.rows, pdf: p }); else fit++;
+        if (d > 0.1) off.push({ month: s.label, k: s.k, worst: r2(d), screen: s.rows, pdf: p }); else fit++;
       });
-      kase('P', 'every month that fits a page: the screen\'s week heights are the written PDF\'s rows, within 0.1 px',
-        fit > 0 && !off.length && !shape.length,
-        { monthsOnScreen: screen.length, pdfPages: Object.keys(pages).length, exact: fit, tall: tall.length, off: off.slice(0, 4), shape: shape.slice(0, 3) });
-      var wantTall = params.get('tall') === '1';
-      var tallOk = tall.every(function (t) { return t.screen.every(function (h, i) { return h >= t.pdf[i] - 0.1; }); });
-      kase('T', 'a month the PDF shrinks stays full size on screen, in a card taller than the page' + (wantTall ? ' (this calendar has one, and the export warned)' : ''),
-        tallOk && (!wantTall || (tall.length > 0 && warned)), { tall: tall.slice(0, 2), warned: warned, wantTall: wantTall });
+      kase('P', 'every month the PDF prints, a shrunk one too: the screen\'s week heights are the written PDF\'s rows, within 0.1 px',
+        fit > 0 && fit === paged && !off.length && !shape.length,
+        { monthsOnScreen: screen.length, pdfPages: Object.keys(pages).length, exact: fit, off: off.slice(0, 4), shape: shape.slice(0, 3) });
+
+      // ---- T: the factor ----
+      var wantShrunk = params.get('shrunk') === '1', shrunkMonths = [], badK = [];
+      screen.forEach(function (s) {
+        var kp = pdfK[s.label];
+        // A month the PDF does not print (an empty one at either end of the calendar) has no factor to match: none here.
+        if (!pages[s.label]) { if (s.k !== 1) badK.push({ month: s.label, screen: s.k, pdf: 'no page' }); return; }
+        if (typeof kp !== 'number') { badK.push({ month: s.label, screen: s.k, pdf: null }); return; }
+        var pdfShrunk = kp < 0.9995, n64 = s.k * 64;
+        if (Math.abs(s.k - kp) > 0.002 || (pdfShrunk ? !(s.k > 0 && s.k < 1 && Math.abs(n64 - Math.round(n64)) < 1e-9) : s.k !== 1)) badK.push({ month: s.label, screen: s.k, pdf: r2(kp * 1000) / 1000 });
+        else if (pdfShrunk) shrunkMonths.push({ month: s.label, k: s.k, sixtyFourths: Math.round(n64), card: s.card });
+      });
+      var cardOk = shrunkMonths.every(function (m) { return Math.abs(m.card[1] - PAGE_H) <= 0.1 && Math.abs(m.card[0] - PAGE_W) <= 0.1; });
+      kase('T', 'the factor on screen is the PDF\'s in every month (a whole number of 64ths where the PDF shrinks the month, none where it does not), and a shrunk month\'s card is one page' + (wantShrunk ? ' (this calendar has one, and the export warned)' : ''),
+        !badK.length && cardOk && (!wantShrunk || (shrunkMonths.length > 0 && warned)),
+        { shrunk: shrunkMonths.slice(0, 4), bad: badK.slice(0, 4), warned: warned, wantShrunk: wantShrunk });
+
+      // ---- N: a shrunk month's notes are in the PDF's boxes ----
+      var nPairs = 0, nUnpaired = [], nLanes = [], nWide = [], nTaller = [], nShorter = [];
+      shrunkMonths.forEach(function (m) {
+        var s = screen.filter(function (x) { return x.label === m.month; })[0], pool = (pdfNotes[m.month] || []).slice();
+        var mine = s.notes.filter(function (n) { return !n.own; });
+        var take = function (test) { for (var i = 0; i < pool.length; i++) { if (test(pool[i])) return pool.splice(i, 1)[0]; } return null; };
+        // The same text on several days: paired in order of size, so only a real difference is left over.
+        var order = function (a, b) { return (a.span || a.lines) - (b.span || b.lines) || a.w - b.w || a.h - b.h; };
+        pool.sort(order); mine.sort(order);
+        mine.forEach(function (n) {
+          // The PDF's lines joined are the note's text; a note cut at its last line is a start of it.
+          var g = take(function (x) { return x.text === n.text; }) || take(function (x) { return x.text.length >= 8 && n.text.indexOf(x.text) === 0; });
+          if (!g) { nUnpaired.push({ month: m.month, note: n.text.slice(0, 40) }); return; }
+          nPairs++;
+          var where = { month: m.month, note: n.text.slice(0, 40), screen: { lanes: n.span, w: n.w, h: n.h }, pdf: { lines: g.lines, w: g.w, h: g.h } };
+          if (n.span !== g.lines) nLanes.push(where);
+          if (Math.abs(n.w - g.w) > 0.1) nWide.push(where);
+          if (n.h > g.h + 0.1) nTaller.push(where); else if (n.h < g.h - 0.1) nShorter.push(where);
+        });
+      });
+      var knife = Math.max(1, Math.ceil(nPairs * 0.03));
+      kase('N', 'in a month the PDF shrinks, every note is in the PDF\'s box: the lanes it spans are the PDF\'s lines, its box the PDF\'s width and never taller, and the PDF\'s height for all but a knife-edge few' + (wantShrunk ? ' (this calendar has such notes)' : ''),
+        !nUnpaired.length && !nLanes.length && !nWide.length && !nTaller.length && nShorter.length <= knife && (!wantShrunk || nPairs > 0),
+        { notes: nPairs, unpaired: nUnpaired.slice(0, 4), lanes: nLanes.slice(0, 4), width: nWide.slice(0, 4), taller: nTaller.slice(0, 4), aLineFewer: nShorter.length, allowed: knife, fewer: nShorter.slice(0, 3) });
 
       // ---- B: printed heights ----
-      var badPills = pills.filter(function (h) { return Math.abs(h - 19) > 0.05 && Math.abs(h - 34) > 0.05; });
-      var badNotes = notes.filter(function (h) { var n = (h - 6) / 13; return Math.abs(n - Math.round(n)) > 0.01 || n < 0.99; });
-      kase('B', 'bars and notes at the height they print: a Standard pill or band 19 px (34 px on two lines), a 10 px note 13 px a line plus 6',
+      var badPills = pills.filter(function (p) { return Math.abs(p.h - (17 * p.k + 2)) > 0.06 && Math.abs(p.h - (32 * p.k + 2)) > 0.06; });
+      var badNotes = notes.filter(function (p) { var n = ((p.h - 2) / p.k - 4) / 13; return Math.abs(n - Math.round(n)) > 0.02 || n < 0.98; });
+      kase('B', 'bars and notes at the height they print, at the month\'s factor k: a Standard pill or band 17k + 2 px (32k + 2 on two lines; 19 and 34 at full size), a 10 px note (13 a line + 4)k + 2',
         !badPills.length && !badNotes.length && (pills.length + notes.length > 0 || !standard || sized),
         { standardBars: standard, sizedNotes: sized, pills: pills.length, notes: notes.length, badPills: badPills.slice(0, 6), badNotes: badNotes.slice(0, 6) });
 
@@ -180,7 +258,7 @@ window.addEventListener('load', function () { (async function () {
       // ---- Z: the zoom ----
       for (g = 0; g < 300 && !prev().disabled; g++) { prev().click(); await T.sleep(25); }
       // The first month that fits a page and has something in it.
-      for (g = 0; g < 300; g++) { if (card()[1] <= PAGE_H + 0.2 && qa('#table-wrap .mv-bar:not(.mv-note-add):not(.mv-row-expand)').length) break; if (next().disabled) break; next().click(); await T.sleep(60); }
+      for (g = 0; g < 300; g++) { if (kNow() === 1 && card()[1] <= PAGE_H + 0.2 && qa('#table-wrap .mv-bar:not(.mv-note-add):not(.mv-row-expand)').length) break; if (next().disabled) break; next().click(); await T.sleep(60); }
       await settle();
       var z100 = { card: card(), rows: rows() }, zs = {};
       for (var zi = 0, ZL = [0.5, 0.75, 1.5]; zi < ZL.length; zi++) { await zoomTo(ZL[zi]); zs[ZL[zi]] = { z: zoomOf(), card: card(), rows: rows() }; }
@@ -207,6 +285,26 @@ window.addEventListener('load', function () { (async function () {
       }
       kase('X', 'a line added to a week stays inside the week, and the "+" strip sits at the week\'s bottom edge',
         !!x && x.lowestSlotInside >= -0.5 && Math.abs(x.expandFromBottom) <= 1.5 && Math.abs(x.card[0] - PAGE_W) < 0.1, x || { none: 'no week with a + strip' });
+
+      // ---- K: "Stay one page" ----
+      // The first month the PDF shrinks, and its first week with a "+" strip that still takes a line.
+      var kk = null;
+      if (shrunkMonths.length) {
+        for (g = 0; g < 300 && !prev().disabled; g++) { prev().click(); await T.sleep(25); }
+        for (g = 0; g < 300 && q('#table-wrap .mv-monthyear').textContent.trim() !== shrunkMonths[0].month; g++) { if (next().disabled) break; next().click(); await T.sleep(40); }
+        await T.sleep(150); await settle();
+        var kw = weeks().filter(function (w) { return q('.mv-row-expand:not(.is-full)', w); })[0];
+        if (kw) {
+          var ki = weeks().indexOf(kw), kRows = rows(), kCard = card(), kLanes = getComputedStyle(q('.mv-bars', kw)).gridTemplateRows.split(/\s+/).length;
+          q('.mv-row-expand', kw).click(); await T.sleep(250); await settle();
+          var kw2 = weeks()[ki], kLanes2 = getComputedStyle(q('.mv-bars', kw2)).gridTemplateRows.split(/\s+/).length;
+          kk = { month: shrunkMonths[0].month, k: kNow(), week: ki, lanesBefore: kLanes, lanesAfter: kLanes2, rowBefore: kRows[ki], rowAfter: rows()[ki], cardBefore: kCard, cardAfter: card(),
+            min: tw().style.getPropertyValue('--mvp-m' + (ki + 1)) };
+        }
+      }
+      kase('K', 'in a month the PDF shrinks, a line added to a week (the row\'s "+") leaves the card one page and the week the height it had' + (wantShrunk ? ' (this calendar has such a month)' : ''),
+        kk ? (kk.lanesAfter > kk.lanesBefore && Math.abs(kk.rowAfter - kk.rowBefore) <= 0.1 && Math.abs(kk.cardAfter[1] - PAGE_H) <= 0.1 && Math.abs(kk.cardAfter[1] - kk.cardBefore[1]) <= 0.1 && kk.k < 1)
+           : (!wantShrunk && !shrunkMonths.length), kk || { none: shrunkMonths.length ? 'no week with a + strip that takes a line' : 'no shrunk month on this calendar' });
 
       // ---- V: the fit's numbers ----
       var inMonth = (tw().getAttribute('style') || '').match(/--mvp-[fm]\d/g) || [], nWeeks = weeks().length;

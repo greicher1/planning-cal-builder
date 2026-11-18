@@ -32,8 +32,10 @@
 //
 // CASES (each judged over every document)
 //   S0  the writer and the primitives it calls are sliced verbatim out of src/legacy/app.js and evaluate
-//   F0  only the month export (exportMonthPdfDirect, since step 5) calls the writer, and only through its public
-//       entry points; nothing else in app.js uses a name the writer defines
+//   F0  only the month export (exportMonthPdfDirect, since step 5) builds a month PDF, and only through the writer's
+//       public entry points; the Compare PDF reaches buildListPdf alone, and the month page on screen exactly the seven
+//       names it asks the writer's fit with (17 Nov 2026, "Shrink like the PDF"); nothing else in app.js uses a name
+//       the writer defines
 //   C0  CONTROL: the transplanted print layout is the print path's own -- every fill month's weeks fill the body to
 //       the page's foot, every week is at least its document min-height, and the page is laid out at W
 //   H0  the header: every line's box, highlight, text anchor and baseline where Chrome puts them
@@ -108,8 +110,9 @@ window.addEventListener('load', function () { (async function () {
     // app.js, exportMonthPdfDirect. So every top-level name the writer declares is counted in app.js outside both the
     // writer and that function, comment lines skipped: none may appear. Inside the function exactly the writer's
     // public surface may: the fonts' loader and weights, the model, the fit, the printable-characters walk and the
-    // emitter. And each entry point appears once more than before: loadInterPdfFont four times (its declaration,
-    // buildMonthPdf's call, buildListPdf's and the export's), the others twice (declared, and called by the export).
+    // emitter. And each entry point appears once more than before: loadInterPdfFont five times (its declaration,
+    // buildMonthPdf's call, buildListPdf's, the export's and, since 17 Nov 2026, the month page's, which asks for the
+    // programs the first time a month is drawn), the others twice (declared, and called by the export).
     var code = function (s) { return s.split('\n').filter(function (l) { return !/^\s*\/\//.test(l); }).join('\n'); };
     var exportSrc = slice('  async function exportMonthPdfDirect(){', "      chrome.exportBtn({ busy: false, disabled: false });\n    }\n  }", 'exportMonthPdfDirect');
     var at = src.indexOf(writerSrc), rest = src.slice(0, at) + src.slice(at + writerSrc.length);
@@ -121,12 +124,19 @@ window.addEventListener('load', function () { (async function () {
     var eAt = rest.indexOf(exportSrc), rest2 = rest.slice(0, eAt) + rest.slice(eAt + exportSrc.length);
     // ⭐ SINCE 16 NOV 2026 THE WRITER HAS A THIRD READER, the month page on screen (monthPageNumbers, which fitMonthPage
     // runs after each month render): the screen shares the page out among the weeks by the writer's own rule, so it reads
-    // the writer's constants through ONE name, mvlFitNumbers (38 px of chrome, 19 px a line, the 57 px floor), instead of
-    // keeping a copy that could drift from the PDF. It builds and paints nothing. That function is cut out of `outside`
-    // like the export and the Compare PDF, and held to that one name.
-    var mpEndMark = "m: r.min.toFixed(3) + 'px' }));\n  }";
-    var mpStart = src.indexOf('  function monthPageNumbers(tw){'), mpEnd = src.indexOf(mpEndMark, mpStart);
+    // the writer's constants through mvlFitNumbers (38 px of chrome, 19 px a line, the 57 px floor) instead of keeping a
+    // copy that could drift from the PDF.
+    // ⭐ SINCE 17 NOV 2026 IT ALSO ASKS THE WRITER FOR ITS FIT OF THE MONTH ON SCREEN ("Shrink like the PDF",
+    // MONTH-SHRINK-PLAN.md): a month the PDF shrinks is drawn at the PDF's own factor, so mvAskPdfFonts loads the four
+    // programs (MVL_FONT_WEIGHTS, loadInterPdfFont) and mvWriterFit models the month as the export does (mvlMonthLayout,
+    // with mvlTextWidth at MVL_GEOMETRY's note size) and takes mvlFitMonth's answer. It still builds no PDF and paints
+    // nothing. So the region runs from monthPageNumbers to the end of mvShrinkToFit, is cut out of `outside` like the
+    // export and the Compare PDF, and is held to EXACTLY those seven names: an eighth is a new reach into the writer.
+    var mpEndMark = "\n    return false;\n  }";
+    var mpStart = src.indexOf('  function monthPageNumbers(tw){'), mpTail = mpStart < 0 ? -1 : src.indexOf('  function mvShrinkToFit(){', mpStart);
+    var mpEnd = mpTail < 0 ? -1 : src.indexOf(mpEndMark, mpTail);
     var mpSrc = (mpStart >= 0 && mpEnd > mpStart) ? src.slice(mpStart, mpEnd + mpEndMark.length) : '';
+    var MONTH_PAGE = ['MVL_FONT_WEIGHTS', 'MVL_GEOMETRY', 'loadInterPdfFont', 'mvlFitMonth', 'mvlFitNumbers', 'mvlMonthLayout', 'mvlTextWidth'];
     var outside0 = cmpSrc ? rest2.replace(cmpSrc, '') : rest2;
     var outside = code(mpSrc ? outside0.replace(mpSrc, '') : outside0);
     var NAMES = [], dm, dre = /^  (?:async )?(?:function|const|let) (\w+)/gm;
@@ -139,11 +149,11 @@ window.addEventListener('load', function () { (async function () {
     var usedByCompare = NAMES.filter(function (n) { return has(n, code(cmpSrc)); }).sort();
     var usedByMonthPage = NAMES.filter(function (n) { return has(n, code(mpSrc)); }).sort();
     var counts = ['loadInterPdfFont(', 'buildMonthLayout(', 'buildMonthPdf(', 'fitMonthLayout(', 'mvlUnprintable(', 'mvlSmallType('].map(function (s) { return code(src).split(s).length - 1; });
-    add('F0', 'only the month export (exportMonthPdfDirect) calls the writer, and only through its public entry points',
-        usedOut.length === 0 && NAMES.length > 30 && same(usedByExport, PUBLIC) && same(counts, [4, 2, 2, 2, 2, 2]) && cmpSrc && same(usedByCompare, ['buildListPdf']) &&
-          !!mpSrc && same(usedByMonthPage, ['mvlFitNumbers']),
+    add('F0', 'only the month export (exportMonthPdfDirect) builds a month PDF, through the writer\'s public entry points; the Compare PDF and the month page on screen reach exactly the names listed for them',
+        usedOut.length === 0 && NAMES.length > 30 && same(usedByExport, PUBLIC) && same(counts, [5, 2, 2, 2, 2, 2]) && cmpSrc && same(usedByCompare, ['buildListPdf']) &&
+          !!mpSrc && same(usedByMonthPage, MONTH_PAGE),
         {usedOutside: usedOut, usedByExport: usedByExport, usedByCompare: usedByCompare, usedByMonthPage: usedByMonthPage, namesDeclared: NAMES.length, entryPointOccurrences: counts},
-        {usedOutside: [], usedByExport: PUBLIC, usedByCompare: ['buildListPdf'], usedByMonthPage: ['mvlFitNumbers'], entryPointOccurrences: [4, 2, 2, 2, 2, 2]});
+        {usedOutside: [], usedByExport: PUBLIC, usedByCompare: ['buildListPdf'], usedByMonthPage: MONTH_PAGE, entryPointOccurrences: [5, 2, 2, 2, 2, 2]});
 
     var G = F.G, P = F.P, fonts = {};
     for(var fw of ['400', '500', '600', '700']) fonts[fw] = await F.loadInterPdfFont(fw);

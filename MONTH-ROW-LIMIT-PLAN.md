@@ -187,6 +187,10 @@ was measured.**
    `monthlanes` L16b, `mvnotesize` on `month-dense60`, `monthpage` T and B on `monthscale`); one was a `phasefill`
    run that stopped early (green alone); one was this change's: `textfit`'s lines run added a note to a day the
    limit calls full, and now uses a day with room. `HANDOFF.md` has the detail.
+   **RUN AGAIN 17–18 Nov 2026**, after the month-shrink build's stage 2 was finished on this branch and `origin/main`
+   v1.17.0 merged in: **5,731 pass, 14 fail; gates 1-3, 10 (11 of 11) and 13 (24 of 24) byte-identical**, the 4 gate
+   13 files whose runs timed out written alone. `monthrowlimit` 23/23. All 14 failures were timeouts under a machine
+   load of up to 60, each green alone.
 7. README changelog, `CLAUDE.md` (the state table's `mvExtraLanes` row), `UI-CONVENTIONS.md` (§7 and §10),
    `HANDOFF.md`, the tracker.
 8. Pickers: commit, and separately push. ⚠️ This branch carries the unpushed month-shrink build: a push publishes

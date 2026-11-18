@@ -4,7 +4,7 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### 🔨 17 Nov 2026: A CROWDED MONTH SHRINKS ON SCREEN EXACTLY AS ITS PDF DOES. STAGE 1 BUILT (WIP), THE OWNER TRIES IT FIRST. Branch `claude/month-shrink-build-c94fac` (worktree `.claude/worktrees/month-shrink-build-c94fac`, cut from the planning branch `month-shrink` at `c6b7830`, which is `origin/main` `aa16ffe` plus the plan; its `node_modules` is a real copy, not a symlink, so there is nothing to unlink). Local WIP commits, nothing pushed, NO tests or docs yet (owner workflow: try on localhost first). Tracker card `month-view-shrink-like-pdf`. ⭐ [`MONTH-SHRINK-PLAN.md`](MONTH-SHRINK-PLAN.md) is the design
+### ✅ 17 Nov 2026: A CROWDED MONTH SHRINKS ON SCREEN EXACTLY AS ITS PDF DOES. STAGE 2 DONE (owner: *"finish"*), ON THE ROW LIMIT'S BRANCH `claude/dreamy-keller-2ed2c2` WITH `origin/main` v1.17.0 MERGED IN; FULL GATE RUN 18 Nov (5,731 PASS, 14 timeouts each green alone, gates 10 and 13 byte-identical); NOT PUSHED. Stage 1 was built on branch `claude/month-shrink-build-c94fac` (worktree `.claude/worktrees/month-shrink-build-c94fac`, cut from the planning branch `month-shrink` at `c6b7830`, which is `origin/main` `aa16ffe` plus the plan; its `node_modules` is a real copy, not a symlink, so there is nothing to unlink). Its own branch stops at the stage 1 WIP commits (`01dac2f`); ⛔ the tests, the docs and the full gate are ONLY on `claude/dreamy-keller-2ed2c2`, which carries this build with the 10-line limit on top, so the two ship together. Tracker card `month-view-shrink-like-pdf`. ⭐ [`MONTH-SHRINK-PLAN.md`](MONTH-SHRINK-PLAN.md) is the design
 - **Owner, 17 Nov 2026**, with a PDF and a screenshot of one crowded month: *"1st image is pdf export, 2nd image is live
   viewer...the live viewer still looks different and is changing the height and stretching the whole calendar"*, and
   *"I think id rather the live view look like it will in the pdf"*. That was the month page's "Full size, taller page"
@@ -96,12 +96,57 @@
   - The usual knife edges (Chrome's text measure against the writer's font tables) remain. One found on the way that
     is NOT this change's: at note size 13, two FITTING months of `month-dense60` (June and July 2026) are 1 px off
     the PDF's rows, identically on `origin/main`'s build.
-- **NOT DONE (stage 2, only after the owner says to finish):** `monthpage` T, G0 and B re-premised and a notes case
-  added, each shown red on a mutant (SK1 off; the CSS off); F0's allow-list in `monthemit.js` / `monthwriter.js`
-  widened to the names the month page region now uses (`MVL_FONT_WEIGHTS`, `loadInterPdfFont`, `mvlTextWidth`,
-  `MVL_GEOMETRY`, `mvlMonthLayout`, `mvlFitMonth`, beside `mvlFitNumbers`) ⚠️ those two legs are RED on this branch
-  until then, by design; the full gate (gates 10 and 13 byte-identical is SK1's gate); README, CLAUDE.md,
-  UI-CONVENTIONS §7, this entry; the commit and push pickers.
+- **STAGE 2 (owner, 17 Nov 2026: *"finish"*, said in the row limit's session once it reported that its push waited on
+  this build).** Done on `claude/dreamy-keller-2ed2c2` after merging `origin/main` (`3db79a0`, v1.17.0 double-up days;
+  the only conflicts were the top of README and of this file, both sides kept). Seven legs had failed on the stage 1
+  build in the row limit's full gate (80 checks); each is re-premised and green, and every re-premised case was shown
+  RED on a mutant of the build (`dist-mut/<name>/`, untracked; the sources restored after each build):
+  - **`monthpage`**: G0 the card is exactly one page in every month; P every PRINTED month's weeks are the written PDF's
+    rows, a shrunk one too (a month the PDF does not print is left out, as before); **T** (new premise) the factor on
+    screen is the PDF's, read from the PDF's own day-number type (8.25 pt x k), a whole number of 64ths, and a shrunk
+    month's card is one page; **N** (new) a shrunk month's notes are in the PDF's boxes: each note is paired with the
+    PDF's clipped text group by its text, and its lanes are the PDF's lines, its width the PDF's, never taller, the
+    PDF's height for all but 3% (the 1/100 px knife edge: 1 of 42 on `monthscale`); B at k (`17k + 2`, `(13n + 4)k + 2`);
+    **K** (new) Stay one page. The query is `shrunk=1` now (was `tall=1`); gate runs added for `month-dense60`,
+    `month-lanecap` and `monthscale` at 1100 x 760. Mutants: SK1 off (G0 P T N K: lanes 3 against the PDF's 2), the
+    shrink CSS off (G0 P T N B K), no factor (G0 P T N K), Stay one page off (K alone: the week 73 px, the card 812).
+  - **`monthemit` / `monthwriter` F0**: the month page's region runs from `monthPageNumbers` to the end of
+    `mvShrinkToFit` and must use EXACTLY `MVL_FONT_WEIGHTS`, `MVL_GEOMETRY`, `loadInterPdfFont`, `mvlFitMonth`,
+    `mvlFitNumbers`, `mvlMonthLayout`, `mvlTextWidth`; the loader appears 5 times. **`monthlayout` F0**: the same
+    region, the five model names among those, and the programs asked for in the month view only (the `viewMode !==
+    'month'` return in `mvAskPdfFonts`); `monthlayout` now takes `?src=` like the other two. Mutants: an eighth name,
+    `mvlWrapText` (all three), the month-view guard dropped (`monthlayout`).
+  - **`monthexport` X1**: `font-inter-600` is taken out at `readystatechange` 'interactive', BEFORE the app's module
+    runs (phase 1 only), and put back after X1. ⚠️ The leg's own slice of the writer reads the same block, so it goes
+    back for exactly the four synchronous `loadInterPdfFont` calls (the element is read before the loader's first
+    await) and out again. The X1 check itself is unchanged; it was red on the build with the block taken out after the
+    month view was up, which is why it moved.
+  - **`monthlanes` L16b**: 8/12's 25 notes are read at FULL size from the print document (print path by its localhost
+    switch, `print()` stood in for): 76 lanes, disjoint. On screen they take 51 and could never reach the old cap.
+    Mutant: the 60-lane cap put back in frozen `takeLane` (15 clashes in the print document, last lane 61; the
+    screen, 0 clashes and 51, would have passed it).
+  - **`mvnotesize`** (on `month-dense60`): `judge` reads each month's factor (`--mvk`; walks record it) and holds every
+    rule at k (bars `(h - 2)k + 2`, an empty lane `17k`, the lane gap `2k`, type and lines times k, a sized note's box
+    `(h - 2)k + 2`, natural lines from `(h - 2 - 4k) / line`); N2's absolute 14 px / 8 px compare at k. k = 1 is every
+    rule as it was (green on `mvnotes`). Mutant: the shrink CSS off (N0, N1-11 to N1-14, N2, N5: lanes 19 / 17 px
+    against `15.02` / `13.02` at k = 49/64). ⚠️ SK1 off leaves it GREEN (12/12, run 18 Nov): it judges heights and
+    sizes, not where a note wraps. SK1 is held by `monthpage` N (and G0 P T K).
+  - Docs: README (an entry of its own, above the row limit's), CLAUDE.md (the month page's bullet: the shrunk month and
+    frozen edit SK1), UI-CONVENTIONS (the month page's as-built section), the plan (status and §5 as built), gate.sh's
+    notes.
+  - ✅ **FULL GATE, of this build and the row limit together** (port 8961, 22:41 on 17 Nov to 10:25 on 18 Nov, alone
+    among gates but under a machine load of up to 60 from other sessions; build `19edc0f9…`): **5,731 PASS, 14 FAIL.**
+    Every byte-for-byte gate identical: gates 1–3 (the waterfall's cells, the waterfall PDF with its mark and seams,
+    every Excel part), the restore and `fields.byId` (77 ids), **gate 10: 11 of 11** print documents, and **gate 13:
+    24 of 24** written month PDFs (20 in the gate; the 4 whose `monthexport` runs wrote no file, `mvheader`,
+    `dayoverrides-onhalf`, `monthnotes`, `shootorder`, rerun alone and each byte-identical) plus `blocksoff`'s text
+    check. That is the gate the owner's approval of SK1 set. Every re-premised leg green in the gate: `monthpage`
+    110/110 (ten runs), `monthemit` 293, `monthwriter` 366, `monthlayout` 56, `monthlanes` 6, `mvnotesize` 24;
+    `monthrowlimit` 23/23. **All 14 failures are timeouts or runs that stopped early, and each passes alone on the same
+    build:** `monthexport` "produced no result" ×5 (`mvheader`, `dayoverrides-onhalf`, `monthnotes`, `shootorder`, and
+    `mvnotesize-mixed` in the note-size block; 9/9 each alone) and gate 13's 4 missing files with them; `phasesui`
+    (hidewf) P5 (the colour square's pop-up not open after 150 ms; 8/8 alone); `datetoday` (tokyo) Z0 (6/6 alone);
+    `dblclickdlg` D5 (14/14 alone); `hoverchipreal` (its 240 s deadline; 8/8 alone).
 - **Traps paid for here:** ⛔ a new worktree can ALREADY hold a real `node_modules` (this one did): `ln -s` then
   makes `node_modules/node_modules`, the build bundles two Reacts and every leg dies with "Cannot read properties of
   null (reading 'useState')"; `ls -ld node_modules` first. A test edit made in the pane leaves a crash backup in that
@@ -114,7 +159,7 @@
   the next turn: hand over the Bash-run port. `tests/harness/zzbase.html` (untracked, ignored) is `origin/main`'s
   build for side by side.
 
-### 🔨 17 Nov 2026: A DAY IN THE MONTH VIEW HOLDS 10 LINES (the limit on how tall a month row can get). STAGE 1 BUILT (WIP), THE OWNER TRIES IT FIRST. Branch `claude/dreamy-keller-2ed2c2` (worktree `.claude/worktrees/dreamy-keller-2ed2c2`, a fast-forward of the month-shrink build's `01dac2f`, so it carries that unpushed build; its `node_modules` is a real directory). Local commits (the plan, then the WIP build), nothing pushed, NO tests or docs yet (owner workflow: try on localhost first). Tracker card `month-row-max-height`. ⭐ [`MONTH-ROW-LIMIT-PLAN.md`](MONTH-ROW-LIMIT-PLAN.md) is the design
+### ✅ 17 Nov 2026: A DAY IN THE MONTH VIEW HOLDS 10 LINES (the limit on how tall a month row can get). FINISHED, COMMITTED LOCALLY (`2b9439a`), NOT PUSHED. Branch `claude/dreamy-keller-2ed2c2` (worktree `.claude/worktrees/dreamy-keller-2ed2c2`, a fast-forward of the month-shrink build's `01dac2f`, so it carries that build, whose stage 2 was then finished here too; `origin/main` v1.17.0 merged in; its `node_modules` is a real directory). Local commits only. Tracker card `month-row-max-height`. ⭐ [`MONTH-ROW-LIMIT-PLAN.md`](MONTH-ROW-LIMIT-PLAN.md) is the design
 - **Owner, 17 Nov 2026**, while trying the month-shrink build: *"there reall should be a max limit on how tall a
   calendar row can be"*. Read as a week row in the Month view.
 - **What exists:** `MV_MAX_LANES = 6` caps only the week's "+" strip (frozen `renderMonthView`: "Manual expansion is
@@ -184,7 +229,8 @@
 - **STAGE 2 (the owner said *"Finish it"*, then *"Run the gate"*, 17 Nov 2026). ✅ DONE in the working tree: the
   leg, its wiring, README, CLAUDE.md, UI-CONVENTIONS and the plan are written and THE FULL GATE HAS RUN. COMMITTED
   LOCALLY (owner's picker *"Commit locally"*, the commit after `1419b25`). ⛔ NOT PUSHED: a push of this branch
-  publishes the unfinished month-shrink build too, so it waits for that build's stage 2 and the owner's own word.**
+  publishes the month-shrink build too, so it waited for that build's stage 2 (now done here, with a second full gate
+  of both: see the shrink entry above) and waits for the owner's own word.**
   - **Full gate** (port 8961, 19:02–20:04, alone on the machine; build `316e617c…`): **5,530 PASS, 81 FAIL.** Every
     byte-for-byte output gate green: gates 1–3 (the waterfall PDF, its mark and seams, every Excel part), gate 10
     (the print path's month document, all 11) and gate 13 (the written month PDF, all 25). `monthrowlimit` 22/22
@@ -230,9 +276,10 @@
     (L5b L5c); notes past the 10th dropped on load (L6).
   - ⚠️ A leg that must keep going on a RED build has to undo what the red build let in: on a build with no limit the
     dragged note landed on the full day, and the next case threw looking for it (fixed in the leg: one Undo first).
-  - ⛔ **This branch sits on the unpushed month-shrink build**, whose own stage 2 is not done: the 80 failures
-    listed above are RED here until that build is finished. A full gate on this branch cannot be green before
-    then, and a push of this branch publishes the shrink build too.
+  - ⛔ **This branch sits on the month-shrink build.** The 80 failures listed above were that build's; its stage 2
+    was then done here (owner: *"finish"*; its entry above), so a push of this branch publishes both. The full gate
+    after that (18 Nov): 5,731 PASS, 14 FAIL, gates 10 and 13 byte-identical, every failure a timeout green alone;
+    the shrink entry above has the detail. `monthrowlimit` 23/23 in it, the out-of-view message (L2d) included.
 - **Try it:** `http://localhost:8893/dist/index.html?state=month-lanecap`, Month, August 2026 (12 Aug is far over
   the limit); also `?state=monthscale` (August: days of 6 notes) and `?state=mvnotes` (an ordinary calendar: add
   notes to one day until it stops). Port 8893 is `srv.js` run in the background with Bash.

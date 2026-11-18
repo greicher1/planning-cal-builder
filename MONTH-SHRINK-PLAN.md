@@ -1,9 +1,12 @@
 # MONTH-SHRINK-PLAN.md — a crowded month shrinks on screen exactly as its PDF does
 
-**Status: STAGE 1 BUILT, the owner tries it first (17 Nov 2026).** Branch `claude/month-shrink-build-c94fac` (worktree
+**Status: STAGE 2 DONE (17 Nov 2026, owner: "finish"): tests re-premised, each red on a mutant, docs written; the full
+gate ran 18 Nov (5,731 pass, 14 timeouts each green alone, gates 10 and 13 byte-identical; §5). Not pushed.** Stage 1 was built on branch `claude/month-shrink-build-c94fac` (worktree
 `.claude/worktrees/month-shrink-build-c94fac`), cut from the planning branch `month-shrink` (`c6b7830`: `origin/main`
-`aa16ffe`, v1.16.0, plus this plan). Tracker card `month-view-shrink-like-pdf`. Tests and docs (§5) wait for the owner's
-"finish". HANDOFF's top entry has what was measured and what does not match.
+`aa16ffe`, v1.16.0, plus this plan). ⚠️ Stage 2 was done on `claude/dreamy-keller-2ed2c2`, the month row limit's branch,
+which carries this build (`01dac2f`) with the limit on top and `origin/main` v1.17.0 merged in: the two ship together.
+The shrink build's own branch stops at `01dac2f`. Tracker card `month-view-shrink-like-pdf`. HANDOFF's entry has what
+was measured and what does not match.
 
 **As built, where it left this plan** (both measured, both in HANDOFF):
 - §4.4 "under a class on `#table-wrap`": the rules are gated on the factor's own presence in `#table-wrap`'s style,
@@ -82,6 +85,40 @@ synthetic fixtures that already hold a shrunk month: `monthscale` (August 2026),
 6. **The card is one page at every month.** Nothing else changes for a month that fits.
 
 ## 5. Tests
+
+### As built (17 Nov 2026)
+
+Seven legs failed on the stage 1 build (80 checks in the row limit's full gate); each is re-premised, green on the build,
+and red on a mutant of the build:
+- **`monthpage`**: G0 the card is one page in EVERY month (it was "at least"); P every printed month's weeks are the
+  written PDF's rows, a shrunk month too; **T** the factor on screen is the PDF's in every month (read from the PDF's own
+  day-number type: 8.25 pt times k), a whole number of 64ths, a shrunk month's card one page; **N** a shrunk month's notes
+  are in the PDF's boxes (each note paired with the PDF's clipped text group: lanes = the PDF's lines, same width, never
+  taller, the PDF's height for all but a knife-edge 3%); B bars and notes at their printed height times k; **K** Stay one
+  page. Runs on all three shrink fixtures with `shrunk=1`, and on `monthscale` at 1100 x 760. Mutants: SK1 off (N), the
+  shrink CSS off (P, N, B), no factor (T), Stay one page off (K).
+- **`monthemit` / `monthwriter` / `monthlayout` F0**: the month page's region now runs from `monthPageNumbers` to the end
+  of `mvShrinkToFit` and is held to EXACTLY the writer names its fit uses (seven; five of them the model's, for
+  `monthlayout`); `loadInterPdfFont` appears five times, not four; and `monthlayout` checks that the programs are asked
+  for in the month view only. Mutants: an eighth name (all three), the month-view-only guard dropped (`monthlayout`).
+  `monthlayout` takes `?src=` now, as the other two do.
+- **`monthexport` X1**: `font-inter-600` is taken out BEFORE the app boots (the first month drawn decodes the programs,
+  and a decoded weight is cached, so taking it out later no longer fails the export), and put back after X1. The leg's
+  own slice reads it for the four synchronous loader calls only.
+- **`monthlanes` L16b**: 8/12's 25 notes are read at FULL size from the print document (76 lanes, past the old cap of
+  60); on screen the shrunk month's notes take 51 and could never show the cap. Mutant: the 60-lane cap put back.
+- **`mvnotesize`** (on `month-dense60`): every rule is judged at the month's factor (k = 1 everywhere but the shrunk
+  August). Mutant: the shrink CSS off. (SK1 off leaves it green: it judges heights and sizes, not where a note wraps;
+  `monthpage` N holds SK1.)
+
+**The full gate** (17–18 Nov 2026, this build and the month row limit together, `origin/main` v1.17.0 merged in;
+build `19edc0f9…`): **5,731 pass, 14 fail.** Gates 1–3, the restore, **gate 10 (11 of 11 print documents) and gate 13
+(24 of 24 written month PDFs) byte-identical**, which is the gate the owner set for SK1. Every leg above green in it.
+The 14 failures were timeouts or runs that stopped early under a machine load of up to 60 (the gate took 11 h 45 min);
+each passes alone on the same build, and the 4 gate 13 files those runs did not write were written alone and are
+byte-identical. `HANDOFF.md` lists them.
+
+### As planned
 
 - `monthpage`: **T is re-premised** (it holds "stays full size in a taller card"): a shrunk month's card is one page
   and its weeks are the written PDF's rows, the same rule as P. G0's "at least 788.03 px tall" becomes "788.03 px".

@@ -31,6 +31,50 @@ way a user would notice or a future session would need to return to. See
 
 ## Unreleased
 
+### A crowded month shrinks on screen exactly as its PDF does (17 Nov 2026)
+
+The owner, with a month PDF and a screenshot of the same crowded month side by side: *"the live viewer still looks
+different and is changing the height and stretching the whole calendar"*, then *"I think id rather the live view look
+like it will in the pdf"*. The month PDF shrinks a month with too much in it to fit one Letter page; the screen kept it
+full size in a card taller than the page (the 16 Nov ruling "Full size, taller page"), so its notes wrapped differently
+and the card's height changed from month to month. Three pickers: **Shrink like the PDF**, **Approve with that gate**
+(one frozen edit), **Stay one page**. The plan is [`MONTH-SHRINK-PLAN.md`](MONTH-SHRINK-PLAN.md).
+
+- **The card is one page at every month.** A crowded month is drawn at the PDF's own factor (one factor for every week,
+  a whole number of 64ths): its bars, notes, day numbers and lines are smaller by exactly what the PDF takes off, and
+  its weeks are the PDF's rows.
+- **Notes wrap where the PDF wraps them**, so each note has the PDF's lines.
+- **Stay one page.** A blank line added to a week of a crowded month (the row's "+") does not make the card taller;
+  the line sits below the week's edge when there is no room for it. In a month that fits, it still opens the week.
+- **The zoom still enlarges it**, and a month that fits is drawn exactly as before.
+- **Nothing is saved and no output changes.** The PDFs, the workbook and the print rollback are byte for byte what they
+  were.
+
+**How it is built.** The month PDF writer is asked, never copied: the app draws the month as the export does and takes
+the writer's own fit of it. The sizes are a screen-only block of CSS that applies only while the month on screen is
+shrunk. One frozen edit, approved by the owner (SK1): on screen, in a shrunk month, a note's lines are counted at the
+smaller size. It is inert at full size and while printing. The page's PDF fonts are now decoded the first time a month
+is drawn, never in a waterfall-only session; until they arrive (a few ms), a crowded month is drawn at full size.
+
+**Known differences.** Chrome draws type at sizes cut to a hundredth of a pixel, so a note within about 0.16% of its
+box can draw one line fewer than the PDF inside the same space (1 of 42 on the `monthscale` test month). Zoomed out, a
+1 px border takes a whole screen pixel, so a few notes can take a line more and that month's card grows; nothing is
+cut. Chrome breaks a line after a hyphen and the PDF only at spaces (as before, at every size).
+
+**Verified.** `monthpage` holds every month's weeks to the written PDF's rows within 0.1 px, a shrunk one too, on eight
+calendars and a small window, and adds three cases: the factor on screen is the PDF's (T), a shrunk month's notes are in
+the PDF's boxes (N: 42, 60 and 25 notes on the three test months, every one in the PDF's lines), and Stay one page (K).
+Six more tests that the shrink broke were re-premised: `mvnotesize` judges a shrunk month at its factor, `monthlanes`
+reads the full-size lanes from the print document, `monthexport` takes its font out before the app boots, and the
+three writer guards (`monthemit`, `monthwriter`, `monthlayout`) allow exactly the writer names the screen's fit uses.
+Each re-premised case is red on a mutant of the build: the frozen edit off, the CSS off, the factor never set, Stay one
+page off, an eighth writer name, the month-view-only font guard dropped, the 60-lane cap put back. Gates 10 and 13 (the
+print rollback's document and the written month PDF) are byte-identical, as the owner's approval required.
+
+**Full gate:** 5,731 pass, 14 fail, with gates 10 and 13 byte-identical (11 of 11 print documents, 24 of 24 written
+month PDFs) and every one of the 14 a slow-machine timeout that passes alone; the next entry has the detail, since
+both changes were gated together.
+
 ### A day in the Month view holds 10 lines (17 Nov 2026)
 
 The owner, looking at a month where one week took most of the page: *"there reall should be a max limit on how tall a
@@ -84,19 +128,22 @@ dropped on load, the out-of-view message taken out. Before any test was written,
 month PDF, the workbook (all 16 parts) and the print rollback's document were compared byte for byte with the build
 before the change on `mvnotes`, `notewrap`, `monthscale` and `month-dense60`: identical. `npm run check` 42/42.
 
-**Full gate, 17 Nov 2026: 5,530 pass, 81 fail**, with every byte-for-byte output check green (the waterfall PDF, every
-workbook part, the print path's month document, the written month PDF). Each failing test was then run alone on the
-build before this change and on this one:
+**Full gate, 17–18 Nov 2026, of this change and the month-shrink build together (v1.17.0 merged in): 5,731 pass,
+14 fail, and every byte-for-byte output check identical to its baseline.** Gates 1–3 (the waterfall's cells, the
+waterfall PDF, every workbook part), the restore and its 77 saved field ids, gate 10 (the print path's month
+document, all 11 calendars) and gate 13 (the written month PDF, all 24 runs: 20 in the gate, and the 4 whose runs
+wrote no file, rerun alone, each byte-identical). This change's own `monthrowlimit` is 23 of 23 across its three
+runs. The 14 failures were all runs that timed out or stopped early under a machine load of up to 60 from other
+sessions (the gate took 11 h 45 min instead of about one), and each passes alone on the same build: `monthexport` on
+`mvheader`, `dayoverrides-onhalf`, `monthnotes`, `shootorder` and `mvnotesize-mixed` (9 of 9 each), `phasesui` 8/8,
+`datetoday` in Tokyo 6/6, `dblclickdlg` 14/14, `hoverchipreal` 8/8.
 
-- **80 fail identically without this change.** They belong to the month-shrink build this branch sits on, whose own
-  tests are not finished: `monthemit`, `monthwriter` and `monthlayout` F0, `monthexport` X1, `monthlanes` L16b,
-  `mvnotesize` on `month-dense60`, `monthpage` T and B on `monthscale`.
-- **1 was a run that stopped early** (`phasefill`): alone it passes on both builds.
-- **1 was this change's:** `textfit`'s "lines" run added its second note to a day that already holds 10 lines on its
-  crowded fixture, and the limit refused it. The test now uses a day with room.
-
-The out-of-view message (12 lines of chrome) was added after that gate; after it, `npm run check`, the three
-`monthrowlimit` runs, `textfit`'s lines run and both `mvkeys` runs that read the same message are green.
+An earlier full gate (17 Nov, before the shrink build's tests were finished) was 5,530 pass, 81 fail, every
+byte-for-byte check green. 80 of those failures were the shrink build's tests, which still described the old
+full-size month; they were rewritten for the shrunk month (see the entry above). 1 was a run that stopped early
+(`phasefill`, green alone). 1 was this change's: `textfit`'s "lines" run added its second note to a day that already
+holds 10 lines on its crowded fixture, and the limit refused it, so the test now uses a day with room. The out-of-view
+message (12 lines of chrome) was added between the two gates; the second covers it.
 
 ## v1.17.0 — double-up days: "10+1", a second crew's day on the next episode's shoot (17 Nov 2026)
 

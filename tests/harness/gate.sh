@@ -2640,12 +2640,18 @@ done
 # (MVL_GEOMETRY: 1027.53 px wide, at least 788.03 px tall, a day column 141.07 px), its weeks sharing the page by the
 # writer's own rule (legacy.css "THE MONTH PAGE"; app.js fitMonthPage), bars and notes at their printed heights.
 # t/monthpage.js: G0 the card is the page in every month; P every week's height is the WRITTEN PDF's row within 0.1 px
-# on every month that fits a page; T a month the PDF shrinks stays full size in a taller card (monthscale has one);
+# on every month the PDF prints, a shrunk one too; T the factor on screen is the PDF's in every month (a shrunk month's
+# card one page); N a shrunk month's notes are in the PDF's boxes (lanes = the PDF's lines); K "Stay one page", a line
+# added to a shrunk month's week leaves the card one page. ⚠️ RE-PREMISED 17 Nov 2026 ("Shrink like the PDF",
+# MONTH-SHRINK-PLAN.md): until then T held a shrunk month full size in a taller card. The three shrink fixtures each
+# run with shrunk=1 (T, N and K must find their month); mutants red: SK1 off (N), the shrink CSS off (P, N, B), no
+# factor (T, P, G0), "Stay one page" off (K).
 # B printed bar and note heights; S no note symbol; Z the zoom scales the page only; X a line added to a week stays
 # inside it; V the fit's numbers are on #table-wrap in the month view only; E the empty state keeps the panel's width.
 # The second mvnotes run is a small window (1100 x 760): the same numbers. Red on the build before it at G0, P, B, S,
 # Z, X and V. Screen only: gate 13 (the written month PDF, byte for byte) is what holds the PDF itself still.
-for MPSPEC in "mvnotes:::300" "mvnotes::1100,760:300" "notewrap:::300" "monthscale:tall=1::300" \
+for MPSPEC in "mvnotes:::300" "mvnotes::1100,760:300" "notewrap:::300" "monthscale:shrunk=1::300" \
+              "monthscale:shrunk=1:1100,760:300" "month-dense60:shrunk=1::300" "month-lanecap:shrunk=1::300" \
               "mvbarsize-large:::300" "mvnotesize-mixed:::300" ":::90"; do
   MPSTATE="${MPSPEC%%:*}"; MPR="${MPSPEC#*:}"
   MPQ="${MPR%%:*}"; MPR="${MPR#*:}"
@@ -2992,6 +2998,14 @@ done
 # N3, N4); the setter not redrawing (EX); a calendar size overriding a note's own (N2); the style bar not switching the
 # lane rules (N2); a 21 px bar at 11 px (N5); New keeping the size (N7). Removing markDirty() from the setter was ALSO
 # tried and stays green, because the redraw marks the file dirty by itself.
+# ⚠️ RE-PREMISED 17 Nov 2026 ("Shrink like the PDF", MONTH-SHRINK-PLAN.md): month-dense60's August is drawn on screen
+# at the PDF's factor (k = 49/64), so every rule is judged there at k (a bar (h - 2)k + 2, an empty lane 17k, type
+# times k; a 1 px border not scaled). Red on the shrink CSS switched off; k = 1 everywhere else, rules unchanged.
+# Beside it, re-premised the same day for the same build: monthlanes L16b reads 8/12's FULL-SIZE lanes from the
+# print document (on screen the shrunk month's notes take 51 lanes, never the old cap; red on the 60-lane cap put
+# back); monthexport X1 takes font-inter-600 out before the app boots (the first month drawn now decodes the
+# programs, and a decoded weight is cached); monthemit / monthwriter / monthlayout F0 let the month page reach exactly
+# the writer names its fit uses (red on an eighth name, and monthlayout on the month-view-only guard dropped).
 # ---- mvtextstyle on the writer and on older builds (MONTH-TEXT-STYLE-PLAN.md §6 item 2, §4) ------------------------
 # ⭐ ADDED 27 Oct 2026. monthemit holds the writer's display list to Chrome's print layout of the same document; here on
 # the styled fixture (tests/fixtures/mvtextstyle.sptcal: every month text kind styled at once, minted by the mvtextstyle

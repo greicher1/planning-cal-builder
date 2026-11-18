@@ -993,7 +993,7 @@ consistent proportions despite the window width or height. It should reflect wha
 appear when exported to pdf"*, then *"phase bar size and note size should also reflect the export exactly. essentially
 the live viewer should look just like what it will look like in the pdf export"*. Five pickers: **Full page shape**,
 **Scroll, like waterfall**, grid lines **Leave colours apart**, note symbols **Remove the symbols**, a crowded month
-**Full size, taller page**.
+**Full size, taller page** (REPLACED the next day by **Shrink like the PDF**, below).
 
 - **One fixed card.** In the month view `#table-wrap` is a one-track grid, `calc(11in - 16mm + 32px)` = 1027.53 px:
   the writer's week width (`MVL_GEOMETRY.weekW`, 987.53) plus the card's own borders and padding. A day column is
@@ -1008,20 +1008,40 @@ the live viewer should look just like what it will look like in the pdf export"*
 - **Printed heights.** A Standard bar or band is 19 px (34 px on two lines), a 10 px note 13 px a line plus 6, each
   from the top of its first line; a line is as tall as what prints in it and never under 17 px. Until then the screen
   held every Standard line to 17 px and stretched bars and notes over their lines.
-- **A month the PDF shrinks stays full size**, in a card taller than the page. The export still warns.
+- ⭐ **A month the PDF shrinks is drawn shrunk, exactly as the PDF shrinks it** (owner, 17 Nov 2026: *"I think id rather
+  the live view look like it will in the pdf"*; pickers **Shrink like the PDF**, **Approve with that gate**, **Stay one
+  page**; `MONTH-SHRINK-PLAN.md`). Until then such a month stayed full size in a card taller than the page, and the
+  card's height changed from month to month.
+  - **The writer is asked, never copied.** `mvWriterFit()` renders the month on screen as the export renders it and
+    takes the month PDF writer's own fit (`mvlFitMonth`): one factor k for every week, a whole number of 64ths. So the
+    factor, the rows and every note's lines are the PDF's.
+  - **What scales** is the writer's own list (`mvlWeekPaint`): type, lines, vertical padding, the lane minimum and gap,
+    bar corners, the grey tag, the day number. Widths, horizontal padding and every line weight do not. So a Standard
+    bar is 17k + 2 px and a 10 px note (13 a line + 4)k + 2.
+  - **Notes wrap where the PDF wraps them**: the one approved frozen edit, SK1, counts a note's lines at the smaller
+    size, on screen only.
+  - **The card is one page at every month.** A line added to a shrunk month's week (the row's "+") does not make it
+    taller (**Stay one page**): that week keeps the PDF's row, and a blank line with no room sits below its edge.
+  - ⚠️ The page's four Inter programs are decoded the first time a MONTH is drawn (never in a waterfall-only session);
+    until they are in, a crowded month is drawn at full size, and it is fitted when they arrive, a few ms later.
+  - The export still warns when a month prints below 6 pt.
 - **Soft Lines stays**: 1 px soft grey on screen, 2 px black in the PDF. Sizes and layout match; that is the one
   intended difference.
 - **No note symbols** (↻ / ⚑, 2 Nov 2026): the PDF never had them, and a marked note was measured 10 px narrower.
 - ⛔ **A knife edge can still differ.** A note's lines come from measuring text, and Chrome on screen and the PDF's own
   font tables differ by hundredths of a pixel. A note whose text is within about 0.1 px of its box's width can take a
   line more or less on screen than in the PDF (seen: one note at 13 px on `mvnotes`, one at 14 px on `mvnotesize-14`).
-  No width change closes it.
+  No width change closes it. In a shrunk month Chrome also draws a font at a size cut to 1/100 of a device pixel, so
+  a note within about 0.16% of its box can draw a line fewer inside the same lanes (1 of 42 on `monthscale`'s
+  August); its week and the card are unchanged.
 
-**Held by** `monthpage` (five calendars, a small window, and no calendar): every week's height on screen is the
-written PDF's row within 0.1 px on every month that fits a page; the card, the day column and the scroll rule; printed
-bar and note heights; no symbol; the zoom; a line added to a week stays inside it. `calzoom`, `mvbarsize`,
-`mvnotesize`, `autonoterename` and `mvkeys` were re-premised for it. Gate 13 holds the PDF itself; gate 10 was re-cut
-(the print rollback now sizes notes for the page, not the window).
+**Held by** `monthpage` (eight calendars, a small window, and no calendar): every week's height on screen is the
+written PDF's row within 0.1 px on every month, a shrunk one too; the card, the day column and the scroll rule; printed
+bar and note heights at the month's factor; the factor itself (T), a shrunk month's notes in the PDF's boxes (N), Stay
+one page (K); no symbol; the zoom; a line added to a week stays inside it. `calzoom`, `mvbarsize`, `mvnotesize`,
+`autonoterename` and `mvkeys` were re-premised for the page, and `mvnotesize`, `monthlanes`, `monthexport` and the
+three writer guards (`monthemit`, `monthwriter`, `monthlayout` F0) for the shrink. Gate 13 holds the PDF itself; gate
+10 was re-cut (the print rollback now sizes notes for the page, not the window).
 
 ### ✅ AS BUILT — a day in the month view holds 10 lines (17 Nov 2026, `MONTH-ROW-LIMIT-PLAN.md`)
 
