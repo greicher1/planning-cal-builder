@@ -4,6 +4,31 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### 🚀 18 Nov 2026: v1.18.0 — THE MONTH SHRINK AND THE 10-LINE DAY, RELEASED TOGETHER from `claude/dreamy-keller-2ed2c2` (the two entries below are the features)
+- **Owner's pickers, 18 Nov:** *"Commit locally"* (`c87655b`) and *"Push to main"*. When the push was approved,
+  `origin/main` had moved to v1.17.5 (five Tandem-day releases since the v1.17.0 merged here), so it was merged in
+  (`61dcadf`; only README's top conflicted, both kept. ⚠️ This repo's conflict style is diff3: strip the `||||||| base`
+  line with the other markers). `app.js` and `legacy.css` merged clean; `fitMonthPage`'s observer is still the first on
+  `#table-wrap` (the tandem grips' is later and only hides handles).
+- **Cut:** `APP_VERSION`, `version.json`, `package.json` 1.18.0; README's two entries under a v1.18.0 heading;
+  `releases/v1.18.0.html` cmp-identical to the build (sha256 `fff531583c90b47e…`). `npm run check` 42/42.
+- **Release gate** on that build (port 8961, 11:55–13:16 on 18 Nov; a load spike to 106 from two other sessions'
+  Chrome around 12:36): **5,772 PASS, 5 FAIL**. Gates 1–3, the restore (77 ids), **gate 10 11 of 11, gate 13 24 of 24**,
+  all byte-identical. `conflict` C3/C4b, `monthwriter` (`mvnotesize-14`) and (`doubleups`) no result: timeouts, each
+  green alone (9/9, 12/12, 12/12).
+- ⭐ **`epnames` (halfdays) N5 was red once more ALONE** (the session that started this one asked for it to be explained
+  before any push). Cause, measured: **a test race, on the live build too.** `openText()` waited 300 ms plus a quiet grid,
+  never for the load; the grid of the calendar before is already a month grid, and a Load now and then lands up to 2 s
+  after the picker (both builds; the load usually lands in 40–140 ms). N5 then read N4's 11-name episode list while
+  its bars and saved file were already N5's. A loop of the N4 → N5 step (scratch leg, deleted) caught it on
+  **v1.17.5: 1 load in 20 at 1.97 s, the old wait returning at 1.2 s**; no revert, just late. Fix (test only):
+  `openText()` waits for the File menu's label to name the loaded file (`renderRecents()` runs after
+  `refreshAfterRestore()` has rebuilt every sidebar list), as `autonoterename` does. With it, 80 loads in a row on both
+  builds read correctly, one landing at 1.69 s, and the label never came before the list.
+  `epnames` 11/11 (halfdays) and 5/5 (blocks) on both builds.
+- ⚠️ Any leg that loads through `openViaFakePicker` and then waits only on TIME has the same race. `autonoterename`'s
+  `load()` is the pattern to copy.
+
 ### ✅ 17 Nov 2026: A CROWDED MONTH SHRINKS ON SCREEN EXACTLY AS ITS PDF DOES. STAGE 2 DONE (owner: *"finish"*), ON THE ROW LIMIT'S BRANCH `claude/dreamy-keller-2ed2c2` WITH `origin/main` v1.17.0 MERGED IN; FULL GATE RUN 18 Nov (5,731 PASS, 14 timeouts each green alone, gates 10 and 13 byte-identical); NOT PUSHED. Stage 1 was built on branch `claude/month-shrink-build-c94fac` (worktree `.claude/worktrees/month-shrink-build-c94fac`, cut from the planning branch `month-shrink` at `c6b7830`, which is `origin/main` `aa16ffe` plus the plan; its `node_modules` is a real copy, not a symlink, so there is nothing to unlink). Its own branch stops at the stage 1 WIP commits (`01dac2f`); ⛔ the tests, the docs and the full gate are ONLY on `claude/dreamy-keller-2ed2c2`, which carries this build with the 10-line limit on top, so the two ship together. Tracker card `month-view-shrink-like-pdf`. ⭐ [`MONTH-SHRINK-PLAN.md`](MONTH-SHRINK-PLAN.md) is the design
 - **Owner, 17 Nov 2026**, with a PDF and a screenshot of one crowded month: *"1st image is pdf export, 2nd image is live
   viewer...the live viewer still looks different and is changing the height and stretching the whole calendar"*, and

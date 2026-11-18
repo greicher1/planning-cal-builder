@@ -63,9 +63,18 @@ window.addEventListener('load', function () { (async function () {
     if (b) b.click();
   }, 50);
   var seq = 0, writes = [];
+  // ⛔ Wait for the LOAD, not for time (18 Nov 2026). openViaFakePicker returns once the app has asked the picker;
+  // the file is read and applied after that. The grid of the calendar before is already a month grid, and a slow
+  // load left it quiet long enough for settle() to return on it: N5 then read N4's episode list (11 names) while the
+  // bars and the saved file were already N5's. Caught on the live v1.17.5 build too (1 load in 20 landed at 1.97 s,
+  // the old wait returned at 1.2 s). The File menu's label names the loaded file only after refreshAfterRestore()
+  // has rebuilt every sidebar list (renderRecents runs after it), so it is the signal, as autonoterename uses it.
+  function menuLabel(){ return (($('file-menu-label') || {}).textContent || '').trim(); }
   async function openText(text){
     seq++;
+    var stem = new RegExp('epnames-' + seq + '(?!\\d)');
     await T.openViaFakePicker(null, 'epnames-' + seq + '.sptcal', {text: text, writes: writes});
+    await T.until(function () { return stem.test(menuLabel()); }, 'the loaded file\'s name in the file menu (' + seq + ')', 150, 100);
     await T.sleep(300); await settle();
     await T.until(function () { return !!document.querySelector('#table-wrap .mv-daygrid'); }, 'month grid ' + seq, 150, 100);
     await settle();

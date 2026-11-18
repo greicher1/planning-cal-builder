@@ -145,6 +145,15 @@ full-size month; they were rewritten for the shrunk month (see the entry above).
 holds 10 lines on its crowded fixture, and the limit refused it, so the test now uses a day with room. The out-of-view
 message (12 lines of chrome) was added between the two gates; the second covers it.
 
+**The release gate, 18 Nov 2026: v1.18.0** (the two changes with `origin/main`'s v1.17.1–v1.17.5 merged in): **5,772
+pass, 5 fail**, with gates 1–3, the restore, gate 10 (11 of 11) and gate 13 (24 of 24) byte-identical. Four failures
+were timeouts during a load spike from other sessions and pass alone (`conflict` 9/9, `monthwriter` on
+`mvnotesize-14` and `doubleups` 12/12 each). The fifth, `epnames` N5, was red once more when run alone. The cause is
+in the test, not the app: after a Load it waited a fixed time instead of for the load itself, and once in a while a
+Load lands up to 2 s late, so N5 read the previous calendar's episode list. The same slow load was caught on v1.17.5,
+the build that was live (1 load in 20 at 1.97 s). The test now waits for the File menu to name the loaded file, as
+`autonoterename` does; 80 loads in a row on both builds were read correctly, one of them 1.69 s late.
+
 ## v1.17.5 — pick the Tandem colour (17 Nov 2026)
 
 ### Pick the Tandem colour (17 Nov 2026)
