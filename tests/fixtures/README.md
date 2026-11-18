@@ -207,6 +207,7 @@ holidays. Do not re-mint them without keeping a copy saved with a retired place:
 
 | File | Use |
 |---|---|
+| `v1.17.4-saved.sptcal` | the reference calendar saved by the v1.17.4 build (the tandem grips), `t/mintfixture.js`: 46 keys, 77 ids, 0 clipped, byte-identical to `v1.17.3-saved.sptcal` but `lastEdited` |
 | `v1.17.3-saved.sptcal` | the reference calendar saved by the v1.17.3 build (the Tandem card's heading), `t/mintfixture.js`: 46 keys, 77 ids, 0 clipped, byte-identical to `v1.17.2-saved.sptcal` but `lastEdited` |
 | `v1.17.2-saved.sptcal` | the reference calendar saved by the v1.17.2 build (R21, the word Tandem), `t/mintfixture.js`: 46 keys, 77 ids, 0 clipped, byte-identical to `v1.17.1-saved.sptcal` but `lastEdited` |
 | `v1.17.1-saved.sptcal` | the reference calendar saved by the v1.17.1 build (R20, no double-up during the first episode), `t/mintfixture.js`: 46 keys, 77 ids, 0 clipped, byte-identical to `v1.17.0-saved.sptcal` but `lastEdited` |

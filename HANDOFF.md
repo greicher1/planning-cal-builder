@@ -33,8 +33,11 @@
 - 🔨 **After v1.17.3 (owner: *"i should be able to extend tandem day just like any other phase"*, picker "Both ends"):**
   grips on both ends of a tandem pill (`installDoubleUpGrips`, body-level `.phase-edge-handle`, made only on hover). End:
   days change, start held, still joined. Start: days change, end held, start becomes a moved position. Stops at R9/R20's
-  days; writes the unit's own count; one undo; Esc. Plan §10.3e; README Unreleased. `doubleups` 63/63. Committed on the
-  branch, NOT pushed. Tracker card `tandem-extend-grips`.
+  days; writes the unit's own count; one undo; Esc. Plan §10.3e. `doubleups` 63/63. Tracker card `tandem-extend-grips`.
+  Owner's picker *"Push as v1.17.4"*: cut as **v1.17.4** (version files, check 42/42; `releases/v1.17.4.html`
+  cmp-identical, sha256 `fe5d9a91838e9ade…`; `v1.17.4-saved.sptcal` identical to v1.17.3's but `lastEdited`; on the cut
+  the waterfall PDF identical bar the stamp, gate 13 reference byte-identical, `monthexport` 9/9, `pdfmark` 6/6), tagged
+  `v1.17.4` and pushed with the branch.
 - 🔨 **After v1.17.2 (owner: *"Call the phase just \"Tandem\""*):** the card heading reads "Tandem", not "Tandem days"
   (`DU_TITLE`); "Tandem days" typed there still reads as the default. Counts keep "tandem days". README Unreleased;
   `doubleups` 58/58. Owner's picker *"Push as v1.17.3"*: cut as **v1.17.3** (version files, check 42/42;
