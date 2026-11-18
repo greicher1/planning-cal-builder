@@ -29,6 +29,20 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+## Unreleased
+
+### Drag a tandem's ends to change its days (17 Nov 2026)
+
+The owner: *"i should be able to extend tandem day just like any other phase"*, and by picker, a grip on both ends
+(DOUBLE-UP-DAYS-PLAN.md R22).
+- Point at a tandem pill in the month view and a grip shows on each end, as on every phase bar. **Drag the end** to add
+  or remove tandem days: the start stays put, so a tandem joined to its episode's shoot bar stays joined. **Drag the
+  start** to change the days while the end stays put; the tandem then sits on its own, as a moved one does.
+- The days it gets are that episode's own count, shown in bold in the Tandem card. An edge never goes onto its own
+  episode's days, the first episode's days or before the shoot: it stops at the last day it may take. One undo per drag,
+  and Esc during a drag puts it back.
+- Verified: `doubleups` 63/63 (live 11, restore 47 with five new grip checks, half 3, blocks 2), `npm run check` 42/42.
+
 ## v1.17.3 — the Tandem card is called just "Tandem" (17 Nov 2026)
 
 ### The Tandem card is called just "Tandem" (17 Nov 2026)

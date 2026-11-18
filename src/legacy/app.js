@@ -13287,6 +13287,185 @@ export function initLegacyApp() {
     window.addEventListener('scroll', ()=>{ if(drag && drag.live) drawBoxes(); }, true);
   })();
 
+  // ---------- A tandem's two grips: drag either end to change its days (owner, 17 Nov 2026) ----------
+  // "i should be able to extend tandem day just like any other phase"; picker "Both ends". Prep's start grip is the
+  // pattern (installPrepEdgeHandles): body-level .phase-edge-handle chrome over the pill, never written into the grid, a
+  // live redraw per step, ONE undo step for the gesture, Esc puts it back.
+  //   END grip    on the pill holding its last day: the start is held, the days change. A joined tandem stays joined.
+  //   START grip  on the pill holding its first day: the end is held, the days change, and the start becomes a MOVED
+  //               position (unjoined, drawn on its own), unless it lands on its default.
+  // Either way the count written is that unit's OWN (a drag is a statement about that episode, Prep's Q1(a)), 1..99.
+  // ⛔ It never takes a day the drop rules refuse (R9, R20): an edge pulled onto its own unit's days, the first unit's
+  // days or before the shoot stops at the last day it may take. Days it already covers stay (the last unit's own).
+  (function installDoubleUpGrips(){
+    const wrap = document.getElementById('table-wrap');
+    if(!wrap) return;
+    const HANDLE_W = 10;
+    const pool = [];
+    let shownFor = null, shield = null, drag = null;
+
+    // The slot nearest a day: the day's own, else the nearest one before it (an end) or after it (a start).
+    const slotNear = (S, iso, dir)=>{
+      let d = parseDateUTC(iso);
+      for(let i = 0; i < 14 && d; i++){ const k = S.slotOf(isoOf(d)); if(k !== null) return k; d = addDays(d, dir); }
+      return null;
+    };
+    function specFor(pill){
+      const du = duOfId(pill.getAttribute('data-du')), g = du && pillRange(pill);
+      if(!du || !g) return [];
+      const out = [];
+      if(g.from === du.days[0]) out.push({kind: 'start', side: 'left', du, pill});
+      if(g.to === du.days[du.days.length - 1]) out.push({kind: 'end', side: 'right', du, pill});
+      return out;
+    }
+    function handleAt(k){
+      while(pool.length <= k){
+        const h = document.createElement('div');
+        h.className = 'phase-edge-handle';
+        h.hidden = true;
+        h.addEventListener('mousedown', e=> beginDrag(e, h));
+        document.body.appendChild(h);
+        pool.push(h);
+      }
+      return pool[k];
+    }
+    function hideHandles(except){ shownFor = null; pool.forEach(h=>{ if(h !== except) h.hidden = true; }); }
+    function place(h, spec){
+      const v = visibleRect(spec.pill);
+      if(!v){ h.hidden = true; return; }
+      const x = spec.side === 'left' ? v.full.left : v.full.right - HANDLE_W;
+      if(x < v.left - 1 || x + HANDLE_W > v.right + 1){ h.hidden = true; return; }
+      h._spec = spec;
+      h._pill = spec.pill;
+      h.setAttribute('data-edge', spec.kind);
+      h.setAttribute('data-ph', DU_KEY);
+      h.style.left = x + 'px';
+      h.style.top = v.top + 'px';
+      h.style.height = (v.bottom - v.top) + 'px';
+      h.style.color = getComputedStyle(spec.pill).color;
+      h.title = spec.kind === 'end' ? 'Drag to change how many tandem days ' + duPillLabel(spec.du) + ' has; its start stays'
+                                    : 'Drag to change where ' + duPillLabel(spec.du) + ' starts; its end stays';
+      h.hidden = false;
+    }
+    function showFor(pill){
+      if(pill === shownFor) return;
+      hideHandles();
+      const specs = specFor(pill);
+      if(!specs.length) return;
+      shownFor = pill;
+      specs.forEach((sp, i)=> place(handleAt(i), sp));
+    }
+    document.addEventListener('mousemove', e=>{
+      if(drag) return;
+      const t = e.target;
+      if(t && t.classList && t.classList.contains('phase-edge-handle') && t.getAttribute('data-ph') === DU_KEY) return;
+      if(viewMode !== 'month' || document.body.classList.contains('du-dragging')){ hideHandles(); return; }
+      const pill = t && t.closest && t.closest(DU_SEL_PILL);
+      if(!pill || !wrap.contains(pill)){ hideHandles(); return; }
+      showFor(pill);
+    }, {passive: true});
+    window.addEventListener('scroll', ()=>{ if(!drag) hideHandles(); }, true);
+    window.addEventListener('resize', ()=>{ if(!drag) hideHandles(); });
+    new MutationObserver(()=>{ if(!drag) hideHandles(); }).observe(wrap, {childList: true, subtree: true});
+
+    // Writes a span [start, start + n) as the unit's own count and, when it is not its default, a moved start.
+    function writeSpan(d, start, n){
+      const def = d.def, S = d.S;
+      if(start === d.start0 && n === d.n0){
+        if(d.hadN) def.doubleUpDays = d.wasN; else delete def.doubleUpDays;
+        if(d.wasMv) doubleUpMoved[d.id] = Object.assign({}, d.wasMv); else delete doubleUpMoved[d.id];
+        return;
+      }
+      def.doubleUpDays = n;
+      const dflt = d.last ? Math.max(d.minSlot, d.unitLast - n + 1) : d.unitLast + 1;
+      if(start === dflt) delete doubleUpMoved[d.id];
+      else doubleUpMoved[d.id] = start < S.N ? {day: start + 1} : {after: start - S.N + 1};
+    }
+    function apply(start, n){
+      const d = drag;
+      writeSpan(d, start, n);
+      d.cur = {start, n};
+      update();
+      cancelPendingUndoPush();
+      // ⛔ The real derivation must agree: the tandem exactly where it was computed to land. If not, put it back and
+      // let the gesture go inert (every grip's guard).
+      const now = duOfId(d.id);
+      if(!(now && now.slot === start && now.n === n)){ d.broken = true; writeSpan(d, d.start0, d.n0); d.cur = {start: d.start0, n: d.n0}; update(); cancelPendingUndoPush(); }
+      follow();
+    }
+    // Keep the dragged handle on its edge as the grid redraws.
+    function follow(){
+      const d = drag, du = duOfId(d.id);
+      const pills = du ? Array.prototype.filter.call(wrap.querySelectorAll(DU_SEL_PILL), p=> p.getAttribute('data-du') === d.id) : [];
+      for(const p of pills){
+        const sp = specFor(p).filter(x=> x.kind === d.kind)[0];
+        if(sp){ place(d.handle, sp); return; }
+      }
+      d.handle.hidden = true;
+    }
+    // Is slot k one this tandem may newly take (R9, R20)?
+    const mayTake = (d, k)=> k >= 0 && k >= d.minSlot && !d.S.ownDay(k, d.unit);
+    function solve(d, iso){
+      const k0 = d.start0, e0 = d.start0 + d.n0 - 1;
+      if(d.kind === 'end'){
+        let k = slotNear(d.S, iso, -1);
+        if(k === null) return null;
+        k = Math.max(k0, Math.min(k, k0 + DU_MAX - 1));
+        let e = Math.min(k, e0);
+        for(let j = e0 + 1; j <= k && mayTake(d, j); j++) e = j;
+        return {start: k0, n: e - k0 + 1};
+      }
+      let k = slotNear(d.S, iso, 1);
+      if(k === null) return null;
+      k = Math.min(e0, Math.max(k, e0 - DU_MAX + 1));
+      let s = Math.max(k, k0);
+      for(let j = k0 - 1; j >= k && mayTake(d, j); j--) s = j;
+      return {start: s, n: e0 - s + 1};
+    }
+    function endDrag(){
+      const d = drag;
+      drag = null;
+      if(shield){ shield.remove(); shield = null; }
+      hideHandles();
+      if(d && (d.cur.start !== d.start0 || d.cur.n !== d.n0)){ pushUndoSnapshot(); markDirty(); }
+    }
+    function beginDrag(e, h){
+      if(e.button !== 0 || drag || viewMode !== 'month') return;
+      const spec = h._spec, du = spec && duOfId(spec.du.id), def = du && duDefOf(du.id), S = du && duSlotLine();
+      if(!du || !def || !S) return;
+      e.preventDefault();
+      e.stopPropagation();
+      const edgeIso = spec.kind === 'end' ? du.days[du.days.length - 1] : du.days[0];
+      const cell = Array.prototype.find.call(wrap.querySelectorAll('.mv-body > .mv-week > .mv-daygrid > .mv-daycell'),
+        c=>{ const loc = cellDate(c); return !!loc && isoOf(loc.date) === edgeIso; });
+      const cr = cell ? cell.getBoundingClientRect() : null;
+      pushUndoSnapshot();
+      drag = {handle: h, kind: spec.kind, id: du.id, unit: du.unit, def, S, last: du.last, unitLast: du.unitLast,
+              minSlot: (duSegOf(currentSchedule) || {}).minSlot || 0, start0: du.slot, n0: du.n,
+              hadN: hasDuDays(def), wasN: def.doubleUpDays, wasMv: doubleUpMoved[du.id] ? Object.assign({}, doubleUpMoved[du.id]) : null,
+              dx: cr ? e.clientX - (cr.left + cr.width / 2) : 0, cur: {start: du.slot, n: du.n}, broken: false};
+      hideHandles(h);
+      shield = document.createElement('div');
+      shield.className = 'phase-edge-shield';
+      document.body.appendChild(shield);
+    }
+    window.addEventListener('mousemove', e=>{
+      if(!drag) return;
+      if(!(e.buttons & 1)){ endDrag(); return; }
+      if(drag.broken) return;
+      const iso = dayAtPoint(e.clientX - drag.dx, e.clientY);
+      const step = iso && solve(drag, iso);
+      if(step && (step.start !== drag.cur.start || step.n !== drag.cur.n)) apply(step.start, step.n);
+    });
+    window.addEventListener('mouseup', ()=>{ if(drag) endDrag(); });
+    document.addEventListener('keydown', e=>{
+      if(!drag || e.key !== 'Escape') return;
+      e.preventDefault();
+      if(drag.cur.start !== drag.start0 || drag.cur.n !== drag.n0) apply(drag.start0, drag.n0);
+      endDrag();
+    }, true);
+  })();
+
   // ---------- Hiatus drag: move a hiatus, or change its first or last week, in the month view ----------
   // HIATUS-DRAG-PLAN.md. Owner, 19 Oct 2026: "whole-week move and edges, same pattern as the phase
   // grips". Grab a band anywhere to move the hiatus. A START grip on its first week and an END grip on
@@ -14191,7 +14370,7 @@ export function initLegacyApp() {
       if(pill && !wrap.contains(pill)) pill = null;
       const key = (handle && handle.getAttribute('data-ph')) || (pill && pill.getAttribute('data-ph')) || null;
       // A double-up pill (DOUBLE-UP-DAYS-PLAN.md R11) opens its own lean menu: menuSections() below.
-      const du = (!handle && pill && pill.hasAttribute('data-du')) ? duOfId(pill.getAttribute('data-du')) : null;
+      const du = (pill && pill.hasAttribute('data-du')) ? duOfId(pill.getAttribute('data-du')) : null;   // its grips too
       return {iso, date, key, target: t, pill, du, x: e.clientX, y: e.clientY};
     }
 
@@ -18033,7 +18212,7 @@ export function initLegacyApp() {
       const f = parseDateUTC(list[0]), l = parseDateUTC(list[list.length - 1]);
       if(!firstDay || f < firstDay) firstDay = f;
       if(!lastDay || l > lastDay) lastDay = l;
-      dus.push({kind: U.kind, unit: u, id: def.id, n, slot, defSlot, moved, last: isLast, joined: !isLast && !moved,
+      dus.push({kind: U.kind, unit: u, id: def.id, n, slot, defSlot, unitLast: lastK, moved, last: isLast, joined: !isLast && !moved,
                 days: list, daySet: new Set(list), first: f, lastDay: l, color: look.color, textColor: look.textColor});
     });
     if(!dus.length) return;

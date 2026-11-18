@@ -169,6 +169,27 @@ window.addEventListener('load', function () { (async function () {
     mid.after = document.querySelectorAll('.du-drop-box, .mv-drag-ghost').length;
     return mid;
   }
+  // A tandem's grip (owner, 17 Nov 2026, "Both ends"): hover the pill, press its start or end grip, move to a day.
+  // `esc` presses Escape before letting go. Returns what was shown and done.
+  async function gripDrag(text, fromDay, edge, toDay, esc){
+    var b = duPillOn(text, fromDay); if(!b) throw new Error('gripDrag: no pill ' + text + ' on ' + fromDay);
+    b.el.scrollIntoView({block: 'center'}); await T.sleep(150);
+    var r = b.el.getBoundingClientRect();
+    b.el.dispatchEvent(new MouseEvent('mousemove', {bubbles: true, clientX: r.left + r.width / 2, clientY: r.top + r.height / 2}));
+    var shown = [].filter.call(document.querySelectorAll('.phase-edge-handle[data-ph="doubleUp"]'), function (h) { return !h.hidden; });
+    var h = shown.filter(function (x) { return x.getAttribute('data-edge') === edge; })[0];
+    var info = {edges: shown.map(function (x) { return x.getAttribute('data-edge'); }).join(), ids: shown.filter(function (x) { return x.id; }).length};
+    if(!h) return info;
+    var hr = h.getBoundingClientRect(), c = cellOf(toDay), cr = c.getBoundingClientRect();
+    h.dispatchEvent(new MouseEvent('mousedown', {bubbles: true, cancelable: true, clientX: hr.left + 5, clientY: hr.top + 5, button: 0, buttons: 1}));
+    window.dispatchEvent(new MouseEvent('mousemove', {clientX: cr.left + cr.width / 2, clientY: hr.top + 5, buttons: 1}));
+    await T.sleep(200);
+    if(esc) document.dispatchEvent(new KeyboardEvent('keydown', {key: 'Escape', bubbles: true}));
+    window.dispatchEvent(new MouseEvent('mouseup', {clientX: cr.left + cr.width / 2, clientY: hr.top + 5, button: 0}));
+    await settle();
+    info.done = true;
+    return info;
+  }
   async function menuOn(text, day){
     var b = duPillOn(text, day), p = centre(b.el);
     b.el.dispatchEvent(new MouseEvent('contextmenu', {bubbles: true, cancelable: true, clientX: p.x, clientY: p.y, button: 2}));
@@ -480,6 +501,33 @@ window.addEventListener('load', function () { (async function () {
       check(dr.toast === '' && out.r20b.map['Tandem 304'] === '2027-03-03,2027-03-04', 'R20 the earliest a double-up can go is the next episode’s first day (3/3, 301’s)');
       await undo();
       check((await duMap())['Tandem 304'] === '2027-03-24,2027-03-25', 'R20 ...one Undo');
+      // THE GRIPS (owner, 17 Nov 2026: "i should be able to extend tandem day just like any other phase"; picker "Both ends").
+      await toMonth('March 2027');
+      var g1 = await gripDrag('Tandem 302', '2027-03-03', 'end', '2027-03-05');
+      out.g1 = {g: g1, map: await duMap()};
+      await toMonth('March 2027');
+      var g1row = rowsOnScreen()[0], g1du = g1row.bars.filter(function (b) { return b.text === 'Tandem 302'; })[0];
+      var s1 = JSON.parse(await save());
+      check(g1.edges === 'start,end' && g1.ids === 0 && out.g1.map['Tandem 302'] === '2027-03-03,2027-03-04,2027-03-05' && g1du && g1du.line && g1du.joinL
+            && s1.episodeDefs.filter(function (e) { return e.id === 'ep2'; })[0].doubleUpDays === 3 && !('ep2' in (s1.doubleUps.moved || {})),
+            'G1 a tandem has a grip at each end (no id); dragging its END to Friday makes 302’s 3 days, still joined to its shoot bar, saved as its own count');
+      await undo();
+      check((await duMap())['Tandem 302'] === '2027-03-03', 'G1 ...the drag is ONE undo step');
+      await toMonth('March 2027');
+      var g2 = await gripDrag('Tandem 304', '2027-03-24', 'start', '2027-03-25');
+      out.g2 = {map: await duMap(), saved: JSON.parse(await save())};
+      check(out.g2.map['Tandem 304'] === '2027-03-25' && out.g2.saved.episodeDefs.filter(function (e) { return e.id === 'ep4'; })[0].doubleUpDays === 1
+            && JSON.stringify(out.g2.saved.doubleUps.moved.ep4) === '{"day":17}',
+            'G2 dragging its START later holds its end: 304’s is 3/25 alone, its count 1, its start now a moved position (unjoined)');
+      await undo();
+      check((await duMap())['Tandem 304'] === '2027-03-24,2027-03-25', 'G2 ...one Undo');
+      await toMonth('March 2027');
+      await gripDrag('Tandem 302', '2027-03-03', 'start', '2027-03-01');
+      await toMonth('March 2027');
+      await gripDrag('Tandem 301', '2027-03-10', 'end', '2027-03-12', true);
+      out.g3 = await duMap();
+      check(out.g3['Tandem 302'] === '2027-03-03' && out.g3['Tandem 301'] === '2027-03-10',
+            'G3 a start pulled onto its own episode’s days stops where it was (R9), and Esc during a drag puts it back');
       // R17: Production's own days, and the waterfall, untouched. R10: Shift keeps a moved one on its shoot day.
       out.prodOn = await prodBars();
       var total = (document.querySelector('.prod-total-readout strong') || {}).textContent;
