@@ -123,8 +123,10 @@ export function ShowInfoCard() {
             typed onto a manual header changes nothing. Title has behaved that way since the header
             gained modes; the difference is that Title makes no claim. Step 2's mode popover is where
             Auto/Template/Manual gets explained; do not try to fix it with 9px of copy here. */}
-        <TextInput id="show-version" label="Version" placeholder="e.g. v3"
-                   description={'Shows in the header’s bottom-left, exactly as typed.'} />
+        {/* A NUMBER (owner, 18 Nov 2026): the header adds the "v", so 3 shows as v3. The engine drops anything but
+            digits and dots as it is typed (app.js, the show-version input listener). */}
+        <TextInput id="show-version" label="Version" placeholder="e.g. 3" inputMode="decimal"
+                   description={'A number. The header adds the v: 3 shows as v3.'} />
         {/* The Production Region, a SECOND time (owner, 21 Oct 2026: "below the version number box
             in the Show Info tab ... now it appears in both places"). The Settings window's Region
             tab keeps #union-place, which stays the one real control.

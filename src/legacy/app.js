@@ -28847,10 +28847,14 @@ export function initLegacyApp() {
     return s;
   }
 
-  // The version number as it appears in the header: EXACTLY what was typed (owner, 3 Nov 2026: "should
-  // just be exactly what is typed. So no longer with a v prefix"). Typing 3 prints "3", v3 prints "v3".
-  // ANY text is accepted -- owners write 3, 3.1 and 3a -- because it is a LABEL, not arithmetic, which
-  // is why the field is a TextInput and not a NumberInput (decision H1, 1 Sep 2026).
+  // ⭐ The version number as it appears in the header, the file names and Compare: the box takes a NUMBER and the "v"
+  // is added here (owner, 18 Nov 2026: "if they leave out the v in version number it should auto add it", "the Show
+  // info box should also be changed back to enter a number only and it adds the v itself in the header"). Typing 3
+  // prints "v3", 3.1 prints "v3.1". This REVERSES the 3 Nov 2026 ruling ("exactly what is typed", versionAsTyped).
+  //  - The box keeps only digits and dots as it is typed in (the input listener below); a calendar opened with "v3"
+  //    in it opens as "3" (applyStateSnapshot), so every number the box holds prints the same "v3" as before.
+  //  - Text that is NOT a number, kept by a calendar saved 3-18 Nov 2026 ("Blue", "Draft 2"), still prints exactly as
+  //    saved until the box is edited: a user's label is never silently rewritten.
   //
   // ⛔ AN EMPTY FIELD MUST RETURN THE EMPTY STRING. That single line is the whole of this feature's
   // inertness. computeHeaderDefaults() puts this value in the l2 slot, and an EMPTY l2 is filtered out
@@ -28859,7 +28863,16 @@ export function initLegacyApp() {
   // field of spaces is no version, never a version called "   ".
   function versionLabel(){
     const el = document.getElementById('show-version');
-    return el ? String(el.value || '').trim() : '';
+    const raw = el ? String(el.value || '').trim() : '';
+    const num = versionNumber(raw);
+    if(num !== null) return num ? 'v' + num : '';
+    return raw;
+  }
+  // The number in a Version ("3", "v3", "V 3.1" → "3" / "3.1"), '' for a bare "v", or null when it is not a number.
+  function versionNumber(raw){
+    const s = String(raw || '').trim().replace(/^[vV]\s*/, '');
+    if(s === '' && /^[vV]$/.test(String(raw || '').trim())) return '';
+    return /^\d+(\.\d+)*\.?$/.test(s) ? s : null;
   }
   // ⛔ What the header printed for a typed value from 1 Sep to 3 Nov 2026 (decision H1): "v" + the input
   // with one leading v/V stripped, so "3", "V3" and "v3" all read "v3", and a bare "v" read nothing. NEVER
@@ -28875,6 +28888,9 @@ export function initLegacyApp() {
   function versionNeedsAsTyped(){
     const el = document.getElementById('show-version');
     const raw = el ? String(el.value || '') : '';
+    // ⭐ Since 18 Nov 2026 a NUMBER prints "v" + it, as the old rule did, so it never needs the key: an older build
+    // reading the file prints it "v3" too. Only text that is not a number ("Blue") still does.
+    if(versionNumber(raw) !== null) return false;
     return legacyVersionLabel(raw) !== raw.trim();
   }
 
@@ -32638,7 +32654,17 @@ export function initLegacyApp() {
   // recompute -- it only changes what the header's bottom-left slot prints. Same shape as the title
   // above, and unguarded for the same reason: src/main.jsx commits the React chrome with flushSync
   // BEFORE initLegacyApp() runs, so the field exists by the time this line evaluates.
-  document.getElementById('show-version').addEventListener('input', ()=>{ render(currentSchedule); markDirty(); });
+  // ⭐ A NUMBER ONLY (owner, 18 Nov 2026): anything but digits and dots is dropped as it is typed or pasted, keeping the
+  // caret where it was; the header adds the "v" (versionLabel). Text a calendar already holds is left until edited.
+  document.getElementById('show-version').addEventListener('input', (e)=>{
+    const el = e.target, v = el.value, clean = v.replace(/[^0-9.]/g, '');
+    if(clean !== v){
+      const caret = el.selectionStart == null ? clean.length : v.slice(0, el.selectionStart).replace(/[^0-9.]/g, '').length;
+      el.value = clean;
+      try { el.setSelectionRange(caret, caret); } catch(_){}
+    }
+    render(currentSchedule); markDirty();
+  });
   // The Location (KEY-FACTS-PLAN.md §3.2) changes nothing in the calendar, only the scenario band and Compare, so it
   // re-reads the band instead of rendering.
   document.getElementById('show-location').addEventListener('input', ()=>{ scheduleScenarioFacts(); markDirty(); });
@@ -46993,9 +47019,15 @@ export function initLegacyApp() {
     // With the key the box is left alone. A box the old rule already printed verbatim ("v3", empty) is never
     // touched. Undo, the crash backup, a scenario tab and a shareable copy come through here too; their
     // snapshots are this build's, so each carries the key whenever its box needs it.
-    if(snap.versionAsTyped !== true){
+    // ⭐ SINCE 18 Nov 2026 the box holds a NUMBER and the header adds the "v" (versionLabel): a box holding a number,
+    // with or without its v ("3", "v3", "V3"), opens as the bare number, which prints "v3" exactly as all three printed
+    // under the old rule. So only a box that is NOT a number still needs the old-rule rewrite ("Blue" saved before
+    // 3 Nov 2026 printed "vBlue"); with the key, such text is left as saved.
+    {
       const ve = document.getElementById('show-version');
-      if(ve && versionNeedsAsTyped()) ve.value = legacyVersionLabel(ve.value);
+      const num = ve ? versionNumber(ve.value) : null;
+      if(ve && num !== null) ve.value = num;
+      else if(ve && snap.versionAsTyped !== true && versionNeedsAsTyped()) ve.value = legacyVersionLabel(ve.value);
     }
 
     // 4. Restore user notes and view mode. Migrate any old-format entries

@@ -4,6 +4,36 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### 🛠️ 18 Nov 2026: EXPORT FILE NAMES (WRO date, "a.o." date, the File name list) + THE VERSION GETS ITS "v" BACK — WIP on branch `export-name-wro` (worktree `.claude/worktrees/export-name-wro`, from `origin/main` `1c9b008`). NOT merged, NOT pushed, no full gate. Tracker cards `save-name-wro-date`, `export-file-name-parts`, `version-auto-v`.
+- **Export names** (`exportNameParts()` → `exportNameFrom()`, through `exportFileName()`, which the frozen workbook / waterfall-PDF name
+  lines already call: NO frozen edit): "<title> <season> WRO <M.D.YY> <words> <version> a.o. <M.D.YY> – <scenario>", e.g. "The Keleigh
+  Show S3 WRO 1.5.26 Planning Calendar v3 a.o. 11.18.26 – Plan B.pdf". The execs' ask (17 Nov meeting: "Show title, season, W-R-O
+  date, and then the file date"), then the owner's pickers: exports only (Save's `.sptcal` name unchanged); WRO as the header prints it
+  (`wrHeaderOpenDay`, day first on DD/MM); "Planning Calendar" kept; the edited date in the same style with "a.o." before it (was
+  yyyy-mm-dd: a folder sorted by name no longer lists revisions by date, told to the owner); the Version right after the words.
+  Compare's name leaves WRO, Version and scenario out. Each scenario names its own WRO (checked).
+- **The Export PDF window's File name section** (`src/chrome/ExportPdfDialog.jsx`, `FileNameRow`): a TEXT BOX with the built name (a
+  typed name names THAT ONE waterfall PDF, `pendingPdfName`, consumed by `exportFileName()`, cleared if the export stops; never
+  remembered), and under it a LIST, one row per part (title, season, WRO, words, Version, date, scenario): click ticks, the six-dot
+  handle drags (pointer events; the drag's own click swallowed by a guard the next press drops), Alt+Up/Down moves. The title can be
+  unticked; all off = the words alone. Ticks and order are PER COMPUTER (`prefs.fileNameOff` / `fileNameOrder`, `cleanPrefs` checks
+  both) and every export's name follows them. ⚠️ Open: whether they should travel with the calendar instead. The owner went chips →
+  list with handles (mockup `mockups/export-file-name-parts.html`, layouts A–C). ⚠️ The list makes the window taller: on a laptop-height
+  screen Cancel / Export sit just below the fold (the modal scrolls).
+- ⛔ **THE VERSION: REVERSES THE 3 NOV RULING** (owner, 18 Nov 2026: *"if they leave out the v in version number it should auto add
+  it"*, picker "File names and header" + "Only a bare number", then *"the Show info box should also be changed back to enter a number
+  only and it adds the v itself in the header"*). `versionLabel()`: a number ("3", "3.1", or "v3") prints "v3"; text that is not a
+  number, kept by a calendar saved 3–18 Nov ("Blue"), prints as saved until edited. The box drops anything but digits and dots as it
+  is typed (its input listener). `applyStateSnapshot()` opens "v3" / "V3" / "3" as "3" (prints "v3", what all three printed before);
+  only non-number text still gets the old-rule rewrite. `versionNeedsAsTyped()` is false for a number, so `versionAsTyped` is written
+  only for text. Every test calendar holding a bare number lacks the key (it printed "v3" already), so baselines should not move;
+  `hdrversion-astyped.sptcal` (the key + "3") now prints "v3". CLAUDE.md's `versionAsTyped` line is now out of date.
+- **Proof so far:** `exportnames` 12/12 on the first cut (before the a.o. date: it needs re-expecting); `npm run check` 42/42; every
+  step tried in the browser pane with real clicks, drags, typing and keys (see the commits). **To do on "finish it":** Help's two
+  example names and the Version help; re-expect `exportnames`, `hdrversion`, `hdrverload`, `monthexport`'s name check, the `hdr*` legs;
+  a leg for the list (typed name, ticks, drag order, title off, all off, Put all back); README; CLAUDE.md's `versionAsTyped` line; a
+  partial gate (base, waterfall PDF, workbook, gates 10 and 13).
+
 ### 🔨 17 Nov 2026: THE NOTE EDITOR'S DAY — "No date", and a TYPED date works like a picked one. Branch `note-day-shift` (worktree `.claude/worktrees/note-day-shift`, from `origin/main` `aa16ffe`). Owner tried it on localhost, then *"Finish it"*, then *"push"* (18 Nov 2026). `origin/main` `f48df5b` (v1.17.0-v1.17.5, Tandem days) merged in first: README / HANDOFF conflicts only, both kept; `app.js` merged clean (main's 56 hunks touch none of the note editor's code). Tracker cards `note-day-default-no-date`, `linked-note-day-follows-phase`
 - **The asks (17 Nov 2026, in order):** *"In waterfall view, the default, for Day should be "No date" rather than Mon
   (default)"*; *"When you do select a date and ALSO have stays with set to a week of a phase (not a specific week) then
