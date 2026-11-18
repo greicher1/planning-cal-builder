@@ -41,8 +41,13 @@
   became unreadable (`dayfirstwf` M1: "Table read 15/7/26" back on 17 Jul after a switch to MM/DD). A pinned note
   dragged ACROSS weeks still lands with no pin, as before (its date is in its text); not changed.
 - **Proof:** new leg `notedates` 18/18 on the build (wired in `gate.sh` after `phasemonth`, `notedates:phasenotes:900`),
-  14 of 18 red on `releases/v1.16.0.html`; `phaselink` R1 re-expected ("No date"). `npm run check` 42/42. Related legs
-  and the gate: below when they land.
+  14 of 18 red on `releases/v1.16.0.html`; `phaselink` R1 re-expected ("No date"). `npm run check` 42/42. 18 related
+  legs green on the final build (dayfirst x3, phasemonth, mvnotes x2, mvnotesize, notelook, noteviews, holidayrename,
+  autonoteview, mvtextstyle, mvkeys, wfnotelines month/drag, mvdragcarry, phaselink, notedates).
+- **Full gate on `80fd3b0` (build sha256 `5b23371e…`, port 8957, 17 Nov 2026, alone): 5,605 PASS / 12 FAIL.** No
+  baseline compare failed (gates 2, 3, 10, 13, restore). The 12: eleven `pilllabel` (blocks) cases, all "months 18 vs
+  1" (the leg flaky on `main` too, HANDOFF v1.13.0 notes), and `hostile` (xss-proto) S2, a Load. ⚠️ NOT yet re-run
+  alone (the session hit its usage limit): do that first, then the push picker.
 
 ### 🚂 v1.16.0 — wave 4. Branch `release-wave4` (worktree `.claude/worktrees/release-wave4`), cut from `origin/main` `7e1d8b4`; `origin/main` `8af4298` merged in at `91619e1`. The owner said *"Yes, prep it"* (16 Nov 2026): merge the newest live changes, write the owed docs and test wiring, cut v1.16.0. Tagged v1.16.0 and pushed to `main` on 17 Nov 2026 (owner's picker *"Push v1.16.0 now"*), after two full gates and the merges of `d44a52e` and `b8f4ccf`.
 - ⛔ **This section SUPERSEDES the "WIP", "NOT merged, NOT pushed", "the owner tries it first", "not in gate.sh yet" and
