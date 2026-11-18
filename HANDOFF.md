@@ -56,6 +56,11 @@
   `tests/fixtures/v1.17.0-saved.sptcal` a real Save (mintfixture: 46 keys, 77 ids, 0 clipped), byte-identical to
   v1.16.0's but `lastEdited`. On the cut: the waterfall PDF identical to its baseline bar the date stamp, gate 13's
   reference byte-identical, `monthexport` 9/9, `pdfmark` 6/6 (the mark reads 1.17.0). Tag `v1.17.0` (annotated).
+- ✅ **PUSHED AND LIVE (17 Nov 2026):** ONE `git push origin HEAD:main refs/tags/v1.17.0` from the worktree at 21:50:36
+  (`aa16ffe..3db79a0`, a fast-forward; `origin/main` re-fetched first, still `aa16ffe`), on the owner's picker *"Push now
+  as v1.17.0"*. Deploy run 44247044929 succeeded (41 s). At 21:51:23 the live `version.json` read 1.17.0 and the live
+  `index.html`, fetched with a cache-buster, was byte-identical to the gated build (sha256 `4a9c98d611769390…`). This
+  HANDOFF bullet is a later, unpushed docs commit on the branch.
 - ⚠️ **Merging into `main` in the main checkout:** that checkout still has its own UNCOMMITTED `DOUBLE-UP-DAYS-PLAN.md`,
   `mockups/double-up-days-*.html`, `mockups/double-up-join-line.html` and a 17 Nov HANDOFF entry; move them aside first
   (this branch carries all of them, newer).
