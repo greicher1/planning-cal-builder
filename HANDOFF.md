@@ -38,8 +38,11 @@
   the three version files at 1.17.1 (check 42/42), `releases/v1.17.1.html` cmp-identical to the build (sha256
   `55ca36ef07e9ab53…`), `tests/fixtures/v1.17.1-saved.sptcal` (mintfixture) identical to v1.17.0's but `lastEdited`; on
   the cut the waterfall PDF identical bar the stamp, gate 13 reference byte-identical, `monthexport` 9/9, `pdfmark` 6/6.
-  Tag `v1.17.1`, pushed with the branch (the push and the live check: the bullet below it). Tracker card
-  `double-up-not-first-episode`.
+  Tag `v1.17.1`, pushed with the branch. Tracker card `double-up-not-first-episode`.
+  - ✅ **PUSHED AND LIVE:** ONE `git push origin HEAD:main refs/tags/v1.17.1` at 22:04:13 (`3db79a0..1f94bf7`, a
+    fast-forward, `origin/main` re-fetched first; it also carried the v1.17.0 HANDOFF note `31487cd`). Deploy run
+    44248627484 succeeded (49 s). At 22:05:08 the live `version.json` read 1.17.1 and the live `index.html` was
+    byte-identical to the build (sha256 `55ca36ef07e9ab53…`). This sub-bullet is a later, unpushed docs commit.
 - **Save format (⛔ permanent):** top-level `doubleUps` {days, name, moved: {<unit id>: {day: n} | {after: n}}}, and
   `doubleUpDays` / `doubleUpName` on an episode or block; each ABSENT while unset, so a calendar with no double-up saves
   byte for byte as before (leg `doubleups` L7). No id on any card control; no SNAPSHOT_VERSION bump.
