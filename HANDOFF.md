@@ -33,7 +33,18 @@
 - **Save format (⛔ permanent):** top-level `doubleUps` {days, name, moved: {<unit id>: {day: n} | {after: n}}}, and
   `doubleUpDays` / `doubleUpName` on an episode or block; each ABSENT while unset, so a calendar with no double-up saves
   byte for byte as before (leg `doubleups` L7). No id on any card control; no SNAPSHOT_VERSION bump.
-- **Proof:** see the gate bullet below. Fixtures `doubleups.sptcal` (hand-made from `episodeprep.sptcal`, a real Save,
+- ✅ **FULL GATE on `f5bc5dc` (build with R18 + R19; port 8435, 20:27–21:45 on 17 Nov 2026, alone among gates, under a
+  machine load of 25–74 from other sessions): 5,681 PASS / 10 FAIL.** Every baseline identical: gate 10 (all 11 print
+  documents), gate 13 (all 24 written month PDFs + reference in UTC+14 / 1280 px, 25 lines), the waterfall PDF and
+  workbook, the restore, `fields.byId` (77 ids, unchanged). `doubleups` 58/58 (with its on/off workbook and waterfall-PDF
+  byte checks), `monthwriter` du/duh/dub and `monthexport` du green.
+  - The 10: `hidewf` C1 counted 8 phase cards (the new card makes 9, and it has no Hide-in-waterfall tick, being month
+    only): leg re-expected, then 19/19 alone. The other nine all pass ALONE (port 8435, after the gate): `pilllabel`
+    blocksoff / shootorder / carry-rich 29/29 each (blocksoff's "months 1 vs 18" and two Save-button timeouts; HANDOFF
+    calls the first flaky on `main` too), `pwagate` 13/13 (C1, the known "Link copied" flake), `hiatuscolour` 14/14 (two
+    Load timeouts), `labelsetup` (halfdays) 41/41, `scenariocompat` on `/releases/v1.2.0.html` (a release page this
+    branch cannot touch) opened the 8-episode tab.
+- **Proof (earlier, per step):** Fixtures `doubleups.sptcal` (hand-made from `episodeprep.sptcal`, a real Save,
   with Production moved to a Wednesday so double-ups join mid-week), `doubleups-half.sptcal`, `doubleups-blocks.sptcal`
   (tests/fixtures/README.md). The plan, the mockups and this entry were uncommitted in the main checkout when the build
   session started; they are committed on this branch.

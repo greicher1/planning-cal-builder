@@ -62,8 +62,9 @@ longer, and it is not a half day (`.5`, one crew splitting a day, which is built
 - **Save format:** `doubleUps` {days, name, moved} at the top level and `doubleUpDays` / `doubleUpName` on an episode or
   block, each written only when set, so a calendar with no double-up saves byte for byte as before. No id on any card
   control (fields.byId unchanged); no SNAPSHOT_VERSION bump.
-- Verified: new leg `doubleups` (live, restore, half, blocks), `monthwriter` / `monthab` and `monthexport` on the three
-  new fixtures, gates 10 and 13, the full gate (HANDOFF has the numbers).
+- Verified: new leg `doubleups` (live, restore, half, blocks; 58 checks), `monthwriter` / `monthab` and `monthexport` on
+  the three new fixtures, gates 10 and 13 byte-identical, and the full gate: 5,681 PASS, the 10 failures one intended
+  card-count change (`hidewf`, re-expected) and nine load timeouts or known flakes, each green when re-run alone.
 
 ## v1.16.0 — wave 4: day marks and a break's own notes stay put when a hiatus ripples, Changes since last save, keys named for your computer, a month note no longer cut off on Windows, a contrast theme keeps the calendar's colours, long titles fit a file name, the season beside the title in export names; plus everything since v1.15.0: the month view on screen is the month PDF's page, a toolbar that keeps its size, folds, and stays on one line while the window is resized, a click outside closes Shift, the recents as cards, every phase switch on show again (16 Nov 2026)
 
