@@ -1490,10 +1490,14 @@
      minimum (which was pushing the whole sidebar into horizontal overflow on narrow windows). */
   .phase-fields input{ min-width:0; width:100%; box-sizing:border-box; }
   /* Per-phase "start after the previous phase" shortcut, under Starts and Length (A's AfterLink). */
-  .autostart-btn{ display:block; margin:5px 12px 0; background:none; border:none; padding:1px 0; font:inherit; font-size:var(--mantine-font-size-xs); color:var(--mantine-color-navy-5); cursor:pointer; text-align:left; }
-  .autostart-btn:hover:not(:disabled){ text-decoration:underline; }
-  .autostart-btn:disabled{ color:var(--text-faint); cursor:default; }
-  .autostart-btn:focus-visible{ outline:2px solid var(--accent); outline-offset:1px; border-radius:3px; }
+  .autostart-btn, .finish-before-btn{ display:block; margin:5px 12px 0; background:none; border:none; padding:1px 0; font:inherit; font-size:var(--mantine-font-size-xs); color:var(--mantine-color-navy-5); cursor:pointer; text-align:left; }
+  .autostart-btn:hover:not(:disabled), .finish-before-btn:hover:not(:disabled){ text-decoration:underline; }
+  .autostart-btn:disabled, .finish-before-btn:disabled{ color:var(--text-faint); cursor:default; }
+  .autostart-btn:focus-visible, .finish-before-btn:focus-visible{ outline:2px solid var(--accent); outline-offset:1px; border-radius:3px; }
+  /* FINISH BEFORE (owner, 18 Nov 2026, R1): a card shows it IN PLACE OF "Start after" while a later phase in the chain
+     is on Ends; reflectFinishBefore() sets the card's chain-back class from update(). One of the two, never both. */
+  .phase-row:not(.chain-back) .finish-before-btn,
+  .phase-row.chain-back .autostart-btn{ display:none; }
   .phase-switches{ padding:6px 12px 0; }
   /* Production's one switch (Snap to Monday) sits alone between Starts and the shooting-days box, with no hairline. */
   .phase-switches:has(+ .prod-total-block){ padding-top:4px; }

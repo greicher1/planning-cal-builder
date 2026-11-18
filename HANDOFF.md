@@ -310,6 +310,112 @@
   notes to one day until it stops). Port 8893 is `srv.js` run in the background with Bash.
   `tests/harness/zzbase.html` (untracked, ignored) is the starting commit's build, for side by side.
 
+### 🚀 18 Nov 2026: FINISH BEFORE — BUILD A CALENDAR BACKWARDS FROM A PHASE ON ENDS. v1.18.0, built on branch `build-backwards` (worktree `.claude/worktrees/build-backwards`, from `origin/main` `f48df5b`; `node_modules` is a symlink, unlink it before `git worktree remove`), `origin/main` `1c9b008` (the note editor's "No date" / typed dates) merged in, cut as **v1.18.0** and pushed to `main` as a fast-forward with the tag on the owner's picker *"Push as v1.18.0"*. Owner tried it on localhost first (launch entry `build-backwards-8774`): *"Looks good, finish it"*. Local `main` NOT moved (the main checkout has another session's uncommitted work). Tracker card `build-backwards`
+- **The ask (executives' review, 17 Nov 2026):** they often work back from a delivery date (a fiscal year end), and asked
+  whether "Start after previous phase" could get a button "that moves it the other direction", obvious without
+  training; and when a phase is set by its end, the buttons should switch to the backwards one by themselves.
+- **Rulings (owner's pickers, 18 Nov 2026):**
+  - **R1, contextual, by chain position** (the owner's own answer, not either offered option): *"if you use end by on a
+    phase, the phases before it then swap to showing the end button. Phases after that phase keep showing the start
+    after buttons"*. As built: a card shows Finish before while ANY later `PHASE_CHAIN` phase is on Ends; an Ends phase
+    with no Ends phase after it shows neither (as before); one with an Ends phase after it shows Finish before.
+  - **R2, the words:** "↳ Finish before <next phase>" (offered: End before / Finish before / Start before).
+  - **R3, holding the delivery date:** no new control. Build Around pinned to Post "ends by" already rebuilds the earlier
+    phases from their lengths in one run; teach it at the training (14 Dec). An automatic pull (and the matching
+    automatic push when a phase grows) gets its own plan after the training. ⛔ So a phase that grows does NOT move the
+    phases before it; leg F3 holds that.
+  - **R4, a click puts the card on Ends** with that end in its box (recommended; offered: stays on Starts).
+- **As built** (`src/legacy/app.js`, after `autostartPhase`; CSS beside `.autostart-btn` in `legacy.css`):
+  - Markup: `<button class="finish-before-btn" data-phase>` after Start after's, on every built-in card but
+    Localization's (the chain's last). NO id. Delegated click on `#phase-rows`, beside Start after's.
+  - `reflectFinishBefore()` runs in `update()` right after `reflectPhaseEnds()`: the card's `chain-back` class
+    (`chainEndsAfter(key)`, read from the stores, so an Ends phase whose box is still empty counts) and the label
+    (`nextChainSegment()`, the mirror of `prevChainSegment()`: the next SCHEDULED chain phase, named as typed). ⚠️
+    Frozen `render()` writes Start after's label and `disabled`; it never touches this button, so the two never fight.
+    CSS: `.phase-row:not(.chain-back) .finish-before-btn` and `.phase-row.chain-back .autostart-btn` are hidden.
+  - `finishBeforePhase(key)`, inside `asShootDayMove`, one `update()` = one undo step:
+    - **Weeks phase:** `phaseEnds[key] = true`, `end-<key>` = the Friday of the week before the next phase's first
+      week, stepped back a week at a time while it is inside an all-phase hiatus.
+    - **Production:** Ends as `setProductionEnds(true)` puts it (Snap to Monday off), then the wrap as
+      `setProductionWrap()` takes it: `productionEnds` = the day before the next phase, normalised by
+      `solveProductionEndsStart()` to the last real shoot day (a weekend, holiday or hiatus reads as the day before).
+    - **Dates built-in** (no Ends): both dates move by the same days through `setPhaseStart()`, its last day the last
+      weekday before the next phase (not in a hiatus).
+  - No frozen edit, no save-format change, no new id.
+- **Proof:** new leg `finishbefore` 12/12 (C1-C3 the rule, N1 a renamed phase, F1 Production with undo and redo, F2 a
+  Weeks phase, F3 R3, D1 Dates, H1/H2 over the 12/21/26 hiatus, K1 custom, E0), wired into `gate.sh` beside
+  `prodends`. Related legs green on the build: `endsdate` 17/17, `prodends` 14/14, `snaptools` (dayoverrides) 14/14,
+  `overrides` (dayoverrides) 20/20, `builtindates` live 17 + restore 15; `npm run check` 42/42. No full gate (nothing
+  frozen, no export or save-path change).
+  - ⚠️ Running `snaptools` / `overrides` / `builtindates` by hand needs their fixture (`HARNESS_STATE=dayoverrides`,
+    `builtindates`), as `gate.sh` passes it; without it they time out "waiting for the restored calendar".
+  - ⚠️ F1 learned: finishing Production right before Post can move its start LATER (Fri 7/10/26 on the fixture), when
+    it was wrapping well before Post. That is correct, the gap closes from Production's side, not a bug.
+- **The release (v1.18.0):** `origin/main` had moved to `1c9b008` (note dates, pushed without a version): merged in as
+  `3d9ce00`, README / HANDOFF conflicts only (both kept; both Unreleased entries now sit under v1.18.0), `app.js` and
+  `gate.sh` merged clean. On the merged build: `finishbefore` 12/12, `notedates` (phasenotes) 18/18, `endsdate` 17/17,
+  `prodends` 14/14, check 42/42. Cut: `APP_VERSION`, `version.json`, `package.json` at 1.18.0; `releases/v1.18.0.html`
+  cmp-identical to the build; `tests/fixtures/v1.18.0-saved.sptcal` a real Save (`mintfixture`), 46 keys, 77 ids,
+  0 clipped, byte-identical to v1.17.5's but `lastEdited`. On the cut: check 42/42, the waterfall PDF
+  identical bar the date stamp (mark checked), gate 13 reference byte-identical, `monthexport` 9/9, `pdfmark` 6/6,
+  `phaselink` (phasenotes) 14/14. Tagged `v1.18.0`; the push and the live check are in the tracker card.
+
+
+### 🔨 17 Nov 2026: THE NOTE EDITOR'S DAY — "No date", and a TYPED date works like a picked one. Branch `note-day-shift` (worktree `.claude/worktrees/note-day-shift`, from `origin/main` `aa16ffe`). Owner tried it on localhost, then *"Finish it"*, then *"push"* (18 Nov 2026). `origin/main` `f48df5b` (v1.17.0-v1.17.5, Tandem days) merged in first: README / HANDOFF conflicts only, both kept; `app.js` merged clean (main's 56 hunks touch none of the note editor's code). Tracker cards `note-day-default-no-date`, `linked-note-day-follows-phase`
+- **The asks (17 Nov 2026, in order):** *"In waterfall view, the default, for Day should be "No date" rather than Mon
+  (default)"*; *"When you do select a date and ALSO have stays with set to a week of a phase (not a specific week) then
+  when you shift the phase/calendar the date should auto-change to the same day of the week"*; *"what if you hand type
+  7/29/25 as 7/29 or 7-29-25 or 7-29. All should be recognized"*; *"Yes, plain notes too"*.
+- **What was found:** a day PICKED from Day already followed the phase (`phaseNotes[k].dow`, drawn fresh by
+  `placePhaseNotes`). A date TYPED at the end of the note stayed in its text, so after a move the note sat in its new
+  week reading the old date. Reproduced in the browser before any change ("Lens test 7/29/26" in the week of 8/3).
+- **As built** (`src/legacy/app.js`, all in the waterfall note editor; no frozen code, no save-format change):
+  - The Day list's empty choice is "No date" for every cell (`reflectLinkRow` no longer relabels it). Words only.
+  - `typedDateInWeek(line, weekIso)` reads a date at the END of a line: a/b with "/" or "-", with or without a 2- or
+    4-digit year, in the calendar's order (and month first on DD/MM when only that reading is in the week), and ONLY a
+    day of that week, with no rollover. `{at, day, full}`.
+  - `wfTypedDayIso` (the user's last line, skipping `dayForeign`: automatic, holiday, month and visiting linked lines),
+    `wfStandardLineDate` / `wfStandardTypedDate` (a SHORT form rewritten as `fmtShort`; ⛔ a full slashed date stays as
+    typed, slashNamesFlipped's rule), `stripTypedDate` (for a linked note's text), `wfTypedPinOk` (below).
+  - The Day list follows the typing (an `input` listener; `dayBeforeTyped` puts the list back when the date is typed
+    away; a pick from the list ends it). `activeNoteEditor.dayChoice()` is the user's own pick, never the sync's.
+  - `commitActiveNoteEditor`: the box's short date is rewritten first; `linkDay = typedIso || chosenDate` for the two
+    link branches (`dow`); `chosenDate` (a plain note's pin) is the typed day only while the Day row shows AND
+    `wfTypedPinOk`. `renameOfSingle` reads the line as it will be saved.
+  - The Day handler replaces a typed short date in the week rather than adding a second.
+- ⚠️ **`wfTypedPinOk`, found by checking the gate's own base leg before running it:** a pinned plain note's UNDATED lines
+  go to the pinned day in the Month view (frozen `notesForWaterfallDate`: "fall back to the note's pinned day"). So
+  pinning `base.js`'s "Studio Cut Due\nNetwork Cut Due 9/11/26" would have moved Studio Cut Due from Mon to Fri. A
+  typed date pins only when every other line of the box carries its own m/d/yy in the week; otherwise the note keeps
+  its lines where they were, as a typed full date always did. A day PICKED from the list still pins, as before.
+- **Behaviour change, RULED (owner's picker, 17 Nov 2026, *"Pin it"*, asked when three day-first cases went red):** a
+  one-line plain note with a date typed by hand ("Table read 7/29/26") now gets a Day (`userNotes[wk].date`) when
+  saved, as a picked one: Shift keeps it on its date (it moved a week with the old date in its words), a four-digit year
+  places it (it sat on Monday), and a Dates switch leaves it on the day it was typed for (a day-first date went back to
+  Monday on MM/DD). Re-expected: `dayfirstin` W4, F1; `dayfirstwf` M1. Notes already saved change only when edited.
+- **Fixed on the way (`moveWfLine`):** a Month-view drag of a waterfall line to another day IN ITS WEEK now moves the
+  note's pin when the pin was that line's day. It rewrote the date and kept the old pin, which only showed once the date
+  became unreadable (`dayfirstwf` M1: "Table read 15/7/26" back on 17 Jul after a switch to MM/DD). A pinned note
+  dragged ACROSS weeks still lands with no pin, as before (its date is in its text); not changed.
+- **Proof:** new leg `notedates` 18/18 on the build (wired in `gate.sh` after `phasemonth`, `notedates:phasenotes:900`),
+  14 of 18 red on `releases/v1.16.0.html`; `phaselink` R1 re-expected ("No date"). `npm run check` 42/42. 18 related
+  legs green on the final build (dayfirst x3, phasemonth, mvnotes x2, mvnotesize, notelook, noteviews, holidayrename,
+  autonoteview, mvtextstyle, mvkeys, wfnotelines month/drag, mvdragcarry, phaselink, notedates).
+- **Full gate on `80fd3b0` (build sha256 `5b23371e…`, port 8957, 17 Nov 2026, alone): 5,605 PASS / 12 FAIL.** No
+  baseline compare failed (gates 2, 3, 10, 13, restore). The 12: eleven `pilllabel` (blocks) cases, all "months 18 vs
+  1" (the leg flaky on `main` too, HANDOFF v1.13.0 notes), and `hostile` (xss-proto) S2, a Load. Re-run alone on 18
+  Nov: `hostile` (xss-proto) 18/18; `pilllabel` (blocks), judged by the gate's own checker, 29/35 once ("months 1 vs
+  18" again: its month walk saw one month), then 35/35 twice; `releases/v1.16.0.html` 35/35 twice. A flake, not this
+  change (which touches no month walk).
+- **`origin/main` had moved to `f48df5b` (v1.17.0-v1.17.5, Tandem days) by the push:** merged in as `188d9fa` (README /
+  HANDOFF conflicts only). On the merged build (sha256 `fbb8f7fd…`): `npm run check` 42/42 and 21 legs green:
+  `notedates` 18, `phaselink` 14, `phasenotes` 21, `phasemonth` 21, `dayfirstin` 13, `dayfirstwf` 11, `dayfirst` 14,
+  `wfkeys` 84, `noteviews` 15, `mvnotes` 30 + 14, `holidayrename` 14, `autonoterename` 25, `doubleups` live 11 / 50 / 3 /
+  2, `hidewf` 19, `phasesui` 8, `wfnotelines` drag 9, `mvdragcarry` 15. No second full gate (the two sides touch
+  different code, each fully gated on its own).
+- **Pushed** on the owner's *"push"* (18 Nov 2026) as a fast-forward of `origin/main` `f48df5b`. No version cut (README:
+  Unreleased; `APP_VERSION` stays 1.17.5).
+
 ### 🚀 17 Nov 2026: DOUBLE-UP DAYS — v1.17.0, built on branch `claude/double-up-days-037393` (worktree `.claude/worktrees/double-up-days-037393`, from `main` at `aa16ffe`), full gate green, cut as v1.17.0 and pushed to `main` on the owner's picker *"Push now as v1.17.0"* (the push and the live check are the last bullet). The owner chose *"Leave them, I'll handle it"* for the main checkout's own uncommitted double-up files: this session did not touch the main checkout, so its local `main` is behind `origin/main`. Plan + as-built record: [`DOUBLE-UP-DAYS-PLAN.md`](DOUBLE-UP-DAYS-PLAN.md) §10; mockup [`mockups/double-up-days-ui.html`](mockups/double-up-days-ui.html). Tracker card `double-up-days`.
 - **What it is:** "10+1" = 10 first-unit days plus 1 double-up day (two crews, two episodes, one day). It never lengthens
   Production. NOT a half day (`.5` is one crew splitting a day, already built). All 17 rulings (owner, 17 Nov 2026) are

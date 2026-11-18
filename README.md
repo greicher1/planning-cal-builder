@@ -154,6 +154,75 @@ Load lands up to 2 s late, so N5 read the previous calendar's episode list. The 
 the build that was live (1 load in 20 at 1.97 s). The test now waits for the File menu to name the loaded file, as
 `autonoterename` does; 80 loads in a row on both builds were read correctly, one of them 1.69 s late.
 
+## v1.18.0 — Finish before: build a calendar backwards from a phase on Ends; the note editor's Day says "No date" and a typed date works like a picked one (18 Nov 2026)
+
+### Finish before: build a calendar backwards from a phase on Ends (18 Nov 2026)
+
+At the executives' review (17 Nov 2026) they said they often work back from a delivery date (a fiscal year end, say),
+and asked for the "Start after previous phase" button to work the other way, obvious without training. The owner
+ruled it by picker on 18 Nov 2026 (R1-R4, HANDOFF "Finish before").
+- **It depends on where the card sits (R1).** While a later phase is on **Ends** (its end held), every phase card
+  before it shows **↳ Finish before <next phase>** in place of ↳ Start after. Phases after it keep Start after, and the
+  Ends phase itself shows neither, unless a phase after it is on Ends too. With every phase on Starts nothing changes.
+  Writer's Rm gains the button; custom phases, which are not in the chain, have none, as with Start after.
+- **What a click does (R4).** The card goes on Ends. Its end is the last working week before the next phase starts,
+  stepping back over an all-phase hiatus, so the two never overlap. Production's wrap is the last shoot day before the
+  next phase (the same search a typed wrap uses). From then on the end holds: an episode that gains days moves
+  Production's start earlier instead of running into Post. A built-in phase on Dates, which has no Ends, keeps its
+  length and moves. One click is one undo step, and Production's day marks travel by shoot-day number.
+- **Holding a delivery date (R3) is not automatic.** When a phase grows, the phases before it stay where they are.
+  Build Around pinned to Post's "ends by" rebuilds them all in one run, and is what the training will show; an
+  automatic pull gets its own plan after the training.
+- No frozen edit and no save-format change: a click writes the existing Ends stores (`phaseEnds`, `productionEnds`,
+  `end-<key>`). Frozen `render()` writes Start after's label, so Finish before's is written after it, by `update()`.
+- Verified: new leg `finishbefore` 12/12 (the rule on Starts and with one or two phases on Ends, a renamed phase,
+  Production and a Weeks phase, undo and redo, the end holding while Production grows, a Dates phase, both kinds
+  stepping back over the hiatus, custom phases, no console errors), `endsdate` 17/17, `prodends` 14/14, `snaptools`
+  14/14, `overrides` 20/20, `builtindates` 17 + 15, `npm run check` 42/42. Tried by the owner on localhost first
+  ("Looks good, finish it").
+
+
+### The note editor's Day says "No date", and a date you type works like one you pick (17 Nov 2026)
+
+The owner, 17 Nov 2026: *"In waterfall view, the default, for Day should be "No date" rather than Mon (default)"*;
+*"When you do select a date and ALSO have stays with set to a week of a phase ... when you shift the phase/calendar the
+date should auto-change to the same day of the week but in whatever new week its in"*; *"what if you hand type 7/29/25
+as 7/29 or 7-29-25 or 7-29. All should be recognized"*; *"Yes, plain notes too"*. Tried on localhost, then *"Finish it"*.
+
+- **"No date".** The waterfall note editor's Day list opens on "No date" (it read "Mon (default)", or "First day
+  (default)" on a note that stays with a phase). Only the words changed: a note left on it still sits on its week's
+  Monday in the Month view (a linked one on its phase's first day that week).
+- **A note that stays with a phase keeps its weekday.** A day PICKED from the list already did (saved as the note's
+  weekday, `dow`, and drawn fresh). A date TYPED at the end of the note did not: it stayed in the note's words, so after
+  a Shift, a ▲ / ▼ or a new start date the note sat in its new week still reading the old date. Now a date typed at the
+  end of the note, on a day of that week, is its Day: taken out of its words and drawn on the same weekday wherever the
+  phase lands.
+- **Typed dates in every form.** 7/29, 7-29, 7-29-26, 7/29/26 and 7/29/2026 are all read (29/7 and 29-7 on a DD/MM
+  calendar, and a date written month first still found there), but only when it is a day of that note's week, so
+  "Scenes 12-14" or a wrong year stays words. As you type it, Day shows the day; delete it and Day goes back. A short
+  form is saved the way the Day list writes a date (7/29/26), so the Month view places it; a full 7/29/26 stays exactly
+  as typed. Picking a day after typing one replaces it rather than adding a second.
+- **On a plain note it is the note's Day too**, as if picked (owner's picker, *"Pin it"*): the Month view places it,
+  Shift keeps it on its date, and switching Dates between MM/DD and DD/MM leaves it on the day it was typed for. Until
+  now a full date typed by hand gave the note no Day, so a Shift moved the note a week and left the old date in its
+  words, a four-digit year (7/29/2026) put it on Monday in the Month view, and a date typed day first went back to
+  Monday once Dates was MM/DD. ⚠️ **Except in a note of several lines** whose other lines have no date of their own ("Studio Cut
+  Due" above "Network Cut Due 9-11"): a Day there would carry the undated lines onto that day in the Month view. Such a
+  note keeps every line where it was (the dated one on its day by its date, the rest on Monday) and Day stays "No
+  date"; picking a day from the list still pins it, as it always did.
+- A short date typed over an automatic note's own date ("Start Shooting 6-29") is a rename, as "6/29/26" is; another
+  day ("6-30") makes it a note, as "6/30/26" did.
+- **Fixed on the way:** dragging a waterfall line to another day of its week in the Month view now takes the note's Day
+  with it. It rewrote the line's date and kept the old Day, so once the date could not be read (a Dates switch), the
+  note went back to the day it was dragged from. Found by `dayfirstwf` M1 once typed dates pinned.
+
+Notes already saved with a stale typed date are not repaired: open and save them once. No frozen code, no save-format
+change (the Day is the `date` / `dow` a picked one has always written).
+
+**Verified:** new leg `notedates` 18/18 (in `gate.sh`; 14 of its cases red on `releases/v1.16.0.html`). Re-expected for
+intended changes: `phaselink` R1 (the label), `dayfirstin` W4 and F1 and `dayfirstwf` M1 (typed dates pin, the owner's
+picker). Related legs on the build and the gate: see HANDOFF.
+
 ## v1.17.5 — pick the Tandem colour (17 Nov 2026)
 
 ### Pick the Tandem colour (17 Nov 2026)

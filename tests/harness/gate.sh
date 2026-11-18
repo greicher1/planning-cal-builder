@@ -1892,6 +1892,12 @@ done
 # Juneteenth), a typed Saturday or holiday wrapping on the shoot day before, the picker's shoot days only, Shift All
 # moving the shoot and the new wrap holding, Save / Load / a file with no key / a hostile key, back to Starts, and a
 # round trip saving byte for byte as before. Own line.
+# finishbefore (owner, 18 Nov 2026, from the executives' review: build a calendar backwards; rulings R1-R4 by picker,
+# HANDOFF "Finish before") holds the backwards twin of "Start after previous phase": shown IN PLACE of it on every card
+# before a phase on Ends and nowhere else (Writer's Rm gains one, Localization never has one, custom phases none, no
+# id), its label following a renamed phase, a click putting the card on Ends with its last working week before the
+# next phase (Production: its last shoot day), one undo step, the end holding while Production grows (no automatic
+# pull, R3), a Dates built-in moving whole, and both kinds stepping back over the 12/21/26 hiatus. Own line.
 # spancounts (owner, 2 Nov 2026: "three icons: one that says the number of production weeks, one that says the number
 # of holidays costing a shoot day, and something that says the number of Off Days"; version D, then "D replaces the
 # whole line") holds the counts under Production's span: weeks = the meta line's, the holidays and Off days that cost
@@ -2306,6 +2312,7 @@ for AFSPEC in pwagate:-:120 pwagatelogic:-:120 settingswin:-:240 newtab:-:120 \
               snapbox:-:300 \
               endsdate:-:400 \
               prodends:-:400 \
+              finishbefore:-:300 \
               spancounts:-:300 \
               retiredplaces:-:300 \
               caholidays:-:400 \
@@ -2359,6 +2366,7 @@ for AFSPEC in pwagate:-:120 pwagatelogic:-:120 settingswin:-:240 newtab:-:120 \
               phaselook:phasenotes:600 \
               phasekeys:phasenotes:900 \
               phasemonth:phasenotes:900 \
+              notedates:phasenotes:900 \
               holidayrename:holidayrename:400 \
               autonoterename:autonoterename:500 \
               autonoteview:autonoterename:500 \
