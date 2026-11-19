@@ -4,6 +4,32 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### 🔨 18 Nov 2026: ONE MONTH SIZE — Standard / Large / Extra Large (branch `month-one-size`, worktree `.claude/worktrees/month-one-size`, from `origin/main` `bf6e235`). NOT pushed; no version cut yet.
+- **Owner:** *"lets make the phase bar size and notes size one size adjuster - and the unit should be Standard, Large,
+  Extra Large"*; asked whether to add a fourth step (Medium, 11 px, would have been free; anything under 10 px is a
+  frozen month-view edit), *"lets just stick with 3 sizes, keep going"*. Tracker card `month-one-size`.
+- **Built:** `#pref-mv-size` (Sidebar.jsx's month card, inside `.prefs-card`) replaces `#pref-mv-barsize` and
+  `#pref-mv-notesize`. `setMvSize(name)` writes BOTH stores in one `update()` + `markDirty()` (one undo step):
+  standard = '' / '', large = 'large' / '12', xl = 'xl' / '14' (`mvSizePair`). `reflectMvSizeSelects()` shows
+  `mvSizeName()`, which is 'custom' for any other saved pair; the dropdown's Custom option is `hidden` unless it is the
+  answer. `setMvBarSize` / `setMvNoteSize` are deleted (nothing else called them).
+- ⛔ **The save format did not move:** `mvBarSize` / `mvNoteSize` are still the two permanent keys with their old
+  values, so 11 / 13 px bars and 11 / 13 px notes still LOAD and draw (only no control makes them now), and Large /
+  Extra Large open in older builds. Do not collapse them into one key.
+- ⛔ **A TDZ trap, hit once while building:** `reflectMvSizeSelects()` runs from `update()` while the engine's IIFE is
+  still evaluating, so a top-level `const` table it read (declared further down) threw "Cannot access before
+  initialization" and the app did not load. The pairs are a function (`mvSizePair`) for that reason.
+- **Tests:** `mvbarsize` and `mvnotesize` re-premised (headers say how): picks go through `#pref-mv-size`; the
+  in-between sizes are reached by loading a file that has them (N1, N5); Custom is held (B3c, N1, N5, N4's junk).
+  `?barsize=` / `?notesize=` (gate.sh's month-PDF loops, textfit) are now written into the `?state=` fixture by
+  `srv.js`, and `lib.js` only waits for the size; they need a `?state=` (all gate specs have one). Gate 13's sized
+  baselines load fixtures directly, so their bytes cannot move.
+- **Verified:** `mvbarsize` mvnotes 13/13, hiatus-blanklabel 12/12; `mvnotesize` mvnotes 12/12, month-dense60 12/12;
+  hook path: `monthemit` mvnotes barsize=11 16/16, month-dense60 notesize=12 16/16; `monthwriter` month-dense60
+  notesize=13&barsize=11 12/12; `textfit` textfit-dense g=date&notesize=12 3/3; `npm run check` 42/42. No full gate
+  (no frozen code, writer or saved key touched); the rest of gate.sh's `?barsize=` specs were not run one by one.
+- **Not done:** a version cut and the push (owner's picker, CLAUDE.md).
+
 ### 🔨 18 Nov 2026: v1.19.2 — A CROWDED MONTH SHRINKS IN THE INSTALLED APP TOO (branch `claude/dreamy-keller-2ed2c2`)
 - **Owner, after v1.19.0 went live:** a crowded calendar's May was still full size in a card taller than a page, in
   the installed app, after several Cmd+Shift+R. Their console (a read-only snippet): v1.19.0, standalone,

@@ -2913,7 +2913,7 @@ PYMF
 # writer: monthemit, every box and text it draws to Chrome's print layout of the same calendar (E3 is what prints it);
 # monthwriter, its fit, a month that shrinks included; monthexport, the built app's file to the slice's. The calendar is
 # the sized fixture mvbarsize-large (minted from the mvbarsize leg's real Save, Large), or an existing one at a size by
-# ?barsize= (t/lib.js applyBarSizeQuery: the control's own radio). Mutants, each red (27 Oct 2026): the writer ignoring
+# ?barsize= (written into the fixture by srv.js since 18 Nov 2026). Mutants, each red (27 Oct 2026): the writer ignoring
 # the size (monthemit B0/T0/K0, monthexport X2); E3 removed (monthemit B0/T0/K0); MVL_BAR_SIZES' tag off by 1 px
 # (monthemit K0); the model wrapping at 10 px (monthemit X3, monthexport X2, the text check below); the export not
 # passing the size (monthexport X2, the text check).
@@ -2958,7 +2958,7 @@ PYBW
 # ---- NOTE SIZE and the 11 / 13 px bars in the month PDF (MONTH-NOTE-SIZE-PLAN.md step 3, 2 Nov 2026) --------------------
 # The same three legs on sized notes: mvnotesize-14 (the mvnotesize leg's real Save of mvnotes at 14 px) and
 # mvnotesize-mixed (made from it: a 12 px calendar, 13 px bars, one note at 14 px and one at 8), plus existing calendars at
-# a size by ?notesize= / ?barsize= (t/lib.js, through the dropdowns). monthemit holds every box and text to Chrome's print
+# a size by ?notesize= / ?barsize= (written into the fixture by srv.js since 18 Nov 2026, when bars and notes became one Size). monthemit holds every box and text to Chrome's print
 # layout (E3 clamps a sized note there), and checks every note's lanes against R2's rule (X4); monthwriter holds the fit,
 # month-dense60's shrunk August included; monthexport holds the built app's file to the slice's.
 # Mutants, each red (2 Nov 2026): a sized note given three lanes (monthemit X4); every size's line at 13 px (monthemit

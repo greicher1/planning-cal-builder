@@ -13,13 +13,18 @@
 //     Sixty notes in one August, most of them two lines at 10 px.
 //
 // Every calendar is opened through the real Load path (T.openViaFakePicker) as JSON with viewMode 'month' and no
-// size keys, so the undo stack starts EMPTY; every size is picked in its dropdown, as a user picks it. Measured in the
+// size keys, so the undo stack starts EMPTY.
+// ⚠️ RE-PREMISED 18 Nov 2026 (owner: "lets make the phase bar size and notes size one size adjuster - and the unit
+// should be Standard, Large, Extra Large"): ONE dropdown, #pref-mv-size, sets bars and notes together (Large 12 + 12 px,
+// Extra Large 14 + 14). No control sets a note size alone any more, so N1 and N5 reach 11-14 px notes and 11 / 13 px
+// bars the way they still reach the app: a calendar SAVED at that size (before 18 Nov 2026) is loaded, and the control
+// reads Custom. N3 picks the three sizes in the dropdown, as a user does. Measured in the
 // box's own px (rect / currentCSSZoom), lanes read from Chrome's computed grid-template-rows.
 //
 // CASES
-//   N0   opened with no key: the Note size dropdown shows 10 px, inside .prefs-card in the Month view card; no
+//   N0   opened with no key: the Size dropdown shows Standard, inside .prefs-card in the Month view card; no
 //        mv-note-sized class; no note carries --mvn-h1; every lane and box as at 10 px; not dirty, Undo off
-//   N1-<px>  after a pick of 11, 12, 13, 14 px: the dropdown and the class follow, the file is dirty, Undo on; in every
+//   N1-<px>  a calendar saved with 11, 12, 13, 14 px notes and Standard bars, loaded: the dropdown reads Custom, the class is on; in every
 //        month every note is at the size (font and whole-px line), exactly its one- or two-line height, clamped at
 //        two lines, given exactly min(2, its natural lines) lanes (the element itself, unclamped, in a second pass);
 //        every lane exactly as tall as what PRINTS in it: 17 px with nothing but a "+", its bar's height (19 px at
@@ -39,17 +44,20 @@
 //        sized note: it is drawn at 14 px in its own taller lanes, the class goes on, and every other week of the month
 //        keeps exactly its 10 px lanes; the style bar's note sizes run 6-14; picking 10 (the calendar's size) stores
 //        nothing, and the month is byte-identical to the one first drawn; then with the calendar at 14 px the same note
-//        set to 8 px keeps its own size and today's 10 px rule, while every other note is drawn at 14 px
-//   N3   each pick is ONE undo step: Undo from 14 gives 13, 12, 11, then 10 (Undo off); Redo four times gives 14; the
-//        month on screen byte-identical to the one first drawn at each size
-//   N4   Save writes mvNoteSize: "14"; a Save at 10 px writes NO key; both hold exactly the same fields.byId ids (no
-//        size dropdown's id among them); Load of the saved text opens at 14; with no key, right after, at 10 px; "15",
-//        14 (a number), true and "toString" each open at 10 px, one validator warning each
-//   N5   the phase bar size's new steps: 11 and 13 px picked in their dropdown put mv-bar-11 / mv-bar-13 on <body>; every
-//        bar and band exactly 20 / 23 px, text 11 / 13 px, grey tag 10 / 12 px, every lane of them exactly that; a Save
-//        writes mvBarSize "11" / "13", and Load opens it there; 12 and 14 px are still saved as "large" and "xl"
+//        set to 8 px keeps its own size and today's 10 px rule, while every other note is drawn at 14 px (the calendar
+//        at Extra Large since 18 Nov 2026, so its bars at 14 px too)
+//   N3   the Size dropdown: Large then Extra Large, each picked as a user does (dirty, Undo on), puts bars AND notes at 12
+//        then 14 px, every note and bar held as N1 holds them; each pick is ONE undo step: Undo gives Large, then
+//        Standard (Undo off); Redo twice gives Extra Large; the month byte-identical to the one first drawn at each
+//   N4   Save at Extra Large writes mvNoteSize: "14"; a Save at Standard writes NO key; both hold exactly the same
+//        fields.byId ids (no size dropdown's id among them); Load of the saved text opens at Extra Large; with neither
+//        key, right after, at Standard; "15", 14 (a number), true and "toString" as mvNoteSize each open with 10 px
+//        notes (Custom: the bars stay Extra Large), one validator warning each
+//   N5   bars saved at 11 and 13 px (before 18 Nov 2026), loaded: mv-bar-11 / mv-bar-13 on <body>, the dropdown Custom;
+//        every bar and band exactly 20 / 23 px, text 11 / 13 px, grey tag 10 / 12 px, every lane of them exactly that;
+//        12 and 14 px are still saved as "large" and "xl" (N4)
 //   N6   14 px notes at 75%, 150% and 200% zoom: the first four months have exactly their 100% lanes and boxes, own px
-//   N7   New, from 14 px, starts at 10 px (the dropdown and the class)
+//   N7   New, from a Custom calendar (14 px notes), starts at Standard (the dropdown and the class)
 //   ⭐ A MONTH THE PDF SHRINKS (17 Nov 2026, "Shrink like the PDF", MONTH-SHRINK-PLAN.md) is drawn on screen at the
 //        PDF's factor k (--mvk on #table-wrap). Every rule above holds there at k, as the writer's mvlWeekPaint scales:
 //        type, lines, vertical padding, the lane minimum and the lane gap times k; a 1 px border NOT scaled. So a bar is
@@ -105,18 +113,21 @@ window.addEventListener('load', function () { (async function () {
     await T.sleep(200);
     return writes[writes.length - 1].text;
   }
-  function noteCtl() { var s = $('pref-mv-notesize'); return s ? (s.value || '10') : null; }
-  function barCtl() { var s = $('pref-mv-barsize'); return s ? s.value : null; }
+  // The Size dropdown (18 Nov 2026): 'standard', 'large', 'xl', or 'custom' for a saved pair the three do not name.
+  function sizeCtl() { var s = $('pref-mv-size'); return s ? s.value : null; }
   function sized() { return document.body.classList.contains('mv-note-sized'); }
-  async function pickNote(v) {
-    await T.pickSelect('pref-mv-notesize', v === '10' ? '' : v, v);
-    await T.until(function () { return noteCtl() === v && sized() === (v !== '10'); }, 'note size ' + v, 60, 100);
-    await settle('note size ' + v);
+  async function pickSize(v) {
+    await T.pickSelect('pref-mv-size', v, v);
+    await T.until(function () { return sizeCtl() === v && sized() === (v !== 'standard'); }, 'size ' + v, 60, 100);
+    await settle('size ' + v);
   }
-  async function pickBar(v) {
-    await T.pickSelect('pref-mv-barsize', v, v);
-    await T.until(function () { return barCtl() === v; }, 'bar size ' + v, 60, 100);
-    await settle('bar size ' + v);
+  // A calendar saved at a size the dropdown no longer offers alone (11-14 px notes with Standard bars, 11 / 13 px bars):
+  // `text` with those keys, through the real Load path.
+  async function openAt(keys, writes) {
+    var j = JSON.parse(text);
+    Object.keys(keys).forEach(function (k) { j[k] = keys[k]; });
+    await openText(JSON.stringify(j), writes || []);
+    await T.openSettings('prefs');
   }
   function undoOff() { return !!$('undo-btn').disabled; }
   function dirty() { return ((($('save-status') || {}).textContent) || '').trim() === 'Unsaved changes'; }
@@ -290,38 +301,47 @@ window.addEventListener('load', function () { (async function () {
     var w0 = [];
     await openText(text, w0);
     await T.openSettings('prefs');
-    var sel = $('pref-mv-notesize');
+    var sel = $('pref-mv-size');
     var inCard = !!(sel && sel.closest('.prefs-card') && sel.closest('.pref-view-month'));
     var std = await walk(true), J0 = judge(std, '', null);
     var mvnAt10 = std.some(function (m) { return m.html.indexOf('--mvn-') >= 0; });
-    kase('N0', 'opened with no key: Note size shows 10 px in the Month view card (.prefs-card), no class, no note carries --mvn-h1, every lane as at 10 px, not dirty, Undo off',
-         noteCtl() === '10' && inCard && !sized() && !mvnAt10 && J0.ok && undoOff() && !dirty(),
-         { months: std.length, ctl: noteCtl(), inCard: inCard, sized: sized(), mvn: mvnAt10, misses: J0.n, first: J0.bad, undoOff: undoOff(), dirty: dirty() });
+    kase('N0', 'opened with no key: Size shows Standard in the Month view card (.prefs-card), no class, no note carries --mvn-h1, every lane as at 10 px, not dirty, Undo off',
+         sizeCtl() === 'standard' && inCard && !sized() && !mvnAt10 && J0.ok && undoOff() && !dirty(),
+         { months: std.length, ctl: sizeCtl(), inCard: inCard, sized: sized(), mvn: mvnAt10, misses: J0.n, first: J0.bad, undoOff: undoOff(), dirty: dirty() });
 
-    // ---- N1: 11, 12, 13, 14 px ----
-    var htmlAt = { '10': std[std.length - 1].html }, J = {};
+    // ---- N1: 11, 12, 13, 14 px notes, Standard bars: calendars saved at those sizes ----
+    var J = {};
     for (var px of ['11', '12', '13', '14']) {
-      await pickNote(px);
-      // The undo step is banked on a short debounce, so Undo lights a moment after the pick (N3 counts the steps).
-      await T.until(function () { return !undoOff(); }, 'Undo to light', 40, 100).catch(function () {});
-      var picked = { ctl: noteCtl(), sized: sized(), dirty: dirty(), undoOn: !undoOff() };
+      await openAt({ mvNoteSize: px });
+      var loaded = { ctl: sizeCtl(), sized: sized() };
       var months = await walk(true);
-      htmlAt[px] = months[months.length - 1].html;
       J[px] = judge(months, '', px);
-      kase('N1-' + px, px + ' px: the dropdown and the class follow, dirty, Undo on; every note at ' + px + ' px, exactly its one- or two-line height, clamped at two, given min(2, its natural lines) lanes (a line ending in a date: up to 4, D1); every other lane and box as at 10 px',
-           picked.ctl === px && picked.sized && picked.dirty && picked.undoOn && J[px].ok && J[px].counts.sizedNotes > 0,
-           { picked: picked, counts: J[px].counts, misses: J[px].n, first: J[px].bad });
+      kase('N1-' + px, px + ' px notes, saved: the dropdown reads Custom and the class is on; every note at ' + px + ' px, exactly its one- or two-line height, clamped at two, given min(2, its natural lines) lanes (a line ending in a date: up to 4, D1); every other lane and box as at 10 px',
+           loaded.ctl === 'custom' && loaded.sized && J[px].ok && J[px].counts.sizedNotes > 0,
+           { loaded: loaded, counts: J[px].counts, misses: J[px].n, first: J[px].bad });
     }
 
-    // ---- N3: undo and redo, one step per pick ----
-    var u = { back: [], fwd: [] };
-    for (var ub of ['13', '12', '11', '10']) { await undo(); u.back.push({ want: ub, ctl: noteCtl(), sized: sized(), same: $('table-wrap').innerHTML === htmlAt[ub] }); }
-    u.offAt10 = undoOff();
-    for (var rf = 0; rf < 4; rf++) await redo();
-    u.fwd = { ctl: noteCtl(), sized: sized(), same: $('table-wrap').innerHTML === htmlAt['14'] };
-    kase('N3', 'each pick is ONE undo step: Undo from 14 gives 13, 12, 11, then 10 (Undo off); Redo x4 gives 14; the month byte-identical to the one first drawn at each size',
-         u.back.every(function (x) { return x.ctl === x.want && x.sized === (x.want !== '10') && x.same; }) && u.offAt10 &&
-         u.fwd.ctl === '14' && u.fwd.sized && u.fwd.same, u);
+    // ---- N3: the Size dropdown, Large then Extra Large; one undo step per pick ----
+    await openText(text, []);
+    await T.openSettings('prefs');
+    var ws0 = await walk(true);
+    var htmlAt = { standard: ws0[ws0.length - 1].html }, u = { picks: {}, back: [], fwd: null }, N3OK = true;
+    for (var sz of [['large', '12'], ['xl', '14']]) {
+      await pickSize(sz[0]);
+      await T.until(function () { return !undoOff(); }, 'Undo to light', 40, 100).catch(function () {});
+      var pk = { ctl: sizeCtl(), sized: sized(), dirty: dirty(), undoOn: !undoOff() };
+      var ms = await walk(true), JS = judge(ms, sz[0], sz[1]);
+      htmlAt[sz[0]] = ms[ms.length - 1].html;
+      u.picks[sz[0]] = { picked: pk, counts: JS.counts, misses: JS.n, first: JS.bad };
+      if (!(pk.ctl === sz[0] && pk.sized && pk.dirty && pk.undoOn && JS.ok && JS.counts.sizedNotes > 0)) N3OK = false;
+    }
+    for (var ub of ['large', 'standard']) { await undo(); u.back.push({ want: ub, ctl: sizeCtl(), sized: sized(), same: $('table-wrap').innerHTML === htmlAt[ub] }); }
+    u.offAtStd = undoOff();
+    await redo(); await redo();
+    u.fwd = { ctl: sizeCtl(), sized: sized(), same: $('table-wrap').innerHTML === htmlAt.xl };
+    kase('N3', 'Size: Large then Extra Large put bars AND notes at 12 then 14 px (dirty, Undo on, every note and bar held as N1); each pick is ONE undo step: Undo gives Large, then Standard (Undo off); Redo x2 gives Extra Large; the month byte-identical each time',
+         N3OK && u.back.every(function (x) { return x.ctl === x.want && x.sized === (x.want !== 'standard') && x.same; }) && u.offAtStd &&
+         u.fwd.ctl === 'xl' && u.fwd.sized && u.fwd.same, u);
 
     // ---- N2: one note sized on its own, from the text style bar, in a 10 px calendar ----
     await openText(text, []);
@@ -354,7 +374,9 @@ window.addEventListener('load', function () { (async function () {
       n2.backCls = sized(); n2.backSame = $('table-wrap').innerHTML === html10;
       // N2b: the other way round. The calendar at 14 px, and the same note set to 8 px: it keeps its own size and
       // today's 10 px rule (no --mvn-h1, filling its lanes), while every other note is at 14 px.
-      await pickNote('14');
+      await T.openSettings('prefs');
+      await pickSize('xl');
+      await T.closeSettings();
       dayNote = [].filter.call(document.querySelectorAll('#table-wrap .mv-bars > .mv-note-block[data-note-kind="day"]'), function (b) {
         return (b.textContent || '').slice(0, 40) === n2.text; })[0];
       if (dayNote) {
@@ -371,7 +393,7 @@ window.addEventListener('load', function () { (async function () {
           if (it.text === n2.text) own = { font: it.font, sized: it.sized };
           else if (it.sized) { if (Math.abs(it.font - 14 * k8) <= 0.02) others14++; else othersBad++; }
         }); });
-        var J8 = judge([{ month: monthShown(), k: k8, weeks: m8 }], '', null);
+        var J8 = judge([{ month: monthShown(), k: k8, weeks: m8 }], 'xl', null);
         n2.b = { k: k8, own: own, others14: others14, othersBad: othersBad, misses: J8.n, first: J8.bad };
       }
     }
@@ -392,54 +414,47 @@ window.addEventListener('load', function () { (async function () {
     var w4 = [];
     await openText(text, w4);
     await T.openSettings('prefs');
-    await pickNote('14');
+    await pickSize('xl');
     var saved = await saveNow(w4), snap = JSON.parse(saved);
-    await pickNote('10');
+    await pickSize('standard');
     var savedStd = await saveNow(w4), snapStd = JSON.parse(savedStd);
     var ids0 = Object.keys(snapStd.fields.byId).sort(), ids1 = Object.keys(snap.fields.byId).sort();
     var warn0 = (T.appHealth().errors || []).filter(function (e) { return e === WARN; }).length;
     var l = {};
-    await openText(saved, []); l.saved = { ctl: noteCtl(), sized: sized() };
-    var plain = JSON.parse(saved); delete plain.mvNoteSize;
-    await openText(JSON.stringify(plain), []); l.noKey = { ctl: noteCtl(), sized: sized() };
+    await openText(saved, []); await T.openSettings('prefs'); l.saved = { ctl: sizeCtl(), sized: sized() };
+    var plain = JSON.parse(saved); delete plain.mvNoteSize; delete plain.mvBarSize;
+    await openText(JSON.stringify(plain), []); await T.openSettings('prefs'); l.noKey = { ctl: sizeCtl(), sized: sized() };
     l.junk = [];
     for (var v of ['15', 14, true, 'toString']) {
       await openText(saved, []);   // from 14 px each time, so a junk value that stuck would show
       var j = JSON.parse(saved); j.mvNoteSize = v;
-      await openText(JSON.stringify(j), []);
-      l.junk.push({ v: JSON.stringify(v), ctl: noteCtl(), sized: sized() });
+      await openText(JSON.stringify(j), []); await T.openSettings('prefs');
+      l.junk.push({ v: JSON.stringify(v), ctl: sizeCtl(), sized: sized() });
     }
     var warns = (T.appHealth().errors || []).filter(function (e) { return e === WARN; }).length - warn0;
-    kase('N4', 'Save writes mvNoteSize "14", a Save at 10 px writes NO key, the same fields.byId ids (no size id); Load opens at 14, with no key at 10 px; "15", 14, true and "toString" each open at 10 px, one validator warning each',
-         snap.mvNoteSize === '14' && !('mvNoteSize' in snapStd) && JSON.stringify(ids0) === JSON.stringify(ids1) &&
-         !ids1.some(function (k) { return /bar-?size|note-?size/.test(k); }) &&
-         l.saved.ctl === '14' && l.saved.sized && l.noKey.ctl === '10' && !l.noKey.sized &&
-         l.junk.every(function (x) { return x.ctl === '10' && !x.sized; }) && warns === 4,
+    kase('N4', 'Save at Extra Large writes mvNoteSize "14", a Save at Standard writes NO key, the same fields.byId ids (no size id); Load opens at Extra Large, with neither key at Standard; "15", 14, true and "toString" each open with 10 px notes (Custom), one validator warning each',
+         snap.mvNoteSize === '14' && snap.mvBarSize === 'xl' && !('mvNoteSize' in snapStd) && JSON.stringify(ids0) === JSON.stringify(ids1) &&
+         !ids1.some(function (k) { return /bar-?size|note-?size|mv-size/.test(k); }) &&
+         l.saved.ctl === 'xl' && l.saved.sized && l.noKey.ctl === 'standard' && !l.noKey.sized &&
+         l.junk.every(function (x) { return x.ctl === 'custom' && !x.sized; }) && warns === 4,
          { mvNoteSize: snap.mvNoteSize, stdHasKey: 'mvNoteSize' in snapStd, added: ids1.filter(function (k) { return ids0.indexOf(k) < 0; }),
            lost: ids0.filter(function (k) { return ids1.indexOf(k) < 0; }), l: l, warnings: warns });
     out.sptcal = btoa(unescape(encodeURIComponent(saved)));   // the minted 14 px calendar (plan step 3's fixture)
 
-    // ---- N5: the phase bar size's 11 and 13 px ----
-    await openText(text, w4);
-    await T.openSettings('prefs');
+    // ---- N5: bars saved at 11 and 13 px (before 18 Nov 2026) ----
     var n5 = {};
     for (var bk of ['11', '13']) {
-      await pickBar(bk);
+      await openAt({ mvBarSize: bk });
       var bm = await walk(false), JB = judge(bm, bk, null);
-      var bsaved = JSON.parse(await saveNow(w4));
-      n5[bk] = { body: document.body.classList.contains('mv-bar-' + bk), misses: JB.n, first: JB.bad, lanes: [JB.counts.barLanes, JB.counts.plainLanes], saved: bsaved.mvBarSize };
+      n5[bk] = { body: document.body.classList.contains('mv-bar-' + bk), ctl: sizeCtl(), misses: JB.n, first: JB.bad, lanes: [JB.counts.barLanes, JB.counts.plainLanes] };
     }
-    await pickBar('large'); n5.large = JSON.parse(await saveNow(w4)).mvBarSize;
-    await pickBar('xl'); n5.xl = JSON.parse(await saveNow(w4)).mvBarSize;
-    var j13 = JSON.parse(saved); j13.mvBarSize = '13';
-    await openText(JSON.stringify(j13), []); n5.loaded = { ctl: barCtl(), body: document.body.classList.contains('mv-bar-13') };
-    kase('N5', 'bar sizes 11 and 13 px from the dropdown: the class, every bar and band 20 / 23 px in 11 / 13 px text with 10 / 12 px tags, saved as "11" / "13" and loaded back; 12 and 14 px still saved as "large" / "xl"',
-         ['11', '13'].every(function (k) { return n5[k].body && Object.keys(n5[k].misses).length === 0 && n5[k].lanes[0] > 0 && n5[k].saved === k; }) &&
-         n5.large === 'large' && n5.xl === 'xl' && n5.loaded.ctl === '13' && n5.loaded.body, n5);
+    kase('N5', 'bars saved at 11 and 13 px, loaded: the class, the dropdown Custom, every bar and band 20 / 23 px in 11 / 13 px text with 10 / 12 px tags',
+         ['11', '13'].every(function (k) { return n5[k].body && n5[k].ctl === 'custom' && Object.keys(n5[k].misses).length === 0 && n5[k].lanes[0] > 0; }), n5);
 
     // ---- N6: zoom, 14 px notes ----
     var jz = JSON.parse(saved); delete jz.mvBarSize;
     await openText(JSON.stringify(jz), []);
+    await T.openSettings('prefs');
     await goFirst();
     var at100 = [], z = {};
     function sig() { return JSON.stringify(measureMonth(false).map(function (w) { return [w.tracks, w.items.map(function (it) { return it.h; })]; })); }
@@ -458,12 +473,12 @@ window.addEventListener('load', function () { (async function () {
          [0.75, 1.5, 2].every(function (k) { return z[k].zoom === k && z[k].same; }), z);
 
     // ---- N7: New ----
-    var n7 = { before: noteCtl() };
+    var n7 = { before: sizeCtl(), sizedBefore: sized() };
     $('new-file-btn').click();
     for (var ni = 0; ni < 30; ni++) { await T.sleep(100); if (/Start a new blank calendar/.test(T.modalText())) { T.clickModalButton('Start new'); break; } }
     await T.sleep(300);
-    n7.ctl = noteCtl(); n7.sized = sized();
-    kase('N7', 'New, from 14 px, starts at 10 px (the dropdown and the class)', n7.before === '14' && n7.ctl === '10' && !n7.sized, n7);
+    n7.ctl = sizeCtl(); n7.sized = sized();
+    kase('N7', 'New, from a Custom calendar with 14 px notes, starts at Standard (the dropdown and the class)', n7.before === 'custom' && n7.sizedBefore && n7.ctl === 'standard' && !n7.sized, n7);
 
     clearInterval(guard);
     var all = T.appHealth().errors || [];

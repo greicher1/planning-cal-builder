@@ -11,9 +11,13 @@
 //     Three hiatus bands whose labels were emptied (the 1 Oct 2026 "full height" ruling).
 //
 // Every calendar is opened through the real Load path (T.openViaFakePicker) as JSON with viewMode 'month' and no
-// mvBarSize, so the undo stack starts EMPTY; every size is picked in its dropdown, #pref-mv-barsize, as a user picks it
-// (a SegmentedControl until 2 Nov 2026, when Phase bar size became 10-14 px in a dropdown: MONTH-NOTE-SIZE-PLAN.md §1a;
-// Standard is 10 px, Large 12 px, Extra large 14 px, saved as they always were).
+// mvBarSize, so the undo stack starts EMPTY; every size is picked in its dropdown as a user picks it.
+// ⚠️ RE-PREMISED 18 Nov 2026 (owner: "lets make the phase bar size and notes size one size adjuster - and the unit
+// should be Standard, Large, Extra Large"): the dropdown is #pref-mv-size, ONE control for bars and notes. Large is
+// 12 px bars AND 12 px notes, Extra Large 14 and 14, saved as mvBarSize 'large' / 'xl' with mvNoteSize '12' / '14'. So
+// at Large and Extra Large the notes are sized too: B1 holds a note only to its lanes there (mvnotesize holds its exact
+// height), and P0 compares the BARS' lanes. A saved pair the three names do not cover reads "Custom" (B3c).
+// (A SegmentedControl until 2 Nov 2026, then #pref-mv-barsize, 10-14 px, until 18 Nov 2026.)
 // Measured in the box's own px (rect / currentCSSZoom), lanes read from Chrome's computed grid-template-rows.
 //
 // CASES
@@ -44,11 +48,13 @@
 //        lines, uncut, and no one-day custom bar anywhere is cut on one line
 //   B3a  each pick is ONE undo step: Undo from Extra large gives Large, again gives Standard (Undo off), Redo twice
 //        gives Extra large; the month on screen byte-identical to the one first drawn at each size
-//   B3b  Save writes mvBarSize: "xl", and fields.byId has exactly the opened file's ids (the dropdown carries an id,
+//   B3b  Save writes mvBarSize: "xl" and mvNoteSize: "14", and fields.byId has exactly the opened file's ids (the dropdown carries an id,
 //        inside .prefs-card)
-//   B3c  Load of that text opens at Extra large; the same file with no key, loaded right after, opens at Standard
-//        (restore unconditionally); so do "huge", true and "toString", each with one validator warning
-//   B6   a shareable copy made at Extra large carries mvBarSize: "xl" in its saved state and a bare #table-wrap
+//   B3c  Load of that text opens at Extra large; the same file with neither key, loaded right after, opens at Standard
+//        (restore unconditionally); "huge", true and "toString" as mvBarSize each draw Standard bars, with one validator
+//        warning each, and the control reads Custom (the notes are still 14 px); Large bars with 10 px notes (an older
+//        calendar) read Custom, its option shown, and a pick of Standard hides it again
+//   B6   a shareable copy made at Extra large carries mvBarSize: "xl" and mvNoteSize: "14" in its saved state and a bare #table-wrap
 //   B7   New, from Extra large, starts at Standard
 //   E0   no console errors, and exactly the three validator warnings B3c opens on purpose
 window.__T.memoryIDB();
@@ -101,17 +107,21 @@ window.addEventListener('load', function () { (async function () {
     await T.sleep(200);
     return writes[writes.length - 1].text;
   }
-  // The dropdown's value, in this leg's names: '' (10 px) is Standard.
+  // The Size dropdown's value: 'standard', 'large', 'xl' or 'custom'.
   function ctl() {
-    var sel = $('pref-mv-barsize');
-    return sel ? (sel.value || 'standard') : null;
+    var sel = $('pref-mv-size');
+    return sel ? sel.value : null;
+  }
+  function customShown() {
+    var o = $('pref-mv-size') && $('pref-mv-size').querySelector('option[value="custom"]');
+    return !!o && !o.hidden;
   }
   function bodySize() {
     var c = document.body.classList;
     return c.contains('mv-bar-xl') ? (c.contains('mv-bar-large') ? 'both' : 'xl') : c.contains('mv-bar-large') ? 'large' : 'standard';
   }
   async function pick(v) {
-    await T.pickSelect('pref-mv-barsize', v === 'standard' ? '' : v, v);
+    await T.pickSelect('pref-mv-size', v, v);
     await T.until(function () { return ctl() === v && bodySize() === v; }, 'picked ' + v, 60, 100);
     await settle('size ' + v);
   }
@@ -210,8 +220,10 @@ window.addEventListener('load', function () { (async function () {
             var want = it.twoLine ? 2 * S.text * 1.5 + 4 : S.h;
             if (Math.abs(it.h - want) > 0.02 || it.h > lanes + 0.02) miss('fill', where + ': ' + it.h + ' vs ' + want + ' in ' + r2(lanes));
           } else if (it.kind === 'note') {
+            // At Large and Extra Large the notes are sized too (one Size since 18 Nov 2026): held to their lanes here,
+            // to their exact heights by mvnotesize.
             var nl = (it.h - 6) / 13;
-            if (it.h > lanes + 0.02 || nl < 0.99 || Math.abs(nl - Math.round(nl)) > 0.01) miss('fill', where + ': ' + it.h + ' in ' + r2(lanes));
+            if (it.h > lanes + 0.02 || (key === 'standard' && (nl < 0.99 || Math.abs(nl - Math.round(nl)) > 0.01))) miss('fill', where + ': ' + it.h + ' in ' + r2(lanes));
           } else if (Math.abs(it.h - lanes) > 0.02) miss('fill', where + ': ' + it.h + ' vs ' + r2(lanes));
           if (!big) return;
           if (it.font !== S.text) miss('font', where + ': ' + it.font);
@@ -226,9 +238,15 @@ window.addEventListener('load', function () { (async function () {
     });
     return R;
   }
+  // The BARS' lanes: the notes are sized with them since 18 Nov 2026, so a note's lanes may change (P0 allows its week).
   function placement(months) {
     return months.map(function (m) { return m.weeks.map(function (w) {
-      return JSON.stringify(w.items.map(function (it) { return [it.kind, it.lane, it.span, it.text]; })); }); });
+      return JSON.stringify(w.items.filter(function (it) { return it.kind === 'pill' || it.kind === 'band'; })
+        .map(function (it) { return [it.kind, it.lane, it.span, it.text]; })); }); });
+  }
+  function noteLanes(months) {
+    return months.map(function (m) { return m.weeks.map(function (w) {
+      return JSON.stringify(w.items.filter(function (it) { return it.kind === 'note'; }).map(function (it) { return [it.lane, it.span, it.text]; })); }); });
   }
   function hasCustomTwoLine(m) { return m.weeks.some(function (w) { return w.items.some(function (it) { return it.twoLine; }); }); }
 
@@ -279,7 +297,7 @@ window.addEventListener('load', function () { (async function () {
     // ---- B0: Standard, as every calendar saved before the setting opens ----
     var w0 = [];
     await openText(text, w0);
-    var input = $('pref-mv-barsize');
+    var input = $('pref-mv-size');
     var inCard = !!(input && input.closest('.prefs-card') && input.closest('.pref-view-month'));
     var std = await walk(), J0 = judge(std, 'standard');
     kase('B0', 'opened with no key: the control shows Standard in the Month view card (.prefs-card), no size class, every bar and band 19 px and every note its printed height, no lane under 17 px, not dirty, Undo off',
@@ -305,10 +323,10 @@ window.addEventListener('load', function () { (async function () {
     await sizeCase('large');
 
     // ---- P0: placement unchanged, but where E2 now wraps ----
-    var p0 = placement(std), p1 = placement(walks.large), moved = [];
-    p0.forEach(function (weeks, mi) { weeks.forEach(function (s, wi) { if (p1[mi] && s !== p1[mi][wi]) moved.push({ month: std[mi].month, week: wi + 1, wraps: hasCustomTwoLine(walks.large[mi]) }); }); });
-    kase('P0', 'every bar sits in the same lane at Standard and Large, except in weeks where E2 now wraps a one-day custom bar',
-         std.length === walks.large.length && moved.every(function (x) { return x.wraps; }) && (b5 ? moved.length > 0 : true), { changedWeeks: moved });
+    var p0 = placement(std), p1 = placement(walks.large), n0 = noteLanes(std), n1 = noteLanes(walks.large), moved = [];
+    p0.forEach(function (weeks, mi) { weeks.forEach(function (s, wi) { if (p1[mi] && s !== p1[mi][wi]) moved.push({ month: std[mi].month, week: wi + 1, wraps: hasCustomTwoLine(walks.large[mi]), notes: n0[mi][wi] !== n1[mi][wi] }); }); });
+    kase('P0', 'every bar sits in the same lane at Standard and Large, except in weeks where E2 now wraps a one-day custom bar or a note took other lanes at its new size',
+         std.length === walks.large.length && moved.every(function (x) { return x.wraps || x.notes; }) && (b5 ? moved.some(function (x) { return x.wraps; }) : true), { changedWeeks: moved });
 
     // ---- B2: the gestures, at Large, in the first month with both a bar and a band (else the first with a bar) ----
     await goFirst();
@@ -477,8 +495,8 @@ window.addEventListener('load', function () { (async function () {
     await pick('standard');
     var savedStd = await saveNow(w0), snapStd = JSON.parse(savedStd);
     var ids0 = Object.keys(snapStd.fields.byId).sort(), ids1 = Object.keys(snap.fields.byId).sort();
-    kase('B3b', 'Save writes mvBarSize: "xl"; a Save at Standard writes NO mvBarSize key; both hold exactly the same fields.byId ids',
-         snap.mvBarSize === 'xl' && !('mvBarSize' in snapStd) && JSON.stringify(ids0) === JSON.stringify(ids1) &&
+    kase('B3b', 'Save writes mvBarSize: "xl" and mvNoteSize: "14"; a Save at Standard writes neither key; both hold exactly the same fields.byId ids',
+         snap.mvBarSize === 'xl' && snap.mvNoteSize === '14' && !('mvBarSize' in snapStd) && !('mvNoteSize' in snapStd) && JSON.stringify(ids0) === JSON.stringify(ids1) &&
          !ids1.some(function (k) { return /bar-?size|note-?size/.test(k); }),
          { mvBarSize: snap.mvBarSize, stdHasKey: 'mvBarSize' in snapStd, added: ids1.filter(function (k) { return ids0.indexOf(k) < 0; }), lost: ids0.filter(function (k) { return ids1.indexOf(k) < 0; }) });
     // The minted fixture (plan step 3): this calendar's real Save at Large, out.sptcal -> mvbarsize.sptcal, copied by
@@ -492,8 +510,8 @@ window.addEventListener('load', function () { (async function () {
     var warn0 = (T.appHealth().errors || []).filter(function (e) { return e === WARN; }).length;
     var l = {};
     await openText(saved, []); l.saved = { ctl: ctl(), body: bodySize() };
-    var plain = JSON.parse(saved); delete plain.mvBarSize;
-    await openText(JSON.stringify(plain), []); l.noKey = { ctl: ctl(), body: bodySize() };
+    var plain = JSON.parse(saved); delete plain.mvBarSize; delete plain.mvNoteSize;
+    await openText(JSON.stringify(plain), []); l.noKey = { ctl: ctl(), body: bodySize(), custom: customShown() };
     l.junk = [];
     for (var v of ['huge', true, 'toString']) {
       await openText(saved, []);   // from Extra large each time, so a junk value that stuck would show
@@ -502,9 +520,15 @@ window.addEventListener('load', function () { (async function () {
       l.junk.push({ v: String(v), ctl: ctl(), body: bodySize() });
     }
     var warns = (T.appHealth().errors || []).filter(function (e) { return e === WARN; }).length - warn0;
-    kase('B3c', 'Load of the saved text opens at Extra large; with no key, right after, at Standard; "huge", true and "toString" each open at Standard, one validator warning each',
-         l.saved.ctl === 'xl' && l.saved.body === 'xl' && l.noKey.ctl === 'standard' && l.noKey.body === 'standard' &&
-         l.junk.every(function (x) { return x.ctl === 'standard' && x.body === 'standard'; }) && warns === 3, { l: l, warnings: warns });
+    // An older calendar: Large bars, 10 px notes (Phase bar size alone, v1.9.0 to v1.19.2). Custom, then Standard.
+    var old = JSON.parse(saved); old.mvBarSize = 'large'; delete old.mvNoteSize;
+    await openText(JSON.stringify(old), []); l.older = { ctl: ctl(), body: bodySize(), custom: customShown() };
+    await pick('standard'); l.olderStd = { ctl: ctl(), body: bodySize(), custom: customShown() };
+    kase('B3c', 'Load of the saved text opens at Extra large; with neither key, right after, at Standard; "huge", true and "toString" each draw Standard bars (Custom: the notes stay 14 px), one validator warning each; Large bars with 10 px notes read Custom, and Standard hides it',
+         l.saved.ctl === 'xl' && l.saved.body === 'xl' && l.noKey.ctl === 'standard' && l.noKey.body === 'standard' && !l.noKey.custom &&
+         l.junk.every(function (x) { return x.ctl === 'custom' && x.body === 'standard'; }) && warns === 3 &&
+         l.older.ctl === 'custom' && l.older.body === 'large' && l.older.custom &&
+         l.olderStd.ctl === 'standard' && l.olderStd.body === 'standard' && !l.olderStd.custom, { l: l, warnings: warns });
 
     // ---- B6: the shareable copy, at Extra large ----
     await openText(saved, []);
@@ -515,8 +539,8 @@ window.addEventListener('load', function () { (async function () {
     var html = await cap.stop().text();
     var sm = html.match(/<script id="saved-state" type="application\/json">([\s\S]*?)<\/script>/);
     var csnap = sm ? JSON.parse(sm[1]) : null, twTag = (html.match(/<div id="table-wrap"[^>]*>/) || [''])[0];
-    kase('B6', 'a shareable copy made at Extra large carries mvBarSize: "xl" in its saved state, and a bare #table-wrap',
-         !!csnap && csnap.mvBarSize === 'xl' && twTag === '<div id="table-wrap">', { mvBarSize: csnap && csnap.mvBarSize, twTag: twTag });
+    kase('B6', 'a shareable copy made at Extra large carries mvBarSize: "xl" and mvNoteSize: "14" in its saved state, and a bare #table-wrap',
+         !!csnap && csnap.mvBarSize === 'xl' && csnap.mvNoteSize === '14' && twTag === '<div id="table-wrap">', { mvBarSize: csnap && csnap.mvBarSize, twTag: twTag });
 
     // ---- B7: New ----
     var b7 = { before: bodySize() };

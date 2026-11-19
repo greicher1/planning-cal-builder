@@ -830,13 +830,15 @@ window.__T = (function(){
     return el.getClientRects().length > 0;
   }
   // ⭐ THE PHASE BAR SIZE (MONTH-BAR-SIZE-PLAN.md step 3). `?barsize=large|xl` (HARNESS_QUERY) puts the calendar on
-  // screen at that size, through the control's own radio, exactly as a click picks it (one undo step, the file
-  // dirtied), so the month legs can run any calendar at a size without a fixture per size. Returns the size set, or ''
+  // screen at that size (a dropdown pick until 18 Nov 2026; the loaded file since, below), so the month legs can run any
+  // calendar at a size without a fixture per size. Returns the size set, or ''
   // when the query names none. A leg that builds the writer's model passes barSizeShown(), the size on screen, which
   // is also a sized FIXTURE's size: the size is read off <body>'s class, as legacy.css's rules read it.
-  // ?barsize=11|large|13|xl (or 12 / 14 for large / xl) picks the phase bar size through its dropdown,
-  // #pref-mv-barsize, as a user picks it (MONTH-NOTE-SIZE-PLAN.md §1a: a dropdown since 2 Nov 2026, Standard /
-  // Large / Extra large segments before). ?notesize=11-14 picks the note size through #pref-mv-notesize.
+  // ⚠️ SINCE 18 Nov 2026 (owner: one Size, Standard / Large / Extra Large, for bars AND notes, #pref-mv-size) no control
+  // sets the bar size or the note size alone, so ?barsize=11|12|13|14|large|xl and ?notesize=11-14 are written into the
+  // ?state= fixture by tests/harness/srv.js, and the calendar OPENS at that size, as one saved there does (its Size
+  // reads Custom unless the pair is one of the three). These wait for the size to be drawn and return it. A leg that
+  // must pick the size as a user does picks #pref-mv-size with pickSelect (mvbarsize, mvnotesize).
   async function pickSelect(id, value, label){
     var sel = document.getElementById(id);
     if(!sel) throw new Error('no #' + id);
@@ -846,11 +848,14 @@ window.__T = (function(){
     await sleep(300);
     return label;
   }
+  function needsState(q){
+    if(!/[?&]state=/.test(location.search)) throw new Error('?' + q + ' needs a ?state= fixture since 18 Nov 2026 (srv.js writes the size into it)');
+  }
   async function applyBarSizeQuery(){
     var q = (/[?&]barsize=(11|12|13|14|large|xl)\b/.exec(location.search) || [])[1] || '';
     if(!q) return '';
+    needsState('barsize');
     q = q === '12' ? 'large' : q === '14' ? 'xl' : q;
-    await pickSelect('pref-mv-barsize', q, q);
     await until(function(){ return document.body.classList.contains('mv-bar-' + q); }, 'the ' + q + ' bar size', 50, 100);
     await sleep(300);
     return q;
@@ -858,7 +863,7 @@ window.__T = (function(){
   async function applyNoteSizeQuery(){
     var q = (/[?&]notesize=(11|12|13|14)\b/.exec(location.search) || [])[1] || '';
     if(!q) return '';
-    await pickSelect('pref-mv-notesize', q, q);
+    needsState('notesize');
     await until(function(){ return document.body.classList.contains('mv-note-sized'); }, 'the ' + q + ' px note size', 50, 100);
     await sleep(300);
     return q;
@@ -867,8 +872,9 @@ window.__T = (function(){
     var c = document.body.classList;
     return c.contains('mv-bar-xl') ? 'xl' : c.contains('mv-bar-13') ? '13' : c.contains('mv-bar-large') ? 'large' : c.contains('mv-bar-11') ? '11' : '';
   }
+  // The Size dropdown's own value: 'standard', 'large', 'xl', or 'custom' (a saved pair the three do not name).
   function noteSizeShown(){
-    var n = document.getElementById('pref-mv-notesize');
+    var n = document.getElementById('pref-mv-size');
     return n ? n.value : '';
   }
   // ⭐ THE SHIFT BOX (the list first, 9 Nov 2026; ANCHOR-TO-DIRECTION-PLAN.md §7.6). The What moves buttons are gone:

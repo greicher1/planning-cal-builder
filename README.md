@@ -29,6 +29,37 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+## Unreleased
+
+### One Size for the month view's bars and notes: Standard, Large, Extra Large (18 Nov 2026)
+
+The owner: *"lets make the phase bar size and notes size one size adjuster - and the unit should be Standard, Large,
+Extra Large"* (and, asked whether a fourth step was wanted, *"lets just stick with 3 sizes"*). Settings › Preferences ›
+Month view had two dropdowns of 10-14 px, Phase bar size and Note size. They are now one, **Size**: Standard is 10 px
+phase bars, hiatus bands and notes, Large 12 px, Extra Large 14 px, on screen and in the month PDF. One pick is one
+Undo step and dirties the file, as before.
+
+- **No file changes shape.** The pick writes the two keys a calendar has always carried, `mvBarSize` ('large' / 'xl',
+  as since v1.9.0) and `mvNoteSize` ('12' / '14'), so a calendar saved at Large or Extra Large opens in every older
+  version too, and every older file opens drawn exactly as it was.
+- **A calendar saved with a pair the three do not name** (Large bars with 10 px notes, from the Phase bar size days, or
+  11 / 13 px anything) shows **Custom** in the dropdown, an option that appears only then, so the control never names a
+  size the calendar is not drawn at. Picking Standard, Large or Extra Large replaces it.
+- A note's own size from the text style bar still overrides the calendar's. Help and the "prints very small" message
+  say Size.
+- Engine: `setMvSize()` writes both stores; `setMvBarSize` / `setMvNoteSize` and the ids `#pref-mv-barsize` /
+  `#pref-mv-notesize` are gone (`#pref-mv-size`, inside `.prefs-card`, so `fields.byId` does not move). The month
+  renderer, the writer and the frozen surface are untouched.
+- Tests: `mvbarsize` and `mvnotesize` pick the Size dropdown; the 11-14 px notes and 11 / 13 px bars they also hold are
+  reached by loading a calendar saved at that size (N1, N5), and both legs hold Custom. The harness's `?barsize=` /
+  `?notesize=` now write the size into the `?state=` fixture (`srv.js`), as a saved file carries it, since no control
+  sets one alone.
+- Verified (port 8797, the build): `mvbarsize` on mvnotes 13/13 and hiatus-blanklabel 12/12; `mvnotesize` on mvnotes
+  12/12 and month-dense60 12/12; through the new hook path `monthemit` mvnotes barsize=11 16/16 and month-dense60
+  notesize=12 16/16, `monthwriter` month-dense60 notesize=13&barsize=11 12/12, `textfit` textfit-dense
+  g=date&notesize=12 3/3; `npm run check` 42/42. Tried by hand in the app: Custom on a Large-bars calendar, Extra Large
+  then 14 px bars and notes, one Undo back to Custom, Large 12 px.
+
 ## v1.19.2 — a crowded month shrinks in the installed app too (18 Nov 2026)
 
 ### A crowded month shrinks in the installed app too (18 Nov 2026)
