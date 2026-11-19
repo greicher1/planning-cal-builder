@@ -4,6 +4,27 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### 🧵 19 Nov 2026: THE WATERFALL HEADINGS' TOP LINE NO LONGER SPLITS AFTER A SCROLL — committed `5c31a38` on `scenario-version-offer` (its hunks only), cherry-picked onto `origin/main` (v1.23.0) in a temp worktree and pushed to `main` on the owner's picker *"Merge and push"*. The CSS is one `@media screen` block after the heading hover rule in `src/styles/legacy.css`. README "Unreleased". Tracker card `waterfall-header-double-line`.
+- **Owner:** *"when i first launch the app i see the solid black line but when i scroll down and then scroll back up, the
+  line is now this double line"*; then *"Yes, fix it"* to a screen-only frozen-surface edit.
+- **Cause:** the line is the table's collapsed `tr:first-child th{border-top:2px}` plus the sticky `th`'s
+  `inset 0 2px 0` shadow. After a scroll Chrome composites the sticky row and rounds its layer's offset separately, so at
+  a fractional grid position (163.64 px and the like, common at any zoom) the row sits one device pixel low and the
+  table's white shows between the two rules: 3 dark, 1 white, 3 dark device pixels in the owner's screenshot.
+- **Fix:** `#table-wrap table.sheet-table{ background-image: ink, 100% × 4px, no-repeat }` in screen media. The strip
+  is under the heading row (border + shadow rows), so it shows only where a shifted row uncovers it.
+- ⚠️ **What did NOT work, so nobody retries it:** making the cell draw the whole line (border transparent + an outer
+  `0 -1px` shadow, or a background strip on the `th`). In collapsed-border mode the cell paints nothing outside its
+  padding box and Chrome draws no outer shadow for it (a `0 -6px 0 red` test painted nothing), so the border region
+  went white.
+- **How to reproduce the seam on demand:** inject `#table-wrap table.sheet-table th{will-change:transform}` and set the
+  calendar zoom to 1.9 (`sptcal-zoom` event): row 15 of a crop at the heading's top edge goes light. The browser pane's
+  screenshots are scaled, so read pixels from the saved crop with PIL rather than by eye.
+- **Verified:** that repro shows the seam without the strip and none with it; the line at rest and the stuck row look as
+  before; `npm run check` 46/46; against `/dist/index.html`, `base` (clipped 0 / 2, as its baseline), `calzoom` 26/26
+  (needs `HARNESS_STATE=mvnotes`, 300 s), `hdrrow` 40/40 (400 s). CLAUDE.md lists it as the ninth exception. No full gate: no output
+  reads CSS, and nothing in `#print-root` matches.
+
 ### 🏷️ 19 Nov 2026: v1.23.0 CUT AND LIVE — owner: *"Yes, cut v1.23.0"* (so every installed copy sees the blue bar: the build before the bar-and-What's-New release reads version numbers only, and that release went out as 1.22.1). Tracker card `whats-new-dialog`.
 - Carries everything "Unreleased" since v1.22.1: new notes stay with their phase week, the update bar on every update +
   What's New, "Final Delivery", the scenario-tab drop line, the hover-only Notes "+", the week-count prompt on Enter.
@@ -35,6 +56,7 @@
   16/16, `wfnoteeditor` 14/14. No version cut. Local `main` NOT moved.
 - **Next:** nothing. Once nothing else needs the worktree: unlink `node_modules`, then `git worktree remove`.
 
+||||||| parent of 5c31a38 (The waterfall headings' top line no longer splits after a scroll (owner))
 ### 🤫 19 Nov 2026: "ENTER A WEEK COUNT TO INCLUDE THIS PHASE" WAITS TO BE ASKED FOR — on `scenario-version-offer`, BUILT, NOT COMMITTED (the working tree also holds the What's New work below, uncommitted: commit only these files). README "Unreleased". Tracker card `week-count-prompt-on-enter`.
 - **Owner:** *"this message should only show up when someone clicks enter (even tho i know the app doesn't need enter to
   be clicked) or when they click the start after or finish before buttons"*.

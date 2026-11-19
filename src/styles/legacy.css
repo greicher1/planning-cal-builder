@@ -4094,6 +4094,24 @@
      rule's, untouched. */
   #table-wrap thead th:not(.wf-notes-strip){ cursor:text; }
   #table-wrap thead th:not(.wf-notes-strip):hover{ box-shadow: inset 0 2px 0 var(--text), 0 1px 0 #C6C6C6, inset 0 0 0 2px rgba(112,48,160,.55); }
+  /* THE HEADINGS' TOP LINE, DRAWN WITHOUT A SEAM (owner, 19 Nov 2026: "when i scroll down and then scroll back up, the
+     line is now this double line"; picker "Yes, fix it"). ⚠️ An owner-approved frozen-surface edit, ON SCREEN ONLY.
+     The thick line over the column headings is TWO 2 px rules painted by two different things: the table's collapsed
+     `tr:first-child th{border-top}` and the sticky heading row's `inset 0 2px 0` shadow just under it. Once the grid
+     has scrolled, Chrome raises the sticky row to its own compositor layer and rounds that layer's position on its own,
+     so wherever the grid sits at a fractional pixel the row can land one device pixel lower than the border the table
+     painted, and the table's white background shows through between them: 3 dark, 1 white, 3 dark device pixels.
+     The heading cell cannot paint over the border itself (its outer shadow and anything outside its padding box are
+     not drawn in collapsed-border mode), so the fix paints INK UNDER IT instead: the table's own background carries a
+     4 px ink strip across its top, the border plus the shadow's rows, hidden by the heading row at rest and the only
+     thing a shifted row can uncover. Background only: no cell, width or height moves. ⛔ #table-wrap and screen media
+     only, so the print fallback in #print-root (which drops the shadow and keeps the border) never sees it, and the
+     workbook and both written PDFs read no CSS. */
+  @media screen{
+    #table-wrap table.sheet-table{
+      background-image:linear-gradient(var(--text), var(--text)); background-size:100% 4px; background-repeat:no-repeat;
+    }
+  }
   .hdrrow-ring{
     position:absolute; z-index:59; pointer-events:none; border-radius:1px;
     box-shadow:inset 0 0 0 2px var(--edit-accent);

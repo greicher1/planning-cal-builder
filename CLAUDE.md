@@ -241,6 +241,14 @@ there for a specific, measured reason, and the reasons are not visible from the 
   - ⛔ Nothing keyed on `data-ph="production"` (its grips, its drag, the reorder grip) may take a double-up pill: they
     carry `data-ph="doubleUp"`, and the reorder grip's `BAR_SEL` excludes `[data-du]`.
 
+- ⚠️ **A ninth, the waterfall headings' top line (owner's *"Yes, fix it"*, 19 Nov 2026), ON SCREEN ONLY.** The thick
+  line over the headings is the table's collapsed top border plus the sticky `th`'s inset shadow; after a scroll Chrome
+  composites the sticky row and can round it a device pixel low, opening a white seam (a "double line"). A
+  `@media screen` block in `legacy.css`, after the heading hover rule, gives `#table-wrap table.sheet-table` a 4 px ink
+  background strip across its top, under the heading row, so a shifted row uncovers ink. Paint only: no cell, width or
+  height moves, `#print-root` and every writer are untouched. ⛔ The cell cannot draw the line itself in collapsed mode
+  (it paints nothing outside its padding box, and no outer shadow); HANDOFF's 19 Nov entry has the repro.
+
 **Why, concretely.** These three cost weeks and are each invisible without measurement:
 
 - Calibri/Carlito's `"0"` advances 7.4336 px, but **Excel floors MDW to 7**. Using the true

@@ -29,6 +29,22 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — The waterfall headings' top line no longer splits in two after a scroll (19 Nov 2026)
+
+The owner saw the thick black line over the waterfall's column headings turn into a double line (dark, a white hairline,
+dark) after scrolling down and back up. That line is two 2 px rules from two painters: the table's collapsed top border
+and the sticky heading row's inset shadow. Once the grid has scrolled, Chrome gives the sticky row its own compositor
+layer and rounds its position on its own, so where the grid sits at a fractional pixel the row lands a device pixel below
+the border and the table's white background shows between them. A heading cell cannot paint over the border (its outer
+shadow and anything outside its padding box are not drawn in collapsed-border mode), so the table's background now
+carries a 4 px ink strip across its top, under the heading row: hidden at rest, and the only thing a shifted row can
+uncover. An owner-approved frozen-surface edit (the owner's "Yes, fix it"), screen only (`@media screen`, `#table-wrap`):
+no cell, width or height moves, the print fallback keeps its border, and the workbook and both PDFs read no CSS.
+Verified: the seam reproduced in the browser by forcing the heading row onto its own layer at 190% (3 dark, 1 light,
+3 dark rows), gone with the strip at every column across the width; the line at rest and the stuck heading row
+unchanged; `npm run check` 46/46; against the build, `base` (clipped cells 0 / 2, as its baseline), `calzoom` 26/26,
+`hdrrow` 40/40.
+
 ## v1.23.0 — New notes stay with their phase week; the update bar on every update and a What's New window; "Final Delivery" on Post's last day (19 Nov 2026)
 
 Cut so that every installed copy sees the blue bar for these changes: a copy on the build before v1.23.0's update
@@ -52,6 +68,8 @@ and tried in the browser (fixture `carry-rich`: all 45 empty cells hidden, the h
 double-click opens the editor).
 
 ### "Enter a week count" waits for Enter (19 Nov 2026)
+||||||| parent of 5c31a38 (The waterfall headings' top line no longer splits after a scroll (owner))
+### Unreleased — "Enter a week count" waits for Enter (19 Nov 2026)
 
 The owner asked for the red "Enter a week count to include this phase" under a phase card to show only when asked for.
 It used to appear the moment a start date was typed, while the length was still to come. Now it shows only after Enter
