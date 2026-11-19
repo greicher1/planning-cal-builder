@@ -29,6 +29,19 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — The waterfall's Notes "+" shows only while you point at its cell (19 Nov 2026)
+
+The owner asked for the "+" in the waterfall's Notes column to appear only on hover, as the month view's does. Every
+empty Notes cell used to show a light grey "+"; now it is hidden until you point at that cell, when it shows in the
+same purple as before (the cell's light purple hover fill is unchanged). Double-clicking an empty cell still adds a
+note. Only the cell pointed at shows its "+", not the whole row: a waterfall row runs across every year block, so a
+row-wide glow would light the Notes cells of other years' weeks. Two ADDED screen rules in `legacy.css`
+(`#table-wrap td.sheet-note-cell .note-add-hint` opacity 0, and 1 on `:hover`) under the two frozen `.note-add-hint`
+rules, which are not edited: opacity only, so no cell, column or export moves, and print already hid the "+". New leg
+`noteplushover` 7/7 (red on H0-H2 without the change), in `gate.sh`. Verified: `npm run check` 43/43, `softlines` 6/6 (dayoverrides) and 6/6 (halfmarks), `notelook` 13/13, `wfnoteeditor` 14/14, `noteviews` 15/15, `textfit` g=small 5/5 and g=wf 2/2, `forcedcolors` (control) 7/7,
+and tried in the browser (fixture `carry-rich`: all 45 empty cells hidden, the hovered one shown in purple,
+double-click opens the editor).
+
 ### Unreleased — A new note stays with its phase week by default (19 Nov 2026)
 
 Owner: *"New default, notes should stay with their specifc phase week and not the specific actual week"*, then the

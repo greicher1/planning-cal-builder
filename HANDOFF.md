@@ -4,6 +4,25 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### 🔨 19 Nov 2026: THE WATERFALL'S NOTES "+" SHOWS ONLY ON HOVER — BUILT; owner tried it on localhost and said "finish it"; targeted legs, NOT a full gate; ASKING TO MERGE / PUSH. Branch `note-plus-hover` (worktree `.claude/worktrees/note-plus-hover`, from `origin/main` `2215aa5`; `node_modules` is a symlink, unlink it before `git worktree remove`). Tracker card `waterfall-note-plus-hover`.
+- **Owner:** *"What if the plus symbol only appears in the notes collumn of the waterfall when you hover over it - similar
+  to how it works in the month view"*, then *"Yes, build it"*, *"finish it"*.
+- **As built:** two ADDED rules in `legacy.css`, right under the two frozen `td.sheet-note-cell .note-add-hint` rules
+  (which are untouched): `#table-wrap td.sheet-note-cell .note-add-hint{opacity:0; transition:opacity .12s}` and
+  `#table-wrap td.sheet-note-cell:hover .note-add-hint{opacity:1}`. Opacity only, so no box moves (leg G1 measures it);
+  the `+` keeps its frozen #ccc / 11 px, and its frozen hover colour #b39ddb is what shows. `#print-root` already hid it.
+  No `@media screen` wrapper on purpose: `#table-wrap` is not in any print document, and a new `@media screen` block
+  risks the build merging it with a neighbour (the Soft Lines trap).
+- ⚠️ **Cell, not row.** The month view lights every day's `+` faintly across the hovered week. The waterfall's `<tr>`
+  runs across every year block, so a row glow would light other years' weeks; the owner was told and kept the cell.
+- **Leg `noteplushover`** (in `gate.sh`'s run.sh list): H0 rules present, H1 every hint opacity 0 at rest, H2 the hover
+  rule reaches every hint (a page cannot hover itself, so it reads the rule), H3 frozen look kept, G1 paint only, P1
+  print hides it, E0. Red on H0-H2 with `origin/main`'s CSS.
+- **Verified:** `npm run check` 43/43; `noteplushover` 7/7; `softlines` 6/6 (dayoverrides) and 6/6 (halfmarks), `notelook` 13/13, `wfnoteeditor` 14/14, `noteviews` 15/15, `textfit` g=small 5/5 and g=wf 2/2, `forcedcolors` (control) 7/7; browser (fixture `carry-rich`, 45 empty
+  cells hidden, the hovered one shown, double-click opens the editor). Not a full gate: the change is opacity only and
+  the gate measures boxes and exports, neither of which it can move.
+- **Next:** ask the owner to commit, then separately to push (merge `origin/main` first if it moved).
+
 ### 🔨 19 Nov 2026: A NEW NOTE STAYS WITH ITS PHASE WEEK BY DEFAULT — BUILT; owner said "Finish it"; ✅ FULL GATE GREEN (every failure load, green alone); owner's pickers *"Commit on the branch"*, *"Merge into main and push"*: committed `df1a209`, `origin/main` (`2b77e98`) merged in as `ccce702`, PUSHED to `main`. Branch `notes-follow-phase` (worktree `.claude/worktrees/notes-follow-phase`, from `origin/main` `1b45340`; `node_modules` is a symlink, unlink it before `git worktree remove`). Uncommitted. Tracker card `notes-default-stay-with-phase`.
 - **Owner:** *"New default, notes should stay with their specifc phase week and not the specific actual week"*. Pickers:
   which phase in a shared week = **First in the list** (`wfLinkOptions[0]`, the row's left-most phase cell); saved notes

@@ -1901,6 +1901,10 @@ done
 # next phase (Production: its last shoot day), one undo step, the end holding while Production grows (no automatic
 # pull, R3), a Dates built-in moving whole, and both kinds stepping back over the 12/21/26 hiatus; R5 (19 Nov 2026):
 # an EMPTY card before a dated phase offers it with nothing on Ends, beside Start after between two dated phases. Own line.
+# noteplushover (owner, 19 Nov 2026: the waterfall's Notes "+" shows only while you point at its cell, as the
+# month view's does) holds the two added .note-add-hint rules: hidden at rest, the hover rule reaching every hint, the
+# frozen colour and size kept, every Notes cell's and hint's box unchanged without the rules (paint only), and print
+# still hiding it. Own line.
 # spancounts (owner, 2 Nov 2026: "three icons: one that says the number of production weeks, one that says the number
 # of holidays costing a shoot day, and something that says the number of Off Days"; version D, then "D replaces the
 # whole line") holds the counts under Production's span: weeks = the meta line's, the holidays and Off days that cost
@@ -2327,6 +2331,7 @@ for AFSPEC in pwagate:-:120 pwagatelogic:-:120 cfmove:-:180 settingswin:-:240 ne
               endsdate:-:400 \
               prodends:-:400 \
               finishbefore:-:300 \
+              noteplushover:-:120 \
               spancounts:-:300 \
               retiredplaces:-:300 \
               caholidays:-:400 \
