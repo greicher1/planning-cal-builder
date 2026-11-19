@@ -4,7 +4,7 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### 📦 19 Nov 2026: POST'S END NOTE READS "FINAL DELIVERY 9/22/28" — on `scenario-version-offer`, committed locally, NOT pushed. README "Unreleased". Tracker card `post-end-final-delivery`.
+### 📦 19 Nov 2026: POST'S END NOTE READS "FINAL DELIVERY 9/22/28" — on `scenario-version-offer` (`2b77e98`), LIVE: pushed to `main` on the owner's "Yes, push it", deploy green, the live file carries `text:`Final Delivery``. README "Unreleased". Tracker card `post-end-final-delivery`.
 - **Owner:** *"the auto note for the final friday of the last week of post production should be changed to "Final
   Delivery 9/22/28" - where 9/22/28 is the friday date"*.
 - **As built:** `AUTO_NOTE_PHASE_EDGES`' `postEnd` entry carries `text:'Final Delivery'` (Writer's Room Closes' pattern),
