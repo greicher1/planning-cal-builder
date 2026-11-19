@@ -17,6 +17,7 @@
 //   Y1  hidden and alone in a later year (2028), it adds no 2028 block to the waterfall; the month view draws it there
 //   N1  Writer's Room hidden: its "Writer's Room Opens" note leaves the waterfall, the workbook and the waterfall PDF,
 //       and stays in the month view
+//   (Since 18 Nov 2026 the tick's row is hidden and every click goes through the head's corner: clickTick.)
 //   C1  the cards: one tick on every phase card but Production's (Production none, Episodic Prep none, Double-ups none), no id on any;
 //       the fixture's tick on; "Month view only" on Colour Grading and Episodic Prep only, inside the head
 //   C2  the tag stays on screen while the card is folded
@@ -78,15 +79,19 @@ window.addEventListener('load', function () { (async function () {
   function tickOf(key) { var r = rowOf(key); return r ? r.querySelector('.phase-hidewf-cb') : null; }
   function tagOf(key) { var r = rowOf(key); return r ? r.querySelector('.phase-mvonly-tag') : null; }
   function tagShown(key) { var t = tagOf(key); return !!t && !t.hidden && getComputedStyle(t).display !== 'none' && t.getBoundingClientRect().height > 0; }
-  // ⛔ HIT-TESTED: the element on top at the switch's centre must be the switch, and THAT element gets the click.
+  // ⛔ HIT-TESTED: the element on top at the control's centre must be the control, and THAT element gets the click.
+  // Since 18 Nov 2026 (owner, "Build A") the control is in the head's corner, not the tick's row (hidden): the eye
+  // while the phase is in the waterfall, the "Month view only" tag while it is hidden. Either clicks the tick.
   async function clickTick(key) {
     await phasesTab();
-    var b = tickOf(key);
-    if (!b) throw new Error('no Hide in waterfall tick on ' + key + '\'s card');
+    var t = tickOf(key);
+    if (!t) throw new Error('no Hide in waterfall tick on ' + key + '\'s card');
+    var b = rowOf(key).querySelector(t.checked ? '.phase-head-corner button.phase-mvonly-tag' : '.phase-head-corner .phase-wf-eye');
+    if (!b) throw new Error('no corner control on ' + key + '\'s card');
     b.scrollIntoView({ block: 'center' });
     await T.sleep(150);
     var r = b.getBoundingClientRect(), hit = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
-    if (hit !== b) throw new Error('the tick is not on top at its centre (got ' + (hit && (hit.className || hit.tagName)) + ')');
+    if (hit !== b) throw new Error('the corner control is not on top at its centre (got ' + (hit && (hit.className || hit.tagName)) + ')');
     hit.click();
     await settle();
   }

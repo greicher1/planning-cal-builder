@@ -87,6 +87,26 @@ function phaseSnapped(key) {
   return cb ? cb.checked : true
 }
 
+// ⭐ THE SNAP TO MONDAY SWITCH LIVES HERE (owner, 18 Nov 2026: "putting snap to monday slider inside the mini
+// calendar pop up box, at the bottom where the message currently is"; "Yes, build it"). The phase card's own row is
+// hidden by CSS (.phase-row .phase-snap), and the switch at the foot of this picker drives that same box: the
+// engine's snap-<key> stays in the document, in fields.byId and in every saved file, exactly as before. Flipping it
+// here is a real click on that box, so the engine's listeners, the undo step and update() all run as they do for a
+// click on the card. ⛔ The switch here carries no id (collectFieldValues sweeps every input[id]).
+// Shown only where the switch means something: a phase's Starts box whose snap-<key> exists, on a Weeks phase
+// (Days and Dates never snap) that is not on Ends (an Ends phase is always whole weeks). Not on a hiatus (always a
+// Monday), not on Build Around's date (a tool's field, never a phase setting).
+function snapBoxOf(el) {
+  if (!el.id.startsWith('start-')) return null
+  const key = el.id.slice(6)
+  const cb = document.getElementById('snap-' + key)
+  if (!cb) return null
+  const unit = document.getElementById('unit-' + key)
+  if (unit && (unit.value === 'days' || unit.value === 'dates')) return null
+  if (el.closest('.phase-row.ends-mode')) return null
+  return cb
+}
+
 // How the engine reads the date in `el`, and so how it may be picked:
 //   'monday' — snapped to its week's Monday (readState / computeSchedule), so only Mondays;
 //   'friday' — an Ends phase's end (the engine's phaseEnds; owner, 30 Oct 2026: "Yes, no switch"), which always
@@ -97,7 +117,7 @@ function phaseSnapped(key) {
 //   'week'   — any day picks its week (the range is cut by whole weeks, and Anchor To's start
 //              moves the calendar by whole weeks: weeksBetweenMondays), so the band stays.
 // Read on every render: the popover closes on any outside press, so a switch cannot change
-// under it.
+// under it, except its own Snap to Monday switch (snapBoxOf), which re-renders it.
 function fieldKind(el) {
   if (el.id === 'custom-hol-date') return 'day'
   if (el.classList.contains('hiatus-start') || el.classList.contains('phiatus-start')) return 'monday'
@@ -135,6 +155,8 @@ export function DatePop() {
   const [pos, setPos] = useState({ x: 0, y: 0 })
   const [hover, setHover] = useState(null)        // ms | null
   const [ctx, setCtx] = useState({ holidays: [], hiatuses: [], hiatusWindows: {} })
+  // Bumped when the Snap to Monday switch below is flipped: the engine's box changed, so the field's kind did.
+  const [, setSnapFlips] = useState(0)
   // open() reads the context it opens with (a phase hiatus opens on its phase's first month), and
   // stays one callback for the life of the listeners below, so it reads it through a ref.
   const ctxRef = useRef(ctx)
@@ -217,6 +239,19 @@ export function DatePop() {
 
   const kind = fieldKind(target)
   const weekMode = kind === 'week'
+  const snapBox = snapBoxOf(target)
+  // A real click on the engine's box: its 'input' and 'change' reach every listener a click on the card reached.
+  // ⛔ A focusout on the field FIRST. On the card, the click took focus out of the Starts box before the switch
+  // flipped, and the engine's showSnappedMonday() settled the box on that focusout under the OLD setting. Here focus
+  // stays in the box (the popover's mousedown keeps it there), so without this a Wednesday picked with Snap off,
+  // then Snap switched on, was rewritten to its Monday when the box was finally left: switching Snap back off no
+  // longer gave the Wednesday back (datepick P7), and the rewrite was folded into an unrelated undo step. Only
+  // showSnappedMonday listens for focusout on a phase's Starts box (the ripple's capture listener ignores it).
+  const flipSnap = () => {
+    target.dispatchEvent(new FocusEvent('focusout', { bubbles: true }))
+    snapBox.click()
+    setSnapFlips((n) => n + 1)
+  }
   const win = hiatusWindowOf(target, ctx)
 
   // The write-back: the native setter plus a real 'input' event, so React's value tracker (on the
@@ -339,7 +374,13 @@ export function DatePop() {
       {weekMode && (
         <div className="dp-hint">Any day picks its week — the calendar snaps to that Monday.</div>
       )}
-      {kind === 'monday' && (
+      {snapBox ? (
+        <label className="dp-snap sw-row"
+          title="On: this phase starts on the Monday of its week. Off: it starts on the exact date you pick.">
+          <span className="sw-label">Snap to Monday</span>
+          <input type="checkbox" checked={snapBox.checked} onChange={flipSnap} />
+        </label>
+      ) : kind === 'monday' && (
         <div className="dp-hint">
           {win
             ? 'A hiatus always starts on a Monday, in a week this phase runs.'

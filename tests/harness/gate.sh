@@ -1924,6 +1924,17 @@ done
 # PDF drawing it, Writer's Room's auto-note leaving the waterfall outputs only, the tick (no id) on every card but
 # Production's, the tag while folded, one undo step, Save/Load, the M-5 trap, a byte-identical file once nothing is
 # hidden, a hostile key, removal pruning the key, and Shift All.
+#   ⚠️ Since 18 Nov 2026 the tick's row is hidden and hidewf clicks the head's corner (see wfcorner).
+# snappicker (owner, 18 Nov 2026: "putting snap to monday slider inside the mini calendar pop up box", "Yes, build it")
+# holds Snap to Monday in the phase's Starts picker: no card shows its row (every snap-<key> still in the document), the
+# picker's foot is the switch (on, no hint, no id), a flip there is the box's and one undo step, Production's too, a
+# Wednesday picked with Snap off survives switching Snap on IN the picker and leaving the box (red without flipSnap's
+# focusout), no switch on a hiatus, a Dates start, a custom holiday or Build Around's date, and no new field id.
+# wfcorner (owner, 18 Nov 2026: option A of mockups/hide-in-waterfall-corner.html, "Build A", then "fix 1") holds Hide
+# in waterfall in the card head's top right corner: the eye on every hideable card, the tag (a 22 px icon button saying
+# "Month view only" in its text and title) in its place once hidden, Episodic Prep / Double-ups' tag as text, no corner on
+# Production, no id; the body's row and a built-in's whole switch block gone; eye and tag each one undo step, folded too;
+# a custom phase's x in the corner with the dates line at full width. Own lines.
 # stylebarplace (owner, 10 Nov 2026) is where the text style bar sits: its bare buttons on the toolbar's first line,
 # beside Shift with Build Around's gap before it (--tools-group-gap, one value), at Shift's 30 px, the Size box's own
 # arrow 8 px in; a header line's Highlight well growing it leftward with nothing else moving. ⚠️ Re-expected 16 Nov 2026
@@ -2340,6 +2351,8 @@ for AFSPEC in pwagate:-:120 pwagatelogic:-:120 cfmove:-:180 settingswin:-:240 ne
               mvbarsize:mvnotes:900 mvbarsize:hiatus-blanklabel:900 \
               mvnotesize:mvnotes:900 mvnotesize:month-dense60:900 \
               hidewf:hidewf:400 \
+              snappicker:-:200 \
+              wfcorner:-:200 \
               rebuildticks:-:300 \
               buildaround:-:600 \
               anchorside:anchorside:400 \
@@ -3952,6 +3965,24 @@ for c in a.get('checks') or []:
     print(('  PASS  ' if c.get('ok') else '  FAIL  ')+'calzoom: '+str(c.get('what'))[:170])
 sys.exit(0 if a.get('pass') is True and a.get('checks') else 1)
 PYCZ
+
+# ---- pinchzoom: pinch, Ctrl-scroll and the zoom keys zoom the calendar, never the app (owner, 18 Nov 2026) ---------
+# Wheel events with ctrlKey (a trackpad pinch, Ctrl + a mouse wheel) and Cmd/Ctrl + = / - are cancelled and become the
+# slider's own zoom, about the pointer; Cmd/Ctrl+0 resets the calendar and is left to Chrome too. app.js, "PINCH,
+# CTRL-SCROLL AND THE ZOOM KEYS".
+rm -f "$HERE/pinchzoom.json"
+HARNESS_PAGE="$PAGE" HARNESS_STATE=mvnotes "$HERE/run.sh" pinchzoom 300 >/dev/null 2>&1
+python3 - "$HERE/pinchzoom.json" <<'PYPZ' || FAIL=1
+import json,sys
+try: a=json.load(open(sys.argv[1]))
+except Exception as e:
+    print('  FAIL  pinchzoom produced no result: '+str(e)); sys.exit(1)
+if a.get('EX'):
+    print('  FAIL  pinchzoom threw: '+str(a['EX'])[:200])
+for c in a.get('checks') or []:
+    print(('  PASS  ' if c.get('ok') else '  FAIL  ')+'pinchzoom: '+str(c.get('what'))[:170])
+sys.exit(0 if a.get('pass') is True and a.get('checks') else 1)
+PYPZ
 
 # ---- zoomresize: the waterfall's resize handles at every zoom (owner, 22 Oct 2026) ------------------------------
 # Frozen edits Z1-Z6 (owner sign-off by picker) divide installGridResizers' and the drags' screen measurements by

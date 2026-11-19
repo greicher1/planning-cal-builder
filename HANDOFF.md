@@ -4,7 +4,7 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### 🏷️ 19 Nov 2026: SCENARIO TABS SHOW THEIR VERSION, A COPY IS OFFERED THE NEXT — branch `scenario-version-offer` (from `main` `ee05f69`), committed locally, NOT pushed. README "Unreleased". Tracker card `scenario-version-bump`.
+### 🏷️ 19 Nov 2026: SCENARIO TABS SHOW THEIR VERSION, A COPY IS OFFERED THE NEXT — merged with origin/main (v1.22.0 + the Tandem / Show info / zoom pushes) and pushed to `main` on the owner's picker. README "Unreleased". Tracker card `scenario-version-bump`.
 - **Owner, in order:** asked whether a new scenario should take the Version as its name or the Version show in the bottom
   bar; then *"it could automatically set the version number to the next number"*; *"could there be a dialogue that asks"*;
   picked a strip offer (B), then asked to name tabs after the version *"as a suggestion, not force them"*, linked to the
@@ -29,7 +29,94 @@
   comparehiatus 8/8, retiredplaces 8/8, recoverfail mode=scen 3/3, loadsparse v=scen 7/7, changessince 15/15. `npm run check` 43/43. No full gate
   (chrome + scenario engine, nothing frozen, no saved key).
 
-### 🖥️ 18 Nov 2026: THE FIRST APP WINDOW FILLS THE SCREEN — LIVE (`fcc213c`, pushed on the owner's picker; deploy green, GitHub Pages serves it, the Cloudflare address is behind the sign-in so it was not fetched). README "Unreleased". Tracker card `app-opens-full-screen`.
+### 🔨 19 Nov 2026: SHOW INFO'S FIELD ORDER PER MODE — built on `show-info-tandem` (after the Tandem push), NOT pushed. Tracker card `show-info-field-order`.
+- **Owner:** Episodes mode reads Schedule by, Number of Episodes, Shooting Days per Ep + Tandem, Version, Region, Location;
+  Blocks mode reads Number of Blocks, Shooting Days per Block + Tandem, then Number of Episodes, *"it can still be optional
+  but remove that it says so"*.
+- **Done in `Sidebar.jsx` only:** markup order is num-blocks, days-per-block row (Blocks only), `#num-episodes` (both), the
+  days-per-episode row (Episodes only); the `(optional)` span is gone. ⛔ Never duplicate `#num-episodes` to get the two
+  orders: its id is the save format. Help still says the count is optional in Blocks (true).
+- **Legs:** `doubleups` SI8 (both orders), `labelsetup` B1u re-premised to the plain label.
+
+### ✅ 19 Nov 2026: TANDEM DAYS IN SHOW INFO — LIVE (`4562e9d`, pushed on the owner's picker; deploy green to GitHub Pages and Cloudflare, the GitHub Pages copy fetched and carries `si-tandem-in`; the Cloudflare address is behind the sign-in, so not fetched). Branch `show-info-tandem` (worktree `.claude/worktrees/show-info-tandem`, from `origin/main` `1b45340`; `node_modules` is a symlink, unlink it before `git worktree remove`). Mockup [`mockups/show-info-tandem.html`](mockups/show-info-tandem.html) (main checkout, untracked). Tracker card `show-info-tandem`.
+- **Owner:** *"add double-up/tandem days in the Show Info section. To the right of the Shooting days per episode should be a big plus symbol and then to the right of that another box"*; then *"the plus doesn't need to be that big"*, *"could all be on one line"*, *"remove the subtext below it, then build it"*.
+- **Built:** Show info's days row is `days box + Tandem Days` on one line, in Episodes and in Blocks mode (`TandemDaysBox` in `Sidebar.jsx`, `.si-days-tandem` in `legacy.css`). The box is a SECOND view of the Tandem card's "Default tandem days" (`doubleUpDays`, saved as `doubleUps.days`): a delegated `input` listener writes it as the card's box does, `reflectShowInfoTandem()` (from `update()`) writes it back. Undo, both directions and Blocks mode checked in the pane; `npm run check` 43/43.
+- ⛔ **No id on the box:** a PLAIN `<input>`, the Region mirror's pattern. A Mantine `Input` inside `Input.Wrapper` TOOK THE WRAPPER'S MINTED ID (seen in the built page), which the save sweep would have baked into `fields.byId`.
+- The days label runs over the plus column (`nowrap`), which keeps it to one line in the 280 px sidebar (142 of 146 px). "Whole days only" sits under the row (absolute), not in the 72 px column, where it wrapped and lifted the box.
+- **Finished:** leg `doubleups` LIVE run gained SI0-SI7 (one line in both modes, no id on either copy, Show info -> card and
+  card -> Show info, one Undo, Save adds no `fields.byId` key, Load, the whole-days ring with the box kept in line); help
+  text in the Tandem paragraph; README "Unreleased". "One value in two places" was never ruled; the owner tried it and said
+  finish. No full gate (chrome + a sidebar listener, nothing frozen).
+
+### 🤏 18 Nov 2026: PINCH, CTRL-SCROLL AND ⌘+ / ⌘− ZOOM THE CALENDAR, NOT THE APP (branch `pinch-zoom`, worktree `.claude/worktrees/pinch-zoom`, from `origin/main` `0aaf387` = v1.22.0; NOT pushed). README "Unreleased". Tracker card `pinch-zoom-calendar`.
+- **Owner:** *"Allow trackpad pinch and related mouse zoom buttons to control the viewport of the waterfall and month
+  view rather than just zooming in the entire UI of the app"*.
+- **Done:** app.js "PINCH, CTRL-SCROLL AND THE ZOOM KEYS", right after the slider's `sptcal-zoom` listener. A capture
+  `wheel` listener on `window` (`passive: false`) cancels every wheel with `ctrlKey` (Chrome's pinch and Ctrl+wheel) and
+  feeds `setCalZoom()`: a small delta is a pinch (`× exp(−dy·0.01)`, kept unrounded in `pinchZoom` across the
+  gesture), |dy| ≥ 50 is a mouse notch (the buttons' 10% step, `calZoomStep`). ⌘ / Ctrl + `=` `+` `-` `_` are
+  cancelled and stepped; ⌘0 / Ctrl+0 sets 100% and is NOT cancelled, so Chrome resets the app too (the only way back
+  for a window pinch-zoomed before this). With nothing to zoom or a dialog up (`appDialogOpen()`), the gesture is still
+  cancelled and nothing zooms.
+- ⚠️ **The pointer anchor holds an ELEMENT, not a scroll offset** (`calZoomAnchor`, `zoomCalendarAbout`): Chrome lays
+  the waterfall out a little differently at each zoom (83 own px over 45 rows from 149% to 182%), so a point's place in
+  the box's own px drifts. And a pinch keeps ONE anchor for the whole gesture (`pinchHold`, dropped after 400 ms idle,
+  a render, or 8 px of pointer travel): where the box cannot scroll yet (a window wider than the month page at 100%),
+  the point slides off and a per-step anchor kept that slide for good. Zoomed out until the grid fits, it sits on the
+  box's left edge as at 100%, and no point right of that can be held (the leg's P9 stops before then).
+- ⛔ Chrome hands these to the page before it zooms; the leg's events are synthetic, so it reads `defaultPrevented`.
+  **Not yet tried with a real trackpad in an installed window.** Touchscreen pinch (pointer events, not wheel) is not
+  handled.
+- **Legs:** new `pinchzoom` 20/20 (in `gate.sh`, after `calzoom`), `calzoom` 26/26, `zoomresize` 40/40, `npm run
+  check` 43/43. No full gate (chrome only, no frozen code).
+
+### 🧩 18 Nov 2026: PHASE CARDS LOSE THEIR SWITCH ROWS — Snap to Monday in the date picker, Hide in waterfall in the head's corner (branch `claude/snap-in-picker`, worktree `.claude/worktrees/snap-in-picker`, from `origin/main` `7c2e34e` = v1.20.1). README "Unreleased". Tracker cards `snap-switch-in-date-picker`, `hide-in-waterfall-corner`.
+- **Owner:** *"putting snap to monday slider inside the mini calendar pop up box, at the bottom where the message
+  currently is"* → *"Yes, build it"*; then a mockup of four ways to move Hide in waterfall to the card's top right corner
+  ([`mockups/hide-in-waterfall-corner.html`](mockups/hide-in-waterfall-corner.html): A tag-is-the-switch, B eye + tag
+  under the name, C waterfall/month icon chip, D ⋯ menu) → *"Build A"*; A cut names (the "Month only" words took 83 px
+  of a 155 px name box) → *"lets go with fix 1"*: the tag is an icon the eye's size, its words in its title. Fix 2 (a
+  custom phase's × only on hover, which would give "Music & Sound Mix" its last 8 px) was offered and NOT chosen.
+- **How it is built (no saved-file change, no frozen code):**
+  - The picker's switch (`DatePop.jsx` `snapBoxOf` / `flipSnap`, id-less, `.dp-snap`) CLICKS the card's `#snap-<key>`,
+    which stays in the page hidden by `.phase-row .phase-snap{display:none}`. Shown on a Weeks phase's Starts and
+    Production's only; Build Around's date keeps its hint (a tool's field is not where a phase setting changes).
+  - ⛔ `flipSnap` dispatches a `focusout` on the box BEFORE the click. The card's click used to take focus out first, so
+    `showSnappedMonday()` settled a typed/picked date under the OLD setting; in the picker focus stays in the box, and
+    without it a Wednesday picked with Snap off was rewritten to its Monday when the box was left after switching Snap
+    on, breaking the deliberate "Snap off again gives the Wednesday back" (datepick P7) and folding the rewrite into an
+    unrelated undo step. `snappicker` S5 holds it.
+  - The head's corner (`phaseHeadHtml` → `.phase-head-corner`, FLOATED inside `.phase-head-text` before the title, so
+    only the name's line gives it room and the dates keep full width) holds `MVONLY_TAG`: on a hideable phase an id-less
+    `.phase-wf-eye` button and the tag as a `button.phase-mvonly-tag` (hidden until hidden); on Episodic Prep and
+    Double-ups the tag as a span. A delegated click on `#phase-rows` / `#custom-phase-rows` clicks the card's
+    `.phase-hidewf-cb` (its row hidden), so `phaseHidden`, its handler and the one undo step are unchanged;
+    `reflectPhaseHidden()` swaps eye and tag. The tag keeps "Month view only" as its text (font-size 0) and title.
+  - A custom phase's `.remove-custom-phase` moved into the corner (same element, its direct listener intact).
+  - A `.phase-switches` block with no row left to show is hidden (every built-in's; custom phases keep Number weeks).
+- **Legs:** new `snappicker` 8/8 (S5 red on a mutant without the focusout: it reopens the picker by a CLICK, since a
+  dispatched focusin clears `snapTyped` and hides the bug) and `wfcorner` 8/8 (both in gate.sh's AFSPEC list after
+  `hidewf`); `endsdate` E1 asks Localization's picker for Snap. ~30 other snap / card legs green (README). Re-expected:
+  `datepick` (P1/P4/P5/P7 read the switch, not the hint; U1/R1 no switch), `builtindates` / `customunits` (the card's
+  snap row is never shown; the Starts picker is asked whether it offers Snap), `hidewf` (`clickTick` clicks the corner's
+  eye / tag, hit-tested), `phasesui` P4 (measures Number weeks and the 22 px corner control).
+- **Committed** `16f0222` (owner's picker "Commit locally"); v1.21.0 merged in at `d6a9bb2` (README / HANDOFF top-entry
+  conflicts only, both kept). **Full gate** on the merge (port 8491): 5,791 PASS / 16 FAIL; `phasesmore` M1/M5/M8 x2
+  were this change (re-expected: Snap is no card switch, Hide in waterfall counts as the corner's eye or tag), the other
+  ten pass alone (`phasesui` P1 and `offweek` R12/R13 the load timeout v1.21.0's gate also had, `monthexport` X6 9/9,
+  `sideboxes` 78/78). Every baseline identical.
+- **v1.22.0 (owner's picker *"Cut v1.22.0 and push"*):** `origin/main` `fcc213c` (New removed from the File menu, the
+  first window fills the screen: both already live, no version of their own) merged in at `4cc8eee` (README / HANDOFF
+  conflicts only; the one "## Unreleased" now holds all three entries). After it: `npm run check` 43/43, `firstrun`
+  22/22, `pwagatelogic` 15/15, `oskeys` 10/10, `snappicker`, `wfcorner`, `datepick`, `hidewf`, `phasesmore` green (no
+  second full gate: the two merged commits were live already and touch the File menu and the window). Cut:
+  `APP_VERSION`, `version.json`, `package.json` at 1.22.0; `releases/v1.22.0.html` cmp-identical to the build (sha256
+  `bd2128f4aca7f825…`, 2,310,630 bytes); `tests/fixtures/v1.22.0-saved.sptcal` a real Save (46 keys, 77 ids, 0 clipped,
+  v1.21.0's but `lastEdited`); tag `v1.22.0`.
+  - ⚠️ Found, not touched: README and HANDOFF on `main` carry stray diff3 markers (`||||||| bf6e235` etc.) left by an
+    earlier release merge. Harmless text; worth deleting in a docs pass.
+
+### 🖥️ 18 Nov 2026: THE FIRST APP WINDOW FILLS THE SCREEN — on local `main`, NOT committed or pushed. README "Unreleased". Tracker card `app-opens-full-screen`.
 - **Owner:** *"when you first download/open the app, its opening with a smaller window - it needs to open as wide such
   that it fills the users screen"*.
 - **Done:** `fillAppWindow()` in the install gate's script (`src/index.html`, before the gate's own returns, so it runs on
