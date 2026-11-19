@@ -52,8 +52,14 @@
   doubleups; `cmdprint` 6/6, `pdfdialog` 15/15, `filekeys` 16/16, `monthpick` 10/10, `scenarios` 23/23, `phasesui` 8/8,
   `cspproof` 15/15.
 - ✅ **`origin/main` (`a3fac82`, v1.19.0) merged in at `41cedec`** (conflict in HANDOFF only, both kept), and a **SECOND FULL GATE on the
-  merged build: 5,848 PASS / 0 FAIL, `=== GATE PASSED ===`** (port 8985, 18 Nov 2026, alone). Ready to ship: merging and pushing
-  wait on the owner's picker (CLAUDE.md).
+  merged build: 5,848 PASS / 0 FAIL, `=== GATE PASSED ===`** (port 8985, 18 Nov 2026, alone). Then v1.19.1-v1.19.2 landed on
+  `origin/main` and were merged in at `e489a15` (HANDOFF only, both kept); `exportnames`, `filenamelist`, `monthexport`, `pdfdialog`
+  and the Version section rerun on that build, all green (v1.19.2's own `monthpage` leg not rerun: this work does not touch it).
+- 🚀 **CUT AS v1.20.0 and pushed on the owner's picker *"Cut v1.20.0"* + *"Push and deploy now"* (18 Nov 2026):** `APP_VERSION`,
+  `version.json`, `package.json` at 1.20.0 (`npm run check` 42/42); README's entry under `## v1.20.0`; `releases/v1.20.0.html`
+  cmp-identical to the build (sha256 `6e8336bee5d8b5ca…`, 2,302,428 bytes); `tests/fixtures/v1.20.0-saved.sptcal` a real Save
+  (mintfixture: 46 keys, 77 ids), byte-identical to v1.19.2's but `lastEdited`; tag `v1.20.0` (annotated). The push and the live
+  check are the next line.
 
 ||||||| 1c9b008
 

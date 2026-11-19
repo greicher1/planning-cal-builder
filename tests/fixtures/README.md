@@ -208,6 +208,7 @@ holidays. Do not re-mint them without keeping a copy saved with a retired place:
 | File | Use |
 |---|---|
 | `v1.19.2-saved.sptcal` | the reference calendar saved by the v1.19.2 build (the shrink's font check), `t/mintfixture.js`: 46 keys, 77 ids, 0 clipped, byte-identical to `v1.19.0-saved.sptcal` but `lastEdited` |
+| `v1.20.0-saved.sptcal` | the reference calendar saved by the v1.20.0 build (export names with the WRO date, the File name list, the Version's "v"), `t/mintfixture.js`: 46 keys, 77 ids, `version: 1`, byte-identical to `v1.19.2-saved.sptcal` but `lastEdited` (the Version box is empty on this calendar, and the File name picks are per-computer preferences, not in the file) |
 | `v1.19.1-saved.sptcal` | the reference calendar saved by the v1.19.1 build (the version under the SPTCal name), `t/mintfixture.js`: 46 keys, 77 ids, 0 clipped, byte-identical to `v1.19.0-saved.sptcal` but `lastEdited` |
 | `v1.19.0-saved.sptcal` | the reference calendar saved by the v1.19.0 build (the month shrink and the 10-line day), `t/mintfixture.js`: 46 keys, 77 ids, 0 clipped, byte-identical to `v1.18.0-saved.sptcal` but `lastEdited` (neither feature saves anything) |
 | `v1.18.0-saved.sptcal` | the reference calendar saved by the v1.18.0 build (Finish before, and the note editor's "No date"), `t/mintfixture.js`: 46 keys, 77 ids, 0 clipped, byte-identical to `v1.17.5-saved.sptcal` but `lastEdited` |
