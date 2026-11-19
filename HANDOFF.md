@@ -4,7 +4,7 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### 🗑️ 19 Nov 2026: "RESET HIATUS BANDS" REMOVED — in the main checkout on `scenario-version-offer`, NOT committed or pushed. README "Unreleased". Tracker card `hiatus-reset-full-width`.
+### 🗑️ 19 Nov 2026: "RESET HIATUS BANDS" REMOVED — on `scenario-version-offer` (`ccfa8e7`), LIVE: pushed on the owner's picker, deploy green, the live file has no button, host or Help mention. README "Unreleased". Tracker card `hiatus-reset-full-width`.
 - **Owner** first asked for the button to span the sidebar like + Add hiatus period (done, then dropped), then asked
   whether it was needed at all. Analysis given: it reset only the bands' LOOK (label, colour, size, text styles, month
   band styles; all-phase and per-phase), never a hiatus, yet read as if it cleared the hiatuses; Undo, the card's name box
@@ -29,7 +29,6 @@
   this scenario": `scenarios` and `scenversion` find the button by it.
 - **Legs:** `scenversion` V9 (new, 10/10), `scenarios` 23/23; `npm run check` 43/43. Checked in the build: the tooltip
   follows the tab on screen.
-- ⚠️ That other chat's Sidebar.jsx change became the REMOVAL of "Reset hiatus bands" (entry above), still uncommitted.
 
 ### ➡️ 19 Nov 2026: A NEW SCENARIO GOES AT THE FAR RIGHT — on `scenario-version-offer` (`cde7299`), merged with origin/main (v1.22.0, Finish before R5) and pushed to `main` on the owner's picker. README "Unreleased". Tracker card `scenario-copy-far-right`.
 - **Owner:** asked whether a copy made while a tab other than the last is on screen should go at the far right instead
