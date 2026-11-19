@@ -22,7 +22,7 @@
 //       Ctrl+O, Ctrl+Z, Ctrl+Shift+Z, Ctrl+Y, Ctrl+C / X / V and Ctrl-click, and no ⌘ ⇧ ⌥ glyph at all; on a Mac ⌘N, ⌘O,
 //       ⌘S, ⇧⌘S, ⇧⌘E, ⌘P, ⌘Z, ⇧⌘Z, ⌘Y, ⌘C / X / V and ⌘-click, and no "Ctrl" (the old "⌘S or Ctrl+S" pairs are gone)
 //   H2  New (WIN-2): a Mac is offered ⌘N; Windows and Linux are offered no key for New (the browser keeps Ctrl+N) and
-//       are pointed at New in the File menu; the paragraph about the Mac menu bar shows on a Mac only
+//       are pointed at the New button (no New in the File menu since 18 Nov 2026); the paragraph about the Mac menu bar shows on a Mac only
 //   T1  the Undo / Redo hover hints: "Undo (Ctrl+Z)" / "Redo (Ctrl+Shift+Z)", or "Undo (⌘Z)" / "Redo (⇧⌘Z)" on a Mac
 //       (Apple's order, as Help writes it). Read from the Tooltip's own label prop: a headless run never draws a Mantine
 //       tooltip (no animation frames), so the prop React was handed is the evidence
@@ -126,11 +126,11 @@ window.addEventListener('load', function () { (async function () {
       {missing: missing, foreign: foreign.slice(0, 6)}, MAC ? 'every ⌘ key, no Ctrl' : 'every Ctrl key, no ⌘ ⇧ ⌥ ⌃');
     var h2 = {
       newKey: MAC ? /⌘N — New\b/.test(keysSec) : !/Ctrl\+N|⌘N/.test(keysSec),
-      fileMenu: MAC ? true : /New[^.]*File menu/.test(keysSec),
+      fileMenu: MAC ? true : /New[^.]*New button at the top/.test(keysSec),
       macMenuBar: /Mac menu bar/.test(help) === MAC,
       windowsAside: !/On Windows, use/.test(help),
     };
-    add('H2', MAC ? 'New is ⌘N on a Mac, and the Mac menu bar paragraph shows' : 'no key is offered for New (Chrome keeps Ctrl+N), New in the File menu is; no Mac menu bar paragraph',
+    add('H2', MAC ? 'New is ⌘N on a Mac, and the Mac menu bar paragraph shows' : 'no key is offered for New (Chrome keeps Ctrl+N), the New button is; no Mac menu bar paragraph',
       h2.newKey && h2.fileMenu && h2.macMenuBar && h2.windowsAside, {checks: h2, keys: keysSec.slice(0, 700)}, 'all true');
 
     // ---- T1: the Undo / Redo hover hints ----

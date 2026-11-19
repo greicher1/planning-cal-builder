@@ -77,6 +77,37 @@
     for (var i = 0; i < APP_MODES.length; i++) if (mq('(display-mode: ' + APP_MODES[i] + ')')) return true;
     return nav.standalone === true;          // an iOS home-screen app
   }
+  // ⭐ THE FIRST APP WINDOW FILLS THE SCREEN (owner, 18 Nov 2026: "when you first download/open the app, its opening
+  // with a smaller window - it needs to open as wide such that it fills the users screen"). A manifest cannot ask for a
+  // window size: Chrome opens a new app window at its own default size and then remembers whatever size the user leaves
+  // it at. So the FIRST time SPTCal runs in an app window it moves to the top left of the screen it is on and takes the
+  // screen's whole usable area (screen.avail*: never under the Dock, the menu bar or the taskbar).
+  //   - ONCE: localStorage 'sptcal.windowFilled'. After that the window is the user's, and Chrome reopens it at the
+  //     size they left it. With storage blocked it does nothing, rather than resize on every launch.
+  //   - Only in a real app window (standalone / window-controls-overlay / minimal-ui), never fullscreen (no window to
+  //     size) and never a browser tab, where Chrome ignores resizeTo anyway. Any host, so a localhost test install
+  //     behaves as the hosted one does.
+  //   - Runs here, before <body> is parsed, so the window grows before the app paints; once more at load if Chrome
+  //     had not applied it yet. A refusal throws nothing and changes nothing.
+  // Exposed as window.__fillAppWindow(win, inApp) so pwagatelogic W1-W4 can drive it with a stand-in window.
+  function fillAppWindow(win, inApp) {
+    var ls, s = win.screen;
+    try { ls = win.localStorage; if (ls.getItem('sptcal.windowFilled')) return 'done before'; } catch (e) { return 'no storage'; }
+    if (!inApp) return 'not an app window';
+    try { ls.setItem('sptcal.windowFilled', '1'); } catch (e) { return 'no storage'; }
+    if (!s || !(s.availWidth > 0) || !(s.availHeight > 0)) return 'no screen';
+    var x = s.availLeft || 0, y = s.availTop || 0, wd = s.availWidth, ht = s.availHeight;
+    function short() { return win.outerWidth < wd - 2 || win.outerHeight < ht - 2; }
+    if (!short()) return 'already full';
+    function grow() { try { win.moveTo(x, y); win.resizeTo(wd, ht); } catch (e) {} }
+    grow();
+    win.addEventListener('load', function () { if (short()) grow(); });
+    return 'filled';
+  }
+  w.__fillAppWindow = fillAppWindow;
+  fillAppWindow(w, !force && (mq('(display-mode: standalone)') || mq('(display-mode: window-controls-overlay)') ||
+                              mq('(display-mode: minimal-ui)')));
+
   if (!live && !force) return;               // not the hosted link: the app, exactly as before
   if (live && appWindow()) return;           // ⛔ the installed app window is ALWAYS the app
 
@@ -808,7 +839,7 @@
              data-os shows one of these two lines, and data-keys names each key for the computer Help is read on
              (src/chrome/keys.js, localizeKeys). Written with the Mac's words, which a Mac keeps. -->
         <li data-os="mac"><kbd data-keys="Mod+N">&#8984;N</kbd> &mdash; <strong>New</strong></li>
-        <li data-os="other" hidden><strong>New</strong> has no key here, because the browser keeps it for a new window: use <strong>New</strong> in the File menu, or the New button.</li>
+        <li data-os="other" hidden><strong>New</strong> has no key here, because the browser keeps it for a new window: use the <strong>New</strong> button at the top.</li>
         <li><kbd data-keys="Mod+O">&#8984;O</kbd> &mdash; <strong>Load&hellip;</strong></li>
         <li><kbd data-keys="Mod+S">&#8984;S</kbd> &mdash; <strong>Save</strong></li>
         <li><kbd data-keys="Mod+Shift+S">&#8679;&#8984;S</kbd> &mdash; <strong>Save As</strong></li>

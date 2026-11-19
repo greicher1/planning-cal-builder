@@ -13,8 +13,8 @@
 //   P2  ...and with only the Season blank it says to pick a Season in Show info
 //   P3  the Season rule is kept: with no Season, Production is not scheduled (the preview stays empty)
 //   R3  once a Season is picked Production schedules, the calendar is no longer empty, and the list goes away
-//   M3  WIN-2: the File menu has New; with unsaved work it asks New's own question, and "Start new" leaves a
-//       blank calendar -- whereupon the list comes back (R4)
+//   M3  WIN-2: New is the header's button (the File menu has NO New since 18 Nov 2026, owner); with unsaved work it
+//       asks New's own question, and "Start new" leaves a blank calendar -- whereupon the list comes back (R4)
 //   C1  a shareable copy built while the list shows carries the host empty and hidden: no sender's file names
 //   M1  AUD2-033: Esc closes the File menu (focus on the menu's button, as after a click)
 //   M1b ...and with focus nowhere in particular
@@ -30,7 +30,7 @@
 //   R5  a click on a recent in the list loads that calendar (the file menu then names it) and the list goes away
 //   H1  AUD2-032 / WIN-2: Help is up to date (no Today button, no plain "Reset", no "informational", ten fixes;
 //       Scenarios, Compare, Calendar range, Date format, Date Last Edited, the day menu, Blocks, prep, Paste
-//       notes; Cmd+O and Cmd+Y listed; New's key is a Mac key, and Windows is pointed at the File menu)
+//       notes; Cmd+O and Cmd+Y listed; New's key is a Mac key, and Windows is pointed at the New button)
 //   E0  0 console errors
 //
 // ⛔ memoryIDB() runs synchronously, here at the top, before the engine boots, and is seeded with two recent files:
@@ -154,19 +154,22 @@ window.addEventListener('load', function () { (async function () {
     kase('R3', 'a Season picked: Production schedules and the list goes away', !r3.shown && !r3.empty && meta().indexOf('shoot day') !== -1,
          { observed: { list: r3, meta: meta() } });
 
-    // ---- WIN-2: New in the File menu ---------------------------------------------------------------------
+    // ---- WIN-2: New is the header's button; the File menu has no New (owner, 18 Nov 2026) -----------------------
     q('.file-menu-btn').click();
     await T.sleep(300);
-    var newItem = q('#file-menu .file-menu-item[data-action="new"]');
+    var menuNew = q('#file-menu .file-menu-item[data-action="new"]');
     var menuItems = qa('#file-menu .file-menu-item').map(function (i) { return (i.dataset.action || 'recent') + ':' + txt(i); });
+    q('.file-menu-btn').click();
+    await T.sleep(300);
+    var newItem = q('#new-file-btn');
     if (newItem) newItem.click();
     await T.sleep(300);
     var askedNew = T.modalText();
     var startedNew = T.clickModalButton('Start new');
     await T.sleep(800);
     var r4 = listState();
-    kase('M3', 'the File menu has New, which asks New’s question with unsaved work; “Start new” leaves a blank calendar',
-         !!newItem && /new blank calendar/i.test(askedNew) && startedNew && (document.getElementById('show-title') || {}).value === '' && r4.empty,
+    kase('M3', 'the File menu has no New; the New button asks New’s question with unsaved work; “Start new” leaves a blank calendar',
+         !menuNew && !!newItem && /new blank calendar/i.test(askedNew) && startedNew && (document.getElementById('show-title') || {}).value === '' && r4.empty,
          { observed: { items: menuItems, asked: askedNew, title: (document.getElementById('show-title') || {}).value } });
     kase('R4', 'after New: Untitled and empty again, and the list is back', label() === 'Untitled' && r4.shown && r4.names.length === 2,
          { observed: { list: r4, label: label() } });
@@ -335,11 +338,12 @@ window.addEventListener('load', function () { (async function () {
       blocks: /Schedule by Blocks/.test(help), prep: /Episodic Prep/.test(help) && /Default prep/.test(help),
       numberDays: /Number Production Days/.test(help), paste: /Paste notes/.test(help),
       cmdO: /⌘O/.test(keysSec), cmdY: /⌘Y/.test(keysSec),
-      // WIN-2: New's key is offered as a Mac key, and Windows is pointed at New in the File menu (never at Ctrl+N).
+      // WIN-2: New's key is offered as a Mac key, and Windows is pointed at the New button (never at Ctrl+N; the File
+      // menu's New item was removed by the owner, 18 Nov 2026).
       // ⚠️ Re-expected for W.2 (WIN-3, audit 2026-11): Help now shows ONE of two New lines, by platform (data-os), so the
       // Mac's reads "⌘N — New" and the other one points at New in the File menu. keysSec is textContent, which holds
       // both lines; which one SHOWS on which platform is oskeys' H2.
-      fileMenuNew: /⌘N — New\b/.test(keysSec) && /New has no key here[^.]*New in the File menu/.test(keysSec) && !/Ctrl\+N/.test(keysSec),
+      fileMenuNew: /⌘N — New\b/.test(keysSec) && /New has no key here[^.]*New button at the top/.test(keysSec) && !/Ctrl\+N/.test(keysSec),
       gettingStarted: /Getting started/.test(help) && /Pick up where you left off/.test(help) && /Other recent calendars/.test(help)
     };
     var staleHits = Object.keys(stale).filter(function (k) { return stale[k]; });
