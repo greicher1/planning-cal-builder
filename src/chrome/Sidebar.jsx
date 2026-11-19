@@ -110,30 +110,32 @@ export function ShowInfoCard() {
             anything else ("Whole or half days only"). The value is still a plain numeric string, so
             fields.byId is unchanged in shape and every saved whole number reads as before. min stays 1:
             a typed 0 still clamps to 1 on blur (the numclamp leg), and no episode is shot in half a day. */}
-        {/* .si-days-tandem: the days box, a plus and Tandem Days on one line (legacy.css), the label running over the
+        {/* THE ORDER (owner, 19 Nov 2026): Episodes mode reads Number of Episodes, then Shooting Days per Episode +
+            Tandem Days; Blocks mode reads Number of Blocks, then Shooting Days per Block + Tandem Days, then Number of
+            Episodes. ONE #num-episodes serves both (an id is the save format, so it is never duplicated): the Blocks-only
+            rows come BEFORE it and the Episodes-only row AFTER it, so DOM order, and with it Tab order, is right in each
+            mode with no CSS `order`. The mode's hidden rows are hidden, never cleared (BLOCKS-PLAN §3): switching back
+            must restore the previous dates exactly.
+            .si-days-tandem: the days box, a plus and Tandem Days on one line (legacy.css), the label running over the
             plus so it never wraps in the narrowest sidebar. */}
-        <Box className="show-mode-episodes si-days-tandem">
-          <NumberInput id="shoot-days-per-ep" label="Shooting Days per Episode" placeholder="e.g. 8"
-                       min={1} step={0.5} decimalScale={1} allowNegative={false} hideControls />
-          <TandemDaysBox />
-        </Box>
-        {/* max={200} is the audit M-15 ceiling, mirrored from the engine's MAX_SHOW_ROWS, which is
-            what actually enforces it (capCountField clamps while typing). This is the belt: Mantine
-            clamps on blur too. */}
-        {/* "(optional)" shows in Blocks mode only (owner, 20 Oct 2026, LABELS-SETUP-PLAN.md item 4): blocks
-            schedule without an episode count there. The same :has() rule as the boxes below hides it in
-            Episodes mode, where the count still drives the total, so that label reads as it always has. */}
-        <NumberInput id="num-episodes" label={<>Number of Episodes<span className="show-mode-blocks"> (optional)</span></>} placeholder="e.g. 10"
-                     min={1} max={200} step={1} allowDecimal={false} allowNegative={false} hideControls />
-        {/* Hidden, never cleared, in Episodes mode (and Days per Episode likewise in Blocks mode):
-            switching back must restore the previous dates exactly, so neither mode's inputs are
-            ever discarded (BLOCKS-PLAN §3). */}
         <Box className="show-mode-blocks">
           <NumberInput id="num-blocks" label="Number of Blocks" placeholder="e.g. 5"
                        min={1} max={200} step={1} allowDecimal={false} allowNegative={false} hideControls />
         </Box>
         <Box className="show-mode-blocks si-days-tandem">
           <NumberInput id="days-per-block" label="Shooting Days per Block" placeholder="e.g. 20"
+                       min={1} step={0.5} decimalScale={1} allowNegative={false} hideControls />
+          <TandemDaysBox />
+        </Box>
+        {/* max={200} is the audit M-15 ceiling, mirrored from the engine's MAX_SHOW_ROWS, which is
+            what actually enforces it (capCountField clamps while typing). This is the belt: Mantine
+            clamps on blur too.
+            In Blocks mode the count is still optional (blocks schedule without it, LABELS-SETUP-PLAN.md item 4), but
+            the label no longer says so (owner, 19 Nov 2026: "it can still be optional but remove that it says so"). */}
+        <NumberInput id="num-episodes" label="Number of Episodes" placeholder="e.g. 10"
+                     min={1} max={200} step={1} allowDecimal={false} allowNegative={false} hideControls />
+        <Box className="show-mode-episodes si-days-tandem">
+          <NumberInput id="shoot-days-per-ep" label="Shooting Days per Episode" placeholder="e.g. 8"
                        min={1} step={0.5} decimalScale={1} allowNegative={false} hideControls />
           <TandemDaysBox />
         </Box>

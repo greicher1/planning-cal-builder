@@ -29,6 +29,21 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — Show info's fields in the order each mode is filled in (19 Nov 2026)
+
+Owner: *"When scheduling by Episode the order should be Schedule by, then Number of Episodes, then shooting days per
+Ep+tandem days then Version, then production region, then location. When scheduling by Block, the order should be Number
+of blocks, then shooting days per block + tandem, then number of episodes (it can still be optional but remove that it
+says so)"*.
+- **Episodes:** Schedule by, Number of Episodes, Shooting Days per Episode + Tandem Days, Version, Production Region,
+  Location. **Blocks:** Schedule by, Number of Blocks, Shooting Days per Block + Tandem Days, Number of Episodes, Version,
+  Production Region, Location.
+- Number of Episodes no longer says "(optional)" in Blocks mode; it still is (a Blocks calendar schedules without it).
+- One `#num-episodes` serves both modes (its id is the save format): the Blocks-only rows sit before it and the
+  Episodes-only row after it, so the DOM order, and Tab, is right in each mode. Nothing saved changed.
+- **Verified:** `doubleups` SI8 (both orders as shown), `labelsetup` B1u re-premised (plain label; B1 still holds the
+  count optional), `blocks`, `restore` (gate 5's key set), `npm run check`.
+
 ### Unreleased — Tandem Days in Show info, beside the shooting days (19 Nov 2026)
 
 Owner: *"add double-up/tandem days in the Show Info section. To the right of the Shooting days per episode should be a big

@@ -373,7 +373,17 @@ window.addEventListener('load', function () { (async function () {
       out.si7 = {inBlocks: !!(sb && sb.closest('.show-mode-blocks')), line: sb && lineOf(sb, 'days-per-block'), val: sb && sb.value};
       check(out.si7.inBlocks && out.si7.line.sameLine && out.si7.line.labelOneLine && out.si7.val === '1',
             'SI7 Blocks mode: "Shooting Days per Block" + "Tandem Days" on one line, the same count');
+      // SI8 (owner, 19 Nov 2026): the order of Show info's fields in each mode, as shown.
+      var siOrder = function () {
+        return [].filter.call(document.querySelectorAll('section.card[data-tab="show"] .side-block .mantine-InputWrapper-label'), function (l) { return l.getClientRects().length; })
+          .map(function (l) { return l.textContent.trim(); }).join(' | ');
+      };
+      out.si8 = {blocks: siOrder()};
       mode.value = 'episodes'; mode.dispatchEvent(new Event('change', {bubbles: true})); await settle();
+      out.si8.episodes = siOrder();
+      check(out.si8.episodes === 'Title | Season | Schedule by | Number of Episodes | Shooting Days per Episode | Tandem Days | Version | Production Region | Location'
+            && out.si8.blocks === 'Title | Season | Schedule by | Number of Blocks | Shooting Days per Block | Tandem Days | Number of Episodes | Version | Production Region | Location',
+            'SI8 Show info’s order: Episodes count before its days + tandem; in Blocks, blocks, their days + tandem, then a plain "Number of Episodes"');
     }
 
     if(out.run === 'restore'){
