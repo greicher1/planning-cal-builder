@@ -31727,28 +31727,7 @@ export function initLegacyApp() {
     const b = document.getElementById('pref-mv-shootdays');
     if(b) b.checked = mvNumberShootDays;
   }
-  // ---------- Phase bar size (MONTH-BAR-SIZE-PLAN.md §4.1, §4.6) ----------
-  // Shaped like setMvProdLabel(): CALENDAR DATA, so a pick goes through update() + markDirty() -- it dirties the file
-  // and is one undo step. 'standard' is stored as '' (an absent key). Anything that is not a known size is ignored
-  // rather than stored; the names are tested one by one, never by MV_BAR_SIZES[next], which 'toString' would pass.
-  function setMvBarSize(next){
-    const v = (next === 'standard') ? '' : next;
-    if(v !== '' && !mvBarSizeKnown(v)) return;
-    if(v === mvBarSize) return;
-    mvBarSize = v;
-    update();
-    markDirty();
-  }
-  // ---------- Note size (MONTH-NOTE-SIZE-PLAN.md §4.1) ----------
-  // setMvBarSize's shape: CALENDAR DATA, one undo step, the file dirtied. '' is 10 px (an absent key).
-  function setMvNoteSize(next){
-    const v = (next === '10') ? '' : next;
-    if(v !== '' && !mvNoteSizeKnown(v)) return;
-    if(v === mvNoteSize) return;
-    mvNoteSize = v;
-    update();
-    markDirty();
-  }
+  // ---------- Phase bar size and Note size: set together by setMvSize() (below) since 18 Nov 2026 ----------
   // Is any note in the month view above 10 px? The calendar's size, or one note's own (a day note's `fmt`, or a
   // waterfall line's month style). E1's lane rules key on the answer, so a calendar with no sized note never has them.
   function mvAnyNoteSized(){
@@ -31769,8 +31748,7 @@ export function initLegacyApp() {
   // bars are drawn, and whatever measures a bar right after the render (the edge grips, the reorder grip) reads its
   // new height. A <body> class rather than one on #table-wrap because #table-wrap is the frozen render's own
   // container; E1 scopes every rule to #table-wrap, so the class can never reach #print-root.
-  // Since 2 Nov 2026 the control is a dropdown, #pref-mv-barsize (MONTH-NOTE-SIZE-PLAN.md §1a), REFLECTED as #wf-paper
-  // is: its option values are mvBarSize's own ('' for 10 px), so .value is written straight from the store.
+  // Since 18 Nov 2026 the control is #pref-mv-size, one dropdown for bars and notes (reflectMvSizeSelects, below).
   function reflectMvBarSize(){
     document.body.classList.toggle('mv-bar-11', mvBarSize === '11');
     document.body.classList.toggle('mv-bar-large', mvBarSize === 'large');
@@ -31778,21 +31756,52 @@ export function initLegacyApp() {
     document.body.classList.toggle('mv-bar-xl', mvBarSize === 'xl');
     reflectMvSizeSelects();
   }
-  // Both size dropdowns, written from their stores. Also run when the Settings tab is shown (setSidebarTab), so a
-  // late React commit cannot leave either on its first option.
-  function reflectMvSizeSelects(){
-    const b = document.getElementById('pref-mv-barsize'), n = document.getElementById('pref-mv-notesize');
-    if(b && b.value !== mvBarSize) b.value = mvBarSize;
-    if(n && n.value !== mvNoteSize) n.value = mvNoteSize;
+  // ---------- Size: one control for bars and notes (owner, 18 Nov 2026) ----------
+  // "lets make the phase bar size and notes size one size adjuster - and the unit should be Standard, Large, Extra
+  // Large". #pref-mv-size replaced the two 10-14 px dropdowns. Each name sets BOTH stores, so the save format is
+  // untouched: mvBarSize and mvNoteSize stay captureSnapshot()'s own keys, and an older file opens drawn as it was.
+  // ⛔ The bar values are the names the bar store has carried since v1.9.0 ('large' 12 px, 'xl' 14 px), and the
+  // notes take the same px. A pair outside these three (a calendar saved with 11 px bars, or 12 px bars and 10 px
+  // notes) reads as 'custom' and is left as it is until a name is picked.
+  // ⛔ A FUNCTION, never a top-level const: update() runs (and so reflectMvSizeSelects asks mvSizeName) while the IIFE
+  // is still evaluating, before a const this far down is initialized (a TDZ throw that stopped the app loading).
+  function mvSizePair(k){
+    return k === 'large' ? { bar: 'large', note: '12' } : k === 'xl' ? { bar: 'xl', note: '14' } : { bar: '', note: '' };
   }
-  // ⛔ 'change' on document, as #wf-paper's: React renders the selects, so they are reached by delegation, never
-  // captured at evaluation time. Either setter ignores a value it does not know and leaves the store as it was, so
-  // the select is put back to the store whatever happened.
+  function mvSizeName(){
+    for(const k of ['standard', 'large', 'xl']){
+      const P = mvSizePair(k);
+      if(P.bar === mvBarSize && P.note === mvNoteSize) return k;
+    }
+    return 'custom';
+  }
+  // Shaped like setMvProdLabel(), both stores at once: CALENDAR DATA, ONE undo step (one update() + markDirty()), the file
+  // dirtied. The names are tested one by one before mvSizePair, which maps anything else to Standard.
+  function setMvSize(next){
+    if(next !== 'standard' && next !== 'large' && next !== 'xl') return;
+    const P = mvSizePair(next);
+    if(P.bar === mvBarSize && P.note === mvNoteSize) return;
+    mvBarSize = P.bar;
+    mvNoteSize = P.note;
+    update();
+    markDirty();
+  }
+  // The Size dropdown, written from the two stores. Also run when the Settings tab is shown (setSidebarTab), so a
+  // late React commit cannot leave it on its first option. Its Custom option is shown only while it is the answer.
+  function reflectMvSizeSelects(){
+    const sel = document.getElementById('pref-mv-size');
+    if(!sel) return;
+    const v = mvSizeName();
+    const c = sel.querySelector('option[value="custom"]');
+    if(c) c.hidden = (v !== 'custom');
+    if(sel.value !== v) sel.value = v;
+  }
+  // ⛔ 'change' on document, as #wf-paper's: React renders the select, so it is reached by delegation, never captured
+  // at evaluation time. setMvSize ignores a name it does not know, so the select is put back to the stores whatever
+  // happened.
   document.addEventListener('change', e=>{
-    const id = e.target && e.target.id;
-    if(id !== 'pref-mv-barsize' && id !== 'pref-mv-notesize') return;
-    if(id === 'pref-mv-barsize') setMvBarSize(e.target.value);
-    else setMvNoteSize(e.target.value);
+    if(!e.target || e.target.id !== 'pref-mv-size') return;
+    setMvSize(e.target.value);
     reflectMvSizeSelects();
   });
   // 'change', not 'click', for #one-col-btn's reason: the checkbox has already flipped by the click,
@@ -44306,7 +44315,7 @@ export function initLegacyApp() {
       + (one ? 'its' : 'their') + ' notes and bars print smaller than 6 pt:\n\n'
       + lines.join('\n')
       + '\n\nWith fewer notes on ' + (one ? 'its' : 'their') + ' busiest days'
-      + (mvNoteSize ? ', or a smaller Note size,' : ',') + (one ? ' it prints' : ' they print') + ' larger.',
+      + (mvNoteSize ? ', or a smaller Size in Settings,' : ',') + (one ? ' it prints' : ' they print') + ' larger.',
       { title: one ? 'A month prints very small' : 'Some months print very small', confirmLabel: 'Export anyway', cancelLabel: 'Cancel' }));
   }
   // ---------- The SPTCal mark (owner, 2 Nov 2026: "Add hidden text too") ----------

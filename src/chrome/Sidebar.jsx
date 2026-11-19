@@ -622,36 +622,26 @@ export function MonthViewCard() {
                   title="Write “Day 1”, “Day 2” … on each shoot day in the month view — on screen and in the month PDF. Saved with the calendar" />
         </SettingRow>
 
-        {/* Phase bar size and Note size, two dropdowns of 10-14 px (MONTH-NOTE-SIZE-PLAN.md §1a, §4.7; owner, 2 Nov
-            2026: "do sizes 10, 11, 12, 13, and 14 for the phase bar sizes. And make sizes for both the phase bars and
-            the notes be dropdown menus"). They replace Phase bar size's Standard · Large · Extra large segments
-            (MONTH-BAR-SIZE-PLAN.md R3, R6), in the same place. CALENDAR DATA: the engine's mvBarSize and mvNoteSize
-            are the one stores, saved as captureSnapshot()'s own keys.
-            ⛔ Built as #wf-paper is: an id INSIDE .prefs-card (so collectFieldValues() skips it and fields.byId
-            does not move), UNCONTROLLED (reflectMvBarSize / reflectMvNoteSize write .value on every update()), and a
-            delegated 'change' sets it (one undo step, the file dirtied).
-            ⛔ THE OPTION VALUES ARE THE SAVE FORMAT. Bars: '' (10 px, an absent key), '11', 'large' (12 px, as since
-            v1.9.0), '13', 'xl' (14 px, as since v1.9.0). Notes: '' (10 px, an absent key), '11' to '14'. */}
+        {/* Size: ONE dropdown for the month view's phase bars, hiatus bands AND notes (owner, 18 Nov 2026: "lets make
+            the phase bar size and notes size one size adjuster - and the unit should be Standard, Large, Extra
+            Large"). It replaces Phase bar size and Note size (two 10-14 px dropdowns since 2 Nov 2026,
+            MONTH-NOTE-SIZE-PLAN.md §1a), in the same place. Standard is 10 px bars and notes, Large 12 px, Extra
+            Large 14 px: the engine's setMvSize() writes BOTH of its stores, mvBarSize and mvNoteSize, which stay
+            captureSnapshot()'s own keys, so no saved file changes shape and every older file opens as it was.
+            ⛔ Built as #wf-paper is: an id INSIDE .prefs-card (so collectFieldValues() skips it and fields.byId does
+            not move), UNCONTROLLED (reflectMvSizeSelects() writes .value on every update()), and a delegated 'change'
+            sets it (one undo step, the file dirtied).
+            The fourth option, Custom, is HIDDEN: the engine shows and selects it only for a calendar saved with a
+            pair the three do not name (11 px bars, or 12 px bars with 10 px notes, …), so the control never claims a
+            size the calendar is not drawn at. Picking any of the three replaces it. */}
         <Divider my="sm" />
-        <SettingRow htmlFor="pref-mv-barsize" label="Phase bar size">
-          <NativeSelect id="pref-mv-barsize" size="xs" w={96} aria-label="Phase bar size"
-                        title="How big the phase bars and hiatus bands are in the month view, on screen and in the month PDF. Saved with the calendar">
-            <option value="">10 px</option>
-            <option value="11">11 px</option>
-            <option value="large">12 px</option>
-            <option value="13">13 px</option>
-            <option value="xl">14 px</option>
-          </NativeSelect>
-        </SettingRow>
-        <Divider my="sm" />
-        <SettingRow htmlFor="pref-mv-notesize" label="Note size">
-          <NativeSelect id="pref-mv-notesize" size="xs" w={96} aria-label="Note size"
-                        title="How big the notes are in the month view, on screen and in the month PDF. Above 10 px a note shows at most two lines. A note can take its own size from the text style bar. Saved with the calendar">
-            <option value="">10 px</option>
-            <option value="11">11 px</option>
-            <option value="12">12 px</option>
-            <option value="13">13 px</option>
-            <option value="14">14 px</option>
+        <SettingRow htmlFor="pref-mv-size" label="Size">
+          <NativeSelect id="pref-mv-size" size="xs" w={124} aria-label="Size"
+                        title="How big the phase bars, hiatus bands and notes are in the month view, on screen and in the month PDF. A note can take its own size from the text style bar. Saved with the calendar">
+            <option value="standard">Standard</option>
+            <option value="large">Large</option>
+            <option value="xl">Extra Large</option>
+            <option value="custom" disabled hidden>Custom</option>
           </NativeSelect>
         </SettingRow>
 
