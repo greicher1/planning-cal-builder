@@ -94,7 +94,7 @@ import { theme } from './theme.js'
 import { InfoHint } from './chrome/InfoHint.jsx'
 import { Header } from './chrome/Header.jsx'
 import { PreviewToolbar } from './chrome/PreviewToolbar.jsx'
-import { ShowInfoCard, CalendarRangeCard, HiatusResetButton } from './chrome/Sidebar.jsx'
+import { ShowInfoCard, CalendarRangeCard } from './chrome/Sidebar.jsx'
 import { SettingsWindow } from './chrome/SettingsWindow.jsx'
 import { DatePop } from './chrome/DatePop.jsx'
 import { SelectPop } from './chrome/SelectPop.jsx'
@@ -161,9 +161,8 @@ function Chrome() {
           Ripple Hiatus Periods on (in Settings), the phases that start after a hiatus move with it when you change it.
         </InfoHint>,
         '#hiatus-hint-host')}
-      {/* "Reset hiatus bands" (owner ruling 5) at the foot of the same static card, the way
-          "Reset holidays" ends Holidays. Its host is listed in buildSavedHtml()'s emptied hosts. */}
-      {portal(<HiatusResetButton />, '#hiatus-reset-host')}
+      {/* "Reset hiatus bands" sat here (owner ruling 5, 30 Sep 2026) until the owner removed it, 19 Nov 2026: it
+          only reset the bands' look, read as if it cleared the hiatuses, and each band's look is set on its card. */}
       {/* Not a portal: DatePop renders straight into #react-root, which is a direct child of
           <body> BEFORE #print-root — so `body.printing-* > *:not(#print-root)` hides it in both
           print paths with no extra work, and #print-root stays last. */}

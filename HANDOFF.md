@@ -4,6 +4,22 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### 🗑️ 19 Nov 2026: "RESET HIATUS BANDS" REMOVED — in the main checkout on `scenario-version-offer`, NOT committed or pushed. README "Unreleased". Tracker card `hiatus-reset-full-width`.
+- **Owner** first asked for the button to span the sidebar like + Add hiatus period (done, then dropped), then asked
+  whether it was needed at all. Analysis given: it reset only the bands' LOOK (label, colour, size, text styles, month
+  band styles; all-phase and per-phase), never a hiatus, yet read as if it cleared the hiatuses; Undo, the card's name box
+  and colour square, the text bar and New cover every case. **Ruling: *"Yes, remove it"*.**
+- ⚠️ The one thing only it did: put a band typed by hand (before 4 Nov 2026, in an older file) back under its row's
+  name. Typing the name on the hiatus's card already takes such a week over (`claimBandNames` / `claimHiatusRowNames`),
+  so nothing is stranded; `hdrcontrols` N4 now holds that path instead.
+- **Gone:** `HiatusResetButton` (Sidebar.jsx), its portal (main.jsx), `#hiatus-reset-host` (index.html) and its place in
+  `buildSavedHtml()`'s emptied hosts, `resetHiatusBands()` and its branch of the delegated reset click (app.js), and the
+  two Help mentions. Nothing saved changes; nothing frozen.
+- **Legs:** `hdrcontrols` N4 rewritten (no button, the card ends with + Add hiatus period, naming the row takes over both
+  weeks) 12/12; `phiatusnum` H11 without the reset step 18/18; `sharecopy2` (the host must be absent, 0 buttons) passes.
+  ⚠️ sharecopy2's copy carries the leg's own script, so its pattern is built from pieces (`'<' + 'div id="hiatus-' + …`):
+  a literal matched itself, and a literal `<div` also fed the leg's `inert=""` check. `npm run check` 43/43.
+
 ### 🏷️ 19 Nov 2026: THE SCENARIO "+" NAMES THE TAB IT COPIES — on `scenario-version-offer` (`590fd5b`), LIVE: pushed on the owner's picker, deploy green, the live file carries the tooltip. README "Unreleased". Tracker card `scenario-plus-which-tab`.
 - **Owner** asked whether "+" should copy the right-most tab (earlier ones from the caret menu) and whether a copy of B
   beside C v3 / D v4 should be offered v5. Analysis given in chat: it already offers the highest + 1 (v5), the caret menu
@@ -13,8 +29,7 @@
   this scenario": `scenarios` and `scenversion` find the button by it.
 - **Legs:** `scenversion` V9 (new, 10/10), `scenarios` 23/23; `npm run check` 43/43. Checked in the build: the tooltip
   follows the tab on screen.
-- ⚠️ `src/chrome/Sidebar.jsx` carries ANOTHER chat's uncommitted change (Reset hiatus bands full width, tracker card
-  `hiatus-reset-full-width`, waiting on the owner). Not committed or pushed from here.
+- ⚠️ That other chat's Sidebar.jsx change became the REMOVAL of "Reset hiatus bands" (entry above), still uncommitted.
 
 ### ➡️ 19 Nov 2026: A NEW SCENARIO GOES AT THE FAR RIGHT — on `scenario-version-offer` (`cde7299`), merged with origin/main (v1.22.0, Finish before R5) and pushed to `main` on the owner's picker. README "Unreleased". Tracker card `scenario-copy-far-right`.
 - **Owner:** asked whether a copy made while a tab other than the last is on screen should go at the far right instead

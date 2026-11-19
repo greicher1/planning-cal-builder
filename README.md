@@ -29,6 +29,17 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — "Reset hiatus bands" is gone (19 Nov 2026)
+
+The owner removed the button at the foot of the All-phase hiatus list. It reset only how the bands LOOK (their label,
+colour, size and text styles, all-phase and per-phase at once) and never removed a hiatus, but its name and place read as
+if it cleared the hiatuses. Everything it did is covered elsewhere: Undo for a recent change, a hiatus's own card for its
+band's name and colour (typing the name also takes over a band typed by hand in an older file), the text bar for size and
+style, New for a fresh calendar. Removed with it: its React host, its click handler and its two mentions in Help. Nothing
+saved changes and nothing frozen was touched. Verified: `hdrcontrols` 12/12 (N4 rewritten: no button, the card ends with
++ Add hiatus period, naming the row takes over a hand-typed band), `phiatusnum` 18/18, `sharecopy2` (the host may not come
+back), `npm run check` 43/43.
+
 ### Unreleased — The scenario "+" names the tab it copies (19 Nov 2026)
 
 The owner asked whether "+" should copy the right-most tab instead of the one on screen, and whether a copy of an

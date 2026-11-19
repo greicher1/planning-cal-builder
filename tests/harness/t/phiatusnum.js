@@ -255,13 +255,10 @@ window.addEventListener('load', function () { (async function () {
       var unticked = bands('prePrep', PP);
       await clickBox('prePrep');
       var retick = bands('prePrep', PP);
-      // "Reset hiatus bands" clears every band's own text; the sync claims the bands again, numbered.
-      $('hiatus-reset-btn').click(); await settle();
-      var reset = bands('prePrep', PP);
-      kase('H11', 'a band retyped in the grid before 4 Nov 2026 (an older file) prints as saved beside its numbered neighbours; its double-click opens NO editor but the card\'s Name box; unticking Number weeks takes it over, ticking numbers all three; Reset hiatus bands keeps them numbered',
+      kase('H11', 'a band retyped in the grid before 4 Nov 2026 (an older file) prints as saved beside its numbered neighbours; its double-click opens NO editor but the card\'s Name box; unticking Number weeks takes it over, ticking numbers all three',
            same(ticked, [NUM[0], 'Lock-off', NUM[2]]) && !editor && focusName &&
            same(unticked, ['Pre-Prep Hiatus', 'Pre-Prep Hiatus', 'Pre-Prep Hiatus']) &&
-           same(retick, NUM) && same(reset, NUM), { ticked: ticked, editor: editor, focusName: focusName, unticked: unticked, retick: retick, reset: reset });
+           same(retick, NUM), { ticked: ticked, editor: editor, focusName: focusName, unticked: unticked, retick: retick });
     });
 
     await step('H12', async function () {

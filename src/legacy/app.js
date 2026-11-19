@@ -25736,7 +25736,7 @@ export function initLegacyApp() {
   //     highlighted band does nothing.
   //   - ⚠️ A week's own label or colour typed in a band before this change stays in its file and keeps printing. The
   //     card's colour square paints every week, and its name box takes such a label over the next time the name is
-  //     typed (claimBandNames). "Reset hiatus bands" clears them all.
+  //     typed (claimBandNames). ("Reset hiatus bands", which cleared them all at once, went 19 Nov 2026: owner.)
   // The span tests are the scheduler's own: from the start's Monday, whole weeks (hiatusRowSpan, phaseHiatusSpan).
   function bandCardOf(td){
     if(!td || !td.classList || !td.classList.contains('sheet-hiatus-cell')) return null;
@@ -29573,8 +29573,9 @@ export function initLegacyApp() {
   //   * #tb-notes-reset-btn in the app header, where Reset All was (Header.jsx). That was the owner's
   //     measured fallback: the two buttons together wrapped the toolbar below 1414 px. It reads "Reset
   //     Notes" in the Waterfall and "Reset Month Notes" in the Month view;
-  //   * #hiatus-reset-btn at the foot of the sidebar's All-phase hiatus card (ruling 5).
-  // All three are React-rendered, so they are reached by DELEGATION from document, never captured at
+  //   (#hiatus-reset-btn, at the foot of the sidebar's All-phase hiatus card since ruling 5, was removed by the owner,
+  //   19 Nov 2026.)
+  // Both are React-rendered, so they are reached by DELEGATION from document, never captured at
   // evaluation time (HANDOFF §2b-3's law).
   function headerModeKey(mv){
     if(mv ? mvHeaderOff : headerOff) return 'off';
@@ -29849,17 +29850,6 @@ export function initLegacyApp() {
     render(currentSchedule);
     markDirty();
   }
-  // Ruling 5: the hiatus bands' own reset -- every band's label, colour and size, all-phase and
-  // per-phase. update(), NOT render(), and that is a fix: the old combined reset only rendered, so a
-  // NAMED hiatus row's band read the default "Hiatus" until some later edit happened to run
-  // syncHiatusNamesFromSidebar() and re-claim it (reproduced on v1.4.1: both weeks of a "Winter
-  // Break" row read "Hiatus"). update() runs that sync first. It also ends in markDirty().
-  function resetHiatusBands(){
-    hiatusTexts = {}; hiatusNameSyncedKeys = {}; hiatusColors = {}; hiatusFontSize = {};
-    textStyle.hiatus = {};
-    mvTextStyle.band = {};   // the month view's band styles too (MONTH-TEXT-STYLE-PLAN.md §3.5)
-    update();
-  }
   // ⭐ BOTH NOTES RESETS ASK FIRST (audit AUD2-054, item 3.5, 14 Nov 2026). The button sits in the app header beside
   // Export PDF, and one press cleared every note at once with no word, while New, Load, Delete scenario and Reset
   // holidays all ask; autosave then wrote the wiped calendar ten minutes later. "Kept as today, not asked" was a
@@ -29913,9 +29903,8 @@ export function initLegacyApp() {
     return true;
   }
   document.addEventListener('click', e=>{
-    const t = e.target.closest && e.target.closest('#tb-notes-reset-btn, #hiatus-reset-btn');
+    const t = e.target.closest && e.target.closest('#tb-notes-reset-btn');
     if(!t) return;
-    if(t.id === 'hiatus-reset-btn'){ resetHiatusBands(); return; }
     // An open note editor is SAVED first, as any click away saves it, so the count is what is on the calendar and a
     // Cancel keeps what was typed. (The waterfall editor's own click-away listener has already run by now; the month
     // editor's runs after this one, so it is done here.) A Reset then clears it with the rest, as before.
@@ -33859,11 +33848,11 @@ export function initLegacyApp() {
     // skeleton, exactly the shape srv.js serves every stateful test, so the copy opens as one clean
     // app. It also stops the sender's file-menu and recents markup travelling in the file (audit
     // L-21). The live document is untouched -- this is the clone.
-    // #hiatus-reset-host joined the list with owner ruling 5 (30 Sep 2026): "Reset hiatus bands" is
-    // portalled there, so a copy built without it would boot with a stale button beside React's.
+    // (#hiatus-reset-host was on the list from owner ruling 5, 30 Sep 2026, until the owner removed "Reset hiatus
+    // bands" and its host, 19 Nov 2026.)
     // #settings-host joined it with the Settings window (owner ruling 12, 20 Oct 2026): Region, Holidays
     // and the preferences render there now, so a copy that kept them would boot with two of each.
-    clone.querySelectorAll('header.app-header, .view-toggle-row, #sidebar-static, #settings-host, #hiatus-hint-host, #hiatus-reset-host, #react-root').forEach(el=> el.replaceChildren());
+    clone.querySelectorAll('header.app-header, .view-toggle-row, #sidebar-static, #settings-host, #hiatus-hint-host, #react-root').forEach(el=> el.replaceChildren());
     // The side columns (SIDE-BOXES-PLAN.md §7) go back to their shipped state too -- empty, hidden, no
     // grid on the panel: the copy's own engine draws its boxes from the saved state when it opens, as
     // #table-wrap is drawn.

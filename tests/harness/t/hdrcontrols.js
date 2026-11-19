@@ -48,9 +48,8 @@
 //   N2  "Reset Notes" clears the waterfall note and its colour; the hiatus band and a holiday's
 //       Waterfall-note tick (holidayView) are left alone. Asks first too, answered with Reset
 //   N3  that reset is ONE undo step: Undo brings the note back
-//   N4  the All-phase hiatus card ends with "Reset hiatus bands"; naming the row takes over the band typed by hand
-//       (since 4 Nov 2026), and after the reset a NAMED hiatus row's band shows its name at once (update(), not
-//       render()); the note stays
+//   N4  the All-phase hiatus card has NO "Reset hiatus bands" (owner removed it, 19 Nov 2026) and ends with + Add hiatus
+//       period; naming the row takes over the band typed by hand on both weeks (since 4 Nov 2026); the note stays
 //   E0  0 console errors
 window.__T.memoryIDB();
 window.addEventListener('load', function () { (async function () {
@@ -293,14 +292,16 @@ window.addEventListener('load', function () { (async function () {
     var n3 = {note: noteCellText('2027-10-11')};
     add('N3', 'the waterfall reset is ONE undo step: Undo brings the note back', /CARRY-NOTE/.test(n3.note), n3, 'CARRY-NOTE back');
 
-    // ---- N4: the sidebar's hiatus reset --------------------------------------------------------------
+    // ---- N4: no hiatus reset; the card's name is what resets a band typed by hand --------------------
+    // "Reset hiatus bands" sat at the foot of this card from ruling 5 (30 Sep 2026) until the owner removed it
+    // (19 Nov 2026): it reset only the bands' look, and read as though it cleared the hiatuses.
     var card = byId('hiatus-list') ? byId('hiatus-list').closest('section.card') : null;
-    var hb = byId('hiatus-reset-btn');
-    var n4 = {inCard: !!(card && hb && card.contains(hb)), label: hb ? hb.textContent.trim() : null,
-              last: !!(card && hb && card.lastElementChild && card.lastElementChild.contains(hb))};
+    var addBtn = byId('add-hiatus');
+    var n4 = {resetBtns: document.querySelectorAll('[id="hiatus-reset-btn"], #hiatus-reset-host').length,
+              resetText: !!(card && /Reset hiatus bands/.test(card.textContent)),
+              lastIsAdd: !!(card && addBtn && card.lastElementChild === addBtn)};
     // Name the band's row. ⭐ Since 4 Nov 2026 the card's name takes over a week typed in the band itself (owner: an
     // all-phase hiatus is named on its card only; claimHiatusRowNames), so CARRY-HIATUS becomes the name at once.
-    // Until then it stayed CARRY-HIATUS (a hand edit owned it) until the reset cleared it.
     n4.bandBefore = bandText('2027-12-20');
     var nameIn = document.querySelector('#hiatus-list .hiatus-entry .hiatus-name');
     if(!nameIn) throw new Error('no hiatus name field');
@@ -309,17 +310,12 @@ window.addEventListener('load', function () { (async function () {
     Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(nameIn, 'Winter Break');
     ['input', 'change'].forEach(function (t) { nameIn.dispatchEvent(new Event(t, {bubbles: true})); });
     await T.sleep(800);
-    n4.bandNamed = bandText('2027-12-20');
-    // The reset then keeps the named row's name on its bands at once (it runs update(), not render(): a render alone
-    // would leave them reading "Hiatus" until the next edit).
-    if(hb) hb.click();
-    await T.sleep(900);
-    n4.bandAfter = bandText('2027-12-20'); n4.band2 = bandText('2027-12-27');
+    n4.bandNamed = bandText('2027-12-20'); n4.band2 = bandText('2027-12-27');
     n4.noteKept = /CARRY-NOTE/.test(noteCellText('2027-10-11'));
-    add('N4', 'the hiatus card ends with "Reset hiatus bands"; naming the row takes over the band typed CARRY-HIATUS, and after the reset both weeks show the row\'s name at once; the note stays',
-      n4.inCard && n4.last && n4.label === 'Reset hiatus bands' && n4.bandBefore === 'CARRY-HIATUS' && n4.bandNamed === 'Winter Break'
-        && n4.bandAfter === 'Winter Break' && n4.band2 === 'Winter Break' && n4.noteKept,
-      n4, 'CARRY-HIATUS -> Winter Break (named) -> Winter Break on both weeks (reset); CARRY-NOTE kept');
+    add('N4', 'the hiatus card has no "Reset hiatus bands" and ends with + Add hiatus period; naming the row takes over the band typed CARRY-HIATUS on both weeks; the note stays',
+      n4.resetBtns === 0 && !n4.resetText && n4.lastIsAdd && n4.bandBefore === 'CARRY-HIATUS' && n4.bandNamed === 'Winter Break'
+        && n4.band2 === 'Winter Break' && n4.noteKept,
+      n4, 'no reset; CARRY-HIATUS -> Winter Break on both weeks; CARRY-NOTE kept');
 
     var errs = T.appHealth().errors;
     add('E0', '0 console errors', errs.length === 0, {errors: errs.slice(0, 5)}, 'none');
