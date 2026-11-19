@@ -4,6 +4,32 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### 🔨 18 Nov 2026: v1.19.2 — A CROWDED MONTH SHRINKS IN THE INSTALLED APP TOO (branch `claude/dreamy-keller-2ed2c2`)
+- **Owner, after v1.19.0 went live:** a crowded calendar's May was still full size in a card taller than a page, in
+  the installed app, after several Cmd+Shift+R. Their console (a read-only snippet): v1.19.0, standalone,
+  `#table-wrap` carrying the page fit's numbers and `zoom: 0.5` but NO `--mvk`, and `document.fonts` holding dozens of
+  faces named Inter, many `unloaded` and many `error`. The app embeds ONE. Something on that Mac (a browser extension,
+  by the look of it) adds them to every page; their web sources are blocked by the app's CSP (hence `error`).
+- **Cause:** `mvFontsIn()` required EVERY Inter face to be `loaded`, so it was false forever there, `mvWriterFit()`
+  returned null and the month was drawn as before. Reproduced by hand: on v1.19.0 a crowded test month loses its factor
+  (0.77 → none) once two foreign Inter faces are added (one unused, one failed). The owner's own calendar, loaded
+  locally into v1.19.0 with the CSP on, shrank normally (k = 34/64), at 90% zoom too: only the foreign faces differ.
+- **Fix:** `mvFontsIn()` waits while any Inter face is LOADING and goes once one has LOADED; `unloaded` and `error`
+  faces hold nothing back. With only the app's face (every test run) the answer is unchanged, so no output can move.
+  New case `monthpage` W (two foreign faces, away and back, the factor unchanged): red on v1.19.0 (0.61 → 1), green.
+- ⚠️ **Headless Chrome has no extensions, so no leg can see what an extension adds to a page.** A check that reads
+  `document.fonts` (or any page-wide list) must expect foreign entries.
+- ⚠️ **Numbered v1.19.2, not v1.19.1** (owner's picker *"Push it as v1.19.2"*): another session had already tagged a
+  v1.19.1 locally, unpushed (branch `header-version-label`, "the version under the SPTCal name"). Tags are shared by
+  every worktree, so `git tag` refused the name. That release has to merge this one and re-cut above v1.19.2.
+- **Cut as v1.19.2:** `APP_VERSION`, `version.json`, `package.json`; README entry; `releases/v1.19.2.html` cmp-identical to
+  the build (sha256 `56fa0d28d9db26b9…`); `tests/fixtures/v1.19.2-saved.sptcal` identical to v1.19.0's but `lastEdited`.
+  `npm run check` 42/42. **Checks on that build** (the patch-release practice, not a full gate; with only the app's
+  Inter face the rule's answer is provably the old one): `monthpage` on all ten of its gate runs (13/13 each, 2/2 with
+  no calendar), `monthrowlimit` 17 + 3 + 3, `mvnotesize` 12/12 on `month-dense60` and `mvnotes`, `monthlanes` 6/6,
+  `autonoterename` 25/25 (also at 1584 x 1200), `softlines` 6/6 x 2; **gate 13** byte-identical on `reference`,
+  `monthscale` and `month-dense60` (`monthexport` 9/9 each); **gate 10** identical on `reference` and `month-lanecap`.
+
 ### 🚀 18 Nov 2026: v1.19.0 — THE MONTH SHRINK AND THE 10-LINE DAY, RELEASED TOGETHER from `claude/dreamy-keller-2ed2c2` (the two entries below are the features). ✅ PUSHED (`714df71..a3fac82`, tag `v1.19.0`) on the owner's picker *"Push v1.19.0"* AND VERIFIED LIVE at 14:29 on 18 Nov: `version.json` 1.19.0 about 80 s after the push, the live page byte-identical to `releases/v1.19.0.html`
 - **Owner's pickers, 18 Nov:** *"Commit locally"* (`c87655b`) and *"Push to main"*. When the push was approved,
   `origin/main` had moved to v1.17.5 (five Tandem-day releases since the v1.17.0 merged here), so it was merged in

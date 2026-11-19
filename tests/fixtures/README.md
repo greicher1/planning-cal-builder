@@ -207,6 +207,7 @@ holidays. Do not re-mint them without keeping a copy saved with a retired place:
 
 | File | Use |
 |---|---|
+| `v1.19.2-saved.sptcal` | the reference calendar saved by the v1.19.2 build (the shrink's font check), `t/mintfixture.js`: 46 keys, 77 ids, 0 clipped, byte-identical to `v1.19.0-saved.sptcal` but `lastEdited` |
 | `v1.19.0-saved.sptcal` | the reference calendar saved by the v1.19.0 build (the month shrink and the 10-line day), `t/mintfixture.js`: 46 keys, 77 ids, 0 clipped, byte-identical to `v1.18.0-saved.sptcal` but `lastEdited` (neither feature saves anything) |
 | `v1.18.0-saved.sptcal` | the reference calendar saved by the v1.18.0 build (Finish before, and the note editor's "No date"), `t/mintfixture.js`: 46 keys, 77 ids, 0 clipped, byte-identical to `v1.17.5-saved.sptcal` but `lastEdited` |
 | `v1.17.5-saved.sptcal` | the reference calendar saved by the v1.17.5 build (the Tandem colour), `t/mintfixture.js`: 46 keys, 77 ids, 0 clipped, byte-identical to `v1.17.4-saved.sptcal` but `lastEdited` |
