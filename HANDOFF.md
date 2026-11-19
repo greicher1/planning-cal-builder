@@ -4,7 +4,7 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### 🧹 18 Nov 2026: NEW REMOVED FROM THE FILE MENU — in the MAIN checkout, uncommitted, not pushed. README "Unreleased". Tracker card `file-menu-no-new`.
+### 🧹 18 Nov 2026: NEW REMOVED FROM THE FILE MENU — LIVE (`64ef772`, pushed on the owner's picker; deploy green to both addresses). README "Unreleased". Tracker card `file-menu-no-new`.
 - **Owner:** *"remove the new button from here"* (the File menu dropdown, which read New / Load… / Changes since last save…).
 - **Done:** `Header.jsx` drops the `data-action="new"` item (WIN-2 had added it) and the hint names "Load and recent calendars";
   `app.js`'s delegated handler loses its `new` branch; Help's `data-os="other"` line points Windows/Linux at the header's
