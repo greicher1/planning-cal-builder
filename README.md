@@ -31,6 +31,36 @@ way a user would notice or a future session would need to return to. See
 
 ## Unreleased
 
+### Scenario tabs show their Version, and a copy is offered the next one (19 Nov 2026)
+
+The owner asked whether, once the first scenario has a Version, a new scenario should be named after it or the Version
+shown in the bar at the bottom; then for the copy to offer the next number, *"as a suggestion, not force them"*. Five
+layouts were mocked (`mockups/scenario-version-*.html`, `scenario-name-version.html`, `scenario-new-tab-card.html`);
+the owner picked layout C of `mockups/scenario-version-layouts.html`, *"lets see with version c looks like in the app"*,
+and then asked that the offer can be brought back later.
+
+- **Every scenario tab shows its Version** as a small badge after its name, as the header prints it ("v3"); a tab with
+  no Version shows none. Tab names are never changed.
+- **A copy is offered the next version.** After **+**, a copy whose Version is a number shows **→ v4** beside its badge,
+  there while its name box is open too. One click puts 4 in Show info's Version box through the box's own handler, so it
+  is an ordinary edit: the header, the band and the file name follow, and ⌘Z takes it back. The number is the highest
+  version on any tab, whole, plus one (v3 and v3.1 both offer v4; a second copy of v3 offers v5 once one tab is v4).
+  Ignoring it keeps the version; it goes on the next edit, a tab switch, another copy, Keep only, or a load.
+- **Clicking a number badge brings → vN back**, on that tab (switching to it first), and a second click puts it away.
+  A text Version kept from before 18 Nov ("Blue") has no next number, so its badge is plain.
+- **The key facts band ends with a Version tile** (dimmed when every tab has the same one). Its value was already in
+  `scenarioFacts()`; the band did not show it. Show info's Version box now refreshes the band as it is typed.
+- Nothing new is saved: the offer is session UI, and a scenario file's tabs are still `{id, name, snapshot}`.
+- Code: `app.js` (`tabVersionLabel`, `nextScenarioVersion`, `askScenarioVerOffer`, `takeScenarioVerOffer`,
+  `scenarioVerOffer`, dropped in `markDirty()` once the calendar differs from when it was offered), `ScenarioTabs.jsx`
+  (the badge and `→ vN`, whose mousedown keeps the name box's focus), `legacy.css` (`.sc-tab-ver`, `.sc-ver-bump`).
+- Verified: new leg `scenversion` (V1-V8 + E0, 9/9 on the build, red on v1.21.0). Legs that matched a tab by its
+  whole text now read `.sc-tab-name` (scenarios, scenariofacts, recoverfail, retiredplaces, comparebreaks), and
+  scenariofacts F3 / F4 expect the Version tile; scenarios 23/23, scenariofacts 12/12, and every other leg that reads the strip or the band
+  (scenlist, comparebreaks, exportnames, filenamelist, comparehiatus, retiredplaces, recoverfail, loadsparse,
+  changessince) green. `npm run check` 43/43. No full
+  gate (chrome and scenario engine only, no frozen code, no save-format change).
+
 ### The app opens filling the screen (18 Nov 2026)
 
 The owner: *"when you first download/open the app, its opening with a smaller window - it needs to open as wide such

@@ -4,6 +4,31 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### 🏷️ 19 Nov 2026: SCENARIO TABS SHOW THEIR VERSION, A COPY IS OFFERED THE NEXT — branch `scenario-version-offer` (from `main` `ee05f69`), committed locally, NOT pushed. README "Unreleased". Tracker card `scenario-version-bump`.
+- **Owner, in order:** asked whether a new scenario should take the Version as its name or the Version show in the bottom
+  bar; then *"it could automatically set the version number to the next number"*; *"could there be a dialogue that asks"*;
+  picked a strip offer (B), then asked to name tabs after the version *"as a suggestion, not force them"*, linked to the
+  real Version; then *"two different dialogues is confusing"*; four layouts; picked **C** (*"lets see with version c looks
+  like in the app"*); then *"if i dont click the arrow ... I should later be able to click on the little version number
+  and the arrow should pop up again"*; *"Finish it"*. Mockups kept: `mockups/scenario-version-bump.html`,
+  `scenario-name-version.html`, `scenario-new-tab-card.html`, `scenario-version-layouts.html` (C is the built one).
+- **Built:** a Version badge on every tab (`tabVersionLabel`: the tab on screen from the box, a parked tab from its
+  snapshot's `fields.byId['show-version']`); `→ vN` on a fresh copy and on a badge click (`scenarioVerOffer`,
+  `nextScenarioVersion` = highest whole version on any tab + 1, only when the tab's own Version is a number);
+  `takeScenarioVerOffer` types the number into `#show-version` and fires its input handler, so it is one ordinary undo
+  step; the band's Version tile (`BAND_KEYS` + `ver`). No naming of tabs after the version: the badge replaced it.
+- ⚠️ **The offer is dropped in `markDirty()` by comparing `undoStateJSON()` with the state it was offered against**, so
+  a rename (no tab name is in a snapshot) does not drop it, and any calendar edit does. Its base is
+  `lastPushedSnapshotJSON` after a copy and `undoStateJSON()` on a badge click.
+- ⚠️ **`→ vN` sits inside the tab while its rename box is open, and its `mousedown` calls `preventDefault()`.** Without
+  that the box blurs first, the rename re-renders the strip, and the click lands on nothing.
+- ⚠️ **A tab's `textContent` now includes its badge** ("Scenario Av3"). Legs must read `.sc-tab-name`; five were changed
+  (scenarios, scenariofacts, recoverfail, retiredplaces, comparebreaks).
+- **Legs:** new `scenversion` (in gate.sh after scenariofacts) 9/9, red on v1.21.0 (V1). Re-run green on the build:
+  scenarios 23/23, scenariofacts 12/12, scenlist (rt) 9/9, comparebreaks 10/10, exportnames 12/12, filenamelist 11/11,
+  comparehiatus 8/8, retiredplaces 8/8, recoverfail mode=scen 3/3, loadsparse v=scen 7/7, changessince 15/15. `npm run check` 43/43. No full gate
+  (chrome + scenario engine, nothing frozen, no saved key).
+
 ### 🖥️ 18 Nov 2026: THE FIRST APP WINDOW FILLS THE SCREEN — LIVE (`fcc213c`, pushed on the owner's picker; deploy green, GitHub Pages serves it, the Cloudflare address is behind the sign-in so it was not fetched). README "Unreleased". Tracker card `app-opens-full-screen`.
 - **Owner:** *"when you first download/open the app, its opening with a smaller window - it needs to open as wide such
   that it fills the users screen"*.

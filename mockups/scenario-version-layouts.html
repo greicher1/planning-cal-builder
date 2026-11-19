@@ -1,0 +1,335 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Scenario Version Layouts</title>
+<!-- MOCKUP, not the app. Owner, 19 Nov 2026: after scenario-new-tab-card.html (one card above the new tab's name box,
+     replacing the strip offer + rename suggestion, "two different dialogues is confusing"): "mock up 3 more versions".
+     Four ways to do the same two things for a copied scenario -- same or next Version, and (optionally) the tab named
+     after its Version -- side by side, each live:
+       A  The card (as mocked): above the new tab's name box.
+       B  Split +: the choice is made BEFORE copying, from a ▾ beside +. Plain + copies as today, nothing asked.
+       C  Version on every tab: each tab shows its Version as a small badge, so the name never needs to carry it; a fresh
+          copy's badge offers +1. No naming option at all.
+       D  Inside the tab: while the new tab's name is typed, the version switch and a link toggle sit in the tab itself,
+          in the strip. Nothing floats.
+     Every one: asked only while the Version is a number; ignoring keeps the same version; a linked name follows the
+     Version and typing a name unlinks it. Strip and band copy legacy.css. Made-up show. -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --gray-0:#f8f9fa; --gray-1:#f1f3f5; --gray-2:#e9ecef; --gray-3:#dee2e6; --gray-4:#ced4da; --gray-6:#868e96;
+  --text:#1E1D1B; --muted:#6c6f75; --navy:#2C3E50; --blue-0:#e7f5ff; --blue-1:#d0ebff; --blue-6:#228be6; --blue-8:#1971c2;
+  --page:#ECEBE6; --amber:#8A5A00;
+}
+*{ box-sizing:border-box; }
+body{ margin:0; font-family:'Inter',system-ui,sans-serif; color:var(--text); background:var(--page); line-height:1.5; }
+button, input{ font:inherit; }
+.page{ max-width:1240px; margin:0 auto; padding:24px 16px 60px; }
+h1{ font-size:22px; margin:0 0 6px; letter-spacing:-.01em; }
+.lede{ margin:0 0 18px; color:var(--muted); font-size:13.5px; max-width:860px; }
+.lede b{ color:var(--text); }
+.scroller{ overflow-x:auto; padding-bottom:6px; }
+.grid{ display:grid; grid-template-columns:repeat(2, minmax(560px, 1fr)); gap:26px 22px; min-width:560px; }
+@media (max-width:1180px){ .grid{ grid-template-columns:minmax(560px, 700px); } }
+.col h2{ font-size:11px; text-transform:uppercase; letter-spacing:.07em; color:var(--amber); margin:0 0 2px; }
+.col h2 .tag{ color:var(--muted); font-weight:500; text-transform:none; letter-spacing:0; margin-left:6px; }
+.col .sub{ font-size:12.5px; color:var(--muted); margin:0 0 8px; min-height:38px; }
+.col .sub b{ color:var(--text); font-weight:600; }
+.try{ font-size:11.5px; color:var(--muted); margin:6px 2px 0; }
+.try b{ color:var(--text); }
+.pros{ font-size:11.5px; margin:4px 2px 0; color:var(--muted); }
+.pros span{ display:block; }
+
+.app{ position:relative; height:250px; background:#fff; border:1px solid var(--gray-4); border-radius:10px; box-shadow:0 1px 2px rgba(0,0,0,.08); }
+.info{ position:absolute; left:16px; top:12px; display:flex; align-items:center; gap:8px; font-size:11.5px; color:var(--muted); }
+.info input{ width:52px; height:24px; padding:0 6px; border:1px solid var(--gray-4); border-radius:5px; font-size:12px; color:var(--text); }
+.info .hv{ margin-left:10px; font-weight:600; color:var(--text); }
+.reset{ position:absolute; right:12px; top:10px; height:24px; padding:0 9px; border:1px solid var(--gray-4); border-radius:5px; background:#fff; font-size:11.5px; cursor:pointer; color:var(--muted); }
+.cal{ position:absolute; left:16px; right:16px; top:46px; display:grid; grid-template-columns:56px repeat(3, 1fr); grid-auto-rows:19px; gap:1px;
+  background:var(--gray-3); border:1px solid var(--gray-3); font-size:10.5px; }
+.cal div{ background:#fff; padding:1px 5px; white-space:nowrap; overflow:hidden; color:var(--muted); }
+.cal .h{ background:var(--gray-1); font-weight:600; color:var(--text); }
+.cal .pp{ background:#f6e3c8; color:#5a3a10; } .cal .pr{ background:#d8ecd5; color:#24451f; } .cal .po{ background:#e7dcef; color:#432a56; }
+
+.sc-band{ position:absolute; bottom:42px; left:50%; transform:translateX(-50%); width:max-content; max-width:calc(100% - 32px);
+  display:flex; padding:4px 0; background:var(--gray-1); border-radius:8px; overflow:hidden; }
+.sc-band[hidden]{ display:none; }
+.sc-band-stat{ display:flex; flex-direction:column; padding:0 12px; white-space:nowrap; margin-left:-1px; border-left:1px solid var(--gray-3); }
+.sc-band-lab{ font-size:10px; line-height:12px; color:var(--muted); }
+.sc-band-v{ font-size:12px; line-height:17px; font-weight:600; }
+.sc-band-v.is-same{ font-weight:400; color:var(--muted); }
+
+.sc-strip{ position:absolute; bottom:8px; left:16px; right:16px; display:flex; align-items:center; gap:6px; height:28px; }
+.sc-tabs{ display:flex; align-items:center; gap:2px; }
+.sc-tab{ position:relative; display:inline-flex; align-items:center; gap:5px; height:26px; padding:0 10px; border:1px solid transparent;
+  border-radius:8px; font-size:12px; font-weight:500; color:var(--muted); white-space:nowrap; cursor:pointer; background:none; }
+.sc-tab:hover{ background:var(--gray-1); color:var(--text); }
+.sc-tab.is-current{ background:#fff; color:var(--text); font-weight:600; border-color:var(--gray-3); box-shadow:0 1px 2px rgba(0,0,0,.06); }
+.sc-tab.is-editing{ padding:0 3px; gap:4px; cursor:default; }
+.sc-tab .link{ display:inline-flex; color:var(--blue-6); }
+.sc-tab-input{ width:104px; height:20px; padding:0 6px; font-size:12px; font-weight:600; color:var(--text);
+  border:1px solid var(--navy); border-radius:4px; outline:none; }
+.sc-btn{ display:inline-flex; align-items:center; justify-content:center; gap:4px; height:24px; min-width:24px; padding:0 7px; border:0; border-radius:6px;
+  background:none; font-size:12px; font-weight:500; color:var(--muted); cursor:pointer; white-space:nowrap; flex:none; }
+.sc-btn:hover{ background:var(--gray-1); color:var(--text); }
+.sc-btn.cmp{ border:1px solid var(--gray-4); background:#fff; color:var(--text); }
+.split{ display:inline-flex; position:relative; }
+.split .sc-btn:first-child{ border-radius:6px 0 0 6px; padding:0 5px; }
+.split .sc-btn.caret{ border-radius:0 6px 6px 0; padding:0 3px; min-width:16px; font-size:9px; }
+.split .sc-btn.caret.on{ background:var(--gray-2); color:var(--text); }
+
+/* Floating pieces open UPWARD: the strip sits at the bottom of the window. */
+.pop{ position:absolute; left:0; bottom:calc(100% + 6px); background:#fff; border:1px solid var(--gray-3); border-radius:10px;
+  box-shadow:0 4px 14px rgba(0,0,0,.14); z-index:5; font-weight:400; color:var(--text); cursor:default; white-space:nowrap;
+  animation:pop .16s ease-out; }
+@keyframes pop{ from{ opacity:0; transform:translateY(4px); } to{ opacity:1; transform:none; } }
+/* A: the card */
+.card{ width:290px; padding:10px 12px; }
+.row{ display:flex; align-items:center; gap:8px; }
+.lab{ font-size:10px; letter-spacing:.06em; text-transform:uppercase; color:var(--muted); width:52px; flex:none; }
+.seg{ display:inline-flex; flex:1; background:var(--gray-1); border-radius:7px; padding:2px; }
+.seg button{ flex:1; border:0; background:none; height:22px; padding:0 8px; border-radius:5px; font-size:11.5px; color:var(--muted); cursor:pointer; white-space:nowrap; }
+.seg button b{ color:var(--text); font-weight:600; margin-right:3px; }
+.seg button[aria-pressed="true"]{ background:#fff; color:var(--text); box-shadow:0 1px 2px rgba(0,0,0,.12); }
+.check{ display:flex; align-items:center; gap:7px; margin-top:9px; font-size:12px; cursor:pointer; }
+.check input{ margin:0; width:14px; height:14px; accent-color:var(--blue-6); }
+.check .link{ color:var(--blue-6); display:inline-flex; }
+/* B: the split menu */
+.menu{ left:auto; right:0; width:230px; padding:4px; }
+.menu .mlab{ font-size:10.5px; color:var(--muted); padding:3px 8px 2px; }
+.menu .item{ display:flex; align-items:baseline; gap:6px; width:100%; border:0; background:none; text-align:left; padding:6px 8px; border-radius:6px;
+  font-size:12.5px; color:var(--text); cursor:pointer; }
+.menu .item:hover{ background:var(--blue-0); }
+.menu .item small{ color:var(--muted); font-size:11px; }
+.menu hr{ border:0; border-top:1px solid var(--gray-3); margin:4px 2px; }
+.menu .check{ margin:2px 0 3px; padding:4px 8px; }
+/* C: a version badge on every tab */
+.badge{ display:inline-flex; align-items:center; height:16px; padding:0 5px; border-radius:4px; background:var(--gray-1); color:var(--muted);
+  font-size:10.5px; font-weight:600; }
+.sc-tab.is-current .badge{ background:var(--gray-2); color:var(--text); }
+.bump{ display:inline-flex; align-items:center; gap:3px; height:18px; padding:0 6px; border:0; border-radius:4px; background:var(--blue-6); color:#fff;
+  font-size:10.5px; font-weight:600; cursor:pointer; animation:pop .16s ease-out; }
+.bump:hover{ background:var(--blue-8); }
+/* D: inside the tab */
+.mini{ display:inline-flex; background:var(--gray-1); border-radius:6px; padding:2px; }
+.mini button{ border:0; background:none; height:18px; padding:0 6px; border-radius:4px; font-size:11px; font-weight:600; color:var(--muted); cursor:pointer; }
+.mini button[aria-pressed="true"]{ background:#fff; color:var(--text); box-shadow:0 1px 2px rgba(0,0,0,.12); }
+.ltog{ display:inline-flex; align-items:center; justify-content:center; width:22px; height:22px; border:1px solid var(--gray-3); border-radius:5px;
+  background:#fff; color:var(--gray-6); cursor:pointer; }
+.ltog[aria-pressed="true"]{ background:var(--blue-0); border-color:var(--blue-1); color:var(--blue-6); }
+.hint{ position:absolute; left:0; bottom:calc(100% + 4px); font-size:10.5px; font-weight:400; color:var(--muted); white-space:nowrap;
+  background:#fff; padding:1px 6px; border-radius:4px; border:1px solid var(--gray-3); }
+</style>
+</head>
+<body>
+<div class="page">
+  <h1>Version for a new scenario: four layouts</h1>
+  <p class="lede">The same two choices each time: keep the <b>same Version</b> or take the <b>next</b>, and, where offered,
+    <b>name the tab after its Version</b> (linked, so the name follows it). Each panel is live: press <b>＋</b>, try it,
+    change the Version box, and <b>Start again</b>.</p>
+
+  <div class="scroller"><div class="grid" id="grid"></div></div>
+</div>
+
+<template id="tpl">
+  <section class="col">
+    <h2></h2>
+    <p class="sub"></p>
+    <div class="app">
+      <div class="info">Show info › Version <input class="ver" inputmode="decimal" aria-label="Version"> <span>Header:</span><span class="hv"></span></div>
+      <button class="reset">Start again</button>
+      <div class="cal">
+        <div class="h">Week</div><div class="h">Pre-Prep</div><div class="h">Production</div><div class="h">Post</div>
+        <div>1/18/27</div><div class="pp">PP wk 3</div><div></div><div></div>
+        <div>1/25/27</div><div></div><div class="pr">Ep. 101</div><div></div>
+        <div>2/1/27</div><div></div><div class="pr">Ep. 102</div><div class="po">Post wk 1</div>
+      </div>
+      <div class="sc-band" hidden></div>
+      <div class="sc-strip"><div class="sc-tabs"></div><span class="plus"></span><button class="sc-btn cmp">Compare</button></div>
+    </div>
+    <p class="try"></p>
+    <p class="pros"></p>
+  </section>
+</template>
+
+<script>
+(() => {
+  const LINK = '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M10 14a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1 1"/><path d="M14 10a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1-1"/></svg>';
+  const letters = i => { let s = '', n = i + 1; while(n > 0){ const r = (n - 1) % 26; s = String.fromCharCode(65 + r) + s; n = Math.floor((n - 1) / 26); } return s; };
+  const verNum = raw => { const s = String(raw || '').trim().replace(/^[vV]\s*/, ''); return /^\d+(\.\d+)*$/.test(s) ? s : null; };
+  const label = raw => { const n = verNum(raw); return n !== null ? 'v' + n : ''; };
+  const shown = t => t.linked ? (label(t.ver) || t.dflt) : t.name;
+  const keep = el => el.addEventListener('mousedown', e => { if (e.target.tagName !== 'INPUT' || e.target.type === 'checkbox') e.preventDefault(); });
+
+  const PANELS = [
+    { mode:'card', h:'A · The card', tag:'(as mocked)',
+      sub:'Press <b>＋</b>: one card opens above the new tab’s name box with the Version switch and the name tick.',
+      tryit:'Press <b>＋</b>, pick <b>v4 next</b>, tick the box, press Enter.',
+      pros:['+ Both choices where you are already looking.', '− A floating card on every copy (while there is a Version).'] },
+    { mode:'split', h:'B · Split +', tag:'(choose before copying)',
+      sub:'<b>＋</b> copies exactly as today, nothing asked. The <b>▾</b> beside it copies <b>as the next version</b>, and can name it after it.',
+      tryit:'Press <b>▾</b>, tick the box if you like, pick <b>Next version</b>. Or just press <b>＋</b>.',
+      pros:['+ Nothing ever pops up by itself; the quick copy is untouched.', '− Easy to miss: you have to know the ▾ is there.'] },
+    { mode:'badge', h:'C · Version on every tab', tag:'(no naming option)',
+      sub:'Each tab shows its Version as a small badge, so a name never has to carry it. A fresh copy’s badge offers <b>→ v4</b>.',
+      tryit:'Press <b>＋</b>, then <b>→ v4</b> on the new tab. It goes once you edit or switch tabs.',
+      pros:['+ Every tab’s version always visible; nothing to link or keep in step.', '− Wider tabs; a calendar with no Version shows no badge.'] },
+    { mode:'inline', h:'D · Inside the tab', tag:'(nothing floats)',
+      sub:'While the new tab’s name is typed, a <b>v3 | v4</b> switch and a <b>link</b> toggle sit in the tab itself, in the strip.',
+      tryit:'Press <b>＋</b>, click <b>v4</b>, then the <b>link</b> button to name it after its Version. Enter to finish.',
+      pros:['+ Compact, no popup at all.', '− Small targets; the link button needs its tooltip to explain itself.'] },
+  ];
+
+  function panel(cfg){
+    const root = document.getElementById('tpl').content.firstElementChild.cloneNode(true);
+    document.getElementById('grid').appendChild(root);
+    root.querySelector('h2').innerHTML = cfg.h + `<span class="tag">${cfg.tag}</span>`;
+    root.querySelector('.sub').innerHTML = cfg.sub;
+    root.querySelector('.try').innerHTML = cfg.tryit;
+    root.querySelector('.pros').innerHTML = cfg.pros.map(p => `<span>${p}</span>`).join('');
+    const verBox = root.querySelector('.ver'), tabsEl = root.querySelector('.sc-tabs'), band = root.querySelector('.sc-band'),
+          plus = root.querySelector('.plus'), hv = root.querySelector('.hv');
+    let tabs, cur, editing, fresh, menuOpen, menuLink;
+
+    const nextNum = () => { const n = tabs.map(t => verNum(t.ver)).filter(x => x !== null).map(x => Math.floor(parseFloat(x))); return n.length ? String(Math.max(...n) + 1) : null; };
+    function reset(){ tabs = [{ name:'Scenario A', dflt:'Scenario A', ver:'3', linked:false }]; cur = 0; editing = -1; fresh = null; menuOpen = false; menuLink = false; verBox.value = '3'; draw(); }
+    function setVer(v){ tabs[cur].ver = v; verBox.value = v; }
+    function draw(){ drawTabs(); drawPlus(); drawBand(); hv.textContent = label(tabs[cur].ver) || '—'; }
+    function soft(){ drawBand(); hv.textContent = label(tabs[cur].ver) || '—'; }
+    function copy(ver, linked){
+      const from = tabs[cur], d = 'Scenario ' + letters(tabs.length), next = nextNum();
+      tabs.splice(cur + 1, 0, { name:d, dflt:d, ver: ver != null ? ver : from.ver, linked: linked != null ? linked : from.linked });
+      cur++; editing = cur;
+      fresh = (cfg.mode !== 'split' && verNum(from.ver) !== null && next) ? { from: verNum(from.ver), next } : null;
+      if (cfg.mode === 'badge') editing = -1;   // C: the copy's name box stays shut, so its badge and → v4 show
+      verBox.value = tabs[cur].ver;
+      draw();
+    }
+
+    function drawPlus(){
+      plus.innerHTML = '';
+      if (cfg.mode !== 'split'){
+        const b = document.createElement('button'); b.className = 'sc-btn'; b.textContent = '＋'; b.title = 'Duplicate this scenario';
+        b.onclick = () => copy(); plus.appendChild(b); return;
+      }
+      const s = document.createElement('span'); s.className = 'split';
+      s.innerHTML = '<button class="sc-btn" title="Duplicate this scenario">＋</button><button class="sc-btn caret" title="Duplicate as…">▾</button>';
+      s.firstChild.onclick = () => { menuOpen = false; copy(); };
+      const caret = s.lastChild; caret.classList.toggle('on', menuOpen);
+      caret.onclick = e => { e.stopPropagation(); menuOpen = !menuOpen; drawPlus(); };
+      if (menuOpen){
+        const t = tabs[cur], v = verNum(t.ver), next = nextNum();
+        const m = document.createElement('div'); m.className = 'pop menu';
+        m.onclick = e => e.stopPropagation();
+        m.innerHTML = v !== null
+          ? `<div class="mlab">Duplicate ${t.linked ? label(t.ver) : shown(t)}…</div>
+             <button class="item" data-v="${v}">Same version <small>v${v}</small></button>
+             <button class="item" data-v="${next}">Next version <small>v${next}</small></button>
+             <hr><label class="check"><input type="checkbox"${menuLink ? ' checked' : ''}><span class="link">${LINK}</span>Name it after its version</label>`
+          : `<div class="mlab">Duplicate ${shown(t)}…</div><button class="item">Duplicate</button>
+             <div class="mlab" style="white-space:normal;padding-bottom:6px">Type a Version in Show info to copy as the next one.</div>`;
+        m.querySelectorAll('.item').forEach(b => b.onclick = () => { menuOpen = false; copy(b.dataset.v, v !== null ? menuLink : null); });
+        const cb = m.querySelector('input'); if (cb) cb.onchange = () => { menuLink = cb.checked; };
+        s.appendChild(m);
+      }
+      plus.appendChild(s);
+    }
+    document.addEventListener('click', () => { if (menuOpen){ menuOpen = false; drawPlus(); } });
+
+    function drawTabs(){
+      tabsEl.innerHTML = '';
+      tabs.forEach((t, i) => {
+        if (i === editing) return tabsEl.appendChild(editor(t, i));
+        const b = document.createElement('button'); b.className = 'sc-tab' + (i === cur ? ' is-current' : '');
+        const lv = label(t.ver);
+        b.innerHTML = (cfg.mode !== 'badge' && t.linked && lv ? `<span class="link" title="Named after its Version">${LINK}</span>` : '') + '<span class="nm"></span>'
+          + (cfg.mode === 'badge' && lv ? `<span class="badge">${lv}</span>` : '');
+        b.querySelector('.nm').textContent = cfg.mode === 'badge' ? t.name : shown(t);
+        if (cfg.mode === 'badge' && fresh && i === cur){
+          const bump = document.createElement('span'); bump.className = 'bump'; bump.role = 'button'; bump.textContent = '→ v' + fresh.next;
+          bump.title = 'Make this scenario the next version';
+          bump.onclick = e => { e.stopPropagation(); setVer(fresh.next); fresh = null; draw(); };
+          b.appendChild(bump);
+        }
+        b.onclick = () => { if (i !== cur){ cur = i; fresh = null; verBox.value = tabs[cur].ver; draw(); } };
+        b.ondblclick = () => { cur = i; editing = i; fresh = null; draw(); };
+        tabsEl.appendChild(b);
+      });
+    }
+
+    function editor(t, i){
+      const s = document.createElement('span'); s.className = 'sc-tab is-editing is-current';
+      const inp = document.createElement('input'); inp.className = 'sc-tab-input';
+      let typed = false;
+      const done = keepIt => {
+        if (editing !== i) return;
+        const val = inp.value.trim();
+        if (keepIt && typed && val){ t.name = val; t.linked = false; }
+        editing = -1; if (cfg.mode !== 'badge') fresh = null; draw();
+      };
+      const unlinkOnType = sync => inp.addEventListener('input', () => { typed = true; if (t.linked){ t.linked = false; sync(); } });
+      const hasVer = !!label(t.ver);
+      if (cfg.mode === 'card' && hasVer){
+        const c = document.createElement('div'); c.className = 'pop card'; keep(c);
+        c.innerHTML = (fresh ? `<div class="row"><span class="lab">Version</span><span class="seg">
+            <button type="button" data-v="${fresh.from}"><b>v${fresh.from}</b>same</button>
+            <button type="button" data-v="${fresh.next}"><b>v${fresh.next}</b>next</button></span></div>` : '')
+          + `<label class="check"${fresh ? '' : ' style="margin-top:0"'}><input type="checkbox"><span class="link">${LINK}</span>Use the version as the tab's name</label>`;
+        const cb = c.querySelector('input'); cb.checked = t.linked;
+        const paint = () => c.querySelectorAll('.seg button').forEach(b => b.setAttribute('aria-pressed', b.dataset.v === t.ver ? 'true' : 'false'));
+        paint();
+        c.querySelectorAll('.seg button').forEach(b => b.onclick = () => { setVer(b.dataset.v); paint(); soft(); if (t.linked) inp.value = shown(t); });
+        cb.onchange = () => { t.linked = cb.checked; typed = false; inp.value = shown(t); inp.focus(); inp.select(); };
+        unlinkOnType(() => { cb.checked = false; });
+        s.appendChild(c); s.appendChild(inp);
+      } else if (cfg.mode === 'inline' && hasVer){
+        s.appendChild(inp);
+        if (fresh){
+          const m = document.createElement('span'); m.className = 'mini'; keep(m);
+          m.innerHTML = `<button type="button" data-v="${fresh.from}" title="Same version">v${fresh.from}</button><button type="button" data-v="${fresh.next}" title="Next version">v${fresh.next}</button>`;
+          const paint = () => m.querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', b.dataset.v === t.ver ? 'true' : 'false'));
+          paint();
+          m.querySelectorAll('button').forEach(b => b.onclick = () => { setVer(b.dataset.v); paint(); soft(); if (t.linked) inp.value = shown(t); });
+          s.appendChild(m);
+        }
+        const l = document.createElement('button'); l.type = 'button'; l.className = 'ltog'; l.innerHTML = LINK; keep(l);
+        l.title = 'Name this tab after its Version (it follows the Version)';
+        const paintL = () => l.setAttribute('aria-pressed', t.linked ? 'true' : 'false'); paintL();
+        l.onclick = () => { t.linked = !t.linked; typed = false; paintL(); inp.value = shown(t); inp.focus(); inp.select(); };
+        unlinkOnType(paintL);
+        s.appendChild(l);
+      } else {
+        inp.addEventListener('input', () => { typed = true; });
+        s.appendChild(inp);
+      }
+      inp.value = shown(t);
+      inp.onkeydown = e => { if (e.key === 'Enter'){ e.preventDefault(); done(true); } else if (e.key === 'Escape') done(false); };
+      inp.onblur = () => done(true);
+      requestAnimationFrame(() => { inp.focus(); inp.select(); });
+      return s;
+    }
+
+    function drawBand(){
+      band.hidden = tabs.length < 2;
+      const vers = tabs.map(t => label(t.ver)), cv = vers[cur];
+      band.innerHTML = [['Episodes','8'],['Production','1/25/27 · 9 wks'],['Wrap','3/26/27']]
+        .map(([l, v]) => `<div class="sc-band-stat"><span class="sc-band-lab">${l}</span><span class="sc-band-v is-same">${v}</span></div>`).join('')
+        + (cv ? `<div class="sc-band-stat"><span class="sc-band-lab">Version</span><span class="sc-band-v${vers.every(v => v === cv) ? ' is-same' : ''}">${cv}</span></div>` : '');
+    }
+    verBox.addEventListener('input', () => {
+      verBox.value = verBox.value.replace(/[^0-9.]/g, '');
+      tabs[cur].ver = verBox.value; fresh = null;
+      if (editing === -1) draw(); else soft();
+    });
+    root.querySelector('.reset').onclick = reset;
+    reset();
+  }
+  PANELS.forEach(panel);
+})();
+</script>
+</body>
+</html>

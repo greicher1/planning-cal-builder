@@ -55,6 +55,8 @@ function bandGroups(band) {
   const pr = [v.first && val('first', fmt(v.first, band.dayFirst)), v.span != null && val('span', plural(v.span, 'wk'))].filter(Boolean)
   if (pr.length) groups.push({ label: labels.prod || 'Production', items: pr })
   if (v.wrap) groups.push({ label: 'Wrap', items: [val('wrap', fmt(v.wrap, band.dayFirst))] })
+  // The Version as the header prints it, while the tab on screen has one (owner, 18 Nov 2026, with the offer below).
+  if (v.ver) groups.push({ label: 'Version', items: [val('ver', v.ver)] })
   return groups
 }
 // Writes the band's room, only when it changed: a style write on <html> is a mutation the grid fit observes.
@@ -248,6 +250,30 @@ export function ScenarioTabs() {
     setEditing(null)
   }
   const menuTab = menu && st.tabs.find((t) => t.id === menu.id)
+  // ⭐ THE VERSION ON EVERY TAB (owner, 19 Nov 2026, layout C of mockups/scenario-version-layouts.html): a small badge
+  // after the name, as the header prints it, so a name never has to carry the version. A fresh copy whose Version is a
+  // number also shows "→ v4" (the engine's offer, takeScenarioVerOffer() in app.js), there while its name box is open
+  // too: a press on it must not blur the box first, or the rename's re-render takes the button away mid-click.
+  // A NUMBER badge is a button too (owner, 19 Nov 2026): a click brings "→ v4" back, on that tab, and a second click
+  // puts it away. A text Version kept from before 18 Nov ("Blue") has no next one, so its badge is plain.
+  const badge = (t) => {
+    if (!t.ver) return null
+    if (!/^v\d/.test(t.ver)) return <span className="sc-tab-ver">{t.ver}</span>
+    return (
+      <span className="sc-tab-ver is-btn" role="button" tabIndex={-1} title="Offer the next version"
+            onClick={(e) => { e.stopPropagation(); send({ op: 'verAsk', id: t.id }) }}
+            onDoubleClick={(e) => e.stopPropagation()}>
+        {t.ver}
+      </span>
+    )
+  }
+  const bump = (t) => (st.verOffer && t.id === st.current) ? (
+    <span className="sc-ver-bump" role="button" tabIndex={-1} title={'Make this scenario ' + st.verOffer.to + ', the next version'}
+          onMouseDown={(e) => { e.preventDefault(); e.stopPropagation() }}
+          onClick={(e) => { e.stopPropagation(); send({ op: 'verTake' }) }}>
+      → {st.verOffer.to}
+    </span>
+  ) : null
 
   return (
     <>
@@ -272,6 +298,7 @@ export function ScenarioTabs() {
                     e.stopPropagation()
                   }}
                   onBlur={(e) => finishRename(e.currentTarget, t.id, true)} />
+                {bump(t)}
               </span>
             )
           }
@@ -288,6 +315,8 @@ export function ScenarioTabs() {
               onContextMenu={(e) => { e.preventDefault(); if (!on) send({ op: 'switch', id: t.id }); openMenu(t.id, e.clientX, e.clientY) }}
               title={on ? 'Double-click to rename · right-click for more' : 'Show ' + t.name}>
               <span className="sc-tab-name">{t.name}</span>
+              {badge(t)}
+              {bump(t)}
               {on && (
                 <span className="sc-tab-caret" role="button" aria-label={'More for ' + t.name}
                   onClick={(e) => { e.stopPropagation(); const r = e.currentTarget.getBoundingClientRect(); openMenu(t.id, r.left, r.top) }}>

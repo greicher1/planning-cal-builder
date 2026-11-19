@@ -4703,6 +4703,24 @@
   .sc-band-sep{ margin:0 6px; color:var(--mantine-color-gray-5); }
   .sc-band-v{ font-weight:600; }
   .sc-band-v.is-same{ font-weight:400; color:var(--text-muted); }
+  /* Each tab's Version as a small badge, and a fresh copy's "→ v4" (owner, 19 Nov 2026, layout C of
+     mockups/scenario-version-layouts.html; ScenarioTabs.jsx, takeScenarioVerOffer() in app.js). Chrome, not the frozen
+     surface. The badge is grey on every tab, a shade darker on the one on screen. */
+  .sc-tab-ver{
+    display:inline-flex; align-items:center; height:16px; margin-left:5px; padding:0 5px; border-radius:var(--mantine-radius-sm);
+    background:var(--mantine-color-gray-1); color:var(--text-muted); font-size:10.5px; font-weight:600; line-height:1;
+  }
+  .sc-tab.is-current .sc-tab-ver{ background:var(--mantine-color-gray-2); color:var(--text); }
+  .sc-tab-ver.is-btn{ cursor:pointer; }
+  .sc-tab-ver.is-btn:hover{ background:var(--mantine-color-gray-3); color:var(--text); }
+  .sc-ver-bump{
+    display:inline-flex; align-items:center; height:18px; margin-left:4px; padding:0 6px; border-radius:var(--mantine-radius-sm);
+    background:var(--mantine-primary-color-filled); color:var(--mantine-color-white); font-size:10.5px; font-weight:600;
+    line-height:1; cursor:pointer; animation:sc-ver-in .18s ease-out;
+  }
+  .sc-ver-bump:hover{ background:var(--mantine-primary-color-filled-hover); }
+  @keyframes sc-ver-in{ from{ opacity:0; transform:translateY(3px); } to{ opacity:1; transform:none; } }
+  @media (prefers-reduced-motion:reduce){ .sc-ver-bump{ animation:none; } }
   /* The waterfall's resize handles show at every zoom (22 Oct 2026). Until then they were hidden here
      while zoomed (body.cal-zoomed), because frozen installGridResizers and the drags mixed screen px
      with the grid's own px and a zoomed row drag SAVED the zoomed height. Frozen edits Z1-Z6 (app.js,
