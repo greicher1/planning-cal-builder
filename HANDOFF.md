@@ -4,7 +4,7 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### 🔨 18 Nov 2026: ONE MONTH SIZE — Standard / Large / Extra Large (branch `month-one-size`, worktree `.claude/worktrees/month-one-size`, from `origin/main` `bf6e235`). NOT pushed; no version cut yet.
+### 🚀 18 Nov 2026: v1.20.1 — ONE MONTH SIZE — Standard / Large / Extra Large (branch `month-one-size`, worktree `.claude/worktrees/month-one-size`, from `origin/main` `bf6e235`, v1.20.0 merged in). Pushed to `main` on the owner's picker.
 - **Owner:** *"lets make the phase bar size and notes size one size adjuster - and the unit should be Standard, Large,
   Extra Large"*; asked whether to add a fourth step (Medium, 11 px, would have been free; anything under 10 px is a
   frozen month-view edit), *"lets just stick with 3 sizes, keep going"*. Tracker card `month-one-size`.
@@ -28,7 +28,11 @@
   hook path: `monthemit` mvnotes barsize=11 16/16, month-dense60 notesize=12 16/16; `monthwriter` month-dense60
   notesize=13&barsize=11 12/12; `textfit` textfit-dense g=date&notesize=12 3/3; `npm run check` 42/42. No full gate
   (no frozen code, writer or saved key touched); the rest of gate.sh's `?barsize=` specs were not run one by one.
-- **Not done:** a version cut and the push (owner's picker, CLAUDE.md).
+- **Cut as v1.20.1** (owner's picker *"Cut v1.20.1 and push"*): `APP_VERSION`, `version.json`, `package.json` at
+  1.20.1 (`npm run check` 42/42); README's entry under `## v1.20.1`; `releases/v1.20.1.html` cmp-identical to the
+  build (sha256 `5d711f01703e5940…`, 2,302,001 bytes); `tests/fixtures/v1.20.1-saved.sptcal` a real Save (mintfixture:
+  46 keys, 77 ids), byte-identical to v1.20.0's but `lastEdited`. Tag `v1.20.1` (annotated). v1.20.0 (`7fe53b4`) was
+  merged in first (README / HANDOFF conflicts only); the size legs re-ran green on the merged build.
 
 ||||||| bf6e235
 ### 🛠️ 18 Nov 2026: EXPORT FILE NAMES (WRO date, "a.o." date, the File name list) + THE VERSION GETS ITS "v" BACK — FINISHED on branch `export-name-wro` (worktree `.claude/worktrees/export-name-wro`, from `origin/main` `1c9b008`). NOT merged, NOT pushed; full gate below. Tracker cards `save-name-wro-date`, `export-file-name-parts`, `version-auto-v`.
