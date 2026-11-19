@@ -65,7 +65,12 @@ could be moved to the top right corner of each phase in a clean way and integrat
   `dayfirstwf` 11/11, `simpostdays` 14/14, `anchorside` 39/39, `buildalongside` 8/8, `phasearrows` 26/26, `overrides`
   20/20, `mvmenu` 81/81, `wfmenu` 39/39, `phiatuspick` 12/12, `finishbefore` 12/12, `phasefold` 11/11, `phasecolors`
   10/10, `loadcarry`, `swapnewphase`, `dlgkeys`, `phiatusnum`, `autonotephases`, `phasenotes`, `phasemonth` green;
-  `npm run check` 42/42. Tried by hand in the app. The full gate has not run (see HANDOFF).
+  `npm run check` 42/42. Tried by hand in the app.
+- **Full gate** (port 8491, merged with v1.21.0, 18 Nov 2026): 5,791 PASS / 16 FAIL. Six were `phasesmore` M1/M5/M8 at
+  both window sizes, which still counted the moved rows: re-expected (Snap in the picker, Hide in waterfall as the
+  corner's eye or tag), then 6/6 at both sizes. The other ten pass alone: `phasesui` P1 and `offweek` R12 (+ six R13
+  checks behind it) were the "loaded file's name" load timeout v1.21.0's gate also hit; `monthexport`
+  (colswap-simpost-refuse) X6 9/9; `sideboxes` (no result in the gate) 78/78. Every baseline identical.
 
 ||||||| 7c2e34e
 

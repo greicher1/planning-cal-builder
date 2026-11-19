@@ -14,10 +14,14 @@
 // one of them unlocked.
 //
 // CASES
-//   M1  a new calendar: every card shows every switch it has (Snap to Monday, Number weeks, Hide in waterfall,
-//       Hiatus, Simultaneous Post), on or off, and there is no "More options" line anywhere
+//   M1  a new calendar: every card shows every switch it has (Number weeks, Hiatus, Simultaneous Post, and Hide in
+//       waterfall's corner control), on or off, and there is no "More options" line anywhere. ⚠️ Re-expected 18 Nov 2026
+//       (owner: Snap to Monday moved into the Starts date picker, "Yes, build it"; Hide in waterfall into the head's
+//       corner, "Build A"): Snap is no longer a card switch (snappicker holds it), and Hide in waterfall counts as the
+//       corner's eye or tag, whichever shows.
 //   M3  the four winter breaks start FOLDED to their head, which still shows their dates
-//   M5  a switch turned on and undone stays on show both ways (nothing hides a switch by its value)
+//   M5  a switch turned on and undone stays on show both ways (nothing hides a switch by its value): the corner's
+//       eye, then its tag, then the eye again
 //   M6  + Add hiatus period adds an OPEN card; the folded ones stay folded
 //   M8  a loaded calendar: every switch on every card on show, set or not, Post's hiatus fields with it; both hiatus
 //       cards folded; no "More options" line
@@ -30,7 +34,9 @@ window.addEventListener('load', function () { (async function () {
   function q(s, r){ return (r || document).querySelector(s); }
   function qa(s, r){ return Array.from((r || document).querySelectorAll(s)); }
   function $id(id){ return document.getElementById(id); }
-  var RARE = '.phase-switches > .phase-snap, .phase-switches > .phase-wknum, .phase-switches > .phase-hidewf, .phase-hiatus > .phase-hiatus-toggle, .simpost-panel > .simpost-toggle';
+  var RARE = '.phase-switches > .phase-wknum, .phase-hiatus > .phase-hiatus-toggle, .simpost-panel > .simpost-toggle';
+  // Hide in waterfall's control: the eye or the tag in the head's corner, one of them on show (since 18 Nov 2026).
+  function hideCtl(r){ return r.querySelector('.phase-head-corner .phase-wf-eye:not([hidden]), .phase-head-corner button.phase-mvonly-tag:not([hidden])'); }
   // The phase cards that carry switches (the Prep row has none of these).
   function cards(){ return qa('#phase-rows > .phase-row, #custom-phase-rows > .phase-row').filter(function (r) { return r.querySelector(':scope > .swatch[id^="swatch-"]') && r.querySelector(':scope > .phase-switches'); }); }
   function keyOf(row){ return row.querySelector(':scope > .swatch').id.slice(7); }
@@ -62,14 +68,18 @@ window.addEventListener('load', function () { (async function () {
     var ks = cards().map(keyOf);
     function perCard(){
       var o = {};
-      cards().forEach(function (r) { var sw = qa(RARE, r); o[keyOf(r)] = {all: sw.length, shown: sw.filter(vis).length}; });
+      cards().forEach(function (r) {
+        var sw = qa(RARE, r), hc = r.querySelector('.phase-head-corner .phase-wf-eye') ? [hideCtl(r)] : [];
+        sw = sw.concat(hc);
+        o[keyOf(r)] = {all: sw.length, shown: sw.filter(vis).length};
+      });
       return o;
     }
-    function allShown(pc){ return Object.keys(pc).every(function (k) { return pc[k].all >= 3 && pc[k].shown === pc[k].all; }); }
+    function allShown(pc){ return Object.keys(pc).every(function (k) { return pc[k].all >= 2 && pc[k].shown === pc[k].all; }); }
     var pc1 = perCard(), noMore1 = !document.querySelector('.phase-more-btn');
     add('M1', 'a new calendar: every card shows every switch it has, on or off, and there is no "More options" line',
         ks.length >= 6 && allShown(pc1) && noMore1, {cards: pc1, moreLines: document.querySelectorAll('.phase-more-btn').length},
-        'every switch shown, at least 3 a card; no More options');
+        'every switch shown, at least 2 a card; no More options');
 
     // ---- M3 ----
     var f3 = folds(), ranges = hiatusRows().map(function (r) { var e = r.querySelector('.hiatus-range'); return vis(e) ? e.textContent.trim() : ''; });
@@ -79,15 +89,16 @@ window.addEventListener('load', function () { (async function () {
         {folded: f3, heads: ranges, bodiesShown: bodies}, 'four folded, dates on each head');
 
     // ---- M5 ----
-    var hideRow = $id('swatch-prePrep').parentElement.querySelector('.phase-hidewf');
-    var shownOff = vis(hideRow);
-    hideRow.click(); await T.sleep(200); await settle('Pre-Prep hidden in the waterfall');
-    var cbOn = hideRow.querySelector('input').checked, shownOn = vis(hideRow);
+    var preRow = $id('swatch-prePrep').parentElement, tick = preRow.querySelector('.phase-hidewf-cb');
+    var eyeEl = preRow.querySelector('.phase-head-corner .phase-wf-eye'), tagEl = preRow.querySelector('.phase-head-corner button.phase-mvonly-tag');
+    var shownOff = vis(eyeEl);
+    eyeEl.click(); await T.sleep(200); await settle('Pre-Prep hidden in the waterfall');
+    var cbOn = tick.checked, shownOn = vis(tagEl);
     $id('undo-btn').click(); await T.sleep(400); await settle('the undo');
     // The undo puts back the sidebar tab its snapshot was taken on (sidebarTab is saved state), so look on Phases.
     var tabAfterUndo = (q('.side-tab-btn[aria-selected="true"], .side-tab-btn.active') || {dataset: {}}).dataset.tab || null;
     await phasesTab();
-    var cbOff = !hideRow.querySelector('input').checked, shownBack = vis(hideRow);
+    var cbOff = !tick.checked, shownBack = vis(eyeEl);
     add('M5', 'a switch turned on and undone stays on show both ways',
         shownOff && cbOn && shownOn && cbOff && shownBack, {shownOff: shownOff, on: cbOn, shownOn: shownOn, undone: cbOff, shownAfterUndo: shownBack, tabAfterUndo: tabAfterUndo}, 'on show throughout');
 

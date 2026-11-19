@@ -34,9 +34,11 @@
   `datepick` (P1/P4/P5/P7 read the switch, not the hint; U1/R1 no switch), `builtindates` / `customunits` (the card's
   snap row is never shown; the Starts picker is asked whether it offers Snap), `hidewf` (`clickTick` clicks the corner's
   eye / tag, hit-tested), `phasesui` P4 (measures Number weeks and the 22 px corner control).
-- **Not done:** the full gate (another session's v1.21.0 gate was running when this was finished; two at once stall),
-  commit, merge, push — all wait on the owner's pickers. ⚠️ `origin/main` is moving to v1.21.0 under this branch: merge
-  it in before the gate.
+- **Committed** `16f0222` (owner's picker "Commit locally"); v1.21.0 merged in at `d6a9bb2` (README / HANDOFF top-entry
+  conflicts only, both kept). **Full gate** on the merge (port 8491): 5,791 PASS / 16 FAIL; `phasesmore` M1/M5/M8 x2
+  were this change (re-expected: Snap is no card switch, Hide in waterfall counts as the corner's eye or tag), the other
+  ten pass alone (`phasesui` P1 and `offweek` R12/R13 the load timeout v1.21.0's gate also had, `monthexport` X6 9/9,
+  `sideboxes` 78/78). Every baseline identical. **Push waits on the owner's picker.**
 
 ||||||| 7c2e34e
 
