@@ -10174,6 +10174,27 @@ export function initLegacyApp() {
     });
     return row;
   }
+  // Show info's Tandem Days box (owner, 19 Nov 2026; Sidebar.jsx's TandemDaysBox, one beside the days per episode and
+  // one beside the days per block): a second view of the card's default count above. A count typed there is written
+  // exactly as the card's box writes it, and reflectShowInfoTandem(), from update(), writes the store back into every
+  // copy but the one being typed in, so the card and Show info always agree.
+  // ⛔ No id on these boxes (the card's rule): the count is saved under doubleUps.days, never in fields.byId.
+  document.addEventListener('input', e=>{
+    const t = e.target;
+    if(!t || !t.classList || !t.classList.contains('si-tandem-in')) return;
+    const n = duTyped(t.value), next = n > 0 ? n : 0;
+    if(next === doubleUpDays) return;
+    doubleUpDays = next;
+    update();
+  });
+  function reflectShowInfoTandem(){
+    const want = doubleUpDays > 0 ? String(doubleUpDays) : '';
+    document.querySelectorAll('.si-tandem-in').forEach(inp=>{
+      if(document.activeElement === inp) return;
+      const same = want === '' ? inp.value === '' : (inp.value !== '' && duTyped(inp.value) === Number(want));
+      if(!same) inp.value = want;
+    });
+  }
   function duUnitDef(kind, id){
     return (kind === 'block' ? blockDefs : episodeDefs).find(x=> x.id === id) || null;
   }
@@ -30242,6 +30263,7 @@ export function initLegacyApp() {
     reflectPhaseNudges(); // which cards show the week arrows (the waterfall, and a phase with a date), and their labels
     refreshPrepUI(currentSchedule);
     refreshDoubleUpUI(currentSchedule);
+    reflectShowInfoTandem();   // Show info's copy of the card's default count (owner, 19 Nov 2026)
     refreshHolidayCoverageNote();
     // The "Label Production by" control (Preferences, month view). Here because a change of Schedule by,
     // an undo or a Load can change what it shows without touching mvProdLabel's own setter.
