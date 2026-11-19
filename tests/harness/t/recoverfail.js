@@ -72,7 +72,7 @@ window.addEventListener('load', function () { (async function () {
   function val(id){ return (document.getElementById(id) || {}).value; }
   function titleIn(text){ try { return JSON.parse(text).fields.byId['show-title'].value; } catch(e){ return null; } }
   function crashedTitle(){ var b = handles().get('unsavedBackup:crashed'); return b && b.state ? titleIn(JSON.stringify(b.state)) : null; }
-  function tabs(){ return Array.prototype.map.call(document.querySelectorAll('.sc-tab'), function (t) { return t.textContent.trim(); }); }
+  function tabs(){ return Array.prototype.map.call(document.querySelectorAll('.sc-tab'), function (t) { return (t.querySelector('.sc-tab-name') || t).textContent.trim(); }); }
   try {
     await T.until(function(){ return /Recover unsaved work/.test(T.modalText()); }, 'the recover question', 100, 100);
     var offer = T.modalText();

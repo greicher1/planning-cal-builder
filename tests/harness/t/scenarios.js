@@ -14,8 +14,8 @@ window.addEventListener('load', function () { (async function () {
   var T = window.__T, cases = [], out = {};
   function add(id, title, pass, observed, expected){ cases.push({id: id, title: title, pass: !!pass, observed: observed, expected: expected}); }
   function tabs(){ return [].slice.call(document.querySelectorAll('.sc-tab')).map(function(t){
-    return (t.classList.contains('is-current') ? '*' : '') + (t.querySelector('input') ? '[editing]' : t.textContent.trim()); }).join(' | '); }
-  function tab(name){ return [].slice.call(document.querySelectorAll('.sc-tab')).filter(function(t){ return t.textContent.trim() === name; })[0]; }
+    return (t.classList.contains('is-current') ? '*' : '') + (t.querySelector('input') ? '[editing]' : (t.querySelector('.sc-tab-name') || t).textContent.trim()); }).join(' | '); }
+  function tab(name){ return [].slice.call(document.querySelectorAll('.sc-tab')).filter(function(t){ return (t.querySelector('.sc-tab-name') || t).textContent.trim() === name; })[0]; }
   function eps(){ return document.getElementById('num-episodes').value; }
   function header(){ return [].slice.call(document.querySelectorAll('#table-wrap .cal-header-bar .hdr-line, #table-wrap .mv-header .hdr-line'))
     .map(function(e){ return e.textContent.trim(); }).filter(Boolean).join(' / '); }

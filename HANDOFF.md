@@ -20,6 +20,50 @@
   `snaptools` (dayoverrides), `builtindates` (live + restored) green; `npm run check` 43/43. No full gate: sidebar chrome,
   no frozen code, writer or saved key.
 
+### 🏷️ 19 Nov 2026: SCENARIO TABS SHOW THEIR VERSION, A COPY IS OFFERED THE NEXT — merged with origin/main (v1.22.0 + the Tandem / Show info / zoom pushes) and pushed to `main` on the owner's picker. README "Unreleased". Tracker card `scenario-version-bump`.
+- **Owner, in order:** asked whether a new scenario should take the Version as its name or the Version show in the bottom
+  bar; then *"it could automatically set the version number to the next number"*; *"could there be a dialogue that asks"*;
+  picked a strip offer (B), then asked to name tabs after the version *"as a suggestion, not force them"*, linked to the
+  real Version; then *"two different dialogues is confusing"*; four layouts; picked **C** (*"lets see with version c looks
+  like in the app"*); then *"if i dont click the arrow ... I should later be able to click on the little version number
+  and the arrow should pop up again"*; *"Finish it"*. Mockups kept: `mockups/scenario-version-bump.html`,
+  `scenario-name-version.html`, `scenario-new-tab-card.html`, `scenario-version-layouts.html` (C is the built one).
+- **Built:** a Version badge on every tab (`tabVersionLabel`: the tab on screen from the box, a parked tab from its
+  snapshot's `fields.byId['show-version']`); `→ vN` on a fresh copy and on a badge click (`scenarioVerOffer`,
+  `nextScenarioVersion` = highest whole version on any tab + 1, only when the tab's own Version is a number);
+  `takeScenarioVerOffer` types the number into `#show-version` and fires its input handler, so it is one ordinary undo
+  step; the band's Version tile (`BAND_KEYS` + `ver`). No naming of tabs after the version: the badge replaced it.
+- ⚠️ **The offer is dropped in `markDirty()` by comparing `undoStateJSON()` with the state it was offered against**, so
+  a rename (no tab name is in a snapshot) does not drop it, and any calendar edit does. Its base is
+  `lastPushedSnapshotJSON` after a copy and `undoStateJSON()` on a badge click.
+- ⚠️ **`→ vN` sits inside the tab while its rename box is open, and its `mousedown` calls `preventDefault()`.** Without
+  that the box blurs first, the rename re-renders the strip, and the click lands on nothing.
+- ⚠️ **A tab's `textContent` now includes its badge** ("Scenario Av3"). Legs must read `.sc-tab-name`; five were changed
+  (scenarios, scenariofacts, recoverfail, retiredplaces, comparebreaks).
+- **Legs:** new `scenversion` (in gate.sh after scenariofacts) 9/9, red on v1.21.0 (V1). Re-run green on the build:
+  scenarios 23/23, scenariofacts 12/12, scenlist (rt) 9/9, comparebreaks 10/10, exportnames 12/12, filenamelist 11/11,
+  comparehiatus 8/8, retiredplaces 8/8, recoverfail mode=scen 3/3, loadsparse v=scen 7/7, changessince 15/15. `npm run check` 43/43. No full gate
+  (chrome + scenario engine, nothing frozen, no saved key).
+
+### 🔨 19 Nov 2026: SHOW INFO'S FIELD ORDER PER MODE — built on `show-info-tandem` (after the Tandem push), NOT pushed. Tracker card `show-info-field-order`.
+- **Owner:** Episodes mode reads Schedule by, Number of Episodes, Shooting Days per Ep + Tandem, Version, Region, Location;
+  Blocks mode reads Number of Blocks, Shooting Days per Block + Tandem, then Number of Episodes, *"it can still be optional
+  but remove that it says so"*.
+- **Done in `Sidebar.jsx` only:** markup order is num-blocks, days-per-block row (Blocks only), `#num-episodes` (both), the
+  days-per-episode row (Episodes only); the `(optional)` span is gone. ⛔ Never duplicate `#num-episodes` to get the two
+  orders: its id is the save format. Help still says the count is optional in Blocks (true).
+- **Legs:** `doubleups` SI8 (both orders), `labelsetup` B1u re-premised to the plain label.
+
+### ✅ 19 Nov 2026: TANDEM DAYS IN SHOW INFO — LIVE (`4562e9d`, pushed on the owner's picker; deploy green to GitHub Pages and Cloudflare, the GitHub Pages copy fetched and carries `si-tandem-in`; the Cloudflare address is behind the sign-in, so not fetched). Branch `show-info-tandem` (worktree `.claude/worktrees/show-info-tandem`, from `origin/main` `1b45340`; `node_modules` is a symlink, unlink it before `git worktree remove`). Mockup [`mockups/show-info-tandem.html`](mockups/show-info-tandem.html) (main checkout, untracked). Tracker card `show-info-tandem`.
+- **Owner:** *"add double-up/tandem days in the Show Info section. To the right of the Shooting days per episode should be a big plus symbol and then to the right of that another box"*; then *"the plus doesn't need to be that big"*, *"could all be on one line"*, *"remove the subtext below it, then build it"*.
+- **Built:** Show info's days row is `days box + Tandem Days` on one line, in Episodes and in Blocks mode (`TandemDaysBox` in `Sidebar.jsx`, `.si-days-tandem` in `legacy.css`). The box is a SECOND view of the Tandem card's "Default tandem days" (`doubleUpDays`, saved as `doubleUps.days`): a delegated `input` listener writes it as the card's box does, `reflectShowInfoTandem()` (from `update()`) writes it back. Undo, both directions and Blocks mode checked in the pane; `npm run check` 43/43.
+- ⛔ **No id on the box:** a PLAIN `<input>`, the Region mirror's pattern. A Mantine `Input` inside `Input.Wrapper` TOOK THE WRAPPER'S MINTED ID (seen in the built page), which the save sweep would have baked into `fields.byId`.
+- The days label runs over the plus column (`nowrap`), which keeps it to one line in the 280 px sidebar (142 of 146 px). "Whole days only" sits under the row (absolute), not in the 72 px column, where it wrapped and lifted the box.
+- **Finished:** leg `doubleups` LIVE run gained SI0-SI7 (one line in both modes, no id on either copy, Show info -> card and
+  card -> Show info, one Undo, Save adds no `fields.byId` key, Load, the whole-days ring with the box kept in line); help
+  text in the Tandem paragraph; README "Unreleased". "One value in two places" was never ruled; the owner tried it and said
+  finish. No full gate (chrome + a sidebar listener, nothing frozen).
+
 ### 🤏 18 Nov 2026: PINCH, CTRL-SCROLL AND ⌘+ / ⌘− ZOOM THE CALENDAR, NOT THE APP (branch `pinch-zoom`, worktree `.claude/worktrees/pinch-zoom`, from `origin/main` `0aaf387` = v1.22.0; NOT pushed). README "Unreleased". Tracker card `pinch-zoom-calendar`.
 - **Owner:** *"Allow trackpad pinch and related mouse zoom buttons to control the viewport of the waterfall and month
   view rather than just zooming in the entire UI of the app"*.

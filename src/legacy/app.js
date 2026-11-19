@@ -10174,6 +10174,27 @@ export function initLegacyApp() {
     });
     return row;
   }
+  // Show info's Tandem Days box (owner, 19 Nov 2026; Sidebar.jsx's TandemDaysBox, one beside the days per episode and
+  // one beside the days per block): a second view of the card's default count above. A count typed there is written
+  // exactly as the card's box writes it, and reflectShowInfoTandem(), from update(), writes the store back into every
+  // copy but the one being typed in, so the card and Show info always agree.
+  // ⛔ No id on these boxes (the card's rule): the count is saved under doubleUps.days, never in fields.byId.
+  document.addEventListener('input', e=>{
+    const t = e.target;
+    if(!t || !t.classList || !t.classList.contains('si-tandem-in')) return;
+    const n = duTyped(t.value), next = n > 0 ? n : 0;
+    if(next === doubleUpDays) return;
+    doubleUpDays = next;
+    update();
+  });
+  function reflectShowInfoTandem(){
+    const want = doubleUpDays > 0 ? String(doubleUpDays) : '';
+    document.querySelectorAll('.si-tandem-in').forEach(inp=>{
+      if(document.activeElement === inp) return;
+      const same = want === '' ? inp.value === '' : (inp.value !== '' && duTyped(inp.value) === Number(want));
+      if(!same) inp.value = want;
+    });
+  }
   function duUnitDef(kind, id){
     return (kind === 'block' ? blockDefs : episodeDefs).find(x=> x.id === id) || null;
   }
@@ -30242,6 +30263,7 @@ export function initLegacyApp() {
     reflectPhaseNudges(); // which cards show the week arrows (the waterfall, and a phase with a date), and their labels
     refreshPrepUI(currentSchedule);
     refreshDoubleUpUI(currentSchedule);
+    reflectShowInfoTandem();   // Show info's copy of the card's default count (owner, 19 Nov 2026)
     refreshHolidayCoverageNote();
     // The "Label Production by" control (Preferences, month view). Here because a change of Schedule by,
     // an undo or a Load can change what it shows without touching mvProdLabel's own setter.
@@ -33138,6 +33160,7 @@ export function initLegacyApp() {
       try { el.setSelectionRange(caret, caret); } catch(_){}
     }
     render(currentSchedule); markDirty();
+    scheduleScenarioFacts();   // the key facts band's Version tile (owner, 18 Nov 2026)
   });
   // The Location (KEY-FACTS-PLAN.md §3.2) changes nothing in the calendar, only the scenario band and Compare, so it
   // re-reads the band instead of rendering.
@@ -34039,6 +34062,7 @@ export function initLegacyApp() {
   }
   function currentScenario(){ return scenarioTabs.find(t => t.id === currentScenarioId) || scenarioTabs[0]; }
   function resetScenarios(){
+    scenarioVerOffer = null;
     scenarioTabs = [{ id: 's1', name: scenarioDefaultName(0), snapshot: null, undo: null, facts: null }];
     currentScenarioId = 's1';
     scenarioCounter = 1;
@@ -34099,6 +34123,7 @@ export function initLegacyApp() {
   // After a file's calendar was applied: its tabs become the tab set (or one tab, for a one-calendar file).
   function adoptScenarios(sc){
     if(!sc){ resetScenarios(); scheduleScenarioFacts(); return; }
+    scenarioVerOffer = null;
     scenarioTabs = sc.tabs;
     currentScenarioId = sc.current;
     scenarioCounter = sc.counter;
@@ -34115,10 +34140,14 @@ export function initLegacyApp() {
     chrome.scenarios({
       ...(edit ? { edit, editSeq: ++scenarioEditSeq } : {}),
       visible: calendarShown(),
-      tabs: scenarioTabs.map(t => ({ id: t.id, name: t.name })),
+      // `ver`: each tab's Version as the header prints it, for its badge (owner, 19 Nov 2026, layout C of
+      // mockups/scenario-version-layouts.html); '' with none.
+      tabs: scenarioTabs.map(t => ({ id: t.id, name: t.name, ver: tabVersionLabel(t) })),
       current: currentScenarioId,
       max: SCENARIO_MAX,
       band: scenarioBand(),   // the key facts band (KEY-FACTS-PLAN.md); null with one tab
+      verOffer: (scenarioVerOffer && scenarioVerOffer.id === currentScenarioId && scenarioTabs.length > 1)
+        ? { from: scenarioVerOffer.from, to: scenarioVerOffer.to } : null,
     });
   }
   // Parks the tab on screen: its state as a DEEP copy (a live captureSnapshot() shares the module's stores, which
@@ -34143,6 +34172,7 @@ export function initLegacyApp() {
   function switchScenario(id){
     const to = scenarioTabs.find(t => t.id === id);
     if(!to || id === currentScenarioId) return false;
+    scenarioVerOffer = null;   // the tab's "→ vN" offer is about the tab it was made for
     const from = parkCurrentScenario();
     const scroll = captureScroll();
     const unvisited = savedBaselineUnvisited(id, to.snapshot);   // "Changes since last save" (AUD2-103): see there
@@ -34193,8 +34223,69 @@ export function initLegacyApp() {
     lastPushedSnapshotJSON = undoStateJSON();   // the history's own form (no viewMode), or the next push is a phantom
     refreshUndoRedoUI();
     isDirty = true; refreshSaveStatus(); scheduleBackup();   // markDirty() without its undo push
+    // The next version, offered on the copy's tab as "→ vN" (below), only while its Version is a number.
+    const next = nextScenarioVersion();
+    scenarioVerOffer = next ? { id: copy.id, from: versionLabel(), to: 'v' + next, num: next, base: lastPushedSnapshotJSON } : null;
     pushScenarioChrome(copy.id);   // ...and its name opens ready to type over
     return copy.id;
+  }
+  // ⭐ THE NEXT VERSION, OFFERED (owner, 18 Nov 2026: "could there be a dialogue that asks you if would like to bump to
+  // the next version number?"; 19 Nov 2026, after four layouts, "lets see with version c looks like in the app":
+  // layout C of mockups/scenario-version-layouts.html). Every tab shows its Version as a small badge (tabVersionLabel),
+  // and a fresh copy whose Version is a NUMBER shows "→ v4" beside its badge, also while its name box is open. The
+  // copy is made at once and nothing waits on it: ignoring it keeps the version.
+  //  - Offered only when the copy's Version is a number (versionNumber): blank, or old text ("Blue"), is never asked.
+  //  - The number is the HIGHEST version on any tab, whole, plus one: copying v3 twice offers v4, then v5, never two v4s;
+  //    v3.1 offers v4. A parked tab is read from its snapshot, the tab on screen from the box.
+  //  - → vN types the number into Show info's Version box through its own input handler, so it is an ordinary
+  //    edit: one undo step, the header, the band and the file name follow.
+  //  - It goes on the first EDIT (markDirty, once the calendar differs from the copy as made: a rename is not one, since
+  //    no tab name is in a snapshot), a tab switch, another copy, Keep only, or a file. Session UI: never saved.
+  var scenarioVerOffer = null;
+  function tabVersionRaw(t){
+    if(t.id === currentScenarioId){ const el = document.getElementById('show-version'); return el ? el.value : ''; }
+    const f = t.snapshot && t.snapshot.fields && t.snapshot.fields.byId && t.snapshot.fields.byId['show-version'];
+    return f && typeof f === 'object' ? f.value : '';
+  }
+  // A tab's Version as versionLabel() prints it: "v" + a number, a pre-18-Nov text label as saved, '' for none.
+  function tabVersionLabel(t){
+    if(t.id === currentScenarioId) return versionLabel();
+    const raw = String(tabVersionRaw(t) || '').trim();
+    const num = versionNumber(raw);
+    return num !== null ? (num ? 'v' + num : '') : raw;
+  }
+  function nextScenarioVersion(){
+    const mine = versionNumber(String(tabVersionRaw(currentScenario()) || '').trim());
+    if(!mine) return null;
+    let top = 0;
+    scenarioTabs.forEach(t => {
+      const n = versionNumber(String(tabVersionRaw(t) || '').trim());
+      const w = n ? Math.floor(parseFloat(n)) : NaN;
+      if(isFinite(w) && w > top) top = w;
+    });
+    return top >= 0 ? String(top + 1) : null;
+  }
+  function dropScenarioVerOffer(){
+    if(!scenarioVerOffer) return;
+    scenarioVerOffer = null;
+    pushScenarioChrome();
+  }
+  // A click on the tab's version badge (owner, 19 Nov 2026: "if i dont click the arrow ... at first, i should later be
+  // able to click on the little version number and the arrow should pop up again"): the same offer, for the tab on
+  // screen, at any time; a second click puts it away. Based on the calendar as it stands now, so the next edit drops it.
+  function askScenarioVerOffer(){
+    if(scenarioVerOffer && scenarioVerOffer.id === currentScenarioId) return dropScenarioVerOffer();
+    const next = nextScenarioVersion();
+    scenarioVerOffer = next ? { id: currentScenarioId, from: versionLabel(), to: 'v' + next, num: next, base: undoStateJSON() } : null;
+    pushScenarioChrome();
+  }
+  function takeScenarioVerOffer(){
+    const o = scenarioVerOffer;
+    if(!o || o.id !== currentScenarioId) return dropScenarioVerOffer();
+    scenarioVerOffer = null;
+    const el = document.getElementById('show-version');
+    if(el){ el.value = o.num; el.dispatchEvent(new Event('input', { bubbles: true })); }
+    pushScenarioChrome();
   }
   function renameScenario(id, name){
     const t = scenarioTabs.find(x => x.id === id);
@@ -34239,6 +34330,7 @@ export function initLegacyApp() {
     if(!(await uiConfirm('Keep only “' + t.name + '”? ' + what + ' deleted, and the file holds one calendar again. This can’t be undone.',
                          { title: 'Keep only this scenario', confirmLabel: 'Keep only this one', danger: true }))) return false;
     if(id !== currentScenarioId && !switchScenario(id)) return false;
+    scenarioVerOffer = null;
     scenarioTabs = [t];
     markDirty();
     pushScenarioChrome();
@@ -34265,6 +34357,9 @@ export function initLegacyApp() {
     else if(d.op === 'keep') keepOnlyScenario(d.id);
     else if(d.op === 'compare') openCompareScenarios();
     else if(d.op === 'saveOwn') saveScenarioAsOwnFile(d.id);
+    else if(d.op === 'verTake') takeScenarioVerOffer();
+    else if(d.op === 'verKeep') dropScenarioVerOffer();
+    else if(d.op === 'verAsk'){ if(d.id && d.id !== currentScenarioId) switchScenario(d.id); askScenarioVerOffer(); }
   });
 
   // ---------- SCENARIOS: Compare (SCENARIOS-PLAN.md §5; the window is src/chrome/CompareDialog.jsx) ----------
@@ -34371,7 +34466,7 @@ export function initLegacyApp() {
   // nothing is greyed: a wrong grey would claim a fact is shared when it may not be.
   // `var`, as scenarioTabs is: pushScenarioChrome() reads these through scenarioBand(), and a render during evaluation,
   // before these lines run, must see "no band", not a temporal-dead-zone ReferenceError.
-  var BAND_KEYS = ['loc', 'count', 'wrOpen', 'wrWeeks', 'first', 'span', 'wrap'];
+  var BAND_KEYS = ['loc', 'count', 'wrOpen', 'wrWeeks', 'first', 'span', 'wrap', 'ver'];
   var liveScenarioFacts = null;
   var scenarioFactsTimer = 0;
   function bandValues(f){
@@ -34380,7 +34475,9 @@ export function initLegacyApp() {
     const count = f && f.blocks ? (v.blocks != null ? { n: v.blocks, unit: 'block' } : null)
                                 : (v.eps != null ? { n: v.eps, unit: 'ep' } : null);
     return { loc: v.loc || null, count, wrOpen: v.wrOpen || null, wrWeeks: v.wrWeeks != null ? v.wrWeeks : null,
-             first: v.first || null, span: v.span != null ? v.span : null, wrap: v.wrap || null };
+             first: v.first || null, span: v.span != null ? v.span : null, wrap: v.wrap || null,
+             // The Version as the header prints it ("v3"), last in the band (owner, 18 Nov 2026, with the offer below).
+             ver: v.ver || null };
   }
   function scenarioBand(){
     if(scenarioTabs.length < 2 || !liveScenarioFacts) return null;
@@ -35485,6 +35582,8 @@ export function initLegacyApp() {
     // (a holiday's Waterfall or Month box, Toggle all) has no update() of its own. After update() this is a no-op. A
     // note the edit changed is remembered as left, against the lines on screen now. Redrawn only when a note changed.
     if(followAutoNotes(currentSchedule, true)) render(currentSchedule);
+    // The strip's version offer goes on the copy's first edit (duplicateScenario).
+    if(scenarioVerOffer && undoStateJSON() !== scenarioVerOffer.base) dropScenarioVerOffer();
     isDirty = true;
     refreshSaveStatus();
     scheduleBackup();

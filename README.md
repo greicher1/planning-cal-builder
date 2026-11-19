@@ -45,6 +45,67 @@ way a user would notice or a future session would need to return to. See
   `overrides` 20/20, `snaptools` 14/14, `builtindates` 19/19 live and restored; `npm run check` 43/43; tried in the
   browser by the owner. No frozen code, no save-format change, no new id.
 
+### Unreleased — Scenario tabs show their Version, and a copy is offered the next one (19 Nov 2026)
+
+The owner asked whether, once the first scenario has a Version, a new scenario should be named after it or the Version
+shown in the bar at the bottom; then for the copy to offer the next number, *"as a suggestion, not force them"*. Five
+layouts were mocked (`mockups/scenario-version-*.html`, `scenario-name-version.html`, `scenario-new-tab-card.html`);
+the owner picked layout C of `mockups/scenario-version-layouts.html`, *"lets see with version c looks like in the app"*,
+and then asked that the offer can be brought back later.
+
+- **Every scenario tab shows its Version** as a small badge after its name, as the header prints it ("v3"); a tab with
+  no Version shows none. Tab names are never changed.
+- **A copy is offered the next version.** After **+**, a copy whose Version is a number shows **→ v4** beside its badge,
+  there while its name box is open too. One click puts 4 in Show info's Version box through the box's own handler, so it
+  is an ordinary edit: the header, the band and the file name follow, and ⌘Z takes it back. The number is the highest
+  version on any tab, whole, plus one (v3 and v3.1 both offer v4; a second copy of v3 offers v5 once one tab is v4).
+  Ignoring it keeps the version; it goes on the next edit, a tab switch, another copy, Keep only, or a load.
+- **Clicking a number badge brings → vN back**, on that tab (switching to it first), and a second click puts it away.
+  A text Version kept from before 18 Nov ("Blue") has no next number, so its badge is plain.
+- **The key facts band ends with a Version tile** (dimmed when every tab has the same one). Its value was already in
+  `scenarioFacts()`; the band did not show it. Show info's Version box now refreshes the band as it is typed.
+- Nothing new is saved: the offer is session UI, and a scenario file's tabs are still `{id, name, snapshot}`.
+- Code: `app.js` (`tabVersionLabel`, `nextScenarioVersion`, `askScenarioVerOffer`, `takeScenarioVerOffer`,
+  `scenarioVerOffer`, dropped in `markDirty()` once the calendar differs from when it was offered), `ScenarioTabs.jsx`
+  (the badge and `→ vN`, whose mousedown keeps the name box's focus), `legacy.css` (`.sc-tab-ver`, `.sc-ver-bump`).
+- Verified: new leg `scenversion` (V1-V8 + E0, 9/9 on the build, red on v1.21.0). Legs that matched a tab by its
+  whole text now read `.sc-tab-name` (scenarios, scenariofacts, recoverfail, retiredplaces, comparebreaks), and
+  scenariofacts F3 / F4 expect the Version tile; scenarios 23/23, scenariofacts 12/12, and every other leg that reads the strip or the band
+  (scenlist, comparebreaks, exportnames, filenamelist, comparehiatus, retiredplaces, recoverfail, loadsparse,
+  changessince) green. `npm run check` 43/43. No full
+  gate (chrome and scenario engine only, no frozen code, no save-format change).
+
+### Unreleased — Show info's fields in the order each mode is filled in (19 Nov 2026)
+
+Owner: *"When scheduling by Episode the order should be Schedule by, then Number of Episodes, then shooting days per
+Ep+tandem days then Version, then production region, then location. When scheduling by Block, the order should be Number
+of blocks, then shooting days per block + tandem, then number of episodes (it can still be optional but remove that it
+says so)"*.
+- **Episodes:** Schedule by, Number of Episodes, Shooting Days per Episode + Tandem Days, Version, Production Region,
+  Location. **Blocks:** Schedule by, Number of Blocks, Shooting Days per Block + Tandem Days, Number of Episodes, Version,
+  Production Region, Location.
+- Number of Episodes no longer says "(optional)" in Blocks mode; it still is (a Blocks calendar schedules without it).
+- One `#num-episodes` serves both modes (its id is the save format): the Blocks-only rows sit before it and the
+  Episodes-only row after it, so the DOM order, and Tab, is right in each mode. Nothing saved changed.
+- **Verified:** `doubleups` SI8 (both orders as shown), `labelsetup` B1u re-premised (plain label; B1 still holds the
+  count optional), `blocks`, `restore` (gate 5's key set), `npm run check`.
+
+### Unreleased — Tandem Days in Show info, beside the shooting days (19 Nov 2026)
+
+Owner: *"add double-up/tandem days in the Show Info section. To the right of the Shooting days per episode should be a big
+plus symbol and then to the right of that another box to add the double up/tandem days"*; after the mockup
+(`mockups/show-info-tandem.html`, main checkout): a smaller plus, all on one line, no line of text under it.
+- **Show info** reads `Shooting Days per Episode + Tandem Days` on one line (`Shooting Days per Block` in Blocks mode).
+  The box is the Tandem card's **Default tandem days** a second time: type in either and the other follows, one undo step.
+  Nothing new is saved: the count is still `doubleUps.days`.
+- ⛔ The box has **no id** (a plain `<input>`, the Region mirror's pattern): a Mantine `Input` inside `Input.Wrapper` took
+  the wrapper's minted id in the built page, which `collectFieldValues()` would have saved into every calendar.
+- The days label runs over the plus column, so it stays on one line in the narrowest sidebar (280 px: 142 of 146 px);
+  "Whole days only" sits under the row so the boxes stay in line.
+- **Verified:** `doubleups` LIVE run SI0-SI7 (one line in both modes, no id, both directions, Undo, Save adds no field,
+  Load, the whole-days ring); the leg's other runs, `restore` (gate 5's key set), `loadsparse`, `firstrun`, `numclamp`;
+  `npm run check`. No full gate: chrome and a sidebar listener only, nothing frozen.
+
 ### Unreleased — Pinch, Ctrl-scroll and ⌘+ / ⌘− zoom the calendar, not the app (18 Nov 2026)
 
 Owner: *"Allow trackpad pinch and related mouse zoom buttons to control the viewport of the waterfall and month view
