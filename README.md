@@ -29,6 +29,38 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+## v1.21.0 — SPTCal moves to sptcal.pages.dev, behind a sign-in (18 Nov 2026)
+
+### A new address behind a sign-in; "SPTCal has moved" on the old one; no more working copies of the app
+
+The owner asked to make the repo private and put a password in front of getting the app. Planned, tested and ruled in
+[`CLOUDFLARE-ACCESS-PLAN.md`](CLOUDFLARE-ACCESS-PLAN.md) (the owner's pickers, 18 Nov 2026):
+
+- **The app's new address is `https://sptcal.pages.dev/`**, a Cloudflare Pages project behind **Cloudflare Access**: a
+  user types their work email and gets a one-time code by email. Only the emails the owner lists get in; a sign-in
+  lasts a month. `deploy.yml` publishes the same checked build there as well as to GitHub Pages (after it, so a
+  Cloudflare failure cannot hold back the old address), through two repository secrets.
+- **The install gate and the installed identity follow it.** `GATE_HOSTS` gains `sptcal.pages.dev`; the manifest's
+  `related_applications` id is `https://sptcal.pages.dev/`, alone. Everyone installs SPTCal once more, from the new
+  address; saved calendar files are unaffected. Recent files, unsaved-work backups, preferences and saved header
+  presets live in the browser per address and do not carry over.
+- **The old address says SPTCal has moved**, for the two-week switch-over window: a browser tab there gets a new
+  **moved** screen in the install gate ("Go to the new SPTCal"); the installed app there shows the strip "SPTCal has
+  moved to sptcal.pages.dev…", whose button opens the new address in Chrome and leaves the work on screen.
+- **The update check keeps going when a sign-in has run out.** It used to count the sign-in redirect as a failure and
+  stop checking for the session.
+- **Export App With Data is gone** (it wrote a whole working copy of the app into one file, which runs anywhere and so
+  gets around the sign-in). Save on an older **.html** calendar now asks and saves a new **.sptcal** through the
+  picker, leaving the .html as it is; autosave pauses on such a file and the status line says so; the download used
+  where a browser cannot save in place gives a .sptcal. Every copy and .html calendar already sent still opens.
+
+**Verified:** `npm run check` 43/43 (the new address in the manifest and the gate, the moved screen, the allowed link);
+a new leg **cfmove** 9/9 (the moved strip and its button, Save's question on an .html calendar, the .sptcal written
+and nothing written to the .html, Cancel, autosave paused, no visible Export App control); **pwagate** 14/14 with the
+moved screen's approved words; **settingswin** 21/21 without the App card; pwagatelogic, nofsa, loadcarry,
+legacyparse, backuplinkstale and firstrun unchanged and green. The full gate: see HANDOFF. Before the build, the route
+was proven end to end from a private test repo, by the owner and a coworker on Mac and Windows (plan §2).
+
 ## v1.20.1 — one Size for the month view's bars and notes: Standard, Large, Extra Large (18 Nov 2026)
 
 ### One Size for the month view's bars and notes: Standard, Large, Extra Large (18 Nov 2026)

@@ -378,10 +378,14 @@ keep saying open.
 Save and Open are **not** symmetric, and the asymmetry is the whole point:
 
 - **Save** (`saveToFile` → `buildSavedData`) writes **`.sptcal`** — the state as JSON, ~4.5 KB,
-  and nothing else. `buildSavedHtml()` still exists and still writes the old full self-contained
-  copy, but only as File ▸ **Export shareable copy…** and as the download fallback where the File
-  System Access API is unavailable. A handle pointing at a legacy `.html` keeps being written as
-  `.html` (`handleIsLegacyHtml`) — no file is silently converted.
+  and nothing else. ⛔ **Since v1.21.0 nothing a user can press writes a working copy of the app**
+  (owner's pickers, 18 Nov 2026, [`CLOUDFLARE-ACCESS-PLAN.md`](CLOUDFLARE-ACCESS-PLAN.md) §7a: SPTCal
+  sits behind a sign-in, and a full `.html` copy runs anywhere without one). Export App With Data is
+  gone; Save on a legacy `.html` handle (`handleIsLegacyHtml`) ASKS and saves a NEW `.sptcal` through
+  the picker, leaving the `.html` as it was (never silent: no file is converted without a question);
+  autosave PAUSES on one, and the status line says so; the no-file-API download is a `.sptcal`.
+  `buildSavedHtml()` still defines what a shareable copy holds, and a hidden `#share-copy-btn` exists
+  on localhost only, for the legs that build one.
 - **Open** (`openRecentFile` / `openFileViaPicker`) reads the chosen file **as text** and hands it
   to `parseCalendarText()` — **the one place that knows how to read a calendar file.** Text
   starting with `{` is a snapshot (`.sptcal`); anything else gets the `saved-state` regex (legacy
@@ -432,8 +436,8 @@ The **snapshot JSON schema is the compatibility contract**, and `captureSnapshot
   pre-`.sptcal` calendar, produced by running the v1.0.0 build and clicking Save. **Cut a new
   fixture whenever a version is cut**, alongside the tag and the `releases/` copy.
 - **Opening a legacy `.html` recommends upgrading it** — a dismissible strip with a
-  *Save as .sptcal* button (`showLegacyNotice`). Recommend, never convert: plain Save on a legacy
-  file still writes `.html`.
+  *Save as .sptcal* button (`showLegacyNotice`). Recommend, never convert: since v1.21.0 plain Save
+  on a legacy file asks the same question (above), and Cancel changes nothing.
 - ⛔ **`PHASE_COLOR_OPTIONS`'s ARRAY ORDER is part of the file format.** Found 29 Aug 2026 and not
   documented anywhere before. `phaseColorOverride[key]` and `customPhaseDefs[].colorIndex` are
   **indices into that array**, and both are in `captureSnapshot()`. Inserting, removing or
@@ -463,22 +467,34 @@ The **snapshot JSON schema is the compatibility contract**, and `captureSnapshot
 ## ⛔ The hosted link boots the app only in the installed app window
 
 Owner, 30 Sep 2026 (`PWA-ONLY-PLAN.md`): users use SPTCal as the installed PWA, never in a browser
-tab. A classic script at the top of `src/index.html`'s `<head>` turns an ordinary tab on
-`greicher1.github.io` into the install gate (`#app-gate`), and `main.jsx` then does not start the
-app at all.
+tab. A classic script at the top of `src/index.html`'s `<head>` turns an ordinary tab on the hosted
+address into the install gate (`#app-gate`), and `main.jsx` then does not start the app at all.
+
+⭐ **Since v1.21.0 the hosted address is `https://sptcal.pages.dev/`, behind a Cloudflare Access
+sign-in (emailed one-time codes)** — [`CLOUDFLARE-ACCESS-PLAN.md`](CLOUDFLARE-ACCESS-PLAN.md), owner,
+18 Nov 2026. `deploy.yml` publishes the same checked `dist/` to GitHub Pages AND to the Cloudflare
+Pages project `sptcal` (secrets `CLOUDFLARE_API_TOKEN`, which expires **18 Nov 2028**, and
+`CLOUDFLARE_ACCOUNT_ID`). For the switch-over window both addresses serve it: on the old one
+(`MOVED_FROM`, `greicher1.github.io`) a tab gets the gate's **moved** screen and the installed app
+gets "SPTCal has moved" in `#update-notice`. After the window the GitHub Pages steps go and the repo
+goes private (plan Phase E). ⛔ Never publish to a Pages project that Access does not cover, and keep
+`*.sptcal.pages.dev` covered: every deploy also gets a public-by-default preview address.
 
 - ⛔ **The installed-window check (`display-mode`) runs FIRST and fails OPEN.** A July attempt at a
   gate (`ffadc6d`, reverted as `edaf49b`) locked installed users out, because the installed PWA loads
   this same URL. Never let the URL be asked before the window is.
 - **Never gate `file://`** (shareable copies must keep opening, §"Every saved calendar…") **or
   localhost** (dev, and every harness leg).
-- ⛔ **The manifest's COMPUTED id is the installed identity:** `https://greicher1.github.io/planning-cal-builder/`.
-  Never add an `id` key, and never change `name`, `start_url` or `scope`. `related_applications`
-  must carry that id, or no installed user is recognised. A custom domain means a new id, and every
-  user reinstalls.
-- Test only through the localhost hooks: `?gate=<screen>`, `?gate=live`, `?brand=`, or
-  `localStorage sptcal.gateTest`. The legs are `pwagate` and `pwagatelogic`, and headless Chrome
-  cannot produce an app window. `check-build` asserts the manifest and the gate.
+- ⛔ **The manifest's COMPUTED id is the installed identity:** `https://sptcal.pages.dev/` since
+  v1.21.0 (it was `https://greicher1.github.io/planning-cal-builder/`; that move is why every user
+  reinstalls once). Never add an `id` key, and never change `name`, `start_url` or `scope`.
+  `related_applications` must carry that id, and ONLY that id (the old one too would make the new
+  address call an install of the old app "already installed"). Another address means another id,
+  and every user reinstalls again.
+- Test only through the localhost hooks: `?gate=<screen>` (`?gate=moved` included), `?gate=live`,
+  `?brand=`, `localStorage sptcal.gateTest`, and `localStorage sptcal.movedTest = '1'` (the app's
+  moved strip). The legs are `pwagate`, `pwagatelogic` and `cfmove`, and headless Chrome cannot
+  produce an app window. `check-build` asserts the manifest and the gate.
 
 ## ⛔ Changelog every substantial change
 
@@ -574,8 +590,8 @@ made the question unanswerable:
 - **The app** needs the File System Access API (`showSaveFilePicker`) plus `FileSystemFileHandle`
   persistence in IndexedDB, both Chromium-only. Elsewhere there is **no Load at all**: the file
   menu, and Load… with it, is hidden, so a `.sptcal` can't be opened. Saving degrades to a plain
-  download of the legacy `.html` copy — deliberately, since without a handle there is nothing to
-  write back to. Since v1.4.1 a strip (`#browser-notice`) says "SPTCal saves and loads in Chrome
+  download (of the `.sptcal` since v1.21.0; it was the legacy `.html` copy, a working app, until the
+  sign-in made that a way around it). Since v1.4.1 a strip (`#browser-notice`) says "SPTCal saves and loads in Chrome
   or Edge" (audit L-20, owner ruling R6). *(Corrected 30 Sep 2026: this said "opening a calendar
   works fine" there.)*
 - **The print path has never been measured outside Chrome.** The month-PDF print CSS is tuned to
@@ -587,7 +603,7 @@ Full reasoning, including the `DecompressionStream` floor that Carlito depends o
 
 **Keep it single-file.** The self-containment is load-bearing: the PWA manifest and every icon are inlined so the tool can be emailed around as one file and run offline from `file://`, and the *shareable copy* export is a complete working app in one document. Do not split out CSS/JS or add local asset files.
 
-⚠️ **"Saved calendars are copies of the app" is out of date** — as of v1.1.0 Save writes `.sptcal`, ~4.5 KB of JSON. The full-copy format is now File ▸ *Export shareable copy…*. Both open, forever. See "Save / restore" below.
+⚠️ **"Saved calendars are copies of the app" is out of date** — as of v1.1.0 Save writes `.sptcal`, ~4.5 KB of JSON. The full-copy format was File ▸ *Export shareable copy…* (later Export App With Data) until v1.21.0 removed it from the UI. Both open, forever. See "Save / restore" below.
 
 ⚠️ **This constraint is under active reconsideration** for the chrome only — see [`MANTINE-MIGRATION.md`](MANTINE-MIGRATION.md) and `HANDOFF.md` §8. The grid and the exports are excluded permanently.
 
@@ -705,7 +721,7 @@ Any new persistent state must be added in **both** places or it will silently no
 
 ## Save / restore
 
-**Two formats, one reader.** "Save" writes **`.sptcal`** — `captureSnapshot()` as JSON, ~4.5 KB. "Export shareable copy…" writes the old full self-contained HTML document (`buildSavedHtml()`), built from a *clone* of the document with `#table-wrap`, `#print-root` and any open popover stripped, and the state serialized into `<script id="saved-state" type="application/json">` (ships as `null`). `<` is escaped to `\u003c` so user text containing a closing script tag can't truncate the file.
+**Two formats, one reader.** "Save" writes **`.sptcal`** — `captureSnapshot()` as JSON, ~4.5 KB. "Export shareable copy…" (removed from the UI in v1.21.0; a localhost-only hidden button keeps it for the legs) writes the old full self-contained HTML document (`buildSavedHtml()`), built from a *clone* of the document with `#table-wrap`, `#print-root` and any open popover stripped, and the state serialized into `<script id="saved-state" type="application/json">` (ships as `null`). `<` is escaped to `\u003c` so user text containing a closing script tag can't truncate the file.
 
 `parseCalendarText()` is the **only** thing that reads a calendar file: text starting with `{` is a snapshot, anything else gets the `saved-state` regex. It returns **`{format, snapshot}`** — the format is part of the contract because opening a legacy `.html` is the one moment the app can offer to upgrade it. Both converge on `applyStateSnapshot()`, which rebuilds custom-phase and hiatus rows first (re-keying generated ids to the saved keys), then applies `fields.byId`. On page load, `restoreSavedState()` still reads the inline block — that is how a shareable copy opens itself.
 

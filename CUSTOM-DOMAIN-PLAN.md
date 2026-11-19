@@ -1,5 +1,9 @@
 # CUSTOM-DOMAIN-PLAN.md: moving SPTCal to an origin of its own
 
+⛔ **SUPERSEDED 18 Nov 2026 by [`CLOUDFLARE-ACCESS-PLAN.md`](CLOUDFLARE-ACCESS-PLAN.md)**, built as v1.21.0: the app moved
+to `sptcal.pages.dev` behind a Cloudflare Access sign-in, not to a custom domain on GitHub Pages (which cannot put a
+sign-in in front of a site). Its table of what cannot follow a move still holds and is quoted there.
+
 **A plan only. Nothing here is built.** Owner ruling R7 (FIX-PLAN §0, 25 Sep 2026): "scope the
 service-worker cleanup now; plan a custom domain as a later, separate step." The scoping shipped in
 v1.4.1 (4.2). This is the plan for the rest. Written 30 Sep 2026.

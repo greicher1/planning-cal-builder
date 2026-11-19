@@ -86,7 +86,16 @@ deploy.
    session length per D5, login method One-time PIN.
 5. Check with curl from outside that every one of them answers 302 to the Access login.
 
-### Phase B: the code (Claude, on a branch, then the full gate)
+### Phase B: the code (Claude, on a branch, then the full gate) — ✅ BUILT 18 Nov 2026 as v1.21.0
+
+As built, on branch `cloudflare-access` (cut from `origin/main` at v1.20.1): steps 6-12 as written, with three
+choices made in the building. (1) The moved strip in the installed app is `#update-notice` itself, retold on the old
+host (no new strip joins the one-at-a-time machinery), and the update check does not run there. (2) The moved screen is
+a tenth gate screen, `moved`, with its own title; `?gate=moved` shows it on localhost and
+`localStorage sptcal.movedTest = '1'` shows the strip. (3) Export App With Data's card is gone, but a HIDDEN
+`#share-copy-btn` is rendered on localhost only, because about thirty legs plus `cspproof` / `excelretry` build a
+shareable copy through it to prove that copies already sent still open cleanly. A signed-out update check is not tested
+by a leg (no harness page can produce Cloudflare's redirect); its code is three lines.
 6. **Deploy workflow.** A Cloudflare deploy job beside the GitHub Pages one, publishing the same
    checked `dist/` and `version.json` with wrangler (pinned by SHA like every other action here).
    The emergency `release` rollback input publishes to Cloudflare too. Both deploy jobs run during
