@@ -267,11 +267,13 @@ window.addEventListener('load', function () { (async function () {
     var b1 = {meta: meta(), readout: readout(), pp: ppLine(),
               warn: (function () { var w = document.getElementById('ep-panel-warn'); return w && w.style.display !== 'none' ? txt(w) : ''; })(),
               hint: txt(document.querySelector('#episode-rows .ep-hint')),
-              optional: (function () { var l = document.querySelector('label[for="num-episodes"]'); var s = l && l.querySelector('.show-mode-blocks'); return s ? getComputedStyle(s).display : null; })()};
+              label: (function () { var l = document.querySelector('label[for="num-episodes"]'); return l ? l.textContent.trim() : null; })()};
     add('B1', '⭐ blocks.sptcal with its episode count cleared: Production stays scheduled from its block days (the same meta line, readout and principal-photography line as with 10 episodes), with no "Complete Show Info" warning',
       !!b0.pp && b1.meta === b0.meta && b1.readout === b0.readout && b1.pp === b0.pp && b1.warn === '', {before: b0, after: b1}, 'unchanged dates');
-    add('B1u', 'The label reads "Number of Episodes (optional)" in Blocks mode, and the block list says where episode names come from',
-      b1.optional && b1.optional !== 'none' && /Number of Episodes in Show Info/.test(b1.hint), {optional: b1.optional, hint: b1.hint}, '(optional) shown; the no-episodes hint');
+    // Re-premised 19 Nov 2026 (owner: the count "can still be optional but remove that it says so"): the label is plain
+    // "Number of Episodes" in Blocks mode too; B1 above is what holds it optional.
+    add('B1u', 'The label reads "Number of Episodes" in Blocks mode (no "(optional)" since 19 Nov 2026), and the block list says where episode names come from',
+      b1.label === 'Number of Episodes' && /Number of Episodes in Show Info/.test(b1.hint), {label: b1.label, hint: b1.hint}, 'plain label; the no-episodes hint');
     await toMonth(new Date(startB + 'T00:00:00Z').toLocaleString('en-GB', {month: 'long', year: 'numeric', timeZone: 'UTC'}));
     var b2 = prodPills();
     add('B2', 'Its month bars still read "Block 1" …, and no grey text names an episode (the old list is kept for the count coming back, but not shown)',

@@ -37,6 +37,30 @@ const SEASONS = [
 // Its list is SeasonPop's checkbox dropdown, and the engine's seasonList keeps the others. With two or more
 // ticked, the first season's option reads "Seasons 3 & 4", so the closed field says what is ticked. Only that
 // option's TEXT changes, never a value.
+// Show info's Tandem Days box (owner, 19 Nov 2026: "To the right of the Shooting days per episode should be a big plus
+// symbol and then to the right of that another box to add the double up/tandem days"; mockups/show-info-tandem.html).
+// It is a SECOND view of the Tandem card's "Default tandem days" (doubleUpDays, saved under `doubleUps.days`), shown
+// beside the days per episode or per block so "8 + 1" reads as it is said. One value, two places: the engine
+// (installShowInfoTandem in app.js) writes a typed count to doubleUpDays exactly as the card's box does, and
+// reflectShowInfoTandem() writes the store back here from update(), so an undo, a Load or New shows at once.
+//   ⛔ NO ID ON THE INPUT (the card's rule, DOUBLE-UP-DAYS-PLAN §5): collectFieldValues() sweeps id'd inputs into
+//   fields.byId, and the count already has its own key. So it is a PLAIN <input>, the Region mirror's pattern: a Mantine
+//   `Input` inside `Input.Wrapper` takes the wrapper's minted id (seen in the built page, 19 Nov 2026), and TextInput /
+//   NumberInput mint their own. The wrapper only draws the label (a div, so it points at nothing); legacy.css gives the
+//   box the xs input's look (.si-tandem-in). `du-days-in` puts it under the card's "Whole days only" check (PREP_FIELDS).
+function TandemDaysBox() {
+  return (
+    <>
+      <span className="si-plus" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M12 4v16M4 12h16" /></svg>
+      </span>
+      <Input.Wrapper label="Tandem Days" labelElement="div" className="si-tandem">
+        <input type="number" min={0} step={1} placeholder="None" aria-label="Tandem days" className="si-tandem-in du-days-in" />
+      </Input.Wrapper>
+    </>
+  )
+}
+
 function SeasonField() {
   const list = useSeasons()
   const many = seasonsText(list)
@@ -86,28 +110,34 @@ export function ShowInfoCard() {
             anything else ("Whole or half days only"). The value is still a plain numeric string, so
             fields.byId is unchanged in shape and every saved whole number reads as before. min stays 1:
             a typed 0 still clamps to 1 on blur (the numclamp leg), and no episode is shot in half a day. */}
-        <Box className="show-mode-episodes">
-          <NumberInput id="shoot-days-per-ep" label="Shooting Days per Episode" placeholder="e.g. 8"
-                       min={1} step={0.5} decimalScale={1} allowNegative={false} hideControls />
-        </Box>
-        {/* max={200} is the audit M-15 ceiling, mirrored from the engine's MAX_SHOW_ROWS, which is
-            what actually enforces it (capCountField clamps while typing). This is the belt: Mantine
-            clamps on blur too. */}
-        {/* "(optional)" shows in Blocks mode only (owner, 20 Oct 2026, LABELS-SETUP-PLAN.md item 4): blocks
-            schedule without an episode count there. The same :has() rule as the boxes below hides it in
-            Episodes mode, where the count still drives the total, so that label reads as it always has. */}
-        <NumberInput id="num-episodes" label={<>Number of Episodes<span className="show-mode-blocks"> (optional)</span></>} placeholder="e.g. 10"
-                     min={1} max={200} step={1} allowDecimal={false} allowNegative={false} hideControls />
-        {/* Hidden, never cleared, in Episodes mode (and Days per Episode likewise in Blocks mode):
-            switching back must restore the previous dates exactly, so neither mode's inputs are
-            ever discarded (BLOCKS-PLAN §3). */}
+        {/* THE ORDER (owner, 19 Nov 2026): Episodes mode reads Number of Episodes, then Shooting Days per Episode +
+            Tandem Days; Blocks mode reads Number of Blocks, then Shooting Days per Block + Tandem Days, then Number of
+            Episodes. ONE #num-episodes serves both (an id is the save format, so it is never duplicated): the Blocks-only
+            rows come BEFORE it and the Episodes-only row AFTER it, so DOM order, and with it Tab order, is right in each
+            mode with no CSS `order`. The mode's hidden rows are hidden, never cleared (BLOCKS-PLAN §3): switching back
+            must restore the previous dates exactly.
+            .si-days-tandem: the days box, a plus and Tandem Days on one line (legacy.css), the label running over the
+            plus so it never wraps in the narrowest sidebar. */}
         <Box className="show-mode-blocks">
           <NumberInput id="num-blocks" label="Number of Blocks" placeholder="e.g. 5"
                        min={1} max={200} step={1} allowDecimal={false} allowNegative={false} hideControls />
         </Box>
-        <Box className="show-mode-blocks">
+        <Box className="show-mode-blocks si-days-tandem">
           <NumberInput id="days-per-block" label="Shooting Days per Block" placeholder="e.g. 20"
                        min={1} step={0.5} decimalScale={1} allowNegative={false} hideControls />
+          <TandemDaysBox />
+        </Box>
+        {/* max={200} is the audit M-15 ceiling, mirrored from the engine's MAX_SHOW_ROWS, which is
+            what actually enforces it (capCountField clamps while typing). This is the belt: Mantine
+            clamps on blur too.
+            In Blocks mode the count is still optional (blocks schedule without it, LABELS-SETUP-PLAN.md item 4), but
+            the label no longer says so (owner, 19 Nov 2026: "it can still be optional but remove that it says so"). */}
+        <NumberInput id="num-episodes" label="Number of Episodes" placeholder="e.g. 10"
+                     min={1} max={200} step={1} allowDecimal={false} allowNegative={false} hideControls />
+        <Box className="show-mode-episodes si-days-tandem">
+          <NumberInput id="shoot-days-per-ep" label="Shooting Days per Episode" placeholder="e.g. 8"
+                       min={1} step={0.5} decimalScale={1} allowNegative={false} hideControls />
+          <TandemDaysBox />
         </Box>
         {/* ⛔ TextInput, never NumberInput (owner decision H1, 1 Sep 2026): owners write 3, 3.1
             and 3a, so the field is a LABEL and not arithmetic. Since 3 Nov 2026 it prints EXACTLY as
@@ -195,24 +225,6 @@ export function CalendarRangeCard() {
         </Group>
       </div>
     </section>
-  )
-}
-
-// "Reset hiatus bands" (owner ruling 5, relayed 30 Sep 2026): the hiatus reset left the calendar's
-// old combined "Reset Notes & Hiatus" and sits at the foot of the All-phase hiatus card, the way
-// "Reset holidays" sits at the foot of Holidays -- same Group, same subtle gray xs Button. That card
-// is STATIC markup (its rows are engine-generated), so main.jsx portals this into #hiatus-reset-host,
-// which buildSavedHtml() empties in its clone like every other React host. The engine handles the
-// click by delegation on the id; it clears every band's label, colour and size, all-phase and
-// per-phase, and the hiatus periods themselves stay.
-export function HiatusResetButton() {
-  return (
-    <Group justify="flex-end" mt="lg">
-      <Button id="hiatus-reset-btn" type="button" variant="subtle" color="gray" size="xs"
-              title="Return every hiatus band, all-phase and per-phase, to its default label, colour and size. The hiatus periods themselves stay.">
-        Reset hiatus bands
-      </Button>
-    </Group>
   )
 }
 

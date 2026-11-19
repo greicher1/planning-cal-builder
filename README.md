@@ -57,12 +57,159 @@ pickers *"First in the list"*, *"Leave them on their week"*, *"Yes, both editors
 - **Found on the way:** renaming a cell's automatic note and adding a line in the same save now keeps the rename (the
   automatic line's edits are worked out before the new line is linked, `preEdits`). No save-format change, no frozen
   code.
-- **Verified:** new leg `notephase` 16/16 (in `gate.sh` beside `notedates`). The harness (`t/lib.js`) picks "Week of …"
+- **Verified:** new leg `notephase` 17/17 (in `gate.sh` beside `notedates`). The harness (`t/lib.js`) picks "Week of …"
   / "This day" for a new note in the legs written before this, and paste checks were re-expected to the new behaviour.
   First full gate: every baseline identical; its 66 failures were those premises and load timeouts, each green alone
-  after the fixes. Second full gate on the final build: see HANDOFF.
+  after the fixes. Final full gate: every baseline identical again, its 21 failures load timeouts, each green
+  alone.
 
-### Unreleased — Pinch, Ctrl-scroll and ⌘+ / ⌘− zoom the calendar, not the app (18 Nov 2026)
+### Unreleased — Post's end note reads "Final Delivery 9/22/28" (19 Nov 2026)
+
+The owner asked for the automatic note on the last Friday of Post's last week to read "Final Delivery" and its date.
+Post's end note (kind `postEnd`, off until ticked in Settings › Automatic notes) now reads "Final Delivery 9/22/28"
+instead of "Post Ends 9/22/28", on the same day as before: the last day the month view draws Post's bar, the Friday of
+its last week. The wording is fixed, so it no longer follows a renamed Post; a name typed for the note still wins. The
+card's tooltip for that box reads "Post Final Delivery". The kind word is unchanged, so saved ticks and names keep
+working; a typed note that already carried "Post Ends …" keeps the words it was saved with. Verified: `autonotephases`
+27/27 (P0-P9 re-expected: the waterfall, Excel, both PDFs and the month view carry the new words), `autonoteview`
+18/18, `autonoterename` 25/25, `autonotekinds` 11/11, `npm run check` 43/43; tried in the browser (Post wk 13 of
+9/18/28: waterfall and month view both show it on Fri 9/22/28).
+
+### Unreleased — Dragging a scenario tab shows where it will drop (19 Nov 2026)
+
+The owner asked for markers between the scenario tabs while one is dragged to reorder them. A short line in the app's
+primary colour now sits in the gap where the tab will land: before a tab, or after the last one. The whole strip takes
+the drop, so the 2 px between tabs and the room after the last tab work too (before, only a drop ON a tab moved it, and
+it took that tab's place whichever half the pointer was over). A spot either side of the dragged tab would not move it,
+so it shows no line and the drop does nothing. Chrome only (`ScenarioTabs.jsx`, `legacy.css`); nothing saved, nothing
+frozen. Verified: `scenversion` 11/11 (new V10 drives the drag: the line's place, none where nothing would move, the
+order after two drops, the line cleared after), `scenarios` 23/23, `scenlist` (real time) 9/9, `npm run check` 43/43;
+tried by hand in the browser.
+
+## v1.22.1 — Scenario tabs show their Version; "+ Duplicate Scenario B" at the far right; Tandem Days and the field order in Show info; Finish before on an empty card; calendar-only zoom (19 Nov 2026)
+
+### "Reset hiatus bands" is gone (19 Nov 2026)
+
+The owner removed the button at the foot of the All-phase hiatus list. It reset only how the bands LOOK (their label,
+colour, size and text styles, all-phase and per-phase at once) and never removed a hiatus, but its name and place read as
+if it cleared the hiatuses. Everything it did is covered elsewhere: Undo for a recent change, a hiatus's own card for its
+band's name and colour (typing the name also takes over a band typed by hand in an older file), the text bar for size and
+style, New for a fresh calendar. Removed with it: its React host, its click handler and its two mentions in Help. Nothing
+saved changes and nothing frozen was touched. Verified: `hdrcontrols` 12/12 (N4 rewritten: no button, the card ends with
++ Add hiatus period, naming the row takes over a hand-typed band), `phiatusnum` 18/18, `sharecopy2` (the host may not come
+back), `npm run check` 43/43.
+
+### The scenario "+" says which tab it copies: "+ Duplicate Scenario B" (19 Nov 2026)
+
+The owner asked whether "+" should copy the right-most tab instead of the one on screen, and whether a copy of an
+earlier tab should be offered the next version. On the analysis (it already offers the highest version on any tab + 1,
+and the caret menu already has Duplicate), "+" keeps copying the tab on screen; the owner picked the one addition, *"Yes,
+add the name"*. It went out first as a tooltip (`590fd5b`); the owner: *"i thought the button was going to dynamically
+change and have text, not just a hover text"*. The button now READS "+ Duplicate Scenario B", the tab on screen, and
+follows every switch and rename; a long name is cut with "…" at 120 px (`.sc-add-name`), and the tooltip keeps it whole.
+The button's `aria-label` stays "Duplicate this scenario" (legs find it by that). Chrome only, nothing frozen, nothing
+saved. Verified: `scenversion` V9 (new) 10/10, `scenarios` 23/23, `npm run check` 43/43; in the build the label follows
+the tab on screen and a 32-character name is cut.
+
+### A new scenario goes at the far right of the strip (19 Nov 2026)
+
+Owner, asked whether a copy made from a tab that is not the last should go at the far right rather than just right of
+the tab it copies: *"Yes, far right"*. The "+" now always puts the copy LAST (`duplicateScenario`, a `push` where it
+was a splice beside the source). Why it matters: the copy's name (the next unused letter) and its offered version (the
+highest on any tab + 1) both continue from the last tab, so copying v1 of v1 v2 v3 used to read v1 v4 v2 v3. A drag
+still reorders. The strip's keep-in-view scroll (`ScenarioTabs.jsx`) now also runs when the name box and "→ vN" open,
+a render after the copy becomes current: without it, in a strip that scrolls, the new tab's "→ vN" sat 13 px under the
+right-edge fade. Chrome + scenario engine, nothing frozen, no saved key.
+Verified: leg `scenversion` V7 now copies the FIRST tab and expects it at the far right (red on the old splice), 9/9;
+`scenarios` 23/23, `scenariofacts` 12/12, `scenlist` (real time) 9/9, `changessince` 15/15, `comparebreaks` 10/10,
+`exportnames` 12/12, `comparehiatus` 8/8, `lastedited` 22/22; `npm run check` 43/43. In the browser at 800 px, six
+tabs, a copy of the first lands sixth with "→ v6" fully in view.
+
+### The waterfall note editor's grey prompt is gone (19 Nov 2026)
+
+Owner: *"delete this text in waterfall"*, pointing at "Note text (Shift+Enter for a new line)" inside an empty note's
+box. The waterfall note editor's box now has no placeholder; a hiatus band's "Hiatus label" and the month view's note
+editor are unchanged. Chrome only (`openNoteEditor`'s markup), nothing frozen and nothing saved. No leg reads the text.
+Verified in the build: the editor's textarea carries no `placeholder` attribute, and an emptied box shows blank.
+
+### Finish before on an empty card before a dated phase (19 Nov 2026)
+
+- **What.** An empty phase card (no dates) with a dated phase after it in the chain now offers **↳ Finish before <next
+  phase>** even when nothing is on Ends. If nothing before it has a date, Finish before replaces Start after (which had
+  nothing to chain to). If there's a dated phase on each side, the card shows both. Clicking it on an empty Weeks card puts
+  the card on Ends, ending the Friday before the next phase, and moves the cursor to Length. On an empty Dates card it
+  writes the last day (the last weekday before the next phase) and moves the cursor to the start. Cards that already have
+  dates are unchanged.
+- **Why.** Owner, with a screenshot of a calendar where only Production had a date: *"when you give a start date to a
+  later phase, previous phases should allow you to click Finish before"*. Until now Finish before showed only before a
+  phase on Ends (R1), so starting a calendar from Production's date and building back needed Ends first. Ruling R5.
+- **Verified.** `finishbefore` 16/16 (new R5a-R5d: the swap, the click on an empty Weeks card through to its length, both
+  buttons between two dated phases, an empty Dates card); `endsdate` 17/17, `prodends` 14/14, `spancounts` 10/10,
+  `overrides` 20/20, `snaptools` 14/14, `builtindates` 19/19 live and restored; `npm run check` 43/43; tried in the
+  browser by the owner. No frozen code, no save-format change, no new id.
+
+### Scenario tabs show their Version, and a copy is offered the next one (19 Nov 2026)
+
+The owner asked whether, once the first scenario has a Version, a new scenario should be named after it or the Version
+shown in the bar at the bottom; then for the copy to offer the next number, *"as a suggestion, not force them"*. Five
+layouts were mocked (`mockups/scenario-version-*.html`, `scenario-name-version.html`, `scenario-new-tab-card.html`);
+the owner picked layout C of `mockups/scenario-version-layouts.html`, *"lets see with version c looks like in the app"*,
+and then asked that the offer can be brought back later.
+
+- **Every scenario tab shows its Version** as a small badge after its name, as the header prints it ("v3"); a tab with
+  no Version shows none. Tab names are never changed.
+- **A copy is offered the next version.** After **+**, a copy whose Version is a number shows **→ v4** beside its badge,
+  there while its name box is open too. One click puts 4 in Show info's Version box through the box's own handler, so it
+  is an ordinary edit: the header, the band and the file name follow, and ⌘Z takes it back. The number is the highest
+  version on any tab, whole, plus one (v3 and v3.1 both offer v4; a second copy of v3 offers v5 once one tab is v4).
+  Ignoring it keeps the version; it goes on the next edit, a tab switch, another copy, Keep only, or a load.
+- **Clicking a number badge brings → vN back**, on that tab (switching to it first), and a second click puts it away.
+  A text Version kept from before 18 Nov ("Blue") has no next number, so its badge is plain.
+- **The key facts band ends with a Version tile** (dimmed when every tab has the same one). Its value was already in
+  `scenarioFacts()`; the band did not show it. Show info's Version box now refreshes the band as it is typed.
+- Nothing new is saved: the offer is session UI, and a scenario file's tabs are still `{id, name, snapshot}`.
+- Code: `app.js` (`tabVersionLabel`, `nextScenarioVersion`, `askScenarioVerOffer`, `takeScenarioVerOffer`,
+  `scenarioVerOffer`, dropped in `markDirty()` once the calendar differs from when it was offered), `ScenarioTabs.jsx`
+  (the badge and `→ vN`, whose mousedown keeps the name box's focus), `legacy.css` (`.sc-tab-ver`, `.sc-ver-bump`).
+- Verified: new leg `scenversion` (V1-V8 + E0, 9/9 on the build, red on v1.21.0). Legs that matched a tab by its
+  whole text now read `.sc-tab-name` (scenarios, scenariofacts, recoverfail, retiredplaces, comparebreaks), and
+  scenariofacts F3 / F4 expect the Version tile; scenarios 23/23, scenariofacts 12/12, and every other leg that reads the strip or the band
+  (scenlist, comparebreaks, exportnames, filenamelist, comparehiatus, retiredplaces, recoverfail, loadsparse,
+  changessince) green. `npm run check` 43/43. No full
+  gate (chrome and scenario engine only, no frozen code, no save-format change).
+
+### Show info's fields in the order each mode is filled in (19 Nov 2026)
+
+Owner: *"When scheduling by Episode the order should be Schedule by, then Number of Episodes, then shooting days per
+Ep+tandem days then Version, then production region, then location. When scheduling by Block, the order should be Number
+of blocks, then shooting days per block + tandem, then number of episodes (it can still be optional but remove that it
+says so)"*.
+- **Episodes:** Schedule by, Number of Episodes, Shooting Days per Episode + Tandem Days, Version, Production Region,
+  Location. **Blocks:** Schedule by, Number of Blocks, Shooting Days per Block + Tandem Days, Number of Episodes, Version,
+  Production Region, Location.
+- Number of Episodes no longer says "(optional)" in Blocks mode; it still is (a Blocks calendar schedules without it).
+- One `#num-episodes` serves both modes (its id is the save format): the Blocks-only rows sit before it and the
+  Episodes-only row after it, so the DOM order, and Tab, is right in each mode. Nothing saved changed.
+- **Verified:** `doubleups` SI8 (both orders as shown), `labelsetup` B1u re-premised (plain label; B1 still holds the
+  count optional), `blocks`, `restore` (gate 5's key set), `npm run check`.
+
+### Tandem Days in Show info, beside the shooting days (19 Nov 2026)
+
+Owner: *"add double-up/tandem days in the Show Info section. To the right of the Shooting days per episode should be a big
+plus symbol and then to the right of that another box to add the double up/tandem days"*; after the mockup
+(`mockups/show-info-tandem.html`, main checkout): a smaller plus, all on one line, no line of text under it.
+- **Show info** reads `Shooting Days per Episode + Tandem Days` on one line (`Shooting Days per Block` in Blocks mode).
+  The box is the Tandem card's **Default tandem days** a second time: type in either and the other follows, one undo step.
+  Nothing new is saved: the count is still `doubleUps.days`.
+- ⛔ The box has **no id** (a plain `<input>`, the Region mirror's pattern): a Mantine `Input` inside `Input.Wrapper` took
+  the wrapper's minted id in the built page, which `collectFieldValues()` would have saved into every calendar.
+- The days label runs over the plus column, so it stays on one line in the narrowest sidebar (280 px: 142 of 146 px);
+  "Whole days only" sits under the row so the boxes stay in line.
+- **Verified:** `doubleups` LIVE run SI0-SI7 (one line in both modes, no id, both directions, Undo, Save adds no field,
+  Load, the whole-days ring); the leg's other runs, `restore` (gate 5's key set), `loadsparse`, `firstrun`, `numclamp`;
+  `npm run check`. No full gate: chrome and a sidebar listener only, nothing frozen.
+
+### Pinch, Ctrl-scroll and ⌘+ / ⌘− zoom the calendar, not the app (18 Nov 2026)
 
 Owner: *"Allow trackpad pinch and related mouse zoom buttons to control the viewport of the waterfall and month view
 rather than just zooming in the entire UI of the app"*.

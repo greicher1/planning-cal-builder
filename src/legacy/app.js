@@ -28,7 +28,7 @@ export function initLegacyApp() {
   // They are one action, not two: version.json alone makes every user see an update that
   // isn't there, and APP_VERSION alone makes a real update invisible. The release-cut step in
   // README's changelog rules lists them together for exactly this reason.
-  const APP_VERSION = '1.22.0';
+  const APP_VERSION = '1.22.1';
 
   // ---------- Embedded Carlito ----------
   // The two <script type="text/plain"> blocks above hold Carlito, subset and zlib-compressed,
@@ -10174,6 +10174,27 @@ export function initLegacyApp() {
     });
     return row;
   }
+  // Show info's Tandem Days box (owner, 19 Nov 2026; Sidebar.jsx's TandemDaysBox, one beside the days per episode and
+  // one beside the days per block): a second view of the card's default count above. A count typed there is written
+  // exactly as the card's box writes it, and reflectShowInfoTandem(), from update(), writes the store back into every
+  // copy but the one being typed in, so the card and Show info always agree.
+  // ⛔ No id on these boxes (the card's rule): the count is saved under doubleUps.days, never in fields.byId.
+  document.addEventListener('input', e=>{
+    const t = e.target;
+    if(!t || !t.classList || !t.classList.contains('si-tandem-in')) return;
+    const n = duTyped(t.value), next = n > 0 ? n : 0;
+    if(next === doubleUpDays) return;
+    doubleUpDays = next;
+    update();
+  });
+  function reflectShowInfoTandem(){
+    const want = doubleUpDays > 0 ? String(doubleUpDays) : '';
+    document.querySelectorAll('.si-tandem-in').forEach(inp=>{
+      if(document.activeElement === inp) return;
+      const same = want === '' ? inp.value === '' : (inp.value !== '' && duTyped(inp.value) === Number(want));
+      if(!same) inp.value = want;
+    });
+  }
   function duUnitDef(kind, id){
     return (kind === 'block' ? blockDefs : episodeDefs).find(x=> x.id === id) || null;
   }
@@ -19378,7 +19399,7 @@ export function initLegacyApp() {
     pop.innerHTML = `<div class="note-pop-head"><div class="note-pop-heading"><span class="note-pop-title">${escHtml(popName)}</span>`
       + ` <span class="note-pop-when">${escHtml(popWhen)}</span></div>${headBtn}</div>
       <div class="note-editor">
-      <textarea rows="2" placeholder="${isHiatus?'Hiatus label':'Note text (Shift+Enter for a new line)'}">${textVal.replace(/</g,'&lt;')}</textarea>
+      <textarea rows="2"${isHiatus ? ' placeholder="Hiatus label"' : ''}>${textVal.replace(/</g,'&lt;')}</textarea>
       ${popHint ? `<div class="note-pop-hint">${popHint}</div>` : ''}
       <div class="note-list">
       ${dayRow}
@@ -22104,15 +22125,19 @@ export function initLegacyApp() {
   // opposite store: autoNotesOn, kind -> true while ticked, and an absent kind is hidden. ⛔ CALENDAR DATA:
   // captureSnapshot()'s `autoNotesOn`, written only while one is ticked, so a calendar that never ticks one saves
   // byte for byte as before. ⛔ PERMANENT kind words (the key's and data-autonote's), `<phase key>Start|End`.
-  // `text` overrides "<phase name> Begins|Ends": Writer's Room keeps its own pair with "Writer's Room Opens", and
-  // the other four follow a phase renamed in the Phases tab, as its bars do. Production has none here: its start
+  // `text` overrides "<phase name> Begins|Ends": Writer's Room keeps its own pair with "Writer's Room Opens", Post's
+  // end reads "Final Delivery", and the rest follow a phase renamed in the Phases tab, as its bars do. Production has none here: its start
   // and wrap are principalStart / principalWrap. Custom phases get the same pair, read through autoNoteEdgeDefs()
   // below (owner, 2 Nov 2026). Read by computeSchedule.
   const AUTO_NOTE_PHASE_EDGES = [
     {kind:'writersRoomEnd',    phase:'writersRoom', end:true, text:"Writer's Room Closes"},
     {kind:'prePrepStart',      phase:'prePrep'},      {kind:'prePrepEnd',      phase:'prePrep',      end:true},
     {kind:'prodPrepStart',     phase:'prodPrep'},     {kind:'prodPrepEnd',     phase:'prodPrep',     end:true},
-    {kind:'postStart',         phase:'post'},         {kind:'postEnd',         phase:'post',         end:true},
+    {kind:'postStart',         phase:'post'},
+    // ⭐ Post's end reads "Final Delivery 9/22/28" (owner, 19 Nov 2026), dated as every end note is: the last day the
+    // month view draws Post's bar, the Friday of its last week. Fixed wording, so it no longer follows a renamed Post.
+    // The kind word stays 'postEnd' (PERMANENT: saved files' autoNotesOn / autoNoteNames / autoNotesView name it).
+    {kind:'postEnd',           phase:'post',         end:true, text:'Final Delivery'},
     {kind:'localizationStart', phase:'localization'}, {kind:'localizationEnd', phase:'localization', end:true},
   ];
   const AUTO_NOTE_OPT_IN = new Set(AUTO_NOTE_PHASE_EDGES.map(e=> e.kind));
@@ -25786,7 +25811,7 @@ export function initLegacyApp() {
   //     highlighted band does nothing.
   //   - ⚠️ A week's own label or colour typed in a band before this change stays in its file and keeps printing. The
   //     card's colour square paints every week, and its name box takes such a label over the next time the name is
-  //     typed (claimBandNames). "Reset hiatus bands" clears them all.
+  //     typed (claimBandNames). ("Reset hiatus bands", which cleared them all at once, went 19 Nov 2026: owner.)
   // The span tests are the scheduler's own: from the start's Monday, whole weeks (hiatusRowSpan, phaseHiatusSpan).
   function bandCardOf(td){
     if(!td || !td.classList || !td.classList.contains('sheet-hiatus-cell')) return null;
@@ -29661,8 +29686,9 @@ export function initLegacyApp() {
   //   * #tb-notes-reset-btn in the app header, where Reset All was (Header.jsx). That was the owner's
   //     measured fallback: the two buttons together wrapped the toolbar below 1414 px. It reads "Reset
   //     Notes" in the Waterfall and "Reset Month Notes" in the Month view;
-  //   * #hiatus-reset-btn at the foot of the sidebar's All-phase hiatus card (ruling 5).
-  // All three are React-rendered, so they are reached by DELEGATION from document, never captured at
+  //   (#hiatus-reset-btn, at the foot of the sidebar's All-phase hiatus card since ruling 5, was removed by the owner,
+  //   19 Nov 2026.)
+  // Both are React-rendered, so they are reached by DELEGATION from document, never captured at
   // evaluation time (HANDOFF §2b-3's law).
   function headerModeKey(mv){
     if(mv ? mvHeaderOff : headerOff) return 'off';
@@ -29937,17 +29963,6 @@ export function initLegacyApp() {
     render(currentSchedule);
     markDirty();
   }
-  // Ruling 5: the hiatus bands' own reset -- every band's label, colour and size, all-phase and
-  // per-phase. update(), NOT render(), and that is a fix: the old combined reset only rendered, so a
-  // NAMED hiatus row's band read the default "Hiatus" until some later edit happened to run
-  // syncHiatusNamesFromSidebar() and re-claim it (reproduced on v1.4.1: both weeks of a "Winter
-  // Break" row read "Hiatus"). update() runs that sync first. It also ends in markDirty().
-  function resetHiatusBands(){
-    hiatusTexts = {}; hiatusNameSyncedKeys = {}; hiatusColors = {}; hiatusFontSize = {};
-    textStyle.hiatus = {};
-    mvTextStyle.band = {};   // the month view's band styles too (MONTH-TEXT-STYLE-PLAN.md §3.5)
-    update();
-  }
   // ⭐ BOTH NOTES RESETS ASK FIRST (audit AUD2-054, item 3.5, 14 Nov 2026). The button sits in the app header beside
   // Export PDF, and one press cleared every note at once with no word, while New, Load, Delete scenario and Reset
   // holidays all ask; autosave then wrote the wiped calendar ten minutes later. "Kept as today, not asked" was a
@@ -30001,9 +30016,8 @@ export function initLegacyApp() {
     return true;
   }
   document.addEventListener('click', e=>{
-    const t = e.target.closest && e.target.closest('#tb-notes-reset-btn, #hiatus-reset-btn');
+    const t = e.target.closest && e.target.closest('#tb-notes-reset-btn');
     if(!t) return;
-    if(t.id === 'hiatus-reset-btn'){ resetHiatusBands(); return; }
     // An open note editor is SAVED first, as any click away saves it, so the count is what is on the calendar and a
     // Cancel keeps what was typed. (The waterfall editor's own click-away listener has already run by now; the month
     // editor's runs after this one, so it is done here.) A Reset then clears it with the rest, as before.
@@ -30351,6 +30365,7 @@ export function initLegacyApp() {
     reflectPhaseNudges(); // which cards show the week arrows (the waterfall, and a phase with a date), and their labels
     refreshPrepUI(currentSchedule);
     refreshDoubleUpUI(currentSchedule);
+    reflectShowInfoTandem();   // Show info's copy of the card's default count (owner, 19 Nov 2026)
     refreshHolidayCoverageNote();
     // The "Label Production by" control (Preferences, month view). Here because a change of Schedule by,
     // an undo or a Load can change what it shows without touching mvProdLabel's own setter.
@@ -31735,7 +31750,7 @@ export function initLegacyApp() {
     {key:'prePrep',      name:'Pre-Prep',           notes:[['prePrepStart', 'Begins'], ['prePrepEnd', 'Ends']]},
     {key:'prodPrep',     name:'Prod Prep',          notes:[['prodPrepStart', 'Begins'], ['prodPrepEnd', 'Ends']]},
     {key:'production',   name:'Production',         notes:[['principalStart', 'Starts'], ['principalWrap', 'Wraps']]},
-    {key:'post',         name:'Post',               notes:[['postStart', 'Begins'], ['postEnd', 'Ends']]},
+    {key:'post',         name:'Post',               notes:[['postStart', 'Begins'], ['postEnd', 'Final Delivery']]},
     {key:'localization', name:'Localization',       notes:[['localizationStart', 'Begins'], ['localizationEnd', 'Ends']]},
   ]; }
   function autoNoteViewWord(view){ return view === 'sheet' ? 'Waterfall' : 'Month view'; }
@@ -32775,18 +32790,37 @@ export function initLegacyApp() {
     return ((document.getElementById('name-' + key) || {}).value || '').trim()
       || (PHASES.find(x => x.key === key) || {}).label || 'next phase';
   }
+  // R5 (owner, 19 Nov 2026: "when you give a start date to a later phase, previous phases should allow you to click
+  // Finish before"): an EMPTY card (not scheduled) with a dated phase after it in the chain offers Finish before too,
+  // though nothing is on Ends, so a calendar can be started from Production's date and built back from it. With no
+  // dated phase before it, Start after has nothing to chain to, so Finish before takes its place (chain-back); with one,
+  // the card offers both (chain-both), since it could go either way. A card with dates of its own is unchanged, so a
+  // finished calendar on Starts looks exactly as before.
+  function chainOpenBetween(key, schedule){
+    const segs = (schedule && schedule.segments) || [];
+    if(segs.some(s => s.key === key)) return null;
+    if(!nextChainSegment(key, schedule)) return null;
+    return prevChainSegment(key, schedule) ? 'both' : 'back';
+  }
   function reflectFinishBefore(){
     document.querySelectorAll('#phase-rows > .phase-row').forEach(row=>{
       const btn = row.querySelector('.finish-before-btn');
       const key = phaseRowKey(row);
-      const back = !!btn && chainEndsAfter(key);
+      const open = !!btn && !chainEndsAfter(key) ? chainOpenBetween(key, currentSchedule) : null;
+      const back = !!btn && (chainEndsAfter(key) || open === 'back');
+      const both = open === 'both';
       if(row.classList.contains('chain-back') !== back) row.classList.toggle('chain-back', back);
+      if(row.classList.contains('chain-both') !== both) row.classList.toggle('chain-both', both);
       if(!btn) return;
-      const next = back ? nextChainSegment(key, currentSchedule) : null;
+      const next = (back || both) ? nextChainSegment(key, currentSchedule) : null;
       const label = '↳ Finish before ' + (next ? chainPhaseName(next.key) : 'next phase');
       if(btn.textContent !== label) btn.textContent = label;
       if(btn.disabled !== !next) btn.disabled = !next;
     });
+  }
+  function focusEmpty(id){
+    const el = document.getElementById(id);
+    if(el && !el.value && el.offsetParent) el.focus();
   }
   // A mover (owner ruling R2, v1.3.1): Production's day marks travel with it by shoot-day number.
   function finishBeforePhase(key){
@@ -32824,14 +32858,18 @@ export function initLegacyApp() {
         endEl.value = isoOf(e);
         reflectPhaseEnds();
         update();
+        // R5: an empty card has its end now but no length; the cursor goes where the length is typed.
+        focusEmpty('weeks-' + key);
         return;
       }
       // Dates: the same length, both dates moved, its last day the last weekday before the next phase starts.
       const startEl = document.getElementById('start-' + key), endEl = document.getElementById('end-' + key);
       const s = startEl ? parseDateUTC(startEl.value) : null, en = endEl ? parseDateUTC(endEl.value) : null;
-      if(!s || !en) return;
       let last = addDays(next.seg.start, -1), g = 0;
       while(g++ < 600 && (last.getUTCDay() === 0 || last.getUTCDay() === 6 || inHiatus(last))) last = addDays(last, -1);
+      // R5: an empty Dates card has no length to keep, so it takes its last day and waits for a start.
+      if(!s && endEl){ endEl.value = isoOf(last); update(); syncCustomUnitFallback(key); focusEmpty('start-' + key); return; }
+      if(!s || !en) return;
       if(setPhaseStart(key, isoOf(addDays(s, Math.round((last - en) / DAY_MS))))){ update(); syncCustomUnitFallback(key); }
     });
   }
@@ -33224,6 +33262,7 @@ export function initLegacyApp() {
       try { el.setSelectionRange(caret, caret); } catch(_){}
     }
     render(currentSchedule); markDirty();
+    scheduleScenarioFacts();   // the key facts band's Version tile (owner, 18 Nov 2026)
   });
   // The Location (KEY-FACTS-PLAN.md §3.2) changes nothing in the calendar, only the scenario band and Compare, so it
   // re-reads the band instead of rendering.
@@ -33922,11 +33961,11 @@ export function initLegacyApp() {
     // skeleton, exactly the shape srv.js serves every stateful test, so the copy opens as one clean
     // app. It also stops the sender's file-menu and recents markup travelling in the file (audit
     // L-21). The live document is untouched -- this is the clone.
-    // #hiatus-reset-host joined the list with owner ruling 5 (30 Sep 2026): "Reset hiatus bands" is
-    // portalled there, so a copy built without it would boot with a stale button beside React's.
+    // (#hiatus-reset-host was on the list from owner ruling 5, 30 Sep 2026, until the owner removed "Reset hiatus
+    // bands" and its host, 19 Nov 2026.)
     // #settings-host joined it with the Settings window (owner ruling 12, 20 Oct 2026): Region, Holidays
     // and the preferences render there now, so a copy that kept them would boot with two of each.
-    clone.querySelectorAll('header.app-header, .view-toggle-row, #sidebar-static, #settings-host, #hiatus-hint-host, #hiatus-reset-host, #react-root').forEach(el=> el.replaceChildren());
+    clone.querySelectorAll('header.app-header, .view-toggle-row, #sidebar-static, #settings-host, #hiatus-hint-host, #react-root').forEach(el=> el.replaceChildren());
     // The side columns (SIDE-BOXES-PLAN.md §7) go back to their shipped state too -- empty, hidden, no
     // grid on the panel: the copy's own engine draws its boxes from the saved state when it opens, as
     // #table-wrap is drawn.
@@ -34125,6 +34164,7 @@ export function initLegacyApp() {
   }
   function currentScenario(){ return scenarioTabs.find(t => t.id === currentScenarioId) || scenarioTabs[0]; }
   function resetScenarios(){
+    scenarioVerOffer = null;
     scenarioTabs = [{ id: 's1', name: scenarioDefaultName(0), snapshot: null, undo: null, facts: null }];
     currentScenarioId = 's1';
     scenarioCounter = 1;
@@ -34185,6 +34225,7 @@ export function initLegacyApp() {
   // After a file's calendar was applied: its tabs become the tab set (or one tab, for a one-calendar file).
   function adoptScenarios(sc){
     if(!sc){ resetScenarios(); scheduleScenarioFacts(); return; }
+    scenarioVerOffer = null;
     scenarioTabs = sc.tabs;
     currentScenarioId = sc.current;
     scenarioCounter = sc.counter;
@@ -34201,10 +34242,14 @@ export function initLegacyApp() {
     chrome.scenarios({
       ...(edit ? { edit, editSeq: ++scenarioEditSeq } : {}),
       visible: calendarShown(),
-      tabs: scenarioTabs.map(t => ({ id: t.id, name: t.name })),
+      // `ver`: each tab's Version as the header prints it, for its badge (owner, 19 Nov 2026, layout C of
+      // mockups/scenario-version-layouts.html); '' with none.
+      tabs: scenarioTabs.map(t => ({ id: t.id, name: t.name, ver: tabVersionLabel(t) })),
       current: currentScenarioId,
       max: SCENARIO_MAX,
       band: scenarioBand(),   // the key facts band (KEY-FACTS-PLAN.md); null with one tab
+      verOffer: (scenarioVerOffer && scenarioVerOffer.id === currentScenarioId && scenarioTabs.length > 1)
+        ? { from: scenarioVerOffer.from, to: scenarioVerOffer.to } : null,
     });
   }
   // Parks the tab on screen: its state as a DEEP copy (a live captureSnapshot() shares the module's stores, which
@@ -34229,6 +34274,7 @@ export function initLegacyApp() {
   function switchScenario(id){
     const to = scenarioTabs.find(t => t.id === id);
     if(!to || id === currentScenarioId) return false;
+    scenarioVerOffer = null;   // the tab's "→ vN" offer is about the tab it was made for
     const from = parkCurrentScenario();
     const scroll = captureScroll();
     const unvisited = savedBaselineUnvisited(id, to.snapshot);   // "Changes since last save" (AUD2-103): see there
@@ -34263,13 +34309,17 @@ export function initLegacyApp() {
     refreshScenarioFacts();   // ...which pushes the chrome
     return true;
   }
-  // "+": a copy of the tab on screen, next to it, on screen at once (the live app already IS its state). The copy
-  // starts with no undo history; the original keeps its own.
+  // "+": a copy of the tab on screen, on screen at once (the live app already IS its state). The copy starts with no
+  // undo history; the original keeps its own.
+  // ⭐ AT THE FAR RIGHT, whichever tab it copies (owner, 19 Nov 2026, "Yes, far right"). It went just right of its
+  // source until then, but its name (nextScenarioName) and its offered version (nextScenarioVersion, the highest on any
+  // tab + 1) both continue from the LAST tab, so copying v1 of v1 v2 v3 read "v1 v4 v2 v3". The strip scrolls the tab
+  // on screen into view by itself (ScenarioTabs.jsx), so a far-right copy is never off screen. A drag still reorders.
   function duplicateScenario(){
     if(scenarioTabs.length >= SCENARIO_MAX) return null;
-    const from = parkCurrentScenario();
+    parkCurrentScenario();
     const copy = { id: 's' + (++scenarioCounter), name: nextScenarioName(), snapshot: null, undo: null, facts: null };
-    scenarioTabs.splice(scenarioTabs.indexOf(from) + 1, 0, copy);
+    scenarioTabs.push(copy);
     currentScenarioId = copy.id;
     update();          // the {scenario} header token reads the new name
     // The copy's history starts empty, based on the state AFTER that render: update() settles derived stores, and
@@ -34279,8 +34329,69 @@ export function initLegacyApp() {
     lastPushedSnapshotJSON = undoStateJSON();   // the history's own form (no viewMode), or the next push is a phantom
     refreshUndoRedoUI();
     isDirty = true; refreshSaveStatus(); scheduleBackup();   // markDirty() without its undo push
+    // The next version, offered on the copy's tab as "→ vN" (below), only while its Version is a number.
+    const next = nextScenarioVersion();
+    scenarioVerOffer = next ? { id: copy.id, from: versionLabel(), to: 'v' + next, num: next, base: lastPushedSnapshotJSON } : null;
     pushScenarioChrome(copy.id);   // ...and its name opens ready to type over
     return copy.id;
+  }
+  // ⭐ THE NEXT VERSION, OFFERED (owner, 18 Nov 2026: "could there be a dialogue that asks you if would like to bump to
+  // the next version number?"; 19 Nov 2026, after four layouts, "lets see with version c looks like in the app":
+  // layout C of mockups/scenario-version-layouts.html). Every tab shows its Version as a small badge (tabVersionLabel),
+  // and a fresh copy whose Version is a NUMBER shows "→ v4" beside its badge, also while its name box is open. The
+  // copy is made at once and nothing waits on it: ignoring it keeps the version.
+  //  - Offered only when the copy's Version is a number (versionNumber): blank, or old text ("Blue"), is never asked.
+  //  - The number is the HIGHEST version on any tab, whole, plus one: copying v3 twice offers v4, then v5, never two v4s;
+  //    v3.1 offers v4. A parked tab is read from its snapshot, the tab on screen from the box.
+  //  - → vN types the number into Show info's Version box through its own input handler, so it is an ordinary
+  //    edit: one undo step, the header, the band and the file name follow.
+  //  - It goes on the first EDIT (markDirty, once the calendar differs from the copy as made: a rename is not one, since
+  //    no tab name is in a snapshot), a tab switch, another copy, Keep only, or a file. Session UI: never saved.
+  var scenarioVerOffer = null;
+  function tabVersionRaw(t){
+    if(t.id === currentScenarioId){ const el = document.getElementById('show-version'); return el ? el.value : ''; }
+    const f = t.snapshot && t.snapshot.fields && t.snapshot.fields.byId && t.snapshot.fields.byId['show-version'];
+    return f && typeof f === 'object' ? f.value : '';
+  }
+  // A tab's Version as versionLabel() prints it: "v" + a number, a pre-18-Nov text label as saved, '' for none.
+  function tabVersionLabel(t){
+    if(t.id === currentScenarioId) return versionLabel();
+    const raw = String(tabVersionRaw(t) || '').trim();
+    const num = versionNumber(raw);
+    return num !== null ? (num ? 'v' + num : '') : raw;
+  }
+  function nextScenarioVersion(){
+    const mine = versionNumber(String(tabVersionRaw(currentScenario()) || '').trim());
+    if(!mine) return null;
+    let top = 0;
+    scenarioTabs.forEach(t => {
+      const n = versionNumber(String(tabVersionRaw(t) || '').trim());
+      const w = n ? Math.floor(parseFloat(n)) : NaN;
+      if(isFinite(w) && w > top) top = w;
+    });
+    return top >= 0 ? String(top + 1) : null;
+  }
+  function dropScenarioVerOffer(){
+    if(!scenarioVerOffer) return;
+    scenarioVerOffer = null;
+    pushScenarioChrome();
+  }
+  // A click on the tab's version badge (owner, 19 Nov 2026: "if i dont click the arrow ... at first, i should later be
+  // able to click on the little version number and the arrow should pop up again"): the same offer, for the tab on
+  // screen, at any time; a second click puts it away. Based on the calendar as it stands now, so the next edit drops it.
+  function askScenarioVerOffer(){
+    if(scenarioVerOffer && scenarioVerOffer.id === currentScenarioId) return dropScenarioVerOffer();
+    const next = nextScenarioVersion();
+    scenarioVerOffer = next ? { id: currentScenarioId, from: versionLabel(), to: 'v' + next, num: next, base: undoStateJSON() } : null;
+    pushScenarioChrome();
+  }
+  function takeScenarioVerOffer(){
+    const o = scenarioVerOffer;
+    if(!o || o.id !== currentScenarioId) return dropScenarioVerOffer();
+    scenarioVerOffer = null;
+    const el = document.getElementById('show-version');
+    if(el){ el.value = o.num; el.dispatchEvent(new Event('input', { bubbles: true })); }
+    pushScenarioChrome();
   }
   function renameScenario(id, name){
     const t = scenarioTabs.find(x => x.id === id);
@@ -34325,6 +34436,7 @@ export function initLegacyApp() {
     if(!(await uiConfirm('Keep only “' + t.name + '”? ' + what + ' deleted, and the file holds one calendar again. This can’t be undone.',
                          { title: 'Keep only this scenario', confirmLabel: 'Keep only this one', danger: true }))) return false;
     if(id !== currentScenarioId && !switchScenario(id)) return false;
+    scenarioVerOffer = null;
     scenarioTabs = [t];
     markDirty();
     pushScenarioChrome();
@@ -34351,6 +34463,9 @@ export function initLegacyApp() {
     else if(d.op === 'keep') keepOnlyScenario(d.id);
     else if(d.op === 'compare') openCompareScenarios();
     else if(d.op === 'saveOwn') saveScenarioAsOwnFile(d.id);
+    else if(d.op === 'verTake') takeScenarioVerOffer();
+    else if(d.op === 'verKeep') dropScenarioVerOffer();
+    else if(d.op === 'verAsk'){ if(d.id && d.id !== currentScenarioId) switchScenario(d.id); askScenarioVerOffer(); }
   });
 
   // ---------- SCENARIOS: Compare (SCENARIOS-PLAN.md §5; the window is src/chrome/CompareDialog.jsx) ----------
@@ -34457,7 +34572,7 @@ export function initLegacyApp() {
   // nothing is greyed: a wrong grey would claim a fact is shared when it may not be.
   // `var`, as scenarioTabs is: pushScenarioChrome() reads these through scenarioBand(), and a render during evaluation,
   // before these lines run, must see "no band", not a temporal-dead-zone ReferenceError.
-  var BAND_KEYS = ['loc', 'count', 'wrOpen', 'wrWeeks', 'first', 'span', 'wrap'];
+  var BAND_KEYS = ['loc', 'count', 'wrOpen', 'wrWeeks', 'first', 'span', 'wrap', 'ver'];
   var liveScenarioFacts = null;
   var scenarioFactsTimer = 0;
   function bandValues(f){
@@ -34466,7 +34581,9 @@ export function initLegacyApp() {
     const count = f && f.blocks ? (v.blocks != null ? { n: v.blocks, unit: 'block' } : null)
                                 : (v.eps != null ? { n: v.eps, unit: 'ep' } : null);
     return { loc: v.loc || null, count, wrOpen: v.wrOpen || null, wrWeeks: v.wrWeeks != null ? v.wrWeeks : null,
-             first: v.first || null, span: v.span != null ? v.span : null, wrap: v.wrap || null };
+             first: v.first || null, span: v.span != null ? v.span : null, wrap: v.wrap || null,
+             // The Version as the header prints it ("v3"), last in the band (owner, 18 Nov 2026, with the offer below).
+             ver: v.ver || null };
   }
   function scenarioBand(){
     if(scenarioTabs.length < 2 || !liveScenarioFacts) return null;
@@ -35571,6 +35688,8 @@ export function initLegacyApp() {
     // (a holiday's Waterfall or Month box, Toggle all) has no update() of its own. After update() this is a no-op. A
     // note the edit changed is remembered as left, against the lines on screen now. Redrawn only when a note changed.
     if(followAutoNotes(currentSchedule, true)) render(currentSchedule);
+    // The strip's version offer goes on the copy's first edit (duplicateScenario).
+    if(scenarioVerOffer && undoStateJSON() !== scenarioVerOffer.base) dropScenarioVerOffer();
     isDirty = true;
     refreshSaveStatus();
     scheduleBackup();

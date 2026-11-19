@@ -1899,7 +1899,8 @@ done
 # before a phase on Ends and nowhere else (Writer's Rm gains one, Localization never has one, custom phases none, no
 # id), its label following a renamed phase, a click putting the card on Ends with its last working week before the
 # next phase (Production: its last shoot day), one undo step, the end holding while Production grows (no automatic
-# pull, R3), a Dates built-in moving whole, and both kinds stepping back over the 12/21/26 hiatus. Own line.
+# pull, R3), a Dates built-in moving whole, and both kinds stepping back over the 12/21/26 hiatus; R5 (19 Nov 2026):
+# an EMPTY card before a dated phase offers it with nothing on Ends, beside Start after between two dated phases. Own line.
 # spancounts (owner, 2 Nov 2026: "three icons: one that says the number of production weeks, one that says the number
 # of holidays costing a shoot day, and something that says the number of Off Days"; version D, then "D replaces the
 # whole line") holds the counts under Production's span: weeks = the meta line's, the holidays and Off days that cost
@@ -4260,6 +4261,22 @@ errs = (a.get('health') or {}).get('errors') or []
 if errs: print('  FAIL  scenariofacts: page errors '+str(errs)[:200])
 sys.exit(0 if len(cases) >= 12 and all(c.get('pass') is True for c in cases) and not errs else 1)
 PYSF
+# ---- scenversion: each scenario tab shows its Version, and a copy is offered the next one (owner, 18-19 Nov 2026) ---
+# Layout C of mockups/scenario-version-layouts.html: a badge on every tab, "→ vN" on a fresh copy (also with its name box
+# open), a click on a badge brings it back, an edit drops it, the number is the highest on any tab + 1, no Version = no
+# badge, and the file gains no key. Red on v1.21.0 (no badge: V1).
+rm -f "$HERE/scenversion.json"
+HARNESS_PAGE="$PAGE" "$HERE/run.sh" scenversion 200 >/dev/null 2>&1
+python3 - "$HERE/scenversion.json" <<'PYSV' || FAIL=1
+import json,sys
+try: a=json.load(open(sys.argv[1]))
+except Exception as e:
+    print('  FAIL  scenversion produced no result: '+str(e)); sys.exit(1)
+cases = a.get('cases') or []
+for c in cases:
+    print(('  PASS  ' if c.get('pass') is True else '  FAIL  ')+'scenversion '+str(c.get('id'))+': '+str(c.get('title',''))[:120])
+sys.exit(0 if len(cases) >= 9 and all(c.get('pass') is True for c in cases) else 1)
+PYSV
 # ---- scenariocompat: OLDER builds meet a scenarios file (SCENARIOS-PLAN.md §3.2) ------------------------------------
 # v1.8.0 must refuse tests/fixtures/scenarios-3.sptcal whole ("saved by a newer version") and keep its calendar;
 # v1.2.0, which has no version check, must open the tab that was on screen (8 episodes), never a blank calendar.

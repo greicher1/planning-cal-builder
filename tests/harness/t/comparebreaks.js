@@ -28,7 +28,7 @@ window.addEventListener('load', function () { (async function () {
   function add(id, title, pass, observed, expected){ cases.push({id: id, title: title, pass: !!pass, observed: observed, expected: expected}); }
   function qa(s, r){ return [].slice.call((r || document).querySelectorAll(s)); }
   function txt(e){ return ((e && e.textContent) || '').replace(/\s+/g, ' ').trim(); }
-  function cur(){ var c = document.querySelector('.sc-tab.is-current'); return c ? txt(c) : ''; }
+  function cur(){ var c = document.querySelector('.sc-tab.is-current'); return c ? txt(c.querySelector('.sc-tab-name') || c) : ''; }
   // A row of the window by its label: per column, its value lines and its chips.
   function compareRow(label){
     var tr = qa('.compare-dlg tbody tr').filter(function(r){ return r.children[0].innerText.trim() === label; })[0];
@@ -200,7 +200,7 @@ window.addEventListener('load', function () { (async function () {
       'band the same, no hiatus tile; the file\'s keys the fixture\'s');
 
     // N4 -- with the long name on screen, every column name is set at one size.
-    qa('.sc-tab').filter(function(t){ return txt(t) === 'Var 9 long descriptive name'; })[0].click();
+    qa('.sc-tab').filter(function(t){ return txt((t.querySelector('.sc-tab-name') || t)) === 'Var 9 long descriptive name'; })[0].click();
     await T.until(function(){ return cur() === 'Var 9 long descriptive name'; }, 'Var 9 on screen', 60, 100);
     await T.sleep(1200);
     await openCompare();

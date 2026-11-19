@@ -1537,8 +1537,10 @@
   .autostart-btn:disabled, .finish-before-btn:disabled{ color:var(--text-faint); cursor:default; }
   .autostart-btn:focus-visible, .finish-before-btn:focus-visible{ outline:2px solid var(--accent); outline-offset:1px; border-radius:3px; }
   /* FINISH BEFORE (owner, 18 Nov 2026, R1): a card shows it IN PLACE OF "Start after" while a later phase in the chain
-     is on Ends; reflectFinishBefore() sets the card's chain-back class from update(). One of the two, never both. */
-  .phase-row:not(.chain-back) .finish-before-btn,
+     is on Ends; reflectFinishBefore() sets the card's chain-back class from update(). R5 (19 Nov 2026): an empty card
+     with a dated phase after it offers it too, alone (chain-back) or, with a dated phase before it, beside Start after
+     (chain-both, the one case that shows both). */
+  .phase-row:not(.chain-back):not(.chain-both) .finish-before-btn,
   .phase-row.chain-back .autostart-btn{ display:none; }
   .phase-switches{ padding:6px 12px 0; }
   /* Production's one switch (Snap to Monday) sits alone between Starts and the shooting-days box, with no hairline. */
@@ -4692,6 +4694,9 @@
      squeezed Compare down to its icon (31px at 1,440 px with 20 scenarios), its word cut off. */
   .sc-strip > :not(.sc-tabs){ flex:none; }
   .sc-tabs::-webkit-scrollbar{ display:none; }
+  /* "+ Duplicate Scenario B" (owner, 19 Nov 2026): the button names the tab on screen. A long name is cut, so the
+     button never takes the tabs' room; its tooltip carries the whole name. */
+  .sc-add .sc-add-name{ display:inline-block; max-width:120px; overflow:hidden; text-overflow:ellipsis; vertical-align:bottom; }
   .sc-tab{
     flex:none; display:inline-flex; align-items:center; gap:2px; height:26px; padding:0 10px;
     border:1px solid transparent; border-radius:var(--mantine-radius-md);
@@ -4703,6 +4708,17 @@
     border-color:var(--mantine-color-gray-3); box-shadow:0 1px 2px rgba(0,0,0,.06);
   }
   .sc-tab.is-dragging{ opacity:.45; }
+  /* Where a dragged tab will drop (owner, 19 Nov 2026): a short blue line in the 2px gap before a tab, or after the last
+     one. Inside the tab's own box (the strip clips anything above or below it), so it draws over nothing. */
+  .sc-tab.drop-before, .sc-tab.drop-after{ position:relative; }
+  .sc-tab.drop-before::before, .sc-tab.drop-after::after{
+    content:''; position:absolute; top:2px; bottom:2px; width:2px; border-radius:1px;
+    background:var(--mantine-primary-color-filled); pointer-events:none;
+  }
+  .sc-tab.drop-before::before{ left:-2px; }
+  .sc-tab.drop-after::after{ right:0; }
+  /* The strip scrolls, so it clips its own edges: at the far left the line sits on the first tab's edge. */
+  .sc-tab:first-child.drop-before::before{ left:0; }
   .sc-tab-caret{ display:inline-flex; align-items:center; justify-content:center; width:18px; height:18px;
     border-radius:var(--mantine-radius-sm); color:var(--text-muted); }
   .sc-tab-caret:hover{ background:var(--mantine-color-gray-1); color:var(--text); }
@@ -4754,6 +4770,24 @@
   .sc-band-sep{ margin:0 6px; color:var(--mantine-color-gray-5); }
   .sc-band-v{ font-weight:600; }
   .sc-band-v.is-same{ font-weight:400; color:var(--text-muted); }
+  /* Each tab's Version as a small badge, and a fresh copy's "→ v4" (owner, 19 Nov 2026, layout C of
+     mockups/scenario-version-layouts.html; ScenarioTabs.jsx, takeScenarioVerOffer() in app.js). Chrome, not the frozen
+     surface. The badge is grey on every tab, a shade darker on the one on screen. */
+  .sc-tab-ver{
+    display:inline-flex; align-items:center; height:16px; margin-left:5px; padding:0 5px; border-radius:var(--mantine-radius-sm);
+    background:var(--mantine-color-gray-1); color:var(--text-muted); font-size:10.5px; font-weight:600; line-height:1;
+  }
+  .sc-tab.is-current .sc-tab-ver{ background:var(--mantine-color-gray-2); color:var(--text); }
+  .sc-tab-ver.is-btn{ cursor:pointer; }
+  .sc-tab-ver.is-btn:hover{ background:var(--mantine-color-gray-3); color:var(--text); }
+  .sc-ver-bump{
+    display:inline-flex; align-items:center; height:18px; margin-left:4px; padding:0 6px; border-radius:var(--mantine-radius-sm);
+    background:var(--mantine-primary-color-filled); color:var(--mantine-color-white); font-size:10.5px; font-weight:600;
+    line-height:1; cursor:pointer; animation:sc-ver-in .18s ease-out;
+  }
+  .sc-ver-bump:hover{ background:var(--mantine-primary-color-filled-hover); }
+  @keyframes sc-ver-in{ from{ opacity:0; transform:translateY(3px); } to{ opacity:1; transform:none; } }
+  @media (prefers-reduced-motion:reduce){ .sc-ver-bump{ animation:none; } }
   /* The waterfall's resize handles show at every zoom (22 Oct 2026). Until then they were hidden here
      while zoomed (body.cal-zoomed), because frozen installGridResizers and the drags mixed screen px
      with the grid's own px and a zoomed row drag SAVED the zoomed height. Frozen edits Z1-Z6 (app.js,
@@ -4815,6 +4849,36 @@
      absent show-mode means in the save format. Chrome/Edge are the target browsers (CLAUDE.md). */
   .card:has(#show-mode option[value="blocks"]:checked) .show-mode-episodes,
   .card:not(:has(#show-mode option[value="blocks"]:checked)) .show-mode-blocks{ display:none; }
+  /* Shooting Days per Episode (or per Block) + Tandem Days on ONE line (owner, 19 Nov 2026; mockups/show-info-tandem.html).
+     The days label runs over the plus column (nowrap, overflow visible), which is what keeps it to one line in the
+     narrowest sidebar: "Shooting Days per Episode" is ~142 px at the 11 px label size and the 280 px sidebar leaves ~146.
+     The Tandem box is 72 px, room for its own label. Its display:grid loses to the mode rules above (more specific), so
+     the hidden mode stays hidden. */
+  .si-days-tandem{ display:grid; grid-template-columns:minmax(0,1fr) 16px 72px; column-gap:4px; align-items:end; }
+  .si-days-tandem > .mantine-InputWrapper-root:first-child .mantine-InputWrapper-label{ white-space:nowrap; }
+  .si-days-tandem .si-plus{ display:flex; align-items:center; justify-content:center; align-self:end;
+                            height:var(--input-height-xs, 30px); color:var(--mantine-color-gray-6); }
+  .si-days-tandem .si-plus svg{ width:14px; height:14px; stroke:currentColor; stroke-width:2.5; stroke-linecap:round; }
+  .si-days-tandem .si-tandem .mantine-InputWrapper-label{ white-space:nowrap; }
+  /* A plain input (no id, see Sidebar.jsx), drawn as the xs NumberInput beside it: 30 px, 7 px radius, 12 px text,
+     no spinners (that NumberInput hides its controls). Focus colour comes from the plain-control rule above. */
+  .si-days-tandem .si-tandem-in{
+    display:block; width:100%; height:30px; box-sizing:border-box; margin:0;
+    padding:0 6px; text-align:center; font:inherit; font-size:var(--mantine-font-size-sm); color:var(--mantine-color-text);
+    background:var(--mantine-color-white); border:1px solid var(--mantine-color-gray-4); border-radius:var(--mantine-radius-md);
+    -moz-appearance:textfield; appearance:textfield;
+  }
+  .si-days-tandem .si-tandem-in::-webkit-inner-spin-button,
+  .si-days-tandem .si-tandem-in::-webkit-outer-spin-button{ -webkit-appearance:none; margin:0; }
+  .si-days-tandem .si-tandem-in::placeholder{ color:var(--mantine-color-placeholder); }
+  /* "Whole days only" / "Whole or half days only" go UNDER the row, never inside a column: in the 72 px column the
+     words wrapped and lifted the box out of line. Pinned to the row's left (the days box) or right (Tandem), in the
+     Stack's gap, which the row grows into only while a message shows. */
+  .si-days-tandem{ position:relative; }
+  .si-days-tandem:has([data-whole-err]){ margin-bottom:14px; }
+  .si-days-tandem > [data-whole-err]::after{ position:absolute; top:100%; margin-top:2px; white-space:nowrap; }
+  .si-days-tandem > .mantine-InputWrapper-root:first-child[data-whole-err]::after{ left:0; }
+  .si-days-tandem > .si-tandem[data-whole-err]::after{ right:0; }
   /* Preferences rows that belong to one view (owner, 22 Sep 2026): Single Column Mode is a
      waterfall layout, the two "Show … in Month View" switches are month-only. Keyed off the view
      toggle's `.active`, which setViewMode() maintains and the markup ships on Waterfall -- the one
