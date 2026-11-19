@@ -4,6 +4,22 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### 📦 19 Nov 2026: POST'S END NOTE READS "FINAL DELIVERY 9/22/28" — on `scenario-version-offer`, committed locally, NOT pushed. README "Unreleased". Tracker card `post-end-final-delivery`.
+- **Owner:** *"the auto note for the final friday of the last week of post production should be changed to "Final
+  Delivery 9/22/28" - where 9/22/28 is the friday date"*.
+- **As built:** `AUTO_NOTE_PHASE_EDGES`' `postEnd` entry carries `text:'Final Delivery'` (Writer's Room Closes' pattern),
+  so `computeSchedule` labels it so and `autoNoteLine` adds the date. The day was already right: `drawn()` from Post's
+  end backwards, the last day its month bar is drawn (the Friday of its last week, earlier if a holiday or hiatus takes
+  that Friday). The card's word for that box is "Final Delivery" (`autoNoteCardPhases`), so its tooltip / aria-label
+  read "Post Final Delivery, Waterfall".
+- ⚠️ **Fixed wording: it no longer follows a renamed Post** ("Edit Ends" before; `autonotephases` P9 re-expected). A name
+  typed for the note itself (`autoNoteNames.postEnd`) still wins. Still opt-in (off until ticked); kind word unchanged.
+- ⚠️ A typed waterfall note saved with "Post Ends …" in it keeps that text (it is the user's text now); the month view's
+  place for that line (`mvWfNotePlace`, keyed by text) does not carry to the new words. Not handled; no one asked.
+- **Legs (build, `HARNESS_STATE=autonoterename` for the two that need it):** `autonotephases` 27/27, `autonoteview`
+  18/18, `autonoterename` 25/25, `autonotekinds` 11/11, `npm run check` 43/43. No full gate: nothing frozen, nothing
+  saved changes (the note text reaches Excel and the PDFs through the schedule, as every renamed note does).
+
 ### ↔️ 19 Nov 2026: A DROP LINE BETWEEN SCENARIO TABS WHILE ONE IS DRAGGED — on `scenario-version-offer` (`684e722`), LIVE: pushed on the owner's picker, deploy green, the live file carries `drop-before`. README "Unreleased". Tracker card `scenario-drag-marker`.
 - **Owner:** *"there should be little markers between scenario tabs that appear when you drag to rearrange the scenarios
   so you know where they are going to drop"*. Tried on localhost: *"Yes, finish it"*.

@@ -45,7 +45,7 @@ window.addEventListener('load', function () { (async function () {
               '2027-03-01': 'Pre-Prep Begins 3/1/27', '2027-03-22': 'Pre-Prep Ends 3/26/27',
               '2027-03-29': 'Prod Prep Begins 3/29/27', '2027-04-26': 'Prod Prep Ends 4/30/27',
               '2027-05-03': 'Start Principal Photography 5/3/27', '2027-05-24': 'Principal Photography Wraps 5/28/27',
-              '2027-07-05': 'Post Begins 7/5/27', '2027-09-20': 'Post Ends 9/24/27',
+              '2027-07-05': 'Post Begins 7/5/27', '2027-09-20': 'Final Delivery 9/24/27',
               '2027-09-27': 'Localization Begins 9/27/27', '2027-10-18': 'Localization Ends 10/22/27' };
   // Each new note's DAY in the month view, by month.
   var DAYS = { 'February 2027': { '2027-02-26': "Writer's Room Closes 2/26/27" },
@@ -53,7 +53,7 @@ window.addEventListener('load', function () { (async function () {
                                '2027-03-29': 'Prod Prep Begins 3/29/27' },
                'April 2027': { '2027-04-30': 'Prod Prep Ends 4/30/27' },
                'July 2027': { '2027-07-05': 'Post Begins 7/5/27' },
-               'September 2027': { '2027-09-24': 'Post Ends 9/24/27', '2027-09-27': 'Localization Begins 9/27/27' },
+               'September 2027': { '2027-09-24': 'Final Delivery 9/24/27', '2027-09-27': 'Localization Begins 9/27/27' },
                'October 2027': { '2027-10-22': 'Localization Ends 10/22/27' } };
   var NEW_LINE = /(Begins|Ends|Closes) \d/;
   async function settle() {
@@ -215,7 +215,7 @@ window.addEventListener('load', function () { (async function () {
       }) : false;
       kase('P1', 'the card: one row per phase in calendar order, its start and its end each with a Waterfall box and a Month box under a Waterfall | Month heading and Start | End, every name on one line, NO id on any control, not a .prefs-card',
            same(names, ['Writer’s Room', 'Pre-Prep', 'Prod Prep', 'Production', 'Post', 'Localization']) &&
-           same(words, ['Opens', 'Closes', 'Begins', 'Ends', 'Begins', 'Ends', 'Starts', 'Wraps', 'Begins', 'Ends', 'Begins', 'Ends']) &&
+           same(words, ['Opens', 'Closes', 'Begins', 'Ends', 'Begins', 'Ends', 'Starts', 'Wraps', 'Begins', 'Final Delivery', 'Begins', 'Ends']) &&
            same(heads, ['', 'Waterfall', 'Month']) && same(subs, ['Start', 'End', 'Start', 'End']) && perNote &&
            oneLine && ids.length === 0 && !!sec && !sec.closest('.prefs-card') && T.settingsTabOf(sec) === 'prefs',
            { names: names, words: words, heads: heads, subs: subs, perNote: perNote, oneLine: oneLine, ids: ids, cardW: sec && Math.round(sec.getBoundingClientRect().width) });
@@ -286,8 +286,8 @@ window.addEventListener('load', function () { (async function () {
       $('redo-btn').click(); await settle();
       var redone = { box: box('postEnd').checked, cell: notes()['2027-09-20'] || '' };
       $('undo-btn').click(); await settle();             // leave it on for the cases below
-      kase('P8', 'unticking Post Ends\' Waterfall box empties its week; ONE undo puts it back (box ticked), redo takes it out again',
-           same(off, { box: false, cell: '' }) && same(undone, { box: true, cell: 'Post Ends 9/24/27' }) &&
+      kase('P8', 'unticking Post\'s Final Delivery Waterfall box empties its week; ONE undo puts it back (box ticked), redo takes it out again',
+           same(off, { box: false, cell: '' }) && same(undone, { box: true, cell: 'Final Delivery 9/24/27' }) &&
            same(redone, { box: false, cell: '' }) && same(notes(), sorted(ALL)), { off: off, undone: undone, redone: redone });
     });
 
@@ -296,8 +296,9 @@ window.addEventListener('load', function () { (async function () {
       var renamed = { row: txt(document.querySelector('[data-autonote-name="post"]')), start: notes()['2027-07-05'], end: notes()['2027-09-20'] };
       T.set('name-post', ''); await settle();
       var back = { row: txt(document.querySelector('[data-autonote-name="post"]')), start: notes()['2027-07-05'] };
-      kase('P9', 'a phase renamed in the Phases tab: its notes and its card row follow the name ("Edit Begins"), and go back when it is cleared',
-           same(renamed, { row: 'Edit', start: 'Edit Begins 7/5/27', end: 'Edit Ends 9/24/27' }) &&
+      // Post's end reads "Final Delivery" whatever Post is called (owner, 19 Nov 2026).
+      kase('P9', 'a phase renamed in the Phases tab: its Begins note and its card row follow the name ("Edit Begins"), its end stays "Final Delivery", and they go back when it is cleared',
+           same(renamed, { row: 'Edit', start: 'Edit Begins 7/5/27', end: 'Final Delivery 9/24/27' }) &&
            same(back, { row: 'Post', start: 'Post Begins 7/5/27' }), { renamed: renamed, back: back });
     });
 

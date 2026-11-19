@@ -22054,15 +22054,19 @@ export function initLegacyApp() {
   // opposite store: autoNotesOn, kind -> true while ticked, and an absent kind is hidden. ⛔ CALENDAR DATA:
   // captureSnapshot()'s `autoNotesOn`, written only while one is ticked, so a calendar that never ticks one saves
   // byte for byte as before. ⛔ PERMANENT kind words (the key's and data-autonote's), `<phase key>Start|End`.
-  // `text` overrides "<phase name> Begins|Ends": Writer's Room keeps its own pair with "Writer's Room Opens", and
-  // the other four follow a phase renamed in the Phases tab, as its bars do. Production has none here: its start
+  // `text` overrides "<phase name> Begins|Ends": Writer's Room keeps its own pair with "Writer's Room Opens", Post's
+  // end reads "Final Delivery", and the rest follow a phase renamed in the Phases tab, as its bars do. Production has none here: its start
   // and wrap are principalStart / principalWrap. Custom phases get the same pair, read through autoNoteEdgeDefs()
   // below (owner, 2 Nov 2026). Read by computeSchedule.
   const AUTO_NOTE_PHASE_EDGES = [
     {kind:'writersRoomEnd',    phase:'writersRoom', end:true, text:"Writer's Room Closes"},
     {kind:'prePrepStart',      phase:'prePrep'},      {kind:'prePrepEnd',      phase:'prePrep',      end:true},
     {kind:'prodPrepStart',     phase:'prodPrep'},     {kind:'prodPrepEnd',     phase:'prodPrep',     end:true},
-    {kind:'postStart',         phase:'post'},         {kind:'postEnd',         phase:'post',         end:true},
+    {kind:'postStart',         phase:'post'},
+    // ⭐ Post's end reads "Final Delivery 9/22/28" (owner, 19 Nov 2026), dated as every end note is: the last day the
+    // month view draws Post's bar, the Friday of its last week. Fixed wording, so it no longer follows a renamed Post.
+    // The kind word stays 'postEnd' (PERMANENT: saved files' autoNotesOn / autoNoteNames / autoNotesView name it).
+    {kind:'postEnd',           phase:'post',         end:true, text:'Final Delivery'},
     {kind:'localizationStart', phase:'localization'}, {kind:'localizationEnd', phase:'localization', end:true},
   ];
   const AUTO_NOTE_OPT_IN = new Set(AUTO_NOTE_PHASE_EDGES.map(e=> e.kind));
@@ -31637,7 +31641,7 @@ export function initLegacyApp() {
     {key:'prePrep',      name:'Pre-Prep',           notes:[['prePrepStart', 'Begins'], ['prePrepEnd', 'Ends']]},
     {key:'prodPrep',     name:'Prod Prep',          notes:[['prodPrepStart', 'Begins'], ['prodPrepEnd', 'Ends']]},
     {key:'production',   name:'Production',         notes:[['principalStart', 'Starts'], ['principalWrap', 'Wraps']]},
-    {key:'post',         name:'Post',               notes:[['postStart', 'Begins'], ['postEnd', 'Ends']]},
+    {key:'post',         name:'Post',               notes:[['postStart', 'Begins'], ['postEnd', 'Final Delivery']]},
     {key:'localization', name:'Localization',       notes:[['localizationStart', 'Begins'], ['localizationEnd', 'Ends']]},
   ]; }
   function autoNoteViewWord(view){ return view === 'sheet' ? 'Waterfall' : 'Month view'; }

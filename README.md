@@ -29,6 +29,18 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — Post's end note reads "Final Delivery 9/22/28" (19 Nov 2026)
+
+The owner asked for the automatic note on the last Friday of Post's last week to read "Final Delivery" and its date.
+Post's end note (kind `postEnd`, off until ticked in Settings › Automatic notes) now reads "Final Delivery 9/22/28"
+instead of "Post Ends 9/22/28", on the same day as before: the last day the month view draws Post's bar, the Friday of
+its last week. The wording is fixed, so it no longer follows a renamed Post; a name typed for the note still wins. The
+card's tooltip for that box reads "Post Final Delivery". The kind word is unchanged, so saved ticks and names keep
+working; a typed note that already carried "Post Ends …" keeps the words it was saved with. Verified: `autonotephases`
+27/27 (P0-P9 re-expected: the waterfall, Excel, both PDFs and the month view carry the new words), `autonoteview`
+18/18, `autonoterename` 25/25, `autonotekinds` 11/11, `npm run check` 43/43; tried in the browser (Post wk 13 of
+9/18/28: waterfall and month view both show it on Fri 9/22/28).
+
 ### Unreleased — Dragging a scenario tab shows where it will drop (19 Nov 2026)
 
 The owner asked for markers between the scenario tabs while one is dragged to reorder them. A short line in the app's
