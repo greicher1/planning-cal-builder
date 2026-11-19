@@ -14119,6 +14119,42 @@ export function initLegacyApp() {
         + ' in Show info to schedule Production';
   }
 
+  // ✅ "ENTER A WEEK COUNT" WAITS TO BE ASKED FOR (owner, 19 Nov 2026: "this message should only show up when someone
+  // clicks enter (even tho i know the app doesn't need enter to be clicked) or when they click the start after or
+  // finish before buttons"). Frozen render() writes the red "Enter a week count to include this phase" the moment a
+  // Weeks card has a start and no length, i.e. while the user is still typing the card in. So the line is HIDDEN from
+  // outside (the meta observer below, sanctioned pattern 3), never rewritten: a class on the line, `is-quiet`, until
+  // the card is ARMED by Enter in any of its boxes or a click on its ↳ Start after / ↳ Finish before. Arming is
+  // session only, never saved, and lapses by itself the moment the line says anything else (a length typed, the start
+  // cleared), so the next start typed on that card waits again. Only that one sentence, word for word: Production's
+  // "shooting day count" line, "of 1 or more" (a 0 typed is an answer, not a blank), the start-date prompt and a Days /
+  // Dates card's own unitmeta line are untouched.
+  const WEEK_COUNT_PROMPT = 'Enter a week count to include this phase';
+  const weekPromptArmed = new Set();   // meta-<key> ids whose prompt was asked for
+  // One case frozen render() leaves blank: a Weeks card on Ends with an end date and no length (where Finish before
+  // puts an empty card, R5), because it asks for a length only beside a START. An armed card says it there too, in the
+  // frozen line's own red; every render blanks it again and this puts it back, the same idempotent shape as above.
+  function reflectWeekCountPrompt(){
+    document.querySelectorAll('#phase-rows .phase-meta[id^="meta-"], #custom-phase-rows .phase-meta[id^="meta-"]').forEach(el=>{
+      const key = el.id.slice(5);
+      if(!el.textContent && weekPromptArmed.has(el.id) && phaseEnds[key] && key !== 'production'){
+        const wk = document.getElementById('weeks-' + key), en = document.getElementById('end-' + key);
+        if(wk && !wk.value && en && en.value){ el.textContent = WEEK_COUNT_PROMPT; el.style.color = 'var(--danger)'; }
+      }
+      const prompt = el.textContent === WEEK_COUNT_PROMPT;
+      if(!prompt) weekPromptArmed.delete(el.id);
+      const quiet = prompt && !weekPromptArmed.has(el.id);
+      if(el.classList.contains('is-quiet') !== quiet) el.classList.toggle('is-quiet', quiet);
+    });
+  }
+  function armWeekCountPrompt(fromEl){
+    const row = fromEl && fromEl.closest && fromEl.closest('.phase-row');
+    const meta = row && row.querySelector('.phase-meta[id^="meta-"]');
+    if(!meta) return;
+    weekPromptArmed.add(meta.id);
+    reflectWeekCountPrompt();
+  }
+
   // ⚠️ HIDDEN since 2 Nov 2026: the counts under Production's span replaced this line on the card (owner, "D replaces
   // the whole line"; prodSpanParts). It is still written, as the readout of the walk's halves and days on the floor
   // that the halfworked, overrides and mvmenu legs read. Its "off" counts every Off mark in the shot range; the span's
@@ -32953,9 +32989,20 @@ export function initLegacyApp() {
   // (reflectWeeksMetaFriday): watched, because frozen render() rewrites them from many places. Custom phases'
   // cards are in #custom-phase-rows, a sibling, so both are observed.
   // ...and Production's line naming what Show info is missing (reflectProductionMissing, AUD2-031).
-  const metaObserver = new MutationObserver(()=>{ reflectHalfDayTotal(); reflectWeeksMetaFriday(); reflectProductionMissing(); });
-  ['phase-rows', 'custom-phase-rows'].forEach(cid=>
-    metaObserver.observe(document.getElementById(cid), {childList: true, characterData: true, subtree: true}));
+  // ...and the week-count prompt held back until asked for (reflectWeekCountPrompt, owner 19 Nov 2026).
+  const metaObserver = new MutationObserver(()=>{ reflectHalfDayTotal(); reflectWeeksMetaFriday(); reflectProductionMissing(); reflectWeekCountPrompt(); });
+  ['phase-rows', 'custom-phase-rows'].forEach(cid=>{
+    const host = document.getElementById(cid);
+    metaObserver.observe(host, {childList: true, characterData: true, subtree: true});
+    // Enter in any box of a card asks for its prompt; so does a click on its ↳ Start after / ↳ Finish before. ⚠️ AFTER
+    // the button's own handler (registered earlier on #phase-rows, so it runs first): that one redraws synchronously,
+    // and arming before it would read the empty card's old blank line as "something else" and lapse at once.
+    host.addEventListener('keydown', (e)=>{ if(e.key === 'Enter' && !e.isComposing) armWeekCountPrompt(e.target); });
+    host.addEventListener('click', (e)=>{
+      const btn = e.target.closest && e.target.closest('.autostart-btn, .finish-before-btn');
+      if(btn) armWeekCountPrompt(btn);
+    });
+  });
   refreshSimPostUI();
   addDefaultHiatuses();
   PHASES.forEach(p=>{
