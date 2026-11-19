@@ -4,6 +4,18 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### 🏷️ 19 Nov 2026: THE SCENARIO "+" NAMES THE TAB IT COPIES — on `scenario-version-offer` after `040f154`, committed locally, NOT pushed. README "Unreleased". Tracker card `scenario-plus-which-tab`.
+- **Owner** asked whether "+" should copy the right-most tab (earlier ones from the caret menu) and whether a copy of B
+  beside C v3 / D v4 should be offered v5. Analysis given in chat: it already offers the highest + 1 (v5), the caret menu
+  already has Duplicate, and a "+" that copies a tab you are not looking at fails silently. **Ruling: "+" keeps copying
+  the tab on screen**; the owner took the one addition, *"Yes, add the name"*.
+- **Done:** the "+" `title` is "Duplicate <tab on screen>" (`ScenarioTabs.jsx`). ⛔ Its `aria-label` stays "Duplicate
+  this scenario": `scenarios` and `scenversion` find the button by it.
+- **Legs:** `scenversion` V9 (new, 10/10), `scenarios` 23/23; `npm run check` 43/43. Checked in the build: the tooltip
+  follows the tab on screen.
+- ⚠️ `src/chrome/Sidebar.jsx` carries ANOTHER chat's uncommitted change (Reset hiatus bands full width, tracker card
+  `hiatus-reset-full-width`, waiting on the owner). Not committed or pushed from here.
+
 ### ➡️ 19 Nov 2026: A NEW SCENARIO GOES AT THE FAR RIGHT — on `scenario-version-offer` (`cde7299`), merged with origin/main (v1.22.0, Finish before R5) and pushed to `main` on the owner's picker. README "Unreleased". Tracker card `scenario-copy-far-right`.
 - **Owner:** asked whether a copy made while a tab other than the last is on screen should go at the far right instead
   of just right of the tab copied; on the recommendation, *"Yes, far right"*.

@@ -29,6 +29,16 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — The scenario "+" names the tab it copies (19 Nov 2026)
+
+The owner asked whether "+" should copy the right-most tab instead of the one on screen, and whether a copy of an
+earlier tab should be offered the next version. On the analysis (it already offers the highest version on any tab + 1,
+and the caret menu already has Duplicate), "+" keeps copying the tab on screen; the owner picked the one addition, *"Yes,
+add the name"*: the "+" tooltip now reads "Duplicate Scenario B", the tab on screen, since the copy lands at the far
+right, away from its source. The button's `aria-label` stays "Duplicate this scenario" (legs find it by that). Chrome
+only, nothing frozen, nothing saved. Verified: `scenversion` V9 (new) 10/10, `scenarios` 23/23, `npm run check` 43/43; in
+the build the tooltip follows the tab on screen.
+
 ### Unreleased — A new scenario goes at the far right of the strip (19 Nov 2026)
 
 Owner, asked whether a copy made from a tab that is not the last should go at the far right rather than just right of

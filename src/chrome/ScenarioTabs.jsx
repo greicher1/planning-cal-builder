@@ -362,8 +362,13 @@ export function ScenarioTabs() {
           </Menu.Dropdown>
         </Menu>
       )}
+      {/* The tooltip names the tab "+" copies (owner, 19 Nov 2026, "Yes, add the name"): the tab on screen, and since
+          the copy goes at the far right, away from its source, the name says which one before the click. The
+          aria-label stays "Duplicate this scenario": legs find the button by it. */}
       <ActionIcon variant="subtle" color="gray" size="sm" radius="md" onClick={() => send({ op: 'add' })} disabled={full}
-                  aria-label="Duplicate this scenario" title={full ? 'A calendar holds at most ' + st.max + ' scenarios' : 'Duplicate this scenario'}>
+                  aria-label="Duplicate this scenario"
+                  title={full ? 'A calendar holds at most ' + st.max + ' scenarios'
+                    : 'Duplicate ' + ((st.tabs.find((t) => t.id === st.current) || {}).name || 'this scenario')}>
         <IconPlus width={12} height={12} />
       </ActionIcon>
       <Button variant="default" size="compact-xs" leftSection={<IconCompare />} onClick={() => send({ op: 'compare' })}>

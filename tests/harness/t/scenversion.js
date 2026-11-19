@@ -18,6 +18,7 @@
 //   V6  a click on ANOTHER tab's badge switches to it and offers there; the number is the highest on any tab + 1
 //   V7  a copy of the FIRST tab goes to the far right (19 Nov 2026); with no Version, no badge and no offer
 //   V8  a saved file carries no new key (the offer and the badge are session UI)
+//   V9  the "+" tooltip names the tab it will copy (19 Nov 2026)
 //   E0  no page errors
 window.__T.memoryIDB();
 window.addEventListener('load', function () { (async function () {
@@ -110,6 +111,9 @@ window.addEventListener('load', function () { (async function () {
     // V7 -- clear A's Version, copy: no badge on either, no offer. A is the FIRST tab, and the copy goes to the far
     // right, not between A and B (owner, 19 Nov 2026, "Yes, far right").
     setField('show-version', ''); await T.sleep(500);
+    // V9 -- the "+" tooltip names the tab it copies, the one on screen (owner, 19 Nov 2026, "Yes, add the name").
+    var v9 = addBtn().getAttribute('title');
+    add('V9', 'the "+" tooltip names the tab it will copy', v9 === 'Duplicate Scenario A', {title: v9}, 'Duplicate Scenario A');
     addBtn().click(); await T.sleep(900);
     var v7 = tabs();
     enterName(); await T.sleep(400);
