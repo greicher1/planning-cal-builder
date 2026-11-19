@@ -29,9 +29,7 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
-## Unreleased
-
-### A new scenario goes at the far right of the strip (19 Nov 2026)
+### Unreleased — A new scenario goes at the far right of the strip (19 Nov 2026)
 
 Owner, asked whether a copy made from a tab that is not the last should go at the far right rather than just right of
 the tab it copies: *"Yes, far right"*. The "+" now always puts the copy LAST (`duplicateScenario`, a `push` where it
@@ -45,14 +43,30 @@ Verified: leg `scenversion` V7 now copies the FIRST tab and expects it at the fa
 `exportnames` 12/12, `comparehiatus` 8/8, `lastedited` 22/22; `npm run check` 43/43. In the browser at 800 px, six
 tabs, a copy of the first lands sixth with "→ v6" fully in view.
 
-### The waterfall note editor's grey prompt is gone (19 Nov 2026)
+### Unreleased — The waterfall note editor's grey prompt is gone (19 Nov 2026)
 
 Owner: *"delete this text in waterfall"*, pointing at "Note text (Shift+Enter for a new line)" inside an empty note's
 box. The waterfall note editor's box now has no placeholder; a hiatus band's "Hiatus label" and the month view's note
 editor are unchanged. Chrome only (`openNoteEditor`'s markup), nothing frozen and nothing saved. No leg reads the text.
 Verified in the build: the editor's textarea carries no `placeholder` attribute, and an emptied box shows blank.
 
-### Scenario tabs show their Version, and a copy is offered the next one (19 Nov 2026)
+### Unreleased — Finish before on an empty card before a dated phase (19 Nov 2026)
+
+- **What.** An empty phase card (no dates) with a dated phase after it in the chain now offers **↳ Finish before <next
+  phase>** even when nothing is on Ends. If nothing before it has a date, Finish before replaces Start after (which had
+  nothing to chain to). If there's a dated phase on each side, the card shows both. Clicking it on an empty Weeks card puts
+  the card on Ends, ending the Friday before the next phase, and moves the cursor to Length. On an empty Dates card it
+  writes the last day (the last weekday before the next phase) and moves the cursor to the start. Cards that already have
+  dates are unchanged.
+- **Why.** Owner, with a screenshot of a calendar where only Production had a date: *"when you give a start date to a
+  later phase, previous phases should allow you to click Finish before"*. Until now Finish before showed only before a
+  phase on Ends (R1), so starting a calendar from Production's date and building back needed Ends first. Ruling R5.
+- **Verified.** `finishbefore` 16/16 (new R5a-R5d: the swap, the click on an empty Weeks card through to its length, both
+  buttons between two dated phases, an empty Dates card); `endsdate` 17/17, `prodends` 14/14, `spancounts` 10/10,
+  `overrides` 20/20, `snaptools` 14/14, `builtindates` 19/19 live and restored; `npm run check` 43/43; tried in the
+  browser by the owner. No frozen code, no save-format change, no new id.
+
+### Unreleased — Scenario tabs show their Version, and a copy is offered the next one (19 Nov 2026)
 
 The owner asked whether, once the first scenario has a Version, a new scenario should be named after it or the Version
 shown in the bar at the bottom; then for the copy to offer the next number, *"as a suggestion, not force them"*. Five
@@ -81,6 +95,97 @@ and then asked that the offer can be brought back later.
   (scenlist, comparebreaks, exportnames, filenamelist, comparehiatus, retiredplaces, recoverfail, loadsparse,
   changessince) green. `npm run check` 43/43. No full
   gate (chrome and scenario engine only, no frozen code, no save-format change).
+
+### Unreleased — Show info's fields in the order each mode is filled in (19 Nov 2026)
+
+Owner: *"When scheduling by Episode the order should be Schedule by, then Number of Episodes, then shooting days per
+Ep+tandem days then Version, then production region, then location. When scheduling by Block, the order should be Number
+of blocks, then shooting days per block + tandem, then number of episodes (it can still be optional but remove that it
+says so)"*.
+- **Episodes:** Schedule by, Number of Episodes, Shooting Days per Episode + Tandem Days, Version, Production Region,
+  Location. **Blocks:** Schedule by, Number of Blocks, Shooting Days per Block + Tandem Days, Number of Episodes, Version,
+  Production Region, Location.
+- Number of Episodes no longer says "(optional)" in Blocks mode; it still is (a Blocks calendar schedules without it).
+- One `#num-episodes` serves both modes (its id is the save format): the Blocks-only rows sit before it and the
+  Episodes-only row after it, so the DOM order, and Tab, is right in each mode. Nothing saved changed.
+- **Verified:** `doubleups` SI8 (both orders as shown), `labelsetup` B1u re-premised (plain label; B1 still holds the
+  count optional), `blocks`, `restore` (gate 5's key set), `npm run check`.
+
+### Unreleased — Tandem Days in Show info, beside the shooting days (19 Nov 2026)
+
+Owner: *"add double-up/tandem days in the Show Info section. To the right of the Shooting days per episode should be a big
+plus symbol and then to the right of that another box to add the double up/tandem days"*; after the mockup
+(`mockups/show-info-tandem.html`, main checkout): a smaller plus, all on one line, no line of text under it.
+- **Show info** reads `Shooting Days per Episode + Tandem Days` on one line (`Shooting Days per Block` in Blocks mode).
+  The box is the Tandem card's **Default tandem days** a second time: type in either and the other follows, one undo step.
+  Nothing new is saved: the count is still `doubleUps.days`.
+- ⛔ The box has **no id** (a plain `<input>`, the Region mirror's pattern): a Mantine `Input` inside `Input.Wrapper` took
+  the wrapper's minted id in the built page, which `collectFieldValues()` would have saved into every calendar.
+- The days label runs over the plus column, so it stays on one line in the narrowest sidebar (280 px: 142 of 146 px);
+  "Whole days only" sits under the row so the boxes stay in line.
+- **Verified:** `doubleups` LIVE run SI0-SI7 (one line in both modes, no id, both directions, Undo, Save adds no field,
+  Load, the whole-days ring); the leg's other runs, `restore` (gate 5's key set), `loadsparse`, `firstrun`, `numclamp`;
+  `npm run check`. No full gate: chrome and a sidebar listener only, nothing frozen.
+
+### Unreleased — Pinch, Ctrl-scroll and ⌘+ / ⌘− zoom the calendar, not the app (18 Nov 2026)
+
+Owner: *"Allow trackpad pinch and related mouse zoom buttons to control the viewport of the waterfall and month view
+rather than just zooming in the entire UI of the app"*.
+- **A trackpad pinch** (Mac, and Windows precision touchpads) now drives the calendar zoom, the slider bottom right, in
+  the waterfall and the month view, and zooms about the pointer: what is under it stays under it. The sidebar, header and
+  toolbar never zoom. **Ctrl + a mouse wheel** (and a mouse zoom button, which mouse software sends the same way) steps
+  10% a notch, as the slider's buttons do. **⌘+ / ⌘−** (Ctrl on Windows) step the calendar too; **⌘0** puts the
+  calendar back to 100% and also lets Chrome reset the app's own zoom, so a window zoomed before this change has a way
+  back.
+- Same clamp (25–200%), same per-view preference, same settle as the slider (`setCalZoom`); nothing frozen changed, and
+  the exports cannot see a zoom. With a dialog up, the gesture is swallowed and nothing zooms.
+- **Verified:** new leg `pinchzoom` (20/20, in `gate.sh` beside `calzoom`): the cancel, the pointer anchor within 1.5 px
+  in both views, the notch and key steps, ⌘0, the dialog, no dirty mark or undo step. `calzoom` 26/26, `zoomresize`
+  40/40, `npm run check` 43/43. Synthetic events cannot show Chrome's own page zoom being refused; a real pinch was not
+  tried in an installed window.
+
+## v1.22.0 — Snap to Monday in the date picker, Hide in waterfall in the card's corner; New leaves the File menu; the app opens filling the screen (18 Nov 2026)
+
+### Phase cards lose their switch rows: Snap to Monday in the date picker, Hide in waterfall in the corner (18 Nov 2026)
+
+The owner: *"what do you think about putting snap to monday slider inside the mini calendar pop up box, at the bottom
+where the message currently is?"* (*"Yes, build it"*), then *"mockup a few ways the 'Hide in waterfall' functionality
+could be moved to the top right corner of each phase in a clean way and integrate with the 'Month view only' tag"*
+(four options in [`mockups/hide-in-waterfall-corner.html`](mockups/hide-in-waterfall-corner.html); *"Build A"*, then
+*"lets go with fix 1"*). A built-in phase card is now its head, Starts and Length, "Start after…" and Hiatus.
+
+- **Snap to Monday is switched in the phase's Starts picker**, at its foot where "Snap to Monday is on, so only Mondays
+  can be picked." used to be. Flip it and the calendar above changes at once (Mondays only, or any day). Shown on a Weeks
+  phase's Starts and Production's; not on a hiatus (always a Monday), an Ends date, a Days or Dates phase, a custom
+  holiday or Build Around's date, which keeps its line. The card's row is hidden.
+- **Hide in waterfall is an eye in the card head's top right corner.** Click it and it becomes the blue
+  **"Month view only"** tag in the same spot, an icon the eye's size (its words on hover); click the tag to put the phase
+  back. Episodic Prep and Double-ups show the same icon, not clickable. A custom phase's × joins the corner, so the
+  dates under the name keep the card's full width. The body's row is hidden. Works on a folded card.
+- **Nothing in a saved file changes.** Both controls drive the card's own `#snap-<key>` box and `.phase-hidewf-cb` tick,
+  which stay in the page, hidden: `fields.byId`, `phaseHidden`, the one undo step and every older file are as before.
+  The new controls carry no id.
+- **One behaviour kept on purpose:** a Wednesday picked with Snap off stays when Snap is switched back on, as it did with
+  the card's switch (switching Snap off again gives it back). In the picker the box keeps focus, so the switch sends the
+  box the focusout the card's click used to, before it flips (`flipSnap`); without it, leaving the box rewrote the
+  Wednesday to its Monday.
+- Engine: `DatePop.jsx` (`snapBoxOf`, `flipSnap`); `app.js` `MVONLY_TAG`, `phaseHeadHtml` (the floated
+  `.phase-head-corner`), `reflectPhaseHidden` (the eye) and a delegated click on the corner; `legacy.css`. The grid, the
+  exports and the frozen surface are untouched.
+- Tests: new legs `snappicker` and `wfcorner`; `datepick`, `builtindates`, `customunits`, `hidewf`, `phasesui` and
+  `endsdate` read the picker's switch and the corner instead of the card rows.
+- Verified (port 8483, the build, 18 Nov 2026): `snappicker` 8/8 (S5 red on a build without `flipSnap`'s focusout),
+  `wfcorner` 8/8, `datepick` 17/17, `hidewf` 19/19, `phasesui` 8/8, `endsdate` 17/17, `customunits` and `builtindates`
+  live and restore, `snapbox` 12/12, `snapoff` x3, `snaptools` 14/14, `prodends` 14/14, `buildendsby` 21/21,
+  `dayfirstwf` 11/11, `simpostdays` 14/14, `anchorside` 39/39, `buildalongside` 8/8, `phasearrows` 26/26, `overrides`
+  20/20, `mvmenu` 81/81, `wfmenu` 39/39, `phiatuspick` 12/12, `finishbefore` 12/12, `phasefold` 11/11, `phasecolors`
+  10/10, `loadcarry`, `swapnewphase`, `dlgkeys`, `phiatusnum`, `autonotephases`, `phasenotes`, `phasemonth` green;
+  `npm run check` 42/42. Tried by hand in the app.
+- **Full gate** (port 8491, merged with v1.21.0, 18 Nov 2026): 5,791 PASS / 16 FAIL. Six were `phasesmore` M1/M5/M8 at
+  both window sizes, which still counted the moved rows: re-expected (Snap in the picker, Hide in waterfall as the
+  corner's eye or tag), then 6/6 at both sizes. The other ten pass alone: `phasesui` P1 and `offweek` R12 (+ six R13
+  checks behind it) were the "loaded file's name" load timeout v1.21.0's gate also hit; `monthexport`
+  (colswap-simpost-refuse) X6 9/9; `sideboxes` (no result in the gate) 78/78. Every baseline identical.
 
 ### The app opens filling the screen (18 Nov 2026)
 

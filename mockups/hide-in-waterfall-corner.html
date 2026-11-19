@@ -1,0 +1,247 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Hide in Waterfall Corner</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  /* Values read off the live build (v1.20.1 + the Snap-in-picker branch), 18 Nov 2026: card 247 px in a 280 px
+     sidebar, head = phase colour 60% + white, Mantine info-0 / info-9 tag, Inter. */
+  :root{
+    --black:#1E1D1B; --gray0:#F6F5F1; --gray1:#EFEDE7; --gray2:#E3E1DA; --gray3:#D9D7CE; --gray4:#C4C1B7; --gray5:#9C9890; --gray6:#726F68;
+    --info0:#EDF4FD; --info1:#DCE9F9; --info6:#6183A6; --info9:#1B4A7A; --primary:#2C3E50; --navy5:#4A6479;
+  }
+  *{ box-sizing:border-box; }
+  body{ margin:0; background:#FBFAF7; color:var(--black); font:14px/1.45 Inter, -apple-system, "Segoe UI", sans-serif; }
+  .page{ max-width:1180px; margin:0 auto; padding:24px 16px 60px; }
+  h1{ font-size:20px; margin:0 0 4px; }
+  .lede{ color:var(--gray6); margin:0 0 24px; max-width:760px; }
+  .opt{ border-top:1px solid var(--gray2); padding:22px 0 26px; }
+  .opt h2{ font-size:16px; margin:0 0 4px; display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+  .opt h2 .pick{ font-size:11px; font-weight:600; color:#fff; background:var(--primary); border-radius:999px; padding:2px 8px; }
+  .opt h2 .ref{ font-size:11px; font-weight:600; color:var(--gray6); background:var(--gray1); border-radius:999px; padding:2px 8px; }
+  .opt p{ margin:0 0 6px; color:#45433F; max-width:780px; }
+  .pc{ display:flex; gap:28px; flex-wrap:wrap; margin:6px 0 14px; font-size:13px; }
+  .pc div{ min-width:240px; flex:1; max-width:420px; }
+  .pc b{ display:block; font-size:11px; text-transform:uppercase; letter-spacing:.05em; color:var(--gray6); margin-bottom:2px; }
+  .pc ul{ margin:0; padding-left:18px; }
+  /* The sidebar strip the cards sit in: it keeps its real width and wraps card by card, never squeezes one. */
+  .strip{ display:flex; flex-wrap:wrap; gap:14px; align-items:flex-start; }
+  .slot{ width:280px; flex:none; background:var(--gray0); border:1px solid var(--gray2); border-radius:12px; padding:12px 16px 14px; }
+  .slot .cap{ font-size:11px; color:var(--gray6); margin:0 0 8px; min-height:16px; }
+
+  /* ---- The phase card, as built ---- */
+  .card{ --c:#EDEDED; width:247px; background:#fff; border:1px solid var(--gray3); border-radius:10px; overflow:visible; position:relative; }
+  .head{ display:flex; align-items:flex-start; gap:6px; padding:6px 8px; border-radius:9px 9px 0 0;
+    background:color-mix(in srgb, var(--c) 60%, white); position:relative; }
+  .card.folded .head{ border-radius:9px; }
+  .caret{ width:22px; height:22px; flex:none; margin-top:3px; border:0; background:transparent; border-radius:4px; display:grid; place-items:center; cursor:pointer; color:var(--black); }
+  .caret:hover{ background:rgba(0,0,0,.07); }
+  .caret svg{ width:14px; height:14px; transition:transform .15s; }
+  .card.folded .caret svg{ transform:rotate(-90deg); }
+  .sq{ position:absolute; top:12px; left:36px; width:16px; height:16px; border-radius:3px; background:var(--c); box-shadow:inset 0 0 0 1px rgba(0,0,0,.18); }
+  .htext{ flex:1; min-width:0; margin-left:22px; }
+  .title{ display:flex; flex-wrap:wrap; align-items:center; gap:2px 4px; }
+  .name{ flex:1 1 110px; min-width:0; height:28px; line-height:28px; padding:0 4px; font-size:14px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .meta{ padding:0 5px; font-size:11px; line-height:1.35; color:color-mix(in srgb, var(--black) 75%, transparent); }
+  .x{ width:24px; height:24px; flex:none; margin-top:2px; border:0; background:transparent; border-radius:4px; display:grid; place-items:center; color:var(--black); cursor:pointer; }
+  .x:hover{ background:rgba(0,0,0,.07); }
+  .x svg{ width:12px; height:12px; }
+  .body{ padding:10px 12px 10px; }
+  .card.folded .body{ display:none; }
+  .lab{ font-size:11px; font-weight:500; color:var(--gray6); margin:0 0 3px; }
+  .lab .s{ color:var(--navy5); }
+  .box{ height:30px; border:1px solid var(--gray4); border-radius:5px; padding:0 8px; display:flex; align-items:center; font-size:13px; margin-bottom:8px; background:#fff; }
+  .after{ font-size:11px; color:var(--navy5); margin:-2px 0 4px; }
+  .sw{ display:flex; align-items:center; justify-content:space-between; padding:7px 0; border-bottom:1px solid var(--gray2); font-size:12px; cursor:pointer; user-select:none; }
+  .sw:last-child{ border-bottom:0; padding-bottom:0; }
+  .tog{ width:32px; height:16px; border-radius:999px; background:var(--gray3); position:relative; flex:none; transition:background .15s; }
+  .tog::before{ content:""; position:absolute; top:2px; left:2px; width:12px; height:12px; border-radius:50%; background:#fff; box-shadow:0 1px 2px rgba(0,0,0,.18); transition:transform .15s; }
+  .tog.on{ background:var(--primary); }
+  .tog.on::before{ transform:translateX(16px); }
+
+  /* The tag as built: Mantine Badge light / info, eye-off glyph. */
+  .tag{ display:inline-flex; align-items:center; gap:3px; flex:none; height:18px; padding:0 6px; border-radius:3px;
+    background:var(--info0); color:var(--info9); font-size:10px; font-weight:500; white-space:nowrap; border:0; font-family:inherit; }
+  .tag svg{ width:11px; height:11px; }
+  button.tag{ cursor:pointer; }
+  button.tag:hover{ background:var(--info1); }
+
+  /* ---- Corner controls ---- */
+  /* The corner floats at the right of the NAME line only: the title shrinks beside it, the dates below keep the full
+     width (a flex item beside the text would squeeze the dates too). The custom phase's × joins it. */
+  .corner{ float:right; margin:3px -2px 0 4px; display:flex; align-items:center; gap:2px; position:relative; }
+  .corner .x{ margin-top:0; }
+  .ib{ width:22px; height:22px; border:0; border-radius:4px; background:transparent; display:grid; place-items:center; cursor:pointer; color:var(--black); padding:0; }
+  .ib svg{ width:15px; height:15px; }
+  .ib.quiet{ color:color-mix(in srgb, var(--black) 45%, transparent); }
+  .ib:hover{ background:rgba(0,0,0,.07); color:var(--black); }
+  .ib.offv{ background:var(--info0); color:var(--info9); }
+  .ib.offv:hover{ background:var(--info1); }
+  /* A: the corner pill IS the tag. */
+  .cpill{ height:22px; padding:0 7px; border-radius:4px; border:0; font:inherit; font-size:10px; font-weight:500; display:inline-flex; align-items:center; gap:3px; cursor:pointer; background:var(--info0); color:var(--info9); white-space:nowrap; }
+  .cpill:hover{ background:var(--info1); }
+  .cpill svg{ width:12px; height:12px; }
+  .cpill.fixed{ cursor:default; }
+  .cpill.fixed:hover{ background:var(--info0); }
+  /* C: the two-view chip. */
+  .vchip{ display:inline-flex; border:1px solid color-mix(in srgb, var(--black) 14%, transparent); border-radius:5px; overflow:hidden; background:rgba(255,255,255,.55); }
+  .vchip span, .vchip button{ width:22px; height:20px; display:grid; place-items:center; border:0; background:transparent; padding:0; color:var(--black); }
+  .vchip button{ cursor:pointer; }
+  .vchip button:hover{ background:rgba(0,0,0,.06); }
+  .vchip svg{ width:13px; height:13px; }
+  .vchip .wf.off{ color:var(--info9); background:var(--info0); position:relative; }
+  .vchip button.wf.off:hover{ background:var(--info1); }
+  .vchip .wf.off::after{ content:""; position:absolute; left:4px; right:4px; top:50%; height:1.5px; background:currentColor; transform:rotate(-40deg); }
+  .vchip .wf.never{ cursor:default; }
+  .vchip .wf.never:hover{ background:transparent; }
+  .vchip .mv{ border-left:1px solid color-mix(in srgb, var(--black) 14%, transparent); }
+  /* D: the menu. */
+  .menu{ position:absolute; right:0; top:26px; z-index:5; width:190px; background:#fff; border:1px solid var(--gray3); border-radius:8px;
+    box-shadow:0 4px 14px rgba(0,0,0,.12); padding:4px; font-size:12px; }
+  .menu .mi{ display:flex; align-items:center; justify-content:space-between; gap:8px; padding:7px 8px; border-radius:5px; cursor:pointer; }
+  .menu .mi:hover{ background:var(--gray1); }
+  .menu .mi.dim{ color:var(--gray5); cursor:default; }
+  .menu .mi.dim:hover{ background:transparent; }
+  .menu .mi.danger{ color:#B42318; }
+  .menu hr{ border:0; border-top:1px solid var(--gray2); margin:4px 2px; }
+  /* B with hover: the eye shows on hover or focus only, unless hidden. */
+  .card.hoveronly .corner .ib.quiet{ opacity:0; transition:opacity .12s; }
+  .card.hoveronly:hover .corner .ib.quiet, .card.hoveronly .corner .ib.quiet:focus-visible{ opacity:1; }
+
+  .hint{ font-size:11px; color:var(--gray6); margin-top:10px; }
+  .foot{ border-top:1px solid var(--gray2); padding-top:18px; color:var(--gray6); font-size:12px; }
+  @media (prefers-color-scheme: dark){ /* the app has no dark theme; the mockup stays light on purpose */ }
+</style>
+</head>
+<body>
+<div class="page">
+  <h1>"Hide in waterfall" in the card's top right corner</h1>
+  <p class="lede">Four ways to move the switch out of the card body and into the head, joined up with the "Month view only" tag. Every card here is the real phase card at its real size (247 px in the 280 px sidebar). <b>Click the corner control</b> on any card to hide or show that phase. The carets fold.</p>
+
+  <div id="opts"></div>
+
+  <p class="foot">Mockup only, nothing is wired up. In every option the saved setting stays the same (<code>phaseHidden</code>), Production never gets the control, and Episodic Prep / Double-ups keep their fixed tag. A folded card keeps its corner control, so a phase can be hidden or shown without opening it.</p>
+</div>
+
+<script>
+const I = {
+  caret:'<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 6.5 8 10l3.5-3.5"/></svg>',
+  x:'<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M3.5 3.5l9 9M12.5 3.5l-9 9"/></svg>',
+  eye:'<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M1.5 8C2.7 5 5.3 3 8 3s5.3 2 6.5 5c-1.2 3-3.8 5-6.5 5S2.7 11 1.5 8z"/><circle cx="8" cy="8" r="2"/></svg>',
+  eyeoff:'<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M2 2l12 12M6.6 6.7a2 2 0 002.7 2.7M4.2 4.4C2.9 5.3 2 6.6 1.5 8c1.2 3 3.8 5 6.5 5 1.3 0 2.5-.4 3.6-1.1M7 3.1c.3 0 .7-.1 1-.1 2.7 0 5.3 2 6.5 5-.3.8-.7 1.5-1.2 2.2"/></svg>',
+  wf:'<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"><rect x="2" y="2.5" width="12" height="11" rx="1.5"/><path d="M2 6.2h12M2 9.8h12M6.3 2.5v11"/></svg>',
+  mv:'<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="12" height="11" rx="1.5"/><path d="M2 6.6h12M5.2 1.6v2.6M10.8 1.6v2.6"/></svg>',
+  dots:'<svg viewBox="0 0 16 16" fill="currentColor"><circle cx="3.5" cy="8" r="1.3"/><circle cx="8" cy="8" r="1.3"/><circle cx="12.5" cy="8" r="1.3"/></svg>',
+  check:'<svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 8.5l3 3 6-7"/></svg>',
+};
+const TAG = '<span class="tag">' + I.eyeoff + 'Month view only</span>';
+
+// The cards every option shows, left to right.
+const CARDS = [
+  { cap:'A phase in both views', name:'Post', color:'#FBE5D6', meta:'11/2/26 → 3/5/27 (16 wk)', hidden:false },
+  { cap:'The same phase, hidden from the waterfall', name:'Localization', color:'#EDEDED', meta:'3/1/27 → 4/23/27 (8 wk)', hidden:true },
+  { cap:'A custom phase (it has a ×), long name', name:'Music & Sound Mix', color:'#E4DFEC', meta:'1/4/27 → 2/26/27 (8 wk)', hidden:true, custom:true },
+  { cap:'Episodic Prep: month view only, always', name:'Episodic Prep', color:'#E4DFEC', meta:'No prep. Type a default, or a length for one episode.', always:true },
+];
+
+// Each option says where the control and the tag go. `corner(card)` returns the head's right side;
+// `tagInTitle(card)` whether the tag still shows under / beside the name.
+const OPTS = [
+  { id:'today', title:'Today, for comparison', badge:'<span class="ref">As built</span>',
+    text:'The switch is a row in the body; the tag appears under the name when it is on.',
+    body:true, corner:()=> '', tagInTitle:c=> c.always || c.hidden },
+  { id:'a', title:'A · The tag moves to the corner and is the switch',
+    text:'A faint eye sits in the corner. Click it and it becomes the "Month only" tag, in the same spot. Click the tag to show the phase again. The name line no longer carries the tag.',
+    pros:['One place for both the state and the control','Nothing extra in the body or under the name','Same spot on Episodic Prep and Double-ups (their tag just can\'t be clicked)'],
+    cons:['The tag takes about 80 px from the name: long names cut off sooner, worst on a custom phase with its ×','"Month only" is shorter than today\'s "Month view only" to fit, and "Episodic Prep" itself gets cut'],
+    corner:c=> c.always ? '<span class="cpill fixed" title="Month view and its PDF only">'+I.eyeoff+'Month only</span>'
+      : c.hidden ? '<button class="cpill" data-t title="Hidden in the waterfall. Click to show it there again.">'+I.eyeoff+'Month only</button>'
+      : '<button class="ib quiet" data-t title="Hide in waterfall">'+I.eye+'</button>',
+    tagInTitle:()=> false },
+  { id:'b', title:'B · An eye in the corner, the tag stays under the name', badge:'<span class="pick">My pick</span>',
+    text:'The corner holds the eye: open while the phase is in both views, crossed out and tinted blue while it is month only. The tag stays where it is today, under the name, and clicking it shows the phase again too.',
+    pros:['The name keeps all its room','The tag reads exactly as today, so nothing to relearn','Smallest change to build'],
+    cons:['State shows twice (the blue eye and the tag), which some may find redundant'],
+    corner:c=> c.always ? '' : c.hidden
+      ? '<button class="ib offv" data-t title="Show in waterfall">'+I.eyeoff+'</button>'
+      : '<button class="ib quiet" data-t title="Hide in waterfall">'+I.eye+'</button>',
+    tagInTitle:c=> c.always || c.hidden, tagClick:true,
+    variant:{ label:'Show the eye only when the pointer is over the card', cls:'hoveronly' } },
+  { id:'c', title:'C · A waterfall / month chip in the corner, no tag',
+    text:'Two small icons show where the phase appears: the waterfall grid and the month calendar. Click the waterfall icon to take the phase out of the waterfall (it is struck through). The month icon is always on. The words "Month view only" go.',
+    pros:['Says which views, at a glance, on every card','No text, so the name keeps most of its room'],
+    cons:['Icons only: a first-time user has to hover to learn them','Drops the tag\'s plain words'],
+    corner:c=> '<span class="vchip">'
+      + (c.always ? '<span class="wf off never" title="Never in the waterfall">'+I.wf+'</span>'
+        : '<button class="wf'+(c.hidden?' off':'')+'" data-t title="'+(c.hidden?'Show in waterfall':'Hide in waterfall')+'">'+I.wf+'</button>')
+      + '<span class="mv" title="In the month view">'+I.mv+'</span></span>',
+    tagInTitle:()=> false },
+  { id:'d', title:'D · A ⋯ menu in the corner',
+    text:'The corner holds ⋯, which opens the card\'s menu: "Show in waterfall" with a tick, and room for more later (a custom phase\'s Remove moves in here, so its × goes). The tag stays under the name; clicking it opens the same menu.',
+    pros:['One tidy corner on every card, custom or not','A home for future per-phase settings'],
+    cons:['Two clicks instead of one','The setting is out of sight until the menu opens'],
+    corner:(c,k)=> '<button class="ib quiet" data-m title="More">'+I.dots+'</button>'
+      + (k.menu ? '<div class="menu">'
+          + (c.always ? '<div class="mi dim">Month view only, always</div>'
+            : '<div class="mi" data-t>Show in waterfall'+(c.hidden?'':I.check)+'</div>')
+          + (c.custom ? '<hr><div class="mi danger">Remove phase…</div>' : '')
+          + '</div>' : ''),
+    tagInTitle:c=> c.always || c.hidden, tagClick:'menu', noX:true },
+];
+
+const state = {};   // `${opt}:${i}` -> {hidden, folded, menu}
+function st(o, i){ const k = o+':'+i; if(!state[k]) state[k] = { hidden: !!CARDS[i].hidden, folded:false, menu:false }; return state[k]; }
+const varOn = {};
+
+function cardHtml(o, i){
+  const base = CARDS[i], k = st(o.id, i), c = { ...base, hidden: k.hidden };
+  const tag = o.tagInTitle(c)
+    ? (o.tagClick && !c.always ? '<button class="tag" '+(o.tagClick==='menu'?'data-m':'data-t')+' title="'+(o.tagClick==='menu'?'Open the menu':'Show in waterfall')+'">'+I.eyeoff+'Month view only</button>' : TAG)
+    : '';
+  const x = c.custom && !o.noX ? '<button class="x" title="Remove phase">'+I.x+'</button>' : '';
+  const corner = o.corner(c, k);
+  const body = c.always
+    ? '<div class="lab">Default prep</div><div class="box" style="width:100px;color:var(--gray5)">None</div>'
+    : '<div class="lab">Starts <span class="s">⌄</span></div><div class="box">'+(i===0?'11/02/2026':i===1?'03/01/2027':'01/04/2027')+'</div>'
+      + '<div class="lab">Length · <span class="s">Weeks ⌄</span></div><div class="box">8</div>'
+      + '<div class="after">↳ Start after '+(i===0?'Production':'Post')+'</div>'
+      + (o.body ? '<label class="sw" data-t>Hide in waterfall<span class="tog'+(c.hidden?' on':'')+'"></span></label>' : '')
+      + '<label class="sw">Hiatus<span class="tog"></span></label>';
+  const cls = 'card' + (k.folded ? ' folded' : '') + (o.variant && varOn[o.id] ? ' ' + o.variant.cls : '');
+  return '<div class="slot"><p class="cap">'+base.cap+'</p>'
+    + '<div class="'+cls+'" style="--c:'+c.color+'" data-o="'+o.id+'" data-i="'+i+'">'
+    + '<div class="head"><button class="caret" data-f title="Fold">'+I.caret+'</button><span class="sq"></span>'
+    + '<div class="htext">' + (corner || x ? '<div class="corner">'+corner+x+'</div>' : '')
+    + '<div class="title"><span class="name" title="'+c.name+'">'+c.name+'</span>'+tag+'</div><div class="meta">'+c.meta+'</div></div></div>'
+    + '<div class="body">'+body+'</div></div></div>';
+}
+
+function render(){
+  document.getElementById('opts').innerHTML = OPTS.map(o =>
+    '<section class="opt" id="opt-'+o.id+'"><h2>'+o.title+(o.badge||'')+'</h2><p>'+o.text+'</p>'
+    + (o.pros ? '<div class="pc"><div><b>Good</b><ul>'+o.pros.map(s=>'<li>'+s+'</li>').join('')+'</ul></div><div><b>Watch</b><ul>'+o.cons.map(s=>'<li>'+s+'</li>').join('')+'</ul></div></div>' : '')
+    + '<div class="strip">'+CARDS.map((_, i)=> cardHtml(o, i)).join('')+'</div>'
+    + (o.variant ? '<label class="hint"><input type="checkbox" data-v="'+o.id+'"'+(varOn[o.id]?' checked':'')+'> '+o.variant.label+'</label>' : '')
+    + '</section>').join('');
+}
+
+document.addEventListener('click', e=>{
+  const v = e.target.closest('[data-v]');
+  if(v){ varOn[v.dataset.v] = v.checked; render(); return; }
+  const card = e.target.closest('.card');
+  const closeMenus = ()=> Object.values(state).forEach(s=> s.menu = false);
+  if(!card){ closeMenus(); render(); return; }
+  const k = st(card.dataset.o, +card.dataset.i);
+  if(e.target.closest('[data-f]')){ k.folded = !k.folded; k.menu = false; }
+  else if(e.target.closest('[data-t]')){ if(!CARDS[+card.dataset.i].always) k.hidden = !k.hidden; k.menu = false; e.preventDefault(); }
+  else if(e.target.closest('[data-m]')){ const was = k.menu; closeMenus(); k.menu = !was; }
+  else { closeMenus(); }
+  render();
+});
+render();
+</script>
+</body>
+</html>

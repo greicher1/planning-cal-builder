@@ -28,7 +28,7 @@ export function initLegacyApp() {
   // They are one action, not two: version.json alone makes every user see an update that
   // isn't there, and APP_VERSION alone makes a real update invisible. The release-cut step in
   // README's changelog rules lists them together for exactly this reason.
-  const APP_VERSION = '1.21.0';
+  const APP_VERSION = '1.22.0';
 
   // ---------- Embedded Carlito ----------
   // The two <script type="text/plain"> blocks above hold Carlito, subset and zlib-compressed,
@@ -9070,6 +9070,8 @@ export function initLegacyApp() {
       if(cb.checked !== on) cb.checked = on;
       const tag = row.querySelector('.custom-phase-header .phase-mvonly-tag');
       if(tag && tag.hidden === on) tag.hidden = !on;
+      const eye = row.querySelector('.custom-phase-header .phase-wf-eye');   // the corner's other half: one or the other
+      if(eye && eye.hidden !== on) eye.hidden = on;
     });
   }
   ['input', 'change'].forEach(evt=>{
@@ -9086,6 +9088,20 @@ export function initLegacyApp() {
         reflectPhaseHidden();
         update();
       });
+    });
+  });
+
+  // The head's corner (see MVONLY_TAG): the eye hides the phase in the waterfall, the tag shows it again. Each is a real
+  // click on the card's own .phase-hidewf-cb (hidden with its row), so the handler above does the rest. Delegated, so a
+  // custom row rebuilt by undo or Load needs no binding.
+  ['phase-rows', 'custom-phase-rows'].forEach(cid=>{
+    const host = document.getElementById(cid);
+    if(!host) return;
+    host.addEventListener('click', e=>{
+      const b = e.target && e.target.closest && e.target.closest('.phase-wf-eye, button.phase-mvonly-tag');
+      if(!b) return;
+      const cb = b.closest('.phase-row') && b.closest('.phase-row').querySelector('.phase-hidewf-cb');
+      if(cb) cb.click();
     });
   });
 
@@ -9238,14 +9254,31 @@ export function initLegacyApp() {
   //   - a switch is CSS on the native checkbox (.sw-row), never a Mantine Switch (UI-CONVENTIONS §8.9). Each keeps
   //     its own <label>, so a click anywhere on the row toggles it, as the old caption did.
   const MVONLY_PHASE_TITLE = 'Hidden in the waterfall: it shows in the month view and its PDF only, never in the waterfall, the Excel workbook or the waterfall PDF';
-  const MVONLY_TAG = (hidden, title) => `<span class="phase-mvonly-tag"${hidden ? ' hidden' : ''} title="${title}">Month view only</span>`;
+  // ⭐ HIDE IN WATERFALL LIVES IN THE HEAD'S TOP RIGHT CORNER (owner, 18 Nov 2026, option A of
+  // mockups/hide-in-waterfall-corner.html: "Build A"). A phase that can be hidden shows a faint eye there; click it and
+  // the eye becomes the blue "Month view only" tag, in the same spot; click the tag to put the phase back in the waterfall. The
+  // body's "Hide in waterfall" row is hidden by CSS and its .phase-hidewf-cb stays: both buttons click that tick, so
+  // its delegated handler, the one undo step and phaseHidden are exactly as before. Episodic Prep and Double-ups,
+  // month only by nature, show the same tag in the same corner as plain text (MVONLY_TAG(false, ...)).
+  // ⛔ No id on either button (collectFieldValues). The tag is an ICON in the corner, the eye's own size (owner, 18 Nov
+  // 2026, "lets go with fix 1"): with its words showing it took 83 px of the name's line, and names were cut (Episodic
+  // Prep, any long custom name). The words stay in the markup, hidden by CSS, so the tag keeps its accessible name, and
+  // its title says them on hover. The name's room is now the same whether the phase is hidden or not.
+  const MVONLY_TAG = (hidden, title) => hidden
+    ? `<button type="button" class="phase-wf-eye" title="Hide in waterfall" aria-label="Hide in waterfall"></button>`
+      + `<button type="button" class="phase-mvonly-tag" hidden title="Month view only. ${title}. Click to show it in the waterfall again.">Month view only</button>`
+    : `<span class="phase-mvonly-tag" title="Month view only. ${title}">Month view only</span>`;
+  // The corner (the tag above, and a custom phase's ×) FLOATS at the right of the head's text, so only the name's line
+  // gives it room: the dates under it keep the card's full width. It comes before the title in the markup for that.
   function phaseHeadHtml(nameHtml, tagHtml, metaHtml, endHtml){
+    const corner = (tagHtml || '') + (endHtml || '');
     return `<div class="custom-phase-header">
           ${PHASE_COLLAPSE_BTN}
           <div class="phase-head-text">
-            <div class="phase-head-title">${nameHtml}${tagHtml}</div>
+            ${corner ? `<div class="phase-head-corner">${corner}</div>` : ''}
+            <div class="phase-head-title">${nameHtml}</div>
             ${metaHtml}
-          </div>${endHtml || ''}
+          </div>
         </div>`;
   }
   function swRow(cls, label, inputHtml, title){
@@ -10140,6 +10173,27 @@ export function initLegacyApp() {
       update();
     });
     return row;
+  }
+  // Show info's Tandem Days box (owner, 19 Nov 2026; Sidebar.jsx's TandemDaysBox, one beside the days per episode and
+  // one beside the days per block): a second view of the card's default count above. A count typed there is written
+  // exactly as the card's box writes it, and reflectShowInfoTandem(), from update(), writes the store back into every
+  // copy but the one being typed in, so the card and Show info always agree.
+  // ⛔ No id on these boxes (the card's rule): the count is saved under doubleUps.days, never in fields.byId.
+  document.addEventListener('input', e=>{
+    const t = e.target;
+    if(!t || !t.classList || !t.classList.contains('si-tandem-in')) return;
+    const n = duTyped(t.value), next = n > 0 ? n : 0;
+    if(next === doubleUpDays) return;
+    doubleUpDays = next;
+    update();
+  });
+  function reflectShowInfoTandem(){
+    const want = doubleUpDays > 0 ? String(doubleUpDays) : '';
+    document.querySelectorAll('.si-tandem-in').forEach(inp=>{
+      if(document.activeElement === inp) return;
+      const same = want === '' ? inp.value === '' : (inp.value !== '' && duTyped(inp.value) === Number(want));
+      if(!same) inp.value = want;
+    });
   }
   function duUnitDef(kind, id){
     return (kind === 'block' ? blockDefs : episodeDefs).find(x=> x.id === id) || null;
@@ -30209,6 +30263,7 @@ export function initLegacyApp() {
     reflectPhaseNudges(); // which cards show the week arrows (the waterfall, and a phase with a date), and their labels
     refreshPrepUI(currentSchedule);
     refreshDoubleUpUI(currentSchedule);
+    reflectShowInfoTandem();   // Show info's copy of the card's default count (owner, 19 Nov 2026)
     refreshHolidayCoverageNote();
     // The "Label Production by" control (Preferences, month view). Here because a change of Schedule by,
     // an undo or a Load can change what it shows without touching mvProdLabel's own setter.
@@ -31989,6 +32044,107 @@ export function initLegacyApp() {
     const d = e && e.detail;
     if(d && d.zoom != null) setCalZoom(d.zoom);
   });
+
+  // ⭐ PINCH, CTRL-SCROLL AND THE ZOOM KEYS ZOOM THE CALENDAR, NEVER THE APP (owner, 18 Nov 2026: "Allow trackpad
+  // pinch and related mouse zoom buttons to control the viewport of the waterfall and month view rather than just
+  // zooming in the entire UI of the app"). Chrome hands a page every one of these before it zooms the page itself:
+  //   * a trackpad pinch (Mac, and Windows precision touchpads) arrives as `wheel` events with ctrlKey set and small
+  //     deltas; Ctrl + a mouse wheel (and a mouse's zoom button, which most mouse software sends as it) arrives the
+  //     same way with a notch's ~100 px delta;
+  //   * ⌘+ / ⌘− (Ctrl on Windows and Linux) are keydowns, and so is a mouse zoom button mapped to those keys.
+  // Each is cancelled, so the app around the calendar never zooms, and turned into setCalZoom(), the slider's own
+  // path: the same clamp, the same preference, the same settle. Nothing frozen is touched (a magnification of
+  // #table-wrap, "CALENDAR ZOOM" above).
+  //   ⌘0 / Ctrl+0 is the one key NOT cancelled: it puts the calendar back to 100% AND lets Chrome put the app back to
+  // its own 100%, so an app window that was pinch-zoomed before this change (Chrome remembers a site's zoom) has a
+  // way back.
+  // A pinch zooms about the pointer (what is under it stays under it), as every map and drawing app does; a key,
+  // or a pinch made away from the calendar, about the middle of what is in view.
+  // ⚠️ Held by the ELEMENT under that point, not by a scroll offset: Chrome lays the waterfall out a little
+  // differently at each zoom (see "WHAT ZOOM BREAKS": its rows are not quite the 100% rows), so a point's place in
+  // the zoomed box's own px drifts with the zoom; 83 px over 45 rows from 149% to 182%, measured. The element is
+  // where it is drawn, so it is read again after the zoom and the box scrolled by what it moved. The scroll offsets
+  // are in the zoomed box's own px, hence the division by the new zoom.
+  function calZoomScroller(){
+    const tw = document.getElementById('table-wrap');
+    if(!tw) return null;
+    return viewMode === 'month' ? tw : tw.querySelector(':scope > .sheet-scroll');
+  }
+  // `hold` is a pinch's anchor, kept for the whole gesture: where the box cannot scroll that far yet (a window wider
+  // than the page at 100%, the top or left edge), what is under the pointer slides off it, and an anchor re-read at
+  // every step would keep that slide for good. Held from the gesture's start, it comes back under the pointer as soon
+  // as there is room to scroll.
+  function calZoomAnchor(sc, cx, cy){
+    const r = sc.getBoundingClientRect();
+    const inside = cx != null && cx >= r.left && cx <= r.right && cy >= r.top && cy <= r.bottom;
+    // The middle of what shows of the box, which a narrow window may cut on the right or the bottom.
+    const x = inside ? cx : (r.left + Math.min(r.right, window.innerWidth)) / 2;
+    const y = inside ? cy : (r.top + Math.min(r.bottom, window.innerHeight)) / 2;
+    const el = document.elementFromPoint(x, y);
+    if(!el || !sc.contains(el) || el === sc) return null;
+    const b = el.getBoundingClientRect();
+    if(!(b.width > 0 && b.height > 0)) return null;
+    return { el, x, y, fx: (x - b.left) / b.width, fy: (y - b.top) / b.height };
+  }
+  function zoomCalendarAbout(next, cx, cy, hold){
+    const sc = calZoomScroller();
+    const before = calZoom[calZoomView()];
+    // A hold is dropped when its element went in a render, or when the pointer has moved off where it was taken.
+    const keep = hold && hold.el && hold.el.isConnected && sc && sc.contains(hold.el)
+      && (cx == null || Math.hypot(cx - hold.x, cy - hold.y) <= 8);
+    const at = keep ? hold : (sc ? calZoomAnchor(sc, cx, cy) : null);
+    setCalZoom(next);
+    if(!at || calZoom[calZoomView()] === before || !at.el.isConnected) return at;
+    const sc2 = calZoomScroller();
+    if(!sc2 || !sc2.contains(at.el)) return at;
+    const b = at.el.getBoundingClientRect();
+    const k = gridZoom(sc2);
+    sc2.scrollLeft += (b.left + at.fx * b.width - at.x) / k;
+    sc2.scrollTop += (b.top + at.fy * b.height - at.y) / k;
+    return at;
+  }
+  // The buttons' steps (ZoomControl.jsx): to the next whole ten, so 105% goes to 110% or 100%.
+  function calZoomStep(dir){
+    const pct = Math.round(calZoom[calZoomView()] * 100);
+    return dir > 0 ? (Math.floor(pct / 10) + 1) / 10 : (Math.ceil(pct / 10) - 1) / 10;
+  }
+  // Nothing to zoom: an empty calendar, an error, or a dialog over it. The gesture is still cancelled there, so the
+  // app never zooms.
+  function calZoomable(){ return calendarShown() && !appDialogOpen(); }
+  // A pinch's own zoom, unrounded, so its many small steps add up (setCalZoom keeps whole percents). Taken afresh
+  // from the calendar's zoom when a pinch starts, or when anything else changed the zoom since.
+  let pinchZoom = null, pinchAt = 0, pinchHold = null;
+  window.addEventListener('wheel', e=>{
+    if(!e.ctrlKey) return;
+    e.preventDefault();
+    if(!calZoomable()) return;
+    const dy = e.deltaY * (e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? 400 : 1);
+    if(!dy) return;
+    const cur = calZoom[calZoomView()];
+    const now = performance.now();
+    if(pinchZoom == null || now - pinchAt > 400 || Math.abs(clampCalZoom(pinchZoom) - cur) > 0.005){ pinchZoom = cur; pinchHold = null; }
+    pinchAt = now;
+    if(Math.abs(dy) >= 50){
+      // A mouse wheel's notch: one button step a notch.
+      pinchZoom = calZoomStep(dy < 0 ? 1 : -1);
+    } else {
+      // A pinch: proportional, so a slow pinch is fine and a quick one goes far.
+      pinchZoom = Math.min(CAL_ZOOM_MAX, Math.max(CAL_ZOOM_MIN, pinchZoom * Math.exp(-dy * 0.01)));
+    }
+    pinchHold = zoomCalendarAbout(pinchZoom, e.clientX, e.clientY, pinchHold);
+  }, { passive: false, capture: true });
+  document.addEventListener('keydown', e=>{
+    // The platform's own zoom modifier only: ⌘ on a Mac, Ctrl elsewhere (Ctrl+= on a Mac zooms nothing in Chrome).
+    const mod = platformIsMac() ? (e.metaKey && !e.ctrlKey) : (e.ctrlKey && !e.metaKey);
+    if(!mod || e.altKey) return;
+    const k = e.key;
+    const dir = (k === '=' || k === '+') ? 1 : (k === '-' || k === '_') ? -1 : 0;
+    if(k === '0'){ if(calZoomable()) zoomCalendarAbout(1); return; }   // not cancelled: Chrome resets the app too
+    if(!dir) return;
+    e.preventDefault();
+    if(calZoomable()) zoomCalendarAbout(calZoomStep(dir));
+  }, true);
+
   // Every render may add or remove the calendar. Observing mutates nothing; the re-apply writes only
   // #table-wrap's own style, never a child, so it cannot feed this observer (childList only).
   new MutationObserver(applyCalZoom).observe(document.getElementById('table-wrap'), { childList: true });
@@ -32532,18 +32688,37 @@ export function initLegacyApp() {
     return ((document.getElementById('name-' + key) || {}).value || '').trim()
       || (PHASES.find(x => x.key === key) || {}).label || 'next phase';
   }
+  // R5 (owner, 19 Nov 2026: "when you give a start date to a later phase, previous phases should allow you to click
+  // Finish before"): an EMPTY card (not scheduled) with a dated phase after it in the chain offers Finish before too,
+  // though nothing is on Ends, so a calendar can be started from Production's date and built back from it. With no
+  // dated phase before it, Start after has nothing to chain to, so Finish before takes its place (chain-back); with one,
+  // the card offers both (chain-both), since it could go either way. A card with dates of its own is unchanged, so a
+  // finished calendar on Starts looks exactly as before.
+  function chainOpenBetween(key, schedule){
+    const segs = (schedule && schedule.segments) || [];
+    if(segs.some(s => s.key === key)) return null;
+    if(!nextChainSegment(key, schedule)) return null;
+    return prevChainSegment(key, schedule) ? 'both' : 'back';
+  }
   function reflectFinishBefore(){
     document.querySelectorAll('#phase-rows > .phase-row').forEach(row=>{
       const btn = row.querySelector('.finish-before-btn');
       const key = phaseRowKey(row);
-      const back = !!btn && chainEndsAfter(key);
+      const open = !!btn && !chainEndsAfter(key) ? chainOpenBetween(key, currentSchedule) : null;
+      const back = !!btn && (chainEndsAfter(key) || open === 'back');
+      const both = open === 'both';
       if(row.classList.contains('chain-back') !== back) row.classList.toggle('chain-back', back);
+      if(row.classList.contains('chain-both') !== both) row.classList.toggle('chain-both', both);
       if(!btn) return;
-      const next = back ? nextChainSegment(key, currentSchedule) : null;
+      const next = (back || both) ? nextChainSegment(key, currentSchedule) : null;
       const label = '↳ Finish before ' + (next ? chainPhaseName(next.key) : 'next phase');
       if(btn.textContent !== label) btn.textContent = label;
       if(btn.disabled !== !next) btn.disabled = !next;
     });
+  }
+  function focusEmpty(id){
+    const el = document.getElementById(id);
+    if(el && !el.value && el.offsetParent) el.focus();
   }
   // A mover (owner ruling R2, v1.3.1): Production's day marks travel with it by shoot-day number.
   function finishBeforePhase(key){
@@ -32581,14 +32756,18 @@ export function initLegacyApp() {
         endEl.value = isoOf(e);
         reflectPhaseEnds();
         update();
+        // R5: an empty card has its end now but no length; the cursor goes where the length is typed.
+        focusEmpty('weeks-' + key);
         return;
       }
       // Dates: the same length, both dates moved, its last day the last weekday before the next phase starts.
       const startEl = document.getElementById('start-' + key), endEl = document.getElementById('end-' + key);
       const s = startEl ? parseDateUTC(startEl.value) : null, en = endEl ? parseDateUTC(endEl.value) : null;
-      if(!s || !en) return;
       let last = addDays(next.seg.start, -1), g = 0;
       while(g++ < 600 && (last.getUTCDay() === 0 || last.getUTCDay() === 6 || inHiatus(last))) last = addDays(last, -1);
+      // R5: an empty Dates card has no length to keep, so it takes its last day and waits for a start.
+      if(!s && endEl){ endEl.value = isoOf(last); update(); syncCustomUnitFallback(key); focusEmpty('start-' + key); return; }
+      if(!s || !en) return;
       if(setPhaseStart(key, isoOf(addDays(s, Math.round((last - en) / DAY_MS))))){ update(); syncCustomUnitFallback(key); }
     });
   }

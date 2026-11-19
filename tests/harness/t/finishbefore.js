@@ -30,6 +30,10 @@
 //   H2  over the hiatus, a Weeks phase: Production starting Mon 1/4/27 (on Ends), Prod Prep's Finish before Production
 //       ends Fri 12/18/26, stepped back two whole weeks over the break
 //   K1  a custom phase's card has no Finish before (custom phases are not in the chain, as for Start after)
+//   R5  (owner, 19 Nov 2026: "when you give a start date to a later phase, previous phases should allow you to click
+//       Finish before") an EMPTY card before a dated phase offers it with nothing on Ends: a in place of Start after when
+//       nothing before it is dated; b a click on an empty Weeks card puts it on Ends with the cursor in Length; c beside
+//       Start after when a dated phase is on each side; d an empty Dates card gets its last day and waits for a start
 //   E0  no console errors
 //
 // ⛔ No dollar sign anywhere in this file (srv.js splices legs in with String.replace).
@@ -234,6 +238,43 @@ window.addEventListener('load', function () { (async function () {
       var rows = document.querySelectorAll('#custom-phase-rows > .phase-row');
       var n = document.querySelectorAll('#custom-phase-rows .finish-before-btn').length;
       kase('K1', 'a custom phase\'s card has no Finish before button', rows.length > 0 && n === 0, { rows: rows.length, buttons: n });
+    });
+
+    // ===== R5: an empty card before a DATED phase (owner, 19 Nov 2026) ===========================================
+    await step('R5a', async function () {
+      await anchor('prodPrep', 'starts'); await anchor('production', 'starts'); await anchor('post', 'starts');
+      ['writersRoom', 'prePrep', 'prodPrep'].forEach(function (k) { T.set('start-' + k, ''); T.set('weeks-' + k, ''); T.set('end-' + k, ''); });
+      T.set('start-production', '2026-11-23'); await settle();
+      var o = offers();
+      var ok = ['writersRoom', 'prePrep', 'prodPrep'].every(function (k) { return o[k] === 'F:↳ Finish before Production'; })
+        && o.post === 'S:↳ Start after Production' && o.production.indexOf('F:') < 0;
+      kase('R5a', 'only Production dated, the cards before it empty and on Starts: each offers "Finish before Production" in place of Start after; Production and Post as before',
+           ok, { offers: o });
+    });
+    await step('R5b', async function () {
+      await finish('prodPrep');
+      var got = { mode: mode('prodPrep'), end: byId('end-prodPrep').value, weeks: byId('weeks-prodPrep').value, focus: (document.activeElement || {}).id };
+      T.set('weeks-prodPrep', '6'); await settle();
+      got.start = byId('start-prodPrep').value; got.prePrep = offers().prePrep;
+      kase('R5b', 'empty Prod Prep\'s Finish before Production: on Ends, ending Fri 11/20/26, the cursor in its empty Length; 6 weeks starts it 10/12/26 and Pre Prep then offers Finish before Prod Prep',
+           got.mode === 'ends' && got.end === '2026-11-20' && got.weeks === '' && got.focus === 'weeks-prodPrep'
+           && got.start === '2026-10-12' && got.prePrep === 'F:↳ Finish before Prod Prep', got);
+    });
+    await step('R5c', async function () {
+      await anchor('prodPrep', 'starts');
+      T.set('start-writersRoom', '2026-03-02'); T.set('weeks-writersRoom', '12'); await settle();
+      var o = offers();
+      kase('R5c', 'an empty Pre Prep between dated Writer\'s Rm and Prod Prep (nothing on Ends) offers BOTH Finish before Prod Prep and Start after Writer\'s Rm; the dated cards keep Start after alone',
+           o.prePrep === "F:↳ Finish before Prod PrepS:↳ Start after Writer's Rm" && o.writersRoom === '-' && o.prodPrep === "S:↳ Start after Writer's Rm",
+           { offers: o });
+    });
+    await step('R5d', async function () {
+      T.set('unit-prePrep', 'dates'); await settle();
+      await finish('prePrep');
+      var got = { start: byId('start-prePrep').value, end: byId('end-prePrep').value, ends: rowOf('prePrep').classList.contains('ends-mode'),
+                  focus: (document.activeElement || {}).id };
+      kase('R5d', 'an empty Pre Prep on Dates: Finish before Prod Prep writes its last day, Fri 10/9/26, leaves the start empty with the cursor in it, and does not put it on Ends',
+           got.start === '' && got.end === '2026-10-09' && !got.ends && got.focus === 'start-prePrep', got);
     });
 
     var errs = T.appHealth().errors || [];
