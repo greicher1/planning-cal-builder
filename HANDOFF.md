@@ -20,15 +20,18 @@
   ⚠️ sharecopy2's copy carries the leg's own script, so its pattern is built from pieces (`'<' + 'div id="hiatus-' + …`):
   a literal matched itself, and a literal `<div` also fed the leg's `inert=""` check. `npm run check` 43/43.
 
-### 🏷️ 19 Nov 2026: THE SCENARIO "+" NAMES THE TAB IT COPIES — on `scenario-version-offer` (`590fd5b`), LIVE: pushed on the owner's picker, deploy green, the live file carries the tooltip. README "Unreleased". Tracker card `scenario-plus-which-tab`.
+### 🏷️ 19 Nov 2026: THE SCENARIO "+" SAYS WHICH TAB IT COPIES ("+ Duplicate Scenario B") — shipped in v1.22.1 on the owner's "Yes, ship it". README v1.22.1. Tracker card `scenario-plus-which-tab`.
 - **Owner** asked whether "+" should copy the right-most tab (earlier ones from the caret menu) and whether a copy of B
   beside C v3 / D v4 should be offered v5. Analysis given in chat: it already offers the highest + 1 (v5), the caret menu
   already has Duplicate, and a "+" that copies a tab you are not looking at fails silently. **Ruling: "+" keeps copying
   the tab on screen**; the owner took the one addition, *"Yes, add the name"*.
-- **Done:** the "+" `title` is "Duplicate <tab on screen>" (`ScenarioTabs.jsx`). ⛔ Its `aria-label` stays "Duplicate
-  this scenario": `scenarios` and `scenversion` find the button by it.
-- **Legs:** `scenversion` V9 (new, 10/10), `scenarios` 23/23; `npm run check` 43/43. Checked in the build: the tooltip
-  follows the tab on screen.
+- ⚠️ **It shipped first as a TOOLTIP (`590fd5b`) and that was a misreading:** *"i thought the button was going to
+  dynamically change and have text, not just a hover text"*. Now a Mantine `Button` (subtle, gray, compact-xs, like the
+  one-tab "+ Scenario") reading "Duplicate <tab on screen>" (`curName` in `ScenarioTabs.jsx`); the name in
+  `.sc-add-name`, cut with "…" at 120 px (`legacy.css`, beside `.sc-tabs`); `title` keeps the whole name. ⛔ Its
+  `aria-label` stays "Duplicate this scenario": `scenarios` and `scenversion` find the button by it.
+- It is wider than the old "+" (about 200 px with a long name), so the tabs get less room before the strip scrolls.
+- **Legs:** `scenversion` V9 (the `title`) 10/10, `scenarios` 23/23; `npm run check` 43/43.
 
 ### ➡️ 19 Nov 2026: A NEW SCENARIO GOES AT THE FAR RIGHT — on `scenario-version-offer` (`cde7299`), merged with origin/main (v1.22.0, Finish before R5) and pushed to `main` on the owner's picker. README "Unreleased". Tracker card `scenario-copy-far-right`.
 - **Owner:** asked whether a copy made while a tab other than the last is on screen should go at the far right instead

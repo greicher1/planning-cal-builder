@@ -4694,6 +4694,9 @@
      squeezed Compare down to its icon (31px at 1,440 px with 20 scenarios), its word cut off. */
   .sc-strip > :not(.sc-tabs){ flex:none; }
   .sc-tabs::-webkit-scrollbar{ display:none; }
+  /* "+ Duplicate Scenario B" (owner, 19 Nov 2026): the button names the tab on screen. A long name is cut, so the
+     button never takes the tabs' room; its tooltip carries the whole name. */
+  .sc-add .sc-add-name{ display:inline-block; max-width:120px; overflow:hidden; text-overflow:ellipsis; vertical-align:bottom; }
   .sc-tab{
     flex:none; display:inline-flex; align-items:center; gap:2px; height:26px; padding:0 10px;
     border:1px solid transparent; border-radius:var(--mantine-radius-md);

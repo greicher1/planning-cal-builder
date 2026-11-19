@@ -230,6 +230,7 @@ export function ScenarioTabs() {
   if (!st.visible || !st.tabs.length) return null
   const many = st.tabs.length > 1
   const full = st.tabs.length >= st.max
+  const curName = (st.tabs.find((t) => t.id === st.current) || {}).name || 'this scenario'
 
   if (!many) {
     return (
@@ -362,15 +363,16 @@ export function ScenarioTabs() {
           </Menu.Dropdown>
         </Menu>
       )}
-      {/* The tooltip names the tab "+" copies (owner, 19 Nov 2026, "Yes, add the name"): the tab on screen, and since
-          the copy goes at the far right, away from its source, the name says which one before the click. The
-          aria-label stays "Duplicate this scenario": legs find the button by it. */}
-      <ActionIcon variant="subtle" color="gray" size="sm" radius="md" onClick={() => send({ op: 'add' })} disabled={full}
-                  aria-label="Duplicate this scenario"
-                  title={full ? 'A calendar holds at most ' + st.max + ' scenarios'
-                    : 'Duplicate ' + ((st.tabs.find((t) => t.id === st.current) || {}).name || 'this scenario')}>
-        <IconPlus width={12} height={12} />
-      </ActionIcon>
+      {/* ⭐ The button SAYS which tab it copies (owner, 19 Nov 2026: "Yes, add the name", then "i thought the button was
+          going to dynamically change and have text, not just a hover text"): "+ Duplicate Scenario B", the tab on
+          screen, following every switch and rename. The copy goes at the far right, away from its source, so the
+          name says which one before the click. A long name is cut with "…" (.sc-add-name); the tooltip keeps it whole.
+          The aria-label stays "Duplicate this scenario": legs find the button by it. */}
+      <Button variant="subtle" color="gray" size="compact-xs" className="sc-add" leftSection={<IconPlus width={11} height={11} />}
+              onClick={() => send({ op: 'add' })} disabled={full} aria-label="Duplicate this scenario"
+              title={full ? 'A calendar holds at most ' + st.max + ' scenarios' : 'Duplicate ' + curName}>
+        Duplicate&nbsp;<span className="sc-add-name">{curName}</span>
+      </Button>
       <Button variant="default" size="compact-xs" leftSection={<IconCompare />} onClick={() => send({ op: 'compare' })}>
         Compare
       </Button>

@@ -29,7 +29,9 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
-### Unreleased — "Reset hiatus bands" is gone (19 Nov 2026)
+## v1.22.1 — Scenario tabs show their Version; "+ Duplicate Scenario B" at the far right; Tandem Days and the field order in Show info; Finish before on an empty card; calendar-only zoom (19 Nov 2026)
+
+### "Reset hiatus bands" is gone (19 Nov 2026)
 
 The owner removed the button at the foot of the All-phase hiatus list. It reset only how the bands LOOK (their label,
 colour, size and text styles, all-phase and per-phase at once) and never removed a hiatus, but its name and place read as
@@ -40,17 +42,19 @@ saved changes and nothing frozen was touched. Verified: `hdrcontrols` 12/12 (N4 
 + Add hiatus period, naming the row takes over a hand-typed band), `phiatusnum` 18/18, `sharecopy2` (the host may not come
 back), `npm run check` 43/43.
 
-### Unreleased — The scenario "+" names the tab it copies (19 Nov 2026)
+### The scenario "+" says which tab it copies: "+ Duplicate Scenario B" (19 Nov 2026)
 
 The owner asked whether "+" should copy the right-most tab instead of the one on screen, and whether a copy of an
 earlier tab should be offered the next version. On the analysis (it already offers the highest version on any tab + 1,
 and the caret menu already has Duplicate), "+" keeps copying the tab on screen; the owner picked the one addition, *"Yes,
-add the name"*: the "+" tooltip now reads "Duplicate Scenario B", the tab on screen, since the copy lands at the far
-right, away from its source. The button's `aria-label` stays "Duplicate this scenario" (legs find it by that). Chrome
-only, nothing frozen, nothing saved. Verified: `scenversion` V9 (new) 10/10, `scenarios` 23/23, `npm run check` 43/43; in
-the build the tooltip follows the tab on screen.
+add the name"*. It went out first as a tooltip (`590fd5b`); the owner: *"i thought the button was going to dynamically
+change and have text, not just a hover text"*. The button now READS "+ Duplicate Scenario B", the tab on screen, and
+follows every switch and rename; a long name is cut with "…" at 120 px (`.sc-add-name`), and the tooltip keeps it whole.
+The button's `aria-label` stays "Duplicate this scenario" (legs find it by that). Chrome only, nothing frozen, nothing
+saved. Verified: `scenversion` V9 (new) 10/10, `scenarios` 23/23, `npm run check` 43/43; in the build the label follows
+the tab on screen and a 32-character name is cut.
 
-### Unreleased — A new scenario goes at the far right of the strip (19 Nov 2026)
+### A new scenario goes at the far right of the strip (19 Nov 2026)
 
 Owner, asked whether a copy made from a tab that is not the last should go at the far right rather than just right of
 the tab it copies: *"Yes, far right"*. The "+" now always puts the copy LAST (`duplicateScenario`, a `push` where it
@@ -64,14 +68,14 @@ Verified: leg `scenversion` V7 now copies the FIRST tab and expects it at the fa
 `exportnames` 12/12, `comparehiatus` 8/8, `lastedited` 22/22; `npm run check` 43/43. In the browser at 800 px, six
 tabs, a copy of the first lands sixth with "→ v6" fully in view.
 
-### Unreleased — The waterfall note editor's grey prompt is gone (19 Nov 2026)
+### The waterfall note editor's grey prompt is gone (19 Nov 2026)
 
 Owner: *"delete this text in waterfall"*, pointing at "Note text (Shift+Enter for a new line)" inside an empty note's
 box. The waterfall note editor's box now has no placeholder; a hiatus band's "Hiatus label" and the month view's note
 editor are unchanged. Chrome only (`openNoteEditor`'s markup), nothing frozen and nothing saved. No leg reads the text.
 Verified in the build: the editor's textarea carries no `placeholder` attribute, and an emptied box shows blank.
 
-### Unreleased — Finish before on an empty card before a dated phase (19 Nov 2026)
+### Finish before on an empty card before a dated phase (19 Nov 2026)
 
 - **What.** An empty phase card (no dates) with a dated phase after it in the chain now offers **↳ Finish before <next
   phase>** even when nothing is on Ends. If nothing before it has a date, Finish before replaces Start after (which had
@@ -87,7 +91,7 @@ Verified in the build: the editor's textarea carries no `placeholder` attribute,
   `overrides` 20/20, `snaptools` 14/14, `builtindates` 19/19 live and restored; `npm run check` 43/43; tried in the
   browser by the owner. No frozen code, no save-format change, no new id.
 
-### Unreleased — Scenario tabs show their Version, and a copy is offered the next one (19 Nov 2026)
+### Scenario tabs show their Version, and a copy is offered the next one (19 Nov 2026)
 
 The owner asked whether, once the first scenario has a Version, a new scenario should be named after it or the Version
 shown in the bar at the bottom; then for the copy to offer the next number, *"as a suggestion, not force them"*. Five
@@ -117,7 +121,7 @@ and then asked that the offer can be brought back later.
   changessince) green. `npm run check` 43/43. No full
   gate (chrome and scenario engine only, no frozen code, no save-format change).
 
-### Unreleased — Show info's fields in the order each mode is filled in (19 Nov 2026)
+### Show info's fields in the order each mode is filled in (19 Nov 2026)
 
 Owner: *"When scheduling by Episode the order should be Schedule by, then Number of Episodes, then shooting days per
 Ep+tandem days then Version, then production region, then location. When scheduling by Block, the order should be Number
@@ -132,7 +136,7 @@ says so)"*.
 - **Verified:** `doubleups` SI8 (both orders as shown), `labelsetup` B1u re-premised (plain label; B1 still holds the
   count optional), `blocks`, `restore` (gate 5's key set), `npm run check`.
 
-### Unreleased — Tandem Days in Show info, beside the shooting days (19 Nov 2026)
+### Tandem Days in Show info, beside the shooting days (19 Nov 2026)
 
 Owner: *"add double-up/tandem days in the Show Info section. To the right of the Shooting days per episode should be a big
 plus symbol and then to the right of that another box to add the double up/tandem days"*; after the mockup
@@ -148,7 +152,7 @@ plus symbol and then to the right of that another box to add the double up/tande
   Load, the whole-days ring); the leg's other runs, `restore` (gate 5's key set), `loadsparse`, `firstrun`, `numclamp`;
   `npm run check`. No full gate: chrome and a sidebar listener only, nothing frozen.
 
-### Unreleased — Pinch, Ctrl-scroll and ⌘+ / ⌘− zoom the calendar, not the app (18 Nov 2026)
+### Pinch, Ctrl-scroll and ⌘+ / ⌘− zoom the calendar, not the app (18 Nov 2026)
 
 Owner: *"Allow trackpad pinch and related mouse zoom buttons to control the viewport of the waterfall and month view
 rather than just zooming in the entire UI of the app"*.
