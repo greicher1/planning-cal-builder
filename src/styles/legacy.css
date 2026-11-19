@@ -4708,6 +4708,17 @@
     border-color:var(--mantine-color-gray-3); box-shadow:0 1px 2px rgba(0,0,0,.06);
   }
   .sc-tab.is-dragging{ opacity:.45; }
+  /* Where a dragged tab will drop (owner, 19 Nov 2026): a short blue line in the 2px gap before a tab, or after the last
+     one. Inside the tab's own box (the strip clips anything above or below it), so it draws over nothing. */
+  .sc-tab.drop-before, .sc-tab.drop-after{ position:relative; }
+  .sc-tab.drop-before::before, .sc-tab.drop-after::after{
+    content:''; position:absolute; top:2px; bottom:2px; width:2px; border-radius:1px;
+    background:var(--mantine-primary-color-filled); pointer-events:none;
+  }
+  .sc-tab.drop-before::before{ left:-2px; }
+  .sc-tab.drop-after::after{ right:0; }
+  /* The strip scrolls, so it clips its own edges: at the far left the line sits on the first tab's edge. */
+  .sc-tab:first-child.drop-before::before{ left:0; }
   .sc-tab-caret{ display:inline-flex; align-items:center; justify-content:center; width:18px; height:18px;
     border-radius:var(--mantine-radius-sm); color:var(--text-muted); }
   .sc-tab-caret:hover{ background:var(--mantine-color-gray-1); color:var(--text); }

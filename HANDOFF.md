@@ -4,6 +4,20 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### ↔️ 19 Nov 2026: A DROP LINE BETWEEN SCENARIO TABS WHILE ONE IS DRAGGED — on `scenario-version-offer`, committed, NOT pushed (awaiting the owner's picker). README "Unreleased". Tracker card `scenario-drag-marker`.
+- **Owner:** *"there should be little markers between scenario tabs that appear when you drag to rearrange the scenarios
+  so you know where they are going to drop"*. Tried on localhost: *"Yes, finish it"*.
+- **As built** (`ScenarioTabs.jsx`, `gap` state, `slotAt` / `moves` / `markOf`; CSS `.sc-tab.drop-before` /
+  `.drop-after` beside `.sc-tab.is-dragging`): the drop target is now `.sc-tabs` itself, not each tab. The slot is the
+  count of tabs whose middle is left of the pointer; the move sends `to: slot > from ? slot - 1 : slot`. A slot either
+  side of the dragged tab shows no line and drops nothing. The line is a 2 px `::before` / `::after` inside the tab's box
+  (the strip's `overflow-x:auto` clips anything outside it, so the first tab's line sits on its own edge, `left:0`).
+- ⚠️ Changed behaviour: before, dropping ON tab i always sent `to: i` (so a drop on either half did the same); now the
+  half matters. No leg had driven the drag before; `scenversion` V10 does now, with `DragEvent`s sharing one
+  `DataTransfer`.
+- **Legs:** `scenversion` 11/11, `scenarios` 23/23, `scenlist` (rtleg) 9/9, `npm run check` 43/43. No full gate
+  (chrome only, nothing frozen, no saved key).
+
 ### 🗑️ 19 Nov 2026: "RESET HIATUS BANDS" REMOVED — on `scenario-version-offer` (`ccfa8e7`), LIVE: pushed on the owner's picker, deploy green, the live file has no button, host or Help mention. README "Unreleased". Tracker card `hiatus-reset-full-width`.
 - **Owner** first asked for the button to span the sidebar like + Add hiatus period (done, then dropped), then asked
   whether it was needed at all. Analysis given: it reset only the bands' LOOK (label, colour, size, text styles, month

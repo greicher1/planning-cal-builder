@@ -167,6 +167,7 @@ export function ScenarioTabs() {
   const [editing, setEditing] = useState(null)      // the tab whose name is being typed
   const [menu, setMenu] = useState(null)            // { id, x, y }: the tab menu, opened at a point
   const [drag, setDrag] = useState(null)            // the tab being dragged
+  const [gap, setGap] = useState(null)              // where it would drop: 0 = before the first tab, n = after the last
   const [left, setLeft] = useState(28)
   const [right, setRight] = useState(28)   // the band's right edge: where the calendar ends
   const [cut, setCut] = useState({ l: false, r: false })   // tabs cut off at the strip's left / right edge
@@ -253,6 +254,21 @@ export function ScenarioTabs() {
     setEditing(null)
   }
   const menuTab = menu && st.tabs.find((t) => t.id === menu.id)
+  // ⭐ THE DROP MARKER (owner, 19 Nov 2026: "little markers between scenario tabs that appear when you drag ... so you
+  // know where they are going to drop"). The whole strip is the drop target, not each tab, so the 2 px between tabs and
+  // the room after the last one drop too. The slot is the number of tabs whose middle is left of the pointer; a slot
+  // either side of the dragged tab would not move it, so it shows no marker and drops nothing.
+  const from = drag ? st.tabs.findIndex((t) => t.id === drag) : -1
+  const slotAt = (x) => {
+    const els = stripRef.current ? stripRef.current.querySelectorAll('.sc-tab') : []
+    let g = 0
+    els.forEach((el) => { const r = el.getBoundingClientRect(); if (x > r.left + r.width / 2) g++ })
+    return g
+  }
+  const moves = (g) => from >= 0 && g !== null && g !== from && g !== from + 1
+  const endDrag = () => { setDrag(null); setGap(null) }
+  // Drawn as one line, on the tab after the slot, or after the last tab for the far end.
+  const markOf = (i) => !moves(gap) ? '' : gap === i ? ' drop-before' : (gap === st.tabs.length && i === st.tabs.length - 1) ? ' drop-after' : ''
   // ⭐ THE VERSION ON EVERY TAB (owner, 19 Nov 2026, layout C of mockups/scenario-version-layouts.html): a small badge
   // after the name, as the header prints it, so a name never has to carry the version. A fresh copy whose Version is a
   // number also shows "→ v4" (the engine's offer, takeScenarioVerOffer() in app.js), there while its name box is open
@@ -284,6 +300,19 @@ export function ScenarioTabs() {
     <div className="sc-strip" style={{ left }} role="group" aria-label="Scenarios">
       <div className={'sc-tabs' + (cut.l ? ' is-cut-l' : '') + (cut.r ? ' is-cut-r' : '')} ref={stripRef} role="tablist"
            aria-label="Scenarios" onScroll={measureCut}
+           onDragOver={(e) => {
+             if (!drag) return
+             e.preventDefault(); e.dataTransfer.dropEffect = 'move'
+             const g = slotAt(e.clientX)
+             if (g !== gap) setGap(g)
+           }}
+           onDragLeave={(e) => { if (!e.currentTarget.contains(e.relatedTarget)) setGap(null) }}
+           onDrop={(e) => {
+             e.preventDefault()
+             const g = slotAt(e.clientX)
+             if (moves(g)) send({ op: 'move', id: drag, to: g > from ? g - 1 : g })
+             endDrag()
+           }}
            onWheel={(e) => { if (e.deltaY && stripRef.current) stripRef.current.scrollLeft += e.deltaY }}>
         {st.tabs.map((t, i) => {
           const on = t.id === st.current
@@ -307,12 +336,10 @@ export function ScenarioTabs() {
           }
           return (
             <UnstyledButton key={t.id} role="tab" aria-selected={on}
-              className={'sc-tab' + (on ? ' is-current' : '') + (drag === t.id ? ' is-dragging' : '')}
+              className={'sc-tab' + (on ? ' is-current' : '') + (drag === t.id ? ' is-dragging' : '') + markOf(i)}
               draggable
               onDragStart={(e) => { setDrag(t.id); e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/plain', t.name) }}
-              onDragOver={(e) => { if (drag) { e.preventDefault(); e.dataTransfer.dropEffect = 'move' } }}
-              onDrop={(e) => { e.preventDefault(); if (drag && drag !== t.id) send({ op: 'move', id: drag, to: i }); setDrag(null) }}
-              onDragEnd={() => setDrag(null)}
+              onDragEnd={endDrag}
               onClick={() => { if (!on) send({ op: 'switch', id: t.id }) }}
               onDoubleClick={() => setEditing(t.id)}
               onContextMenu={(e) => { e.preventDefault(); if (!on) send({ op: 'switch', id: t.id }); openMenu(t.id, e.clientX, e.clientY) }}

@@ -29,6 +29,17 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — Dragging a scenario tab shows where it will drop (19 Nov 2026)
+
+The owner asked for markers between the scenario tabs while one is dragged to reorder them. A short line in the app's
+primary colour now sits in the gap where the tab will land: before a tab, or after the last one. The whole strip takes
+the drop, so the 2 px between tabs and the room after the last tab work too (before, only a drop ON a tab moved it, and
+it took that tab's place whichever half the pointer was over). A spot either side of the dragged tab would not move it,
+so it shows no line and the drop does nothing. Chrome only (`ScenarioTabs.jsx`, `legacy.css`); nothing saved, nothing
+frozen. Verified: `scenversion` 11/11 (new V10 drives the drag: the line's place, none where nothing would move, the
+order after two drops, the line cleared after), `scenarios` 23/23, `scenlist` (real time) 9/9, `npm run check` 43/43;
+tried by hand in the browser.
+
 ## v1.22.1 — Scenario tabs show their Version; "+ Duplicate Scenario B" at the far right; Tandem Days and the field order in Show info; Finish before on an empty card; calendar-only zoom (19 Nov 2026)
 
 ### "Reset hiatus bands" is gone (19 Nov 2026)

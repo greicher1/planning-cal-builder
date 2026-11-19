@@ -19,6 +19,7 @@
 //   V7  a copy of the FIRST tab goes to the far right (19 Nov 2026); with no Version, no badge and no offer
 //   V8  a saved file carries no new key (the offer and the badge are session UI)
 //   V9  the "+" tooltip names the tab it will copy (19 Nov 2026)
+//   V10 dragging a tab shows a drop line where it will land, none where it would not move (19 Nov 2026)
 //   E0  no page errors
 window.__T.memoryIDB();
 window.addEventListener('load', function () { (async function () {
@@ -119,6 +120,45 @@ window.addEventListener('load', function () { (async function () {
     enterName(); await T.sleep(400);
     add('V7', 'a copy of the first tab goes to the far right; with no Version it shows no badge and no offer',
       v7 === 'Scenario A | Scenario B v7 | *[Scenario C]' && !q('.sc-ver-bump'), {tabs: v7}, 'Scenario A | Scenario B v7 | *[Scenario C]');
+
+    // V10 -- the drop marker (owner, 19 Nov 2026: "little markers between scenario tabs that appear when you drag").
+    // HTML drag events with one DataTransfer, as Chrome sends them. A then B then C: drag A over C's left half shows a
+    // line before C; over B's left half (where A would not move) none; dropped, A goes between B and C. Then C dragged
+    // past the last tab's middle shows nothing (it is already last), and to the far left a line before the first tab.
+    function drag(fromName){
+      var dt = new DataTransfer(), el = qa('.sc-tab').filter(function(t){ return txt(t.querySelector('.sc-tab-name')) === fromName; })[0];
+      el.dispatchEvent(new DragEvent('dragstart', {bubbles: true, dataTransfer: dt}));
+      function at(name, frac){
+        var t = qa('.sc-tab').filter(function(x){ return txt(x.querySelector('.sc-tab-name')) === name; })[0], r = t.getBoundingClientRect();
+        return {x: r.left + r.width * frac, y: r.top + r.height / 2, t: t};
+      }
+      return {
+        over: async function(name, frac){ var p = at(name, frac);
+          p.t.dispatchEvent(new DragEvent('dragover', {bubbles: true, cancelable: true, dataTransfer: dt, clientX: p.x, clientY: p.y}));
+          await T.sleep(120);
+          return qa('.sc-tab').map(function(t){ return (t.className.match(/drop-(before|after)/) || ['-'])[0]; }).join(','); },
+        drop: async function(name, frac){ var p = at(name, frac);
+          p.t.dispatchEvent(new DragEvent('drop', {bubbles: true, cancelable: true, dataTransfer: dt, clientX: p.x, clientY: p.y}));
+          el.dispatchEvent(new DragEvent('dragend', {bubbles: true, dataTransfer: dt}));
+          await T.sleep(400); }
+      };
+    }
+    function order(){ return qa('.sc-tab').map(function(t){ return txt(t.querySelector('.sc-tab-name')); }).join(','); }
+    var d1 = drag('Scenario A');
+    await T.sleep(120);
+    var m1 = await d1.over('Scenario C', 0.2), m0 = await d1.over('Scenario B', 0.2);
+    await d1.drop('Scenario C', 0.2);
+    var o1 = order(), left1 = qa('.sc-tab.drop-before, .sc-tab.drop-after, .sc-tab.is-dragging').length;
+    var d2 = drag('Scenario C');
+    await T.sleep(120);
+    var m2 = await d2.over('Scenario C', 0.8), m3 = await d2.over('Scenario B', 0.1);
+    await d2.drop('Scenario B', 0.1);
+    var o2 = order();
+    var v10 = {overC: m1, overB: m0, after1: o1, cleared: left1, ownEnd: m2, farLeft: m3, after2: o2};
+    add('V10', 'dragging a tab shows a line where it will drop, none where it would not move, and drops there',
+      m1 === '-,-,drop-before' && m0 === '-,-,-' && o1 === 'Scenario B,Scenario A,Scenario C' && left1 === 0 &&
+      m2 === '-,-,-' && m3 === 'drop-before,-,-' && o2 === 'Scenario C,Scenario B,Scenario A', v10,
+      'overC -,-,drop-before; overB none; B,A,C; ownEnd none; farLeft drop-before first; C,B,A');
 
     // V8 -- the file: the scenarios' tab entries hold only their own keys, and no top-level key names the offer.
     document.getElementById('save-file-btn').click(); await T.sleep(1200);
