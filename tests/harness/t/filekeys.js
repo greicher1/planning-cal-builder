@@ -145,7 +145,7 @@ window.addEventListener('load', function () { (async function () {
     var month = { prevented: p10m, name: f10 && f10.name, pages: f10 ? T.pdfPages(f10.bytes) : 0, printCalled: printed };
     kase('K10', '⇧⌘E end to end: the waterfall writes the .xlsx, the month view writes the month PDF (one page per month)',
          sheet.prevented && sheet.wrote && sheet.head === 'PK' && month.prevented && !!f10 && f10.closed &&
-         /Month Calendar .*\d{4}-\d{2}-\d{2}.*\.pdf$/.test(f10.name || '') && month.pages >= 12 && !printed, { observed: { sheet: sheet, month: month } });
+         /Month Calendar .*- a\.o\. \d{1,2}\.\d{1,2}\.\d{2}\.pdf$/.test(f10.name || '') && month.pages >= 12 && !printed, { observed: { sheet: sheet, month: month } });
     document.getElementById('view-sheet-btn').click();
     await T.until(function () { return !!document.querySelector('#table-wrap table.sheet-table'); }, 'the waterfall again', 200, 100);
     await settle('the waterfall to settle again');

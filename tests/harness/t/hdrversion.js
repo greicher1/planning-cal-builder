@@ -181,25 +181,26 @@ window.addEventListener('load', function () { (async function () {
     out.blankInert = out.blankL2.text === '' && out.blankL2.empty && !out.blankL2.visible;
     T.set('show-version', 'v');
     await T.sleep(400);
-    out.bareVText = l2State().text;           // "v": exactly as typed (it read nothing before 3 Nov 2026)
+    out.bareVText = l2State().text;           // '': the box takes a number only (18 Nov 2026), so a "v" is dropped
 
-    // ---- 3. it arrives exactly as typed: no v added, none taken away, no case changed ---------
+    // ---- 3. a NUMBER, and the header adds the v (owner, 18 Nov 2026, reversing 3 Nov's "exactly as typed") --------
     T.set('show-version', 'V3');
     await T.sleep(500);
-    out.upperVText = l2State().text;          // must be V3, not v3
+    out.upperVText = l2State().text;          // the box keeps "3", the header reads v3
+    out.upperVField = document.getElementById('show-version').value;
     T.set('show-version', '3');
     await T.sleep(500);
     var on = l2State();
     out.afterL2 = on;
-    out.screenShowsVersion = on.text === '3' && !on.empty && on.visible;
-    out.asTyped = out.upperVText === 'V3' && out.bareVText === 'v';
+    out.screenShowsVersion = on.text === 'v3' && !on.empty && on.visible;
+    out.asTyped = out.upperVText === 'v3' && out.upperVField === '3' && out.bareVText === '';
 
     // ---- 4. it reaches the workbook, as the second line of &L ---------------------------------
     await T.sleep(900);
     var ex1 = await excelL();
     out.afterExcelL = ex1.L;
     out.afterExcelRaw = ex1.raw.slice(0, 160);
-    out.excelHasVersion = ex1.L === todayStr + '\n' + '3';
+    out.excelHasVersion = ex1.L === todayStr + '\n' + 'v3';
     // No per-line format codes anywhere in &L: nothing has been formatted, so the section must
     // still be the plain two-line string. hdrLineCode() only fires when a line carries a format.
     // ⚠️ Not "does the section contain a font code" -- HSIZE always prefixes it, so that test can
@@ -214,7 +215,7 @@ window.addEventListener('load', function () { (async function () {
     // ⚠️ The version is looked for IN THE DATE'S COLUMN, never as the first "3" on the page: a bare
     // "3" is a string the grid could draw too.
     var dateOp = findOp(ops1, todayStr);
-    var verOp = dateOp ? ops1.filter(function (o) { return o.text === '3' && Math.abs(o.x - dateOp.x) < 0.5; })[0] || null : null;
+    var verOp = dateOp ? ops1.filter(function (o) { return o.text === 'v3' && Math.abs(o.x - dateOp.x) < 0.5; })[0] || null : null;
     out.pdfDate = dateOp && { x: Math.round(dateOp.x), y: Math.round(dateOp.y) };
     out.pdfVersion = verOp && { x: Math.round(verOp.x), y: Math.round(verOp.y) };
     // Two lines in the left column: same x (both left-aligned in the same slot) and the version
@@ -224,7 +225,7 @@ window.addEventListener('load', function () { (async function () {
     // difference against the empty run, so it needs no guess about where the header band ends.
     out.pdfGainedOneLine = !!out.beforePdfLeftCol && !!out.afterPdfLeftCol &&
       out.afterPdfLeftCol.length === out.beforePdfLeftCol.length + 1 &&
-      out.afterPdfLeftCol[0] === todayStr && out.afterPdfLeftCol[1] === '3';
+      out.afterPdfLeftCol[0] === todayStr && out.afterPdfLeftCol[1] === 'v3';
     out.pdfTwoLeftLines = !!dateOp && !!verOp &&
                           Math.abs(dateOp.x - verOp.x) < 0.5 && verOp.y < dateOp.y &&
                           out.pdfGainedOneLine;
@@ -245,10 +246,10 @@ window.addEventListener('load', function () { (async function () {
     out.snapVersion = byId && byId['show-version'] ? byId['show-version'].value : null;
     out.fieldIdCount = byId ? Object.keys(byId).length : -1;
     out.captured = out.snapVersion === '3';
-    // ⭐ The marker: a "3" the old rule would have printed "v3" is saved WITH versionAsTyped, which is
-    // what keeps it "3" when it is opened again.
+    // ⭐ No marker for a NUMBER (18 Nov 2026): it prints "v3" under the old rule too, so an older build reading the file
+    // prints it the same. versionAsTyped is written only for text. (Was: "3" saved WITH the marker.)
     out.snapAsTyped = snap ? snap.versionAsTyped : null;
-    out.markerWritten = out.snapAsTyped === true;
+    out.markerWritten = !!snap && !('versionAsTyped' in snap);
     // The whole snapshot, so the gate step that mints tests/fixtures/hdrversion.sptcal has a REAL
     // captureSnapshot() output to write rather than a hand-built one (CLAUDE.md: test with real
     // files, not synthesised ones).
@@ -273,8 +274,8 @@ window.addEventListener('load', function () { (async function () {
       // The undo took the field back to 3 and the header with it; the redo returned both to 4.
       // ⭐ "3", not "v3": undo restores through applyStateSnapshot, which rewrites an UNMARKED "3" to
       // "v3". So this is also the proof that the marker travels and is honoured.
-      out.roundTrips = out.afterUndoField === '3' && out.afterUndoL2 === '3' &&
-                       out.afterRedoField === '4' && out.afterRedoL2 === '4';
+      out.roundTrips = out.afterUndoField === '3' && out.afterUndoL2 === 'v3' &&
+                       out.afterRedoField === '4' && out.afterRedoL2 === 'v4';
     }
 
     // ---- 7b. a version that already reads as it did ("v3") saves with NO marker ---------------
@@ -290,7 +291,7 @@ window.addEventListener('load', function () { (async function () {
     try { snap3 = JSON.parse((m3 ? m3[1] : '').replace(/\\u003c/g, '<')); } catch (e) { out.snap3ParseErr = String(e.message); }
     out.vSnapVersion = snap3 && snap3.fields && snap3.fields.byId['show-version'] ? snap3.fields.byId['show-version'].value : null;
     out.vSnapHasMarker = snap3 ? ('versionAsTyped' in snap3) : null;
-    out.noMarkerWhenSame = out.vSnapVersion === 'v3' && out.vSnapHasMarker === false;
+    out.noMarkerWhenSame = out.vSnapVersion === '3' && out.vSnapHasMarker === false;   // typed "v3": the box keeps 3
 
     // ---- 8. clearing it hides the line again, everywhere ---------------------------------------
     T.set('show-version', '');

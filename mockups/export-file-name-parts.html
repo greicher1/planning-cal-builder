@@ -1,0 +1,286 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Export File Name Parts</title>
+<!-- MOCKUP, not the app. Owner, 18 Nov 2026: "Could you mockup a version of the export pdf page that includes an easy to
+     use system that lets you add/unadd parts of the the file name". The Export PDF dialog as it is live
+     (src/chrome/ExportPdfDialog.jsx: Paper, Orientation, Grid lines, Cancel / Export), with a new "File name" section
+     under Grid lines. Three ways to switch the parts on and off, A to C; the tabs share one set of picks so they can be
+     compared. The parts and their order are today's exportFileName() with the WRO date (branch export-name-wro):
+     title, season, WRO, words, file date, Version, scenario. The calendar is synthetic. -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  /* src/theme.js */
+  --navy-0:#EAEEF2; --navy-1:#D3DAE1; --navy-2:#B4BFC9; --navy-6:#2C3E50; --navy-7:#1C2833;
+  --gray-0:#F7F6F3; --gray-1:#EEECE5; --gray-2:#E3E1DA; --gray-3:#D9D7CE; --gray-4:#C4C1B6; --gray-5:#A5A197;
+  --gray-6:#726F68; --gray-7:#5A5750; --gray-9:#1E1D1B;
+  --page:#ECEBE6;
+}
+*{ box-sizing:border-box; }
+body{ margin:0; font-family:'Inter',system-ui,sans-serif; color:var(--gray-9); background:var(--page); line-height:1.5; }
+button{ font:inherit; }
+
+.page{ max-width:1080px; margin:0 auto; padding:24px 16px 60px; }
+.page-head h1{ font-size:22px; margin:0 0 6px; letter-spacing:-.01em; }
+.page-head p{ margin:0 0 4px; color:var(--gray-6); font-size:13.5px; max-width:820px; }
+.tabs{ display:flex; flex-wrap:wrap; gap:6px; margin:16px 0 6px; align-items:center; }
+.tab{ border:1px solid var(--gray-4); background:#fff; border-radius:999px; padding:5px 14px 5px 6px;
+      font-size:13px; font-weight:600; cursor:pointer; color:var(--gray-9); display:inline-flex; align-items:center; }
+.tab .n{ display:inline-grid; place-items:center; width:22px; height:22px; border-radius:50%; background:var(--gray-0);
+         margin-right:7px; font-size:11px; }
+.tab[aria-selected="true"]{ background:var(--navy-6); color:#fff; border-color:var(--navy-6); }
+.tab[aria-selected="true"] .n{ background:rgba(255,255,255,.18); }
+.tabnote{ margin:4px 0 14px; font-size:13px; color:var(--gray-7); max-width:820px; }
+
+.layout{ display:grid; grid-template-columns:minmax(0,1fr) 300px; gap:18px; align-items:start; }
+@media (max-width:860px){ .layout{ grid-template-columns:minmax(0,1fr); } }
+
+/* A stand-in for the app with the modal's overlay over it */
+.stage{ background:rgba(30,29,27,.35); border-radius:12px; padding:28px 16px; display:grid; place-items:center;
+        min-height:560px; }
+
+/* The Mantine modal, size md, radius lg */
+.dlg{ background:#fff; width:440px; max-width:100%; border-radius:10px; box-shadow:0 20px 50px rgba(0,0,0,.22);
+      padding:16px 20px 18px; }
+.dlg-head{ display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; }
+.dlg-head h2{ font-size:16px; font-weight:600; margin:0; }
+.x{ border:0; background:none; width:28px; height:28px; border-radius:6px; color:var(--gray-6); cursor:pointer; font-size:18px; line-height:1; }
+.x:hover{ background:var(--gray-1); }
+.row{ margin-bottom:16px; }
+.row-label{ font-size:14px; font-weight:600; margin:0 0 6px; display:flex; align-items:baseline; gap:8px; }
+.row-label .reset{ margin-left:auto; border:0; background:none; padding:0; font-size:12px; font-weight:500; color:var(--gray-6);
+                   text-decoration:underline; cursor:pointer; }
+.dim{ font-size:12px; color:var(--gray-6); margin:6px 0 0; }
+
+/* SegmentedControl */
+.seg{ display:flex; background:var(--gray-1); border-radius:7px; padding:3px; gap:2px; }
+.seg button{ flex:1 1 0; border:0; background:none; border-radius:5px; padding:5px 4px; cursor:pointer; color:var(--gray-7);
+             font-size:14px; font-weight:500; line-height:1.3; text-align:center; min-width:0; }
+.seg button small{ display:block; font-size:12px; font-weight:400; color:var(--gray-6); }
+.seg button b{ display:block; font-size:12px; font-weight:600; }
+.seg button[aria-pressed="true"]{ background:#fff; color:var(--gray-9); box-shadow:0 1px 3px rgba(0,0,0,.12); }
+
+.btns{ display:flex; justify-content:flex-end; gap:8px; margin-top:20px; }
+.btn{ border:1px solid var(--gray-3); background:#fff; border-radius:5px; padding:0 14px; height:30px; font-size:13px;
+      font-weight:600; cursor:pointer; color:var(--gray-9); }
+.btn.primary{ background:var(--navy-6); border-color:var(--navy-6); color:#fff; }
+
+/* ---------- The file name, shared ---------- */
+.fname{ background:var(--gray-0); border:1px solid var(--gray-2); border-radius:7px; padding:8px 10px; font-size:13px;
+        line-height:1.45; word-break:break-word; }
+.fname .ext{ color:var(--gray-6); }
+.fname .pc{ transition:background .12s, color .12s; border-radius:4px; }
+.fname .pc.flash{ background:#FFF2CC; }
+
+/* A: chips under the name */
+.chips{ display:flex; flex-wrap:wrap; gap:6px; margin-top:8px; }
+.chip{ display:inline-flex; align-items:center; gap:5px; border:1px solid var(--gray-3); background:#fff; color:var(--gray-6);
+       border-radius:999px; padding:2px 10px 2px 7px; font-size:12.5px; font-weight:500; cursor:pointer; line-height:1.5; }
+.chip .tick{ width:14px; height:14px; border-radius:50%; border:1.5px solid var(--gray-4); display:inline-grid; place-items:center;
+             font-size:9px; color:transparent; }
+.chip[aria-pressed="true"]{ background:var(--navy-0); border-color:var(--navy-2); color:var(--navy-7); }
+.chip[aria-pressed="true"] .tick{ background:var(--navy-6); border-color:var(--navy-6); color:#fff; }
+.chip[disabled]{ cursor:default; opacity:.85; }
+.chip[disabled] .tick{ background:var(--gray-5); border-color:var(--gray-5); color:#fff; }
+
+/* B: click a piece of the name itself */
+.fname.pieces{ padding:7px 8px; }
+.piece{ display:inline; border:0; font:inherit; color:var(--gray-9); background:#fff; border:1px solid var(--gray-3);
+        border-radius:5px; padding:1px 6px; margin:2px 1px; cursor:pointer; line-height:1.9; }
+.piece:hover{ border-color:var(--navy-2); background:var(--navy-0); }
+.piece.off{ color:var(--gray-5); background:transparent; border-style:dashed; text-decoration:line-through; }
+.piece.off:hover{ color:var(--gray-7); }
+.piece.locked{ cursor:default; background:var(--gray-1); border-color:var(--gray-2); }
+.piece.locked:hover{ background:var(--gray-1); border-color:var(--gray-2); }
+
+/* C: a checklist with each part's value */
+.checks{ border:1px solid var(--gray-2); border-radius:7px; margin-top:8px; overflow:hidden; }
+.check{ display:flex; align-items:center; gap:10px; padding:5px 10px; font-size:13px; border-top:1px solid var(--gray-1);
+        cursor:pointer; user-select:none; }
+.check:first-child{ border-top:0; }
+.check:hover{ background:var(--gray-0); }
+.check .box{ width:16px; height:16px; border-radius:4px; border:1.5px solid var(--gray-4); display:inline-grid; place-items:center;
+             font-size:11px; color:transparent; flex:0 0 auto; }
+.check.on .box{ background:var(--navy-6); border-color:var(--navy-6); color:#fff; }
+.check.locked{ cursor:default; }
+.check.locked .box{ background:var(--gray-5); border-color:var(--gray-5); color:#fff; }
+.check .lbl{ font-weight:500; flex:0 0 auto; width:96px; }
+.check .val{ color:var(--gray-6); min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; margin-left:auto; text-align:right; }
+.check:not(.on) .val{ text-decoration:line-through; color:var(--gray-5); }
+
+/* The notes beside the mockup */
+.notes{ background:#fff; border:1px solid var(--gray-2); border-radius:12px; padding:14px 16px; font-size:13px; }
+.notes h3{ font-size:10.5px; text-transform:uppercase; letter-spacing:.07em; color:var(--gray-6); margin:0 0 6px; }
+.notes ul{ margin:0 0 12px; padding-left:18px; }
+.notes li{ margin:0 0 5px; }
+.notes p{ margin:0 0 10px; }
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="page-head">
+    <h1>Export PDF: choose what goes in the file name</h1>
+    <p>The Export PDF window as it is today, with a new <b>File name</b> section under Grid lines. Click the parts to take
+      them out or put them back; the name above updates as you go. Three ways to do the clicking. Your picks carry across
+      the tabs, so you can compare them.</p>
+  </div>
+
+  <div class="tabs" role="tablist">
+    <button class="tab" role="tab" data-v="a" aria-selected="true"><span class="n">A</span>Chips under the name</button>
+    <button class="tab" role="tab" data-v="b" aria-selected="false"><span class="n">B</span>Click the name itself</button>
+    <button class="tab" role="tab" data-v="c" aria-selected="false"><span class="n">C</span>Checklist</button>
+  </div>
+  <p class="tabnote" id="tabnote"></p>
+
+  <div class="layout">
+    <div class="stage">
+      <div class="dlg" role="dialog" aria-label="Export PDF">
+        <div class="dlg-head"><h2>Export PDF</h2><button class="x" aria-label="Close">×</button></div>
+
+        <div class="row">
+          <p class="row-label">Paper</p>
+          <div class="seg" data-seg>
+            <button aria-pressed="true">Letter<small>8.5 × 11 in</small><b>Recommended</b></button>
+            <button aria-pressed="false">Legal<small>8.5 × 14 in</small><b>&nbsp;</b></button>
+            <button aria-pressed="false">Tabloid<small>11 × 17 in</small><b>&nbsp;</b></button>
+          </div>
+        </div>
+        <div class="row">
+          <p class="row-label">Orientation</p>
+          <div class="seg" data-seg>
+            <button aria-pressed="false">Portrait<small>&nbsp;</small></button>
+            <button aria-pressed="true">Landscape<small style="font-weight:600;color:var(--gray-9)">Recommended</small></button>
+          </div>
+          <p class="dim">Portrait prints this calendar at about 81% of full size, landscape at about 100%.</p>
+        </div>
+        <div class="row">
+          <p class="row-label">Grid lines</p>
+          <div class="seg" data-seg>
+            <button aria-pressed="true">None</button><button aria-pressed="false">Solid</button><button aria-pressed="false">Dashed</button>
+          </div>
+        </div>
+
+        <!-- ⭐ NEW -->
+        <div class="row" id="fn-row">
+          <p class="row-label">File name <button class="reset" id="fn-reset" hidden>Put all back</button></p>
+          <div id="fn-body"></div>
+        </div>
+
+        <p class="dim">The paper and orientation are saved with this calendar, and Export to Excel uses them too.
+          Grid lines stay on this computer.</p>
+        <div class="btns"><button class="btn">Cancel</button><button class="btn primary">Export</button></div>
+      </div>
+    </div>
+
+    <aside class="notes">
+      <h3>How it behaves</h3>
+      <ul>
+        <li>Every part starts <b>on</b>, so the name is today's until you change it.</li>
+        <li>The <b>show title</b> always stays, so a file never ends up named just "Planning Calendar 2026-11-18.pdf".</li>
+        <li>A part with nothing to say isn't offered: no season, no Writers' Room date, no Version or one scenario, and that
+          part doesn't appear.</li>
+        <li><b>Put all back</b> shows once something is off.</li>
+        <li>The order stays fixed: title, season, WRO, words, date, Version, scenario.</li>
+      </ul>
+      <h3>Your calls, once you pick a layout</h3>
+      <ul>
+        <li><b>Who remembers the picks?</b> Saved with the calendar (everyone who opens it gets the same names), or kept on
+          this computer (your own habit).</li>
+        <li><b>Which exports follow?</b> Just this PDF, or the Excel file and the month PDF too. Excel has no window of its
+          own today, so it would follow what you picked here.</li>
+        <li><b>Type a part?</b> For example change "Planning Calendar" to "Waterfall". Not in this mockup.</li>
+      </ul>
+    </aside>
+  </div>
+</div>
+
+<script>
+// The parts, in exportFileName()'s order. `join` is what goes before a part; `locked` can't be taken out.
+const PARTS = [
+  { k:'title',    label:'Show title', val:'Harbor Lights',     locked:true },
+  { k:'season',   label:'Season',     val:'S3' },
+  { k:'wro',      label:'WRO date',   val:'WRO 1.5.26' },
+  { k:'words',    label:'Calendar',   val:'Planning Calendar' },
+  { k:'date',     label:'Date',       val:'2026-11-18' },
+  { k:'version',  label:'Version',    val:'v3' },
+  { k:'scenario', label:'Scenario',   val:'Plan B', join:' – ' },
+];
+const on = {}; PARTS.forEach(p => on[p.k] = true);
+let view = 'a', flashKey = null;
+
+const NOTES = {
+  a: 'A: the name as it will download, and under it one chip per part. A ticked chip is in the name; click it to take it out, click again to put it back.',
+  b: 'B: the name itself is made of pieces. Click a piece to cross it out; click it again to bring it back. Nothing else to learn, but the pieces are small targets.',
+  c: 'C: a short list, one row per part with what it says on the right, and the name above it. The roomiest to click; the tallest of the three.',
+};
+const esc = s => s.replace(/&/g,'&amp;').replace(/</g,'&lt;');
+
+function nameHtml(){
+  let out = '', first = true;
+  PARTS.forEach(p => {
+    if(!on[p.k]) return;
+    out += (first ? '' : esc(p.join || ' ')) + `<span class="pc${flashKey===p.k?' flash':''}">${esc(p.val)}</span>`;
+    first = false;
+  });
+  return out + '<span class="ext">.pdf</span>';
+}
+
+function render(){
+  const body = document.getElementById('fn-body');
+  if(view === 'a'){
+    body.innerHTML = `<div class="fname">${nameHtml()}</div><div class="chips">` +
+      PARTS.map(p => `<button class="chip" data-k="${p.k}" aria-pressed="${on[p.k]}" ${p.locked?'disabled title="The show title always stays"':''}>` +
+        `<span class="tick">✓</span>${esc(p.label)}</button>`).join('') + '</div>';
+  } else if(view === 'b'){
+    let html = '<div class="fname pieces">', first = true;
+    PARTS.forEach(p => {
+      const j = first ? '' : (p.join ? esc(p.join.trim()) + ' ' : '');
+      html += j + `<button class="piece${on[p.k]?'':' off'}${p.locked?' locked':''}" data-k="${p.k}" aria-pressed="${on[p.k]}"` +
+        ` ${p.locked?'title="The show title always stays"':'title="'+(on[p.k]?'Take out':'Put back')+'"'}>${esc(p.val)}</button> `;
+      first = false;
+    });
+    html += '<span class="ext">.pdf</span></div><p class="dim">Click a piece to take it out of the name, or put it back.</p>';
+    body.innerHTML = html;
+  } else {
+    body.innerHTML = `<div class="fname">${nameHtml()}</div><div class="checks">` +
+      PARTS.map(p => `<div class="check${on[p.k]?' on':''}${p.locked?' locked':''}" data-k="${p.k}" role="checkbox" aria-checked="${on[p.k]}" tabindex="0">` +
+        `<span class="box">✓</span><span class="lbl">${esc(p.label)}</span><span class="val">${esc(p.val)}</span></div>`).join('') + '</div>';
+  }
+  document.getElementById('fn-reset').hidden = PARTS.every(p => on[p.k]);
+  document.getElementById('tabnote').textContent = NOTES[view];
+}
+
+function toggle(k){
+  const p = PARTS.find(x => x.k === k);
+  if(!p || p.locked) return;
+  on[k] = !on[k];
+  flashKey = on[k] ? k : null;
+  render();
+  if(flashKey) setTimeout(() => { flashKey = null; document.querySelectorAll('.pc.flash').forEach(e => e.classList.remove('flash')); }, 700);
+}
+
+document.getElementById('fn-body').addEventListener('click', e => {
+  const t = e.target.closest('[data-k]'); if(t) toggle(t.dataset.k);
+});
+document.getElementById('fn-body').addEventListener('keydown', e => {
+  const t = e.target.closest('.check[data-k]');
+  if(t && (e.key === ' ' || e.key === 'Enter')){ e.preventDefault(); toggle(t.dataset.k); t.focus && document.querySelector(`.check[data-k="${t.dataset.k}"]`).focus(); }
+});
+document.getElementById('fn-reset').addEventListener('click', () => { PARTS.forEach(p => on[p.k] = true); render(); });
+document.querySelectorAll('.tab').forEach(b => b.addEventListener('click', () => {
+  document.querySelectorAll('.tab').forEach(x => x.setAttribute('aria-selected', x === b));
+  view = b.dataset.v; render();
+}));
+document.querySelectorAll('[data-seg]').forEach(seg => seg.addEventListener('click', e => {
+  const b = e.target.closest('button'); if(!b) return;
+  seg.querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', x === b));
+}));
+render();
+</script>
+</body>
+</html>

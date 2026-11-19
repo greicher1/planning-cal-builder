@@ -165,9 +165,16 @@ window.addEventListener('load', function () { (async function () {
     var reEsc = function (s) { return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); };
     var verTyped = ((document.getElementById('show-version') || {}).value || '').replace(/[\\/:*?"<>|]/g, '-').replace(/\s+/g, ' ').trim();
     var seasonNum = parseInt(((document.getElementById('season-num') || {}).value || '').trim(), 10);
+    // ⭐ RE-EXPECTED 18 Nov 2026, the owner's default: "<title> <season> Month Calendar <v + number> WRO <M.D.YY> - a.o.
+    // <M.D.YY>.pdf" (the Version box holds a number and the v is added; WRO when the Writers' Room has a date; the
+    // scenario off by default). A Version that is not a number prints as saved.
+    var verNum = verTyped.replace(/^[vV]\s*/, '');
+    var verShown = /^\d+(\.\d+)*\.?$/.test(verNum) ? 'v' + verNum : verTyped;
+    var wrSet = !!((document.getElementById('start-writersRoom') || {}).value || '').trim();
     var wantName = '^' + reEsc(title ? title.replace(/[\\/:*?"<>|]/g, '-').replace(/\s+/g, ' ').trim() + ' ' : '')
                  + (seasonNum >= 1 ? 'S' + seasonNum + '(?:(?:, S\\d+)* & S\\d+)? ' : '')
-                 + 'Month Calendar \\d{4}-\\d{2}-\\d{2}' + (verTyped ? ' ' + reEsc(verTyped) : '') + '\\.pdf$';
+                 + 'Month Calendar' + (verShown ? ' ' + reEsc(verShown) : '') + (wrSet ? ' WRO \\d+\\.\\d+\\.\\d{2}' : '')
+                 + ' - a\\.o\\. \\d+\\.\\d+\\.\\d{2}\\.pdf$';
     var nameOk = function (n) { return new RegExp(wantName).test(n || ''); };
     info.window = [window.innerWidth, window.innerHeight];
     info.tz = {zone: Intl.DateTimeFormat().resolvedOptions().timeZone, offsetMin: new Date().getTimezoneOffset()};

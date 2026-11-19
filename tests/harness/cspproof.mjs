@@ -160,7 +160,7 @@ try {
   await until(`!!window.__mpdf`, 'the month PDF written', 20000).catch(() => {});
   const m2 = await ev(`({ pdf: window.__mpdf, prints: window.__mprints })`);
   kase('M2', 'the month PDF is written by the direct writer, through the Save dialog, with no print',
-       !!m2 && !!m2.pdf && m2.pdf.head === '%PDF-1.4' && m2.pdf.pages > 0 && /Month Calendar .*\d{4}-\d{2}-\d{2}.*\.pdf$/.test(m2.pdf.name || '') && m2.prints === 0, { m2 });
+       !!m2 && !!m2.pdf && m2.pdf.head === '%PDF-1.4' && m2.pdf.pages > 0 && /Month Calendar .*- a\.o\. \d{1,2}\.\d{1,2}\.\d{2}\.pdf$/.test(m2.pdf.name || '') && m2.prints === 0, { m2 });
 
   // M3: the print path, the rollback (MV_PDF_MODE), reached here by its localhost-only switch, must still run under the
   // policy too: the month document is prepared and printed.

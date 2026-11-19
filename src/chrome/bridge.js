@@ -116,7 +116,8 @@ export const chrome = {
   // radio fires no `change` in Chrome (React restores it inside the click; see setMvProdLabel).
   mvProdLabel: noop,
   // ("mvBarSize", the Phase bar size SegmentedControl's push, was removed 2 Nov 2026: the control is a dropdown now,
-  // #pref-mv-barsize, which the engine writes directly, as it writes #wf-paper. MONTH-NOTE-SIZE-PLAN.md §1a.)
+  // #pref-mv-barsize, which the engine writes directly, as it writes #wf-paper. MONTH-NOTE-SIZE-PLAN.md §1a. Since
+  // 18 Nov 2026 it is #pref-mv-size, one Size for bars and notes, written the same way by reflectMvSizeSelects.)
   // { open?, tab? } — the Settings window (owner ruling 12, src/chrome/SettingsWindow.jsx). The
   // engine only ever CLOSES it, when it sends the user to a sidebar tab the window would cover
   // (revealSidebarTab). Whether it is open is session UI: never in captureSnapshot(), never an undo

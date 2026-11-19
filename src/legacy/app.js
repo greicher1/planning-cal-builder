@@ -28,7 +28,7 @@ export function initLegacyApp() {
   // They are one action, not two: version.json alone makes every user see an update that
   // isn't there, and APP_VERSION alone makes a real update invisible. The release-cut step in
   // README's changelog rules lists them together for exactly this reason.
-  const APP_VERSION = '1.19.2';
+  const APP_VERSION = '1.20.0';
 
   // ---------- Embedded Carlito ----------
   // The two <script type="text/plain"> blocks above hold Carlito, subset and zlib-compressed,
@@ -2121,6 +2121,10 @@ export function initLegacyApp() {
         if(!Array.isArray(v)) return;
         const list = usableHeaderPresets(v, '__default');   // HDR_PRESET_DEFAULT_ID, not declared yet here (see above)
         if(list.length) out[k] = list;
+        return;
+      }
+      if(k === 'fileNameOff' || k === 'fileNameOrder'){   // the file-name parts off / their order: short strings
+        if(Array.isArray(v) && v.every(x => typeof x === 'string' && x.length < 20)) out[k] = v.slice(0, 20);
         return;
       }
       const t = PREF_TYPES[k];
@@ -28913,10 +28917,14 @@ export function initLegacyApp() {
     return s;
   }
 
-  // The version number as it appears in the header: EXACTLY what was typed (owner, 3 Nov 2026: "should
-  // just be exactly what is typed. So no longer with a v prefix"). Typing 3 prints "3", v3 prints "v3".
-  // ANY text is accepted -- owners write 3, 3.1 and 3a -- because it is a LABEL, not arithmetic, which
-  // is why the field is a TextInput and not a NumberInput (decision H1, 1 Sep 2026).
+  // ⭐ The version number as it appears in the header, the file names and Compare: the box takes a NUMBER and the "v"
+  // is added here (owner, 18 Nov 2026: "if they leave out the v in version number it should auto add it", "the Show
+  // info box should also be changed back to enter a number only and it adds the v itself in the header"). Typing 3
+  // prints "v3", 3.1 prints "v3.1". This REVERSES the 3 Nov 2026 ruling ("exactly what is typed", versionAsTyped).
+  //  - The box keeps only digits and dots as it is typed in (the input listener below); a calendar opened with "v3"
+  //    in it opens as "3" (applyStateSnapshot), so every number the box holds prints the same "v3" as before.
+  //  - Text that is NOT a number, kept by a calendar saved 3-18 Nov 2026 ("Blue", "Draft 2"), still prints exactly as
+  //    saved until the box is edited: a user's label is never silently rewritten.
   //
   // ⛔ AN EMPTY FIELD MUST RETURN THE EMPTY STRING. That single line is the whole of this feature's
   // inertness. computeHeaderDefaults() puts this value in the l2 slot, and an EMPTY l2 is filtered out
@@ -28925,7 +28933,16 @@ export function initLegacyApp() {
   // field of spaces is no version, never a version called "   ".
   function versionLabel(){
     const el = document.getElementById('show-version');
-    return el ? String(el.value || '').trim() : '';
+    const raw = el ? String(el.value || '').trim() : '';
+    const num = versionNumber(raw);
+    if(num !== null) return num ? 'v' + num : '';
+    return raw;
+  }
+  // The number in a Version ("3", "v3", "V 3.1" → "3" / "3.1"), '' for a bare "v", or null when it is not a number.
+  function versionNumber(raw){
+    const s = String(raw || '').trim().replace(/^[vV]\s*/, '');
+    if(s === '' && /^[vV]$/.test(String(raw || '').trim())) return '';
+    return /^\d+(\.\d+)*\.?$/.test(s) ? s : null;
   }
   // ⛔ What the header printed for a typed value from 1 Sep to 3 Nov 2026 (decision H1): "v" + the input
   // with one leading v/V stripped, so "3", "V3" and "v3" all read "v3", and a bare "v" read nothing. NEVER
@@ -28941,6 +28958,9 @@ export function initLegacyApp() {
   function versionNeedsAsTyped(){
     const el = document.getElementById('show-version');
     const raw = el ? String(el.value || '') : '';
+    // ⭐ Since 18 Nov 2026 a NUMBER prints "v" + it, as the old rule did, so it never needs the key: an older build
+    // reading the file prints it "v3" too. Only text that is not a number ("Blue") still does.
+    if(versionNumber(raw) !== null) return false;
     return legacyVersionLabel(raw) !== raw.trim();
   }
 
@@ -32951,7 +32971,17 @@ export function initLegacyApp() {
   // recompute -- it only changes what the header's bottom-left slot prints. Same shape as the title
   // above, and unguarded for the same reason: src/main.jsx commits the React chrome with flushSync
   // BEFORE initLegacyApp() runs, so the field exists by the time this line evaluates.
-  document.getElementById('show-version').addEventListener('input', ()=>{ render(currentSchedule); markDirty(); });
+  // ⭐ A NUMBER ONLY (owner, 18 Nov 2026): anything but digits and dots is dropped as it is typed or pasted, keeping the
+  // caret where it was; the header adds the "v" (versionLabel). Text a calendar already holds is left until edited.
+  document.getElementById('show-version').addEventListener('input', (e)=>{
+    const el = e.target, v = el.value, clean = v.replace(/[^0-9.]/g, '');
+    if(clean !== v){
+      const caret = el.selectionStart == null ? clean.length : v.slice(0, el.selectionStart).replace(/[^0-9.]/g, '').length;
+      el.value = clean;
+      try { el.setSelectionRange(caret, caret); } catch(_){}
+    }
+    render(currentSchedule); markDirty();
+  });
   // The Location (KEY-FACTS-PLAN.md §3.2) changes nothing in the calendar, only the scenario band and Compare, so it
   // re-reads the band instead of rendering.
   document.getElementById('show-location').addEventListener('input', ()=>{ scheduleScenarioFacts(); markDirty(); });
@@ -33259,35 +33289,117 @@ export function initLegacyApp() {
   function scenarioNameSuffix(){
     return (scenarioTabs && scenarioTabs.length > 1) ? ' \u2013 ' + currentScenario().name.replace(/[\\/:*?"<>|]/g, '-') : '';
   }
-  // ⭐ WHAT AN EXPORT'S NAME SAYS (audit 2026-11 AUD2-025; decision D8 = c, default approved 13 Nov 2026; the season
-  // beside the title by the owner's "Work on it now", 16 Nov 2026): "<title> <season> <words> <date> <version> –
-  // <scenario><ext>", e.g. "Harbor Lights S3 Planning Calendar 2026-11-12 v3 – Plan B.pdf", so a revised plan never
-  // downloads under yesterday's name, and S3's and S4's never collide. The words ("Planning Calendar", ruled 18 Sep
-  // 2026) and the scenario (D6) stay.
-  //  - The season is seasonLabel(), the header's own ("S3", "S3 & S4"), BESIDE THE TITLE as the header's
-  //    {titleSeason} line has it (exportNameHead). No season, nothing. From 13 to 16 Nov 2026 it came after the words
-  //    ("… Planning Calendar S3 2026-11-12 …"): the frozen name lines could only append, until edits S1b / S2b.
-  //  - The date is the header's Date Last Edited (lastEditedDate(): the stamp in the reader's zone, today without one),
-  //    so the name and the page it names agree. noteLastEdited() first, as a header does, so a change no render has
-  //    drawn yet still dates the name.
+  // ⭐ WHAT AN EXPORT'S NAME SAYS, BY DEFAULT (owner, 18 Nov 2026: "lets do this format as the default: Test Show S3
+  // Planning Calendar v3 WRO 1.4.27 - Scenario Name - a.o. 11.18.26"): "<title> <season> <words> <version> WRO <M.D.YY> -
+  // <scenario> - a.o. <M.D.YY><ext>". The scenario and the edited date are SET OFF by " - " (a hyphen, spaced) from
+  // whatever is beside them, wherever they are moved; every other part is joined by a space (exportNameFrom). With one
+  // scenario: "Test Show S3 Planning Calendar v3 WRO 1.4.27 - a.o. 11.18.26.pdf". ⚠️ The scenario is OFF by default
+  // (FILE_NAME_OFF_DEFAULT below): ticked in the Export PDF window, it reads "… WRO 1.4.27 - Plan B - a.o. 11.18.26".
+  //  - History: audit 2026-11 AUD2-025 (decision D8 = c, 13 Nov 2026) added the date and the Version; the owner's
+  //    "Work on it now" (16 Nov 2026) put the season BESIDE THE TITLE (frozen edits S1b / S2b); the owner's pickers of
+  //    18 Nov 2026 added the Writers' Room Open date (the execs' ask, 17 Nov: "Show title, season, W-R-O date, and then
+  //    the file date"), kept "Planning Calendar" after it, wrote the edited date the header's way with "a.o." (as of)
+  //    before it (it was yyyy-mm-dd), and let the Export PDF window switch parts off (fileNameOff, below).
+  //  - The season is seasonLabel(), the header's own ("S3", "S3 & S4"). None, nothing.
+  //  - WRO is wrHeaderOpenDay(), the day the header's "Writer's Room Opens: 1.5.26" line names, written as it is. No
+  //    Writer's Room date, no "WRO". Each scenario names its own (an export names the tab on screen).
+  //  - The words are the caller's ("Planning Calendar", ruled 18 Sep 2026; "Month Calendar"; "Scenario Comparison").
+  //  - The edited date is the header's Date Last Edited (lastEditedDate(): the stamp in the reader's zone, today without
+  //    one), so the name and the page it names agree. noteLastEdited() first, as a header does, so a change no render
+  //    has drawn yet still dates the name. ⚠️ Month first, the year last: a folder sorted by name no longer lists
+  //    revisions in date order (the owner's choice, told so). Day first on a DD/MM calendar, as the header.
   //  - The Version exactly as typed, as the header prints it (owner, 3 Nov 2026).
-  // ⚠️ Two revisions made the SAME DAY with the same Version still share a name: the approved default carries the
-  // day, not the time. Bumping the Version is what tells them apart.
-  // `opts.date` (a Date) replaces the date and `opts.noVersion` leaves the Version out: Compare's name (compareFileBase).
-  function exportNameMarks(opts){
+  //  - The scenario with two or more tabs (ruling D6).
+  // ⚠️ Two revisions made the SAME DAY with the same Version still share a name: the date carries the day, not the
+  // time. Bumping the Version is what tells them apart.
+  // Dates are written with dots, never slashes: '/' is not allowed in a file name.
+  function nameDate(m, d, y){ return orderedDate(m, d, String(y).slice(2), '.'); }
+  function exportNameWro(){
+    const el = document.getElementById('start-writersRoom');
+    const raw = el ? String(el.value || '').trim() : '';
+    if(!raw) return '';
+    const d = wrHeaderOpenDay(currentSchedule, raw);
+    return d ? 'WRO ' + nameDate(d.getUTCMonth() + 1, d.getUTCDate(), d.getUTCFullYear()) : '';
+  }
+  // ⭐ THE PARTS, in order, each {k, label, val, join?, locked?}; a part with nothing to say is left out, so the Export
+  // PDF window never offers it. ONE list: the name below and the window's chips both read it, so the window shows
+  // exactly what will download. `opts.date` (a Date) replaces the edited date; `opts.noWro`, `opts.noVersion` and
+  // `opts.noScenario` leave those out (Compare's name: its tabs can differ in each).
+  function exportNameParts(safeTitle, words, opts){
     opts = opts || {};
+    const clean = s => String(s || '').replace(/[\\/:*?"<>|]/g, '-').replace(/\s+/g, ' ').trim();
     if(!opts.date) noteLastEdited();
     const d = opts.date || lastEditedDate();
-    const ymd = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
-    const marks = [ymd, opts.noVersion ? '' : versionLabel()]
-      .map(s => String(s || '').replace(/[\\/:*?"<>|]/g, '-').replace(/\s+/g, ' ').trim()).filter(Boolean);
-    return marks.length ? ' ' + marks.join(' ') : '';
+    const parts = [
+      { k:'title',    label:'Show title',  val: clean(safeTitle) },
+      { k:'season',   label:'Season',      val: clean(seasonLabel()) },
+      { k:'words',    label:'Calendar',    val: clean(words) },
+      { k:'version',  label:'Version',     val: opts.noVersion ? '' : clean(versionLabel()) },
+      { k:'wro',      label:'WRO date',    val: opts.noWro ? '' : exportNameWro() },
+      { k:'scenario', label:'Scenario',    setOff: true,
+        val: (!opts.noScenario && scenarioTabs && scenarioTabs.length > 1) ? currentScenario().name.replace(/[\\/:*?"<>|]/g, '-') : '' },
+      { k:'date',     label:'Edited date', setOff: true, val: 'a.o. ' + nameDate(d.getMonth() + 1, d.getDate(), d.getFullYear()) },
+    ];
+    return parts.filter(p => p.val);
   }
-  // "<title> <season> <words>": the title as the caller made it safe (the frozen writers keep their own sanitising),
-  // then the season, then the words; whichever is empty leaves no space behind.
-  function exportNameHead(safeTitle, words){
-    const season = seasonLabel().replace(/[\\/:*?"<>|]/g, '-').replace(/\s+/g, ' ').trim();
-    return [safeTitle, season, words].filter(Boolean).join(' ');
+  // ⭐ WHICH PARTS ARE SWITCHED OFF (owner, 18 Nov 2026: "an easy to use system that lets you add/unadd parts of the
+  // file name", then "make it actually work"; mockups/export-file-name-parts.html, layout A). A PER-COMPUTER preference,
+  // `fileNameOff` in sptcal.prefs (absent = every part on, today's name), set in the Export PDF window and read by EVERY
+  // export's name (the workbook, both PDFs, Compare), never saved in a calendar. The title can be switched off too
+  // (owner, 18 Nov 2026, "also allow removing show title"; it was locked on until then). With every part off, the name
+  // is the calendar's words alone ("Planning Calendar.pdf"), never empty (exportNameFrom).
+  // ⚠️ Whether it should travel with the calendar instead is the owner's open call (tracker export-file-name-parts).
+  const FILE_NAME_PART_KEYS = ['title', 'season', 'words', 'version', 'wro', 'scenario', 'date'];
+  // ⭐ AND THEIR ORDER (owner, 18 Nov 2026: "Allow me to be able to drag and reorder the chips to reorder the file
+  // name"): `fileNameOrder` in sptcal.prefs, every part's key including the title, absent = exportNameParts' order. A key
+  // the store lacks (a part added by a later build) goes in where it sits by default, after the part before it.
+  const FILE_NAME_ORDER_DEFAULT = FILE_NAME_PART_KEYS.slice();
+  function fileNameOrder(){
+    const known = FILE_NAME_ORDER_DEFAULT;
+    const stored = Array.isArray(prefs.fileNameOrder) ? prefs.fileNameOrder.filter((k, i, a) => known.includes(k) && a.indexOf(k) === i) : [];
+    const out = stored.slice();
+    known.forEach((k, i) => {
+      if(out.includes(k)) return;
+      const before = known.slice(0, i).reverse().find(x => out.includes(x));
+      out.splice(before ? out.indexOf(before) + 1 : 0, 0, k);
+    });
+    return out;
+  }
+  function setFileNameOrder(list){
+    const known = FILE_NAME_ORDER_DEFAULT;
+    const order = (list || []).filter((k, i, a) => known.includes(k) && a.indexOf(k) === i);
+    known.forEach(k => { if(!order.includes(k)) order.push(k); });
+    if(order.join() === fileNameOrder().join()) return;
+    if(order.join() === known.join()) delete prefs.fileNameOrder; else prefs.fileNameOrder = order;
+    savePrefs();
+  }
+  // ⭐ THE SCENARIO IS OFF BY DEFAULT (owner, 18 Nov 2026: "scenario name should not be adding by default"; until then
+  // a calendar with two or more scenarios put the tab's name in every export's name, ruling D6). It stays in the list,
+  // unticked, and a tick puts it in. So an ABSENT `fileNameOff` means this default, and `[]` (stored) means every part on.
+  const FILE_NAME_OFF_DEFAULT = ['scenario'];
+  function fileNameOff(){
+    const off = Array.isArray(prefs.fileNameOff) ? prefs.fileNameOff : FILE_NAME_OFF_DEFAULT;
+    return FILE_NAME_PART_KEYS.filter(k => off.includes(k));
+  }
+  function setFileNameOff(list){
+    const off = FILE_NAME_PART_KEYS.filter(k => (list || []).includes(k));
+    if(off.join() === fileNameOff().join()) return;
+    if(off.join() === FILE_NAME_OFF_DEFAULT.join()) delete prefs.fileNameOff; else prefs.fileNameOff = off;
+    savePrefs();
+  }
+  // The parts in the chosen order, less the ones switched off. Two neighbours are joined by " - " when either is SET OFF
+  // (the scenario, the edited date), else by a space. ⛔ The Export PDF window's preview (ExportPdfDialog.jsx, joinName)
+  // repeats this rule: change both together.
+  function exportNameFrom(parts, ext){
+    const off = fileNameOff(), order = fileNameOrder();
+    let shown = parts.filter(p => p.locked || !off.includes(p.k))
+      .sort((a, b) => order.indexOf(a.k) - order.indexOf(b.k));
+    if(!shown.length) shown = parts.filter(p => p.k === 'words');   // every part off: never an empty name
+    let out = '';
+    shown.forEach((p, i) => {
+      out += (i ? ((p.setOff || shown[i - 1].setOff) ? ' - ' : ' ') : '') + p.val;
+    });
+    return out + (ext || '');
   }
   // ⛔ THE NAME FROZEN CODE CALLS. Frozen exportExcel and exportWaterfallPdfDirect name their download
   // exportFileName(<their safe title>, 'Planning Calendar', ext) (owner-approved frozen edits S1b / S2b, 16 Nov 2026;
@@ -33301,7 +33413,24 @@ export function initLegacyApp() {
   // already hand their title to this function. fileNameTitle() of a title the writers made safe is that same title
   // whenever it is 150 characters or fewer (it strips nothing they left), so no real calendar's name changes.
   function exportFileName(safeTitle, words, ext){
-    return exportNameHead(fileNameTitle(safeTitle), words) + exportNameMarks() + scenarioNameSuffix() + ext;
+    // A name TYPED in the Export PDF window names that one waterfall PDF, and is then gone (pendingPdfName, below).
+    if(pendingPdfName && ext === '.pdf' && words === 'Planning Calendar'){
+      const typed = pendingPdfName;
+      pendingPdfName = '';
+      return typed + ext;
+    }
+    return exportNameFrom(exportNameParts(fileNameTitle(safeTitle), words), ext);
+  }
+  // ⭐ A FILE NAME TYPED BY HAND (owner, 18 Nov 2026: "you need to be able to manually edit the file name"). The Export
+  // PDF window's name box can be typed in; what is typed names THIS export only and is never remembered (a typed name
+  // belongs to one revision; the parts and their order are what is remembered). askPdfPageSetup() sets it, frozen
+  // exportWaterfallPdfDirect's name line takes it through exportFileName() above, which clears it, and the click
+  // handler clears it if the export stops before then. Characters a file name can't hold become '-', as in a title; a
+  // typed ".pdf" is not doubled; the length is cut as a title is (fileNameTitle). Empty = the built name.
+  let pendingPdfName = '';
+  function cleanTypedFileName(raw){
+    const s = String(raw || '').replace(/\.pdf\s*$/i, '');
+    return fileNameTitle(s);
   }
   // The shareable copy holds the tab on screen only (ruling D6), so with two or more its name says which one. Its name
   // is a SAVE's (the title and today's date, buildSavedFileName), so it takes the scenario alone, never the marks.
@@ -34341,7 +34470,7 @@ export function initLegacyApp() {
     chrome.changesDialog(changesSinceSave());
   }
   // "<title> S3 Scenario Comparison 2026-11-12" (audit 2026-11 AUD2-025): the season and a Date Last Edited, as every
-  // export's name has (exportNameMarks), so a comparison of revised plans never downloads under the last one's name.
+  // export's name has (exportNameParts), so a comparison of revised plans never downloads under the last one's name.
   // The date is the NEWEST of every tab's, since a change to any of them changes the comparison (a tab never edited
   // counts as today, as its header reads); no Version, since each tab has its own and the table has a Version row; no
   // scenario, since it is all of them.
@@ -34355,7 +34484,7 @@ export function initLegacyApp() {
       const d = lastEditedValid(t.snapshot.lastEdited) ? new Date(t.snapshot.lastEdited) : new Date();
       if(d > newest) newest = d;
     });
-    return exportNameHead(safe, 'Scenario Comparison') + exportNameMarks({ date: newest, noVersion: true });
+    return exportNameFrom(exportNameParts(safe, 'Scenario Comparison', { date: newest, noWro: true, noVersion: true, noScenario: true }), '');
   }
   function downloadBlob(blob, name){
     const url = URL.createObjectURL(blob), a = document.createElement('a');
@@ -40870,7 +40999,7 @@ export function initLegacyApp() {
       if(!(await askPdfPageSetup())) return;
       // Audit L-6: name what would print as "?" before writing it. Only the direct writer is
       // bound to WinAnsi; the print fallback renders the DOM with the browser's own font fallback.
-      if(!(await confirmPdfPrintable())) return;
+      if(!(await confirmPdfPrintable())){ pendingPdfName = ''; return; }
       exportWaterfallPdfDirect();
     }
     else exportWaterfallPdf();
@@ -40927,6 +41056,7 @@ export function initLegacyApp() {
   // preference store -- so a calendar exported without touching it comes out exactly as before the dialog
   // existed. Every gate leg that exports a PDF goes through here at the defaults, which is the proof.
   async function askPdfPageSetup(){
+    pendingPdfName = '';
     const fits = {};
     Object.keys(SHEET_PAPERS).forEach(k=>{ fits[k] = pageFitFor(k); });
     const choice = await chrome.pdfExportDialog({
@@ -40935,9 +41065,21 @@ export function initLegacyApp() {
       gridlines: SHEET_GRIDLINES,
       papers: Object.keys(SHEET_PAPERS).map(k=>({ value: k, label: SHEET_PAPERS[k].label, size: SHEET_PAPERS[k].size })),
       fits,
-      paperRec: recommendPaper(fits)
+      paperRec: recommendPaper(fits),
+      // The file name's parts as the waterfall PDF will be named (frozen exportWaterfallPdfDirect's name line calls
+      // exportFileName(<title>, 'Planning Calendar', '.pdf'), the same list), and which are switched off.
+      nameParts: exportNameParts(fileNameTitle((document.getElementById('show-title').value || '').trim()), 'Planning Calendar'),
+      nameExt: '.pdf',
+      nameOff: fileNameOff(),
+      nameOrder: fileNameOrder(),
+      nameOrderDefault: FILE_NAME_ORDER_DEFAULT.slice(),
+      nameOffDefault: FILE_NAME_OFF_DEFAULT.slice()
     });
     if(!choice) return false;
+    // A per-computer preference, written only when it changed, so Export at the window's defaults still writes nothing.
+    if(Array.isArray(choice.nameOff)) setFileNameOff(choice.nameOff);
+    if(Array.isArray(choice.nameOrder)) setFileNameOrder(choice.nameOrder);
+    pendingPdfName = choice.nameTyped ? cleanTypedFileName(choice.nameTyped) : '';
     const key = SHEET_PAPERS[choice.paper] ? choice.paper : 'letter';
     const paper = PAPER_SIZES.includes(key) ? key : '';
     // D1: kept only when it differs from what the rule recommends ON THE CHOSEN PAPER, so picking the
@@ -47327,9 +47469,15 @@ export function initLegacyApp() {
     // With the key the box is left alone. A box the old rule already printed verbatim ("v3", empty) is never
     // touched. Undo, the crash backup, a scenario tab and a shareable copy come through here too; their
     // snapshots are this build's, so each carries the key whenever its box needs it.
-    if(snap.versionAsTyped !== true){
+    // ⭐ SINCE 18 Nov 2026 the box holds a NUMBER and the header adds the "v" (versionLabel): a box holding a number,
+    // with or without its v ("3", "v3", "V3"), opens as the bare number, which prints "v3" exactly as all three printed
+    // under the old rule. So only a box that is NOT a number still needs the old-rule rewrite ("Blue" saved before
+    // 3 Nov 2026 printed "vBlue"); with the key, such text is left as saved.
+    {
       const ve = document.getElementById('show-version');
-      if(ve && versionNeedsAsTyped()) ve.value = legacyVersionLabel(ve.value);
+      const num = ve ? versionNumber(ve.value) : null;
+      if(ve && num !== null) ve.value = num;
+      else if(ve && snap.versionAsTyped !== true && versionNeedsAsTyped()) ve.value = legacyVersionLabel(ve.value);
     }
 
     // 4. Restore user notes and view mode. Migrate any old-format entries

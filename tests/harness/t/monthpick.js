@@ -215,7 +215,7 @@ window.addEventListener('load', function () { (async function () {
     await pick('this');
     var one = await read((await exportWith(clickExport)).file);
     add('M2', 'This month (July 2026 on screen) writes ONE page, July 2026, the very page the all-months file draws for July, named as before',
-        !!one && one.pages === 1 && same(one.months, ['July 2026']) && within(one, all) === 0 && /^Test Show S2 Month Calendar \d{4}-\d{2}-\d{2}\.pdf$/.test(one.name || '') && !!all && one.name === all.name,
+        !!one && one.pages === 1 && same(one.months, ['July 2026']) && within(one, all) === 0 && /^Test Show S2 Month Calendar (?:v\S+ )?(?:WRO \d+\.\d+\.\d{2} )?- a\.o\. \d+\.\d+\.\d{2}\.pdf$/.test(one.name || '') && !!all && one.name === all.name,
         {pages: one && one.pages, months: one && one.months, notInAll: one ? within(one, all) : null, name: one && one.name, allName: all && all.name}, '1 page, July 2026, named as the all-months file is');
 
     // ===== M3: Range ============================================================================================

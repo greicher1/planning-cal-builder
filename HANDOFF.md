@@ -30,6 +30,70 @@
   (no frozen code, writer or saved key touched); the rest of gate.sh's `?barsize=` specs were not run one by one.
 - **Not done:** a version cut and the push (owner's picker, CLAUDE.md).
 
+||||||| bf6e235
+### 🛠️ 18 Nov 2026: EXPORT FILE NAMES (WRO date, "a.o." date, the File name list) + THE VERSION GETS ITS "v" BACK — FINISHED on branch `export-name-wro` (worktree `.claude/worktrees/export-name-wro`, from `origin/main` `1c9b008`). NOT merged, NOT pushed; full gate below. Tracker cards `save-name-wro-date`, `export-file-name-parts`, `version-auto-v`.
+- **Export names** (`exportNameParts()` → `exportNameFrom()`, through `exportFileName()`, which the frozen workbook / waterfall-PDF name
+  lines already call: NO frozen edit). ⭐ THE DEFAULT, the owner's last word (18 Nov 2026): "Test Show S3 Planning Calendar v3 WRO 1.4.27
+  - a.o. 11.18.26.pdf": title, season, words, Version, WRO, then the scenario and the edited date, each SET OFF by " - " (a spaced
+  hyphen) from its neighbours wherever it is moved (`setOff`); every other part joined by a space. ⭐ The SCENARIO IS OFF BY DEFAULT
+  (*"scenario name should not be adding by default"*, overriding ruling D6 for names): `FILE_NAME_OFF_DEFAULT`, so an absent
+  `prefs.fileNameOff` means ['scenario'] and a stored [] means all on; ticked it reads "… WRO 1.4.27 - Plan B - a.o. 11.18.26". The
+  steps on the way there: the execs' ask (17 Nov meeting: "Show title, season, W-R-O
+  date, and then the file date"), then the owner's pickers: exports only (Save's `.sptcal` name unchanged); WRO as the header prints it
+  (`wrHeaderOpenDay`, day first on DD/MM); "Planning Calendar" kept; the edited date in the same style with "a.o." before it (was
+  yyyy-mm-dd: a folder sorted by name no longer lists revisions by date, told to the owner); the Version right after the words.
+  Compare's name leaves WRO, Version and scenario out. Each scenario names its own WRO (checked).
+- **The Export PDF window's File name section** (`src/chrome/ExportPdfDialog.jsx`, `FileNameRow`): a TEXT BOX with the built name (a
+  typed name names THAT ONE waterfall PDF, `pendingPdfName`, consumed by `exportFileName()`, cleared if the export stops; never
+  remembered), and under it a LIST, one row per part (title, season, WRO, words, Version, date, scenario): click ticks, the six-dot
+  handle drags (pointer events; the drag's own click swallowed by a guard the next press drops), Alt+Up/Down moves. The title can be
+  unticked; all off = the words alone. Ticks and order are PER COMPUTER (`prefs.fileNameOff` / `fileNameOrder`, `cleanPrefs` checks
+  both) and every export's name follows them. ⚠️ Open: whether they should travel with the calendar instead. The owner went chips →
+  list with handles (mockup `mockups/export-file-name-parts.html`, layouts A–C). ⭐ The window WIDENS to show the whole name (owner: *"extend the width of the window if
+  necessary to always show the full file name"*), and HOLDS STILL (*"the window size/position should not move/change size if i make a
+  change to the file name"*): measured ONCE at opening, the longest name its parts can make (every part ticked, scenario included),
+  `windowWidth()`: 440 px or that plus the box's padding and room for a moved part's dashes, capped at the screen less 32 px. A tick,
+  a drag, typing or Put all back never resizes or moves it (checked: the same box through all of them); a typed name longer than that
+  scrolls in the box. The hint under the list keeps one height (`minHeight`) so a centred window never shifts. ⚠️ The list makes the window taller: on a laptop-height
+  screen Cancel / Export sit just below the fold (the modal scrolls).
+- ⛔ **THE VERSION: REVERSES THE 3 NOV RULING** (owner, 18 Nov 2026: *"if they leave out the v in version number it should auto add
+  it"*, picker "File names and header" + "Only a bare number", then *"the Show info box should also be changed back to enter a number
+  only and it adds the v itself in the header"*). `versionLabel()`: a number ("3", "3.1", or "v3") prints "v3"; text that is not a
+  number, kept by a calendar saved 3–18 Nov ("Blue"), prints as saved until edited. The box drops anything but digits and dots as it
+  is typed (its input listener). `applyStateSnapshot()` opens "v3" / "V3" / "3" as "3" (prints "v3", what all three printed before);
+  only non-number text still gets the old-rule rewrite. `versionNeedsAsTyped()` is false for a number, so `versionAsTyped` is written
+  only for text. Every test calendar holding a bare number lacks the key (it printed "v3" already), so baselines should not move;
+  `hdrversion-astyped.sptcal` (the key + "3") now prints "v3". CLAUDE.md's `versionAsTyped` line is now out of date.
+- **"Finish it" (owner, 18 Nov 2026):** Help's example names and the Export PDF paragraph; `exportnames` re-expected (12/12; X11
+  DD/MM, X12 no Writers' Room date); NEW leg `filenamelist` (11 checks, in gate.sh beside exportnames), which found two bugs fixed
+  here (the window grew 1 px when Put all back appeared: it is now always laid out, hidden; two quick row clicks kept only the
+  second: functional update); `hdrversion` / `hdrverload` re-expected for the number rule (the gate's section alone: 54 PASS, 0
+  FAIL); README's entry under Unreleased; CLAUDE.md's `versionAsTyped` line (SUPERSEDED) and the frozen S1b/S2b example. A full
+  gate was started on the finished branch; its result is the next bullet.
+- ✅ **FULL GATE on `ab1730b` (port 8985, 18 Nov 2026, alone): 5,697 PASS / 68 FAIL, EVERY BASELINE IDENTICAL** (the waterfall PDF bar
+  the date stamp, the workbook, gate 10, gate 13's 24 written month PDFs). All 68 were expectations of the OLD name or Version and
+  are re-expected in `<this commit>`: `monthexport` X2 + X7 in all 30 runs (the month PDF's name regex), `cmdprint` P3, `pdfdialog`
+  D10, `filekeys` K10, `cspproof` M2 (the "Month Calendar … yyyy-mm-dd" regex), `monthpick` M2, `scenarios` S16 / S17 (the scenario
+  is off by default now: S16 now asserts NO scenario in the name), and `phasesui` P1 (its `versionEra` map: a number opens as the bare
+  number). Rerun the way the gate runs them, all green: `monthexport` 9/9 on reference, UTC+14, 1280x800, blocks, mvheader,
+  doubleups; `cmdprint` 6/6, `pdfdialog` 15/15, `filekeys` 16/16, `monthpick` 10/10, `scenarios` 23/23, `phasesui` 8/8,
+  `cspproof` 15/15.
+- ✅ **`origin/main` (`a3fac82`, v1.19.0) merged in at `41cedec`** (conflict in HANDOFF only, both kept), and a **SECOND FULL GATE on the
+  merged build: 5,848 PASS / 0 FAIL, `=== GATE PASSED ===`** (port 8985, 18 Nov 2026, alone). Then v1.19.1-v1.19.2 landed on
+  `origin/main` and were merged in at `e489a15` (HANDOFF only, both kept); `exportnames`, `filenamelist`, `monthexport`, `pdfdialog`
+  and the Version section rerun on that build, all green (v1.19.2's own `monthpage` leg not rerun: this work does not touch it).
+- 🚀 **CUT AS v1.20.0 and pushed on the owner's picker *"Cut v1.20.0"* + *"Push and deploy now"* (18 Nov 2026):** `APP_VERSION`,
+  `version.json`, `package.json` at 1.20.0 (`npm run check` 42/42); README's entry under `## v1.20.0`; `releases/v1.20.0.html`
+  cmp-identical to the build (sha256 `6e8336bee5d8b5ca…`, 2,302,428 bytes); `tests/fixtures/v1.20.0-saved.sptcal` a real Save
+  (mintfixture: 46 keys, 77 ids), byte-identical to v1.19.2's but `lastEdited`; tag `v1.20.0` (annotated). The push and the live
+  check are the next line.
+
+||||||| 1c9b008
+
+### 🚀 18 Nov 2026: v1.19.0 — THE MONTH SHRINK AND THE 10-LINE DAY, RELEASED TOGETHER from `claude/dreamy-keller-2ed2c2` (the two entries below are the features)
+||||||| a3fac82
+### 🚀 18 Nov 2026: v1.19.0 — THE MONTH SHRINK AND THE 10-LINE DAY, RELEASED TOGETHER from `claude/dreamy-keller-2ed2c2` (the two entries below are the features)
+
 ### 🔨 18 Nov 2026: v1.19.2 — A CROWDED MONTH SHRINKS IN THE INSTALLED APP TOO (branch `claude/dreamy-keller-2ed2c2`)
 - **Owner, after v1.19.0 went live:** a crowded calendar's May was still full size in a card taller than a page, in
   the installed app, after several Cmd+Shift+R. Their console (a read-only snippet): v1.19.0, standalone,

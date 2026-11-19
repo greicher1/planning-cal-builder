@@ -60,6 +60,47 @@ Undo step and dirties the file, as before.
   g=date&notesize=12 3/3; `npm run check` 42/42. Tried by hand in the app: Custom on a Large-bars calendar, Extra Large
   then 14 px bars and notes, one Undo back to Custom, Large 12 px.
 
+||||||| bf6e235
+## v1.20.0 — export file names with the WRO date, a File name list in Export PDF, and the Version's "v" (18 Nov 2026)
+
+### Export file names: the WRO date, "a.o." date, and a File name list in Export PDF; the Version gets its "v" back (18 Nov 2026)
+
+The studio's executives (17 Nov 2026) asked for the Writers' Room Open date in every file name: show title, season, WRO
+date, then the file date. The owner then set the default, after several rounds on a working build:
+**"Test Show S3 Planning Calendar v3 WRO 1.4.27 - a.o. 11.18.26.pdf"**.
+
+- **The parts, in order:** the show title, the season, the calendar's words ("Planning Calendar", "Month Calendar"), the
+  Version, **WRO** and the day the Writers' Room opens (the day the header's "Writer's Room Opens" line names, written
+  the same way, day first on a DD/MM calendar), the scenario, and **a.o.** ("as of") with the date the calendar was last
+  edited. The scenario and the date are set off by " - " wherever they sit; every other part is joined by a space. The
+  scenario is **off by default**. With no Writers' Room date there is no WRO. Each scenario names its own WRO.
+- **Every export follows:** the workbook, the waterfall PDF, the month PDF and Compare ("… Scenario Comparison - a.o.
+  10.5.26", without WRO, Version or scenario, since its tabs differ). Save's `.sptcal` name is unchanged. **No frozen
+  edit**: the workbook's and the waterfall PDF's frozen name lines already call `exportFileName()`.
+- ⚠️ The edited date was year first (2026-11-12); written month first, a folder sorted by name no longer lists revisions
+  in date order.
+- **Export PDF's File name section:** the name in a text box (a name typed there names that one PDF and is never
+  remembered; characters a file name can't hold become "-"), and under it a list, one row per part: click a row to tick
+  it in or out (the show title too; with every part out the name is "Planning Calendar"), drag a row by its six-dot
+  handle to move it, or Alt+Up/Down. **Put all back** returns to the default. The ticks and the order are kept **on this
+  computer** (`sptcal.prefs`, `fileNameOff` / `fileNameOrder`), not in the calendar, and every export's name follows
+  them. The window is sized once when it opens, for the longest name its parts can make, and never moves or resizes
+  while the name changes; a longer typed name scrolls in the box.
+- **The Version box takes a number and the "v" is added** (owner: *"if they leave out the v in version number it should
+  auto add it"*, then *"the Show info box should also be changed back to enter a number only"*). 3 prints v3 in the
+  header, the workbook, both PDFs, the file names and Compare. This **reverses** the 3 Nov 2026 "exactly as typed"
+  ruling. The box drops anything but digits and dots as it is typed; a calendar saved with "v3" opens as 3 and prints v3
+  as before; one saved 3–18 Nov with a bare "3" now prints v3; text that is not a number ("Blue") still prints as saved
+  until edited. `versionAsTyped` is written only for such text, so a number saves as an older build expects. No
+  SNAPSHOT_VERSION bump.
+- **Verified:** every step tried in the app with real clicks, drags, typing and keys; `exportnames` re-expected (12/12,
+  X11 a DD/MM calendar and X12 no Writers' Room date new); `filenamelist` new (11 checks: default, scenario tick, handle
+  drag, title off, the PDF and the workbook named as the box, a typed name for one export, the window holding still,
+  all off, Cancel, Put all back; it found two bugs, fixed before release: the window grew 1 px when Put all back
+  appeared, and two quick row clicks kept only the second); `hdrversion` / `hdrverload` re-expected for the number rule
+  (54 checks); `npm run check` 42/42; the full gate on the build merged with v1.19.0, 5,848 PASS / 0 FAIL with every
+  baseline identical, and after merging v1.19.1-v1.19.2 the legs above plus `monthexport` and `pdfdialog` again, all green.
+
 ## v1.19.2 — a crowded month shrinks in the installed app too (18 Nov 2026)
 
 ### A crowded month shrinks in the installed app too (18 Nov 2026)

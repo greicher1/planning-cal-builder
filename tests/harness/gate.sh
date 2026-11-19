@@ -873,9 +873,9 @@ chk(a.get('inertExcel'), f"hdrversion: ⭐ empty -> the workbook's &L is the bar
 chk(a.get('inertPdf'), f"hdrversion: ⭐ empty -> nothing under the date in the PDF's left column ({a.get('beforePdfLeftCol')})")
 chk(a.get('blankInert'),
     f"hdrversion: ⭐ a field of spaces is still no version: the line stays hidden ({a.get('blankL2')})")
-chk(a.get('screenShowsVersion'), f"hdrversion: typing 3 shows 3 on screen (no v added), and the slot becomes visible ({a.get('afterL2',{}).get('text')!r})")
-chk(a.get('asTyped'), f"hdrversion: V3 reads V3 and a bare v reads v -- exactly as typed ({a.get('upperVText')!r}, {a.get('bareVText')!r})")
-chk(a.get('excelHasVersion'), f"hdrversion: the workbook's &L is <date> then 3 ({a.get('afterExcelL')!r})")
+chk(a.get('screenShowsVersion'), f"hdrversion: typing 3 shows v3 on screen (the v added, 18 Nov 2026), and the slot becomes visible ({a.get('afterL2',{}).get('text')!r})")
+chk(a.get('asTyped'), f"hdrversion: the box takes a number: V3 keeps 3 and reads v3, a bare v is dropped ({a.get('upperVText')!r}, {a.get('bareVText')!r})")
+chk(a.get('excelHasVersion'), f"hdrversion: the workbook's &L is <date> then v3 ({a.get('afterExcelL')!r})")
 chk(a.get('excelNoFormatCodes'),
     f"hdrversion: no per-line format codes appear -- nothing was formatted ({a.get('excelFontCodes')} font code)")
 chk(a.get('pdfTwoLeftLines'),
@@ -883,11 +883,11 @@ chk(a.get('pdfTwoLeftLines'),
 chk(a.get('captured') and a.get('snapVersion')=='3',
     f"hdrversion: ⭐ the value is in a REAL saved calendar's fields.byId ({a.get('snapVersion')!r}, {a.get('fieldIdCount')} field ids)")
 chk(a.get('markerWritten'),
-    f"hdrversion: ⭐ a typed 3 is saved WITH versionAsTyped: true, so it reopens as 3 ({a.get('snapAsTyped')!r})")
+    f"hdrversion: ⭐ a typed 3 is saved WITHOUT versionAsTyped (a number prints v3 under every rule; 18 Nov 2026) ({a.get('snapAsTyped')!r})")
 chk(a.get('roundTrips'),
-    f"hdrversion: it survives captureSnapshot -> JSON -> applyStateSnapshot, driven through undo/redo, still WITHOUT a v ({a.get('afterUndoField')!r}/{a.get('afterUndoL2')!r} -> {a.get('afterRedoField')!r}/{a.get('afterRedoL2')!r})")
+    f"hdrversion: it survives captureSnapshot -> JSON -> applyStateSnapshot, driven through undo/redo: 3 / v3 and 4 / v4 ({a.get('afterUndoField')!r}/{a.get('afterUndoL2')!r} -> {a.get('afterRedoField')!r}/{a.get('afterRedoL2')!r})")
 chk(a.get('noMarkerWhenSame'),
-    f"hdrversion: ⭐ a typed v3 saves with NO versionAsTyped key -- byte for byte as before ({a.get('vSnapVersion')!r}, key {'present' if a.get('vSnapHasMarker') else 'absent'})")
+    f"hdrversion: ⭐ a typed v3 keeps 3 in the box and saves with NO versionAsTyped key ({a.get('vSnapVersion')!r}, key {'present' if a.get('vSnapHasMarker') else 'absent'})")
 chk(a.get('clearedScreen') and a.get('clearedExcel'),
     f"hdrversion: ⭐ clearing the field hides the line again and restores the bare &L ({a.get('clearedExcelL')!r})")
 chk(a.get('notInCompleteness'),
@@ -2406,7 +2406,7 @@ for AFSPEC in pwagate:-:120 pwagatelogic:-:120 settingswin:-:240 newtab:-:120 \
               swapsharenotice:colswap-simpost-refuse:200 \
               swapsingleshift:swap-holds:200 swapsingleyears:stintswap-chained:200 swapnewphase:swap-holds:300 \
               swapsingleorders:swapsingle-orders:200 \
-              comparebreaks:compare-send:300 exportnames:compare-send:300 \
+              comparebreaks:compare-send:300 exportnames:compare-send:300 filenamelist:compare-send:300 \
               firstrun:-:240 startrecents:-:240; do
   AFLEG="${AFSPEC%%:*}"; AFREST="${AFSPEC#*:}"; AFSTATE="${AFREST%%:*}"; AFSECS="${AFREST#*:}"
   [[ $AFSTATE == - ]] && AFSTATE=""

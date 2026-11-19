@@ -26,7 +26,7 @@
 // withinPortal={false}, as in Dialogs.jsx: Mantine's portal would append after #print-root, which must stay
 // <body>'s last child (MANTINE-SEAM §3.1).
 import { useState, useLayoutEffect, useCallback, useRef } from 'react'
-import { Modal, Button, Text, Group, Stack, SegmentedControl } from '@mantine/core'
+import { Modal, Button, Text, Group, Stack, SegmentedControl, UnstyledButton, TextInput } from '@mantine/core'
 import { installChrome } from './bridge.js'
 import { useOutsideCloseGuard } from './modalGuard.js'
 
@@ -63,11 +63,198 @@ export function Row({ label, children }) {
   )
 }
 
+// ⭐ THE FILE NAME (owner, 18 Nov 2026: "an easy to use system that lets you add/unadd parts of the file name", then
+// "make it actually work"; mockups/export-file-name-parts.html, layout A; then "Allow me to be able to drag and reorder
+// the chips to reorder the file name"). The engine passes `nameParts`, the parts as the PDF will be named ({k, label,
+// val, join?, locked?}: exportNameParts, the list the name itself is built from), `nameExt`, `nameOff` (the keys
+// switched off) and `nameOrder` / `nameOrderDefault` (every key, in order), both per-computer preferences. One chip per
+// part: a click switches it off or on (the title is locked on), a drag moves it. The name above them is exactly what
+// will download. The answer carries `nameOff` and `nameOrder`, which the engine stores only if they changed, and which
+// every export's name then follows.
+// ⭐ The name is a TEXT BOX (owner, 18 Nov 2026: "you need to be able to manually edit the file name"): what is typed
+// names this one export (the answer's `nameTyped`; the engine never remembers it). A click on a chip, a drag or Put all
+// back builds the name from the parts again. The title chip can be switched off like any part ("also allow removing
+// show title").
+// ⛔ joinName repeats the engine's exportNameFrom (app.js): two neighbours are joined by " - " when either is set off
+// (the scenario, the edited date), else by a space; with every part off the name is the calendar's words alone.
+function joinName(parts, off, ext) {
+  let shown = parts.filter((p) => p.locked || !off.includes(p.k))
+  if (!shown.length) shown = parts.filter((p) => p.k === 'words')
+  let out = ''
+  shown.forEach((p, i) => {
+    out += (i ? ((p.setOff || shown[i - 1].setOff) ? ' - ' : ' ') : '') + p.val
+  })
+  return out + (ext || '')
+}
+
+function FileNameRow({ parts, off, setOff, offDefault, order, setOrder, orderDefault, ext, typed, setTyped, onWidth }) {
+  const [dragK, setDragK] = useState(null)
+  const orderRef = useRef(order)
+  orderRef.current = order
+  const press = useRef(null)      // {k, x, y, dragging} from pointerdown until pointerup
+  const swallow = useRef(false)   // the click that ends a drag must not switch the chip
+  const sorted = parts.slice().sort((a, b) => order.indexOf(a.k) - order.indexOf(b.k))
+  // Functional, so two clicks before a render both count.
+  const toggle = (k) => { setTyped(null); setOff((cur) => (cur.includes(k) ? cur.filter((x) => x !== k) : cur.concat([k]))) }
+  // Changed from the default: the scenario is OFF by default (owner, 18 Nov 2026), so "Put all back" unticks it again.
+  const offKey = (list) => parts.filter((p) => list.includes(p.k)).map((p) => p.k).join()
+  const changed = typed !== null || offKey(off) !== offKey(offDefault) || order.join() !== orderDefault.join()
+  const built = joinName(sorted, off, '')
+  // ⭐ THE WINDOW IS WIDE ENOUGH FOR THE WHOLE NAME, AND HOLDS STILL (owner, 18 Nov 2026: "extend the width of the window
+  // if necessary to always show the full file name", then "the window size/position should not move/change size if i
+  // make a change to the file name"). Measured ONCE, when the window opens (this row mounts per opening): the LONGEST
+  // name its parts can make, every part ticked (the scenario included) in the order it opens with, in the box's own
+  // font, plus room for the " - " a moved part can add (windowWidth). So a tick, a drag or Put all back never resizes it;
+  // a typed name longer than that scrolls in the box. The hint below keeps one height for the same reason.
+  const measureRef = useRef(null)
+  const longest = useRef(joinName(sorted, [], '')).current
+  useLayoutEffect(() => {
+    if (measureRef.current && onWidth) onWidth(Math.ceil(measureRef.current.getBoundingClientRect().width))
+  }, [])   // eslint-disable-line react-hooks/exhaustive-deps
+  // ⭐ A LIST WITH DRAG HANDLES (owner, 18 Nov 2026: "we might need to change it to the list version with drag handles
+  // so you can easily reoder"; it was chips). A click on a row ticks it; its handle (six dots) drags it; Alt + Up / Down
+  // moves it from the keyboard. A DRAG is a press on the handle that moves more than 4 px. Pointer events, not the
+  // browser's own drag and drop, so it works the same with a mouse, a pen or a finger. While it moves, the pressed part
+  // is moved above or below the row under the pointer (by which half of it the pointer is over), live, so the rows and
+  // the name show where it will land. Moved within the WHOLE order, parts not shown included.
+  const onPointerDown = (e, k) => {
+    if (e.button !== 0) return
+    swallow.current = false
+    press.current = { k, x: e.clientX, y: e.clientY, dragging: false }
+    const move = (ev) => {
+      const pr = press.current
+      if (!pr) return
+      if (!pr.dragging) {
+        if (Math.abs(ev.clientX - pr.x) + Math.abs(ev.clientY - pr.y) < 5) return
+        pr.dragging = true
+        setDragK(pr.k)
+      }
+      ev.preventDefault()
+      const el = document.elementFromPoint(ev.clientX, ev.clientY)
+      const over = el && el.closest && el.closest('[data-namepart]')
+      if (!over || over.dataset.namepart === pr.k) return
+      const r = over.getBoundingClientRect()
+      const after = ev.clientY > r.top + r.height / 2
+      const next = orderRef.current.filter((x) => x !== pr.k)
+      next.splice(next.indexOf(over.dataset.namepart) + (after ? 1 : 0), 0, pr.k)
+      if (next.join() !== orderRef.current.join()) { orderRef.current = next; setTyped(null); setOrder(next) }
+    }
+    const up = () => {
+      if (press.current && press.current.dragging) swallow.current = true
+      press.current = null
+      setDragK(null)
+      document.removeEventListener('pointermove', move, true)
+      document.removeEventListener('pointerup', up, true)
+      document.removeEventListener('pointercancel', up, true)
+    }
+    document.addEventListener('pointermove', move, true)
+    document.addEventListener('pointerup', up, true)
+    document.addEventListener('pointercancel', up, true)
+  }
+  // ⛔ The click a drag ends with is swallowed here, and the NEXT press drops the guard (never a timer: a press whose
+  // click never comes would leave a timer to eat the next real one; CLAUDE.md, the Shift list's press guard).
+  const onClickCapture = (e) => {
+    if (!swallow.current) return
+    swallow.current = false
+    e.preventDefault()
+    e.stopPropagation()
+  }
+  return (
+    <div className="pdfdlg-name">
+      <Group justify="space-between" align="baseline" mb={6} wrap="nowrap">
+        <Text size="sm" fw={600}>File name</Text>
+        {/* Always laid out, hidden while there is nothing to put back: its appearing must not make the window taller. */}
+          <UnstyledButton onClick={() => { setTyped(null); setOff(offDefault.slice()); setOrder(orderDefault.slice()) }} data-pdfdlg="name-reset" tabIndex={changed ? 0 : -1} aria-hidden={!changed}
+            style={{ fontSize: 12, color: 'var(--mantine-color-dimmed)', textDecoration: 'underline',
+                     visibility: changed ? 'visible' : 'hidden' }}>
+            Put all back
+          </UnstyledButton>
+      </Group>
+      <span ref={measureRef} aria-hidden="true"
+        style={{ position: 'absolute', visibility: 'hidden', whiteSpace: 'pre', fontSize: 'var(--mantine-font-size-sm)',
+                 fontFamily: 'inherit', left: -9999, top: 0 }}>{longest}</span>
+      <TextInput size="sm" className="pdfdlg-name-input" aria-label="File name" spellCheck={false}
+        value={typed !== null ? typed : built} onChange={(e) => setTyped(e.currentTarget.value)}
+        rightSection={<Text size="sm" c="dimmed">{ext}</Text>} rightSectionWidth={44} />
+      <div onClickCapture={onClickCapture} onPointerDownCapture={() => { swallow.current = false }}
+        className="pdfdlg-name-list"
+        style={{ border: '1px solid var(--mantine-color-gray-2)', borderRadius: 7, marginTop: 8, overflow: 'hidden' }}>
+        {sorted.map((p, i) => {
+          const on = !off.includes(p.k)
+          return (
+            <div key={p.k} data-namepart={p.k} role="checkbox" aria-checked={on} tabIndex={0}
+              onClick={() => toggle(p.k)}
+              onKeyDown={(e) => {
+                if (e.key === ' ') { e.preventDefault(); toggle(p.k) }
+                // Alt + Up / Down moves the row, for the keyboard.
+                if (e.altKey && (e.key === 'ArrowUp' || e.key === 'ArrowDown')) {
+                  e.preventDefault()
+                  const next = order.slice(), at = next.indexOf(p.k)
+                  const to = Math.max(0, Math.min(next.length - 1, at + (e.key === 'ArrowUp' ? -1 : 1)))
+                  next.splice(at, 1); next.splice(to, 0, p.k)
+                  setTyped(null); setOrder(next)
+                }
+              }}
+              style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '3px 10px 3px 4px', fontSize: 13,
+                       borderTop: i ? '1px solid var(--mantine-color-gray-1)' : 0, cursor: 'pointer',
+                       userSelect: 'none', WebkitUserSelect: 'none',
+                       background: dragK === p.k ? 'var(--mantine-color-gray-1)' : '#fff',
+                       boxShadow: dragK === p.k ? 'inset 0 0 0 1px var(--mantine-color-gray-4)' : 'none' }}>
+              <span data-namehandle aria-label="Drag to move" title="Drag to move it in the name"
+                onPointerDown={(e) => onPointerDown(e, p.k)} onClick={(e) => e.stopPropagation()}
+                style={{ cursor: dragK ? 'grabbing' : 'grab', touchAction: 'none', display: 'inline-grid', placeItems: 'center',
+                         width: 22, height: 22, borderRadius: 4, color: 'var(--mantine-color-gray-5)', flex: '0 0 auto' }}>
+                <svg width="10" height="14" viewBox="0 0 10 14" aria-hidden="true">
+                  {[2, 7, 12].map((y) => [2.5, 7.5].map((x) => <circle key={x + '-' + y} cx={x} cy={y} r="1.3" fill="currentColor" />))}
+                </svg>
+              </span>
+              <span style={{ width: 16, height: 16, borderRadius: 4, flex: '0 0 auto', display: 'inline-grid', placeItems: 'center',
+                             border: '1.5px solid ' + (on ? 'var(--mantine-color-navy-6, #2C3E50)' : 'var(--mantine-color-gray-4)'),
+                             background: on ? 'var(--mantine-color-navy-6, #2C3E50)' : '#fff', color: '#fff', fontSize: 11, lineHeight: 1 }}>
+                {on ? '✓' : ''}
+              </span>
+              <span style={{ fontWeight: 500, flex: '0 0 auto', width: 86 }}>{p.label}</span>
+              <span style={{ marginLeft: 'auto', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                             textAlign: 'right', color: on ? 'var(--mantine-color-dimmed)' : 'var(--mantine-color-gray-5)',
+                             textDecoration: on ? 'none' : 'line-through' }}>{p.val}</span>
+            </div>
+          )
+        })}
+      </div>
+      <Text size="xs" c="dimmed" mt={6} className="pdfdlg-name-hint" style={{ minHeight: '3.1em' }}>
+        {typed !== null
+          ? 'Your typed name is used for this export only. Tick or move a part to build the name from the parts again.'
+          : 'Type in the box to name this export yourself, or tick the parts to use. Drag a part by its handle to move it.'}
+      </Text>
+    </div>
+  )
+}
+
+// The window's width for a name `nameW` px wide: its usual 440 (Mantine's md), or wide enough for the whole name in the
+// box (the box's 12 px left padding, the 44 px ".pdf" section, its border, a little room for the caret, and the modal's
+// own 16 px padding each side), never wider than the screen less 16 px each side. Past that the box scrolls.
+const WINDOW_W = 440
+function windowWidth(nameW) {
+  const need = (nameW || 0) + 12 + 44 + 2 + 12 + 32 + 16   // + 16: room for a moved part's dashes
+  const cap = Math.max(WINDOW_W, (typeof window !== 'undefined' ? window.innerWidth : 1200) - 32)
+  return Math.max(WINDOW_W, Math.min(need, cap))
+}
+
 export function ExportPdfDialog() {
   const [dlg, setDlg] = useState(null)   // the opts the engine passed, plus `n` to remount per opening
   const [paper, setPaper] = useState('letter')
   const [orient, setOrient] = useState('')   // '' = follow the paper's recommendation
   const [grid, setGrid] = useState('none')
+  const [nameOff, setNameOff] = useState([])
+  const [nameOrder, setNameOrder] = useState([])
+  const [nameTyped, setNameTyped] = useState(null)   // null = built from the parts
+  const [nameW, setNameW] = useState(0)              // the name's measured width (FileNameRow), for windowWidth()
+  const [, setVw] = useState(0)                      // re-render on a window resize, so the cap follows the screen
+  useLayoutEffect(() => {
+    const onResize = () => setVw(window.innerWidth)
+    window.addEventListener('resize', onResize)
+    return () => window.removeEventListener('resize', onResize)
+  }, [])
   const resolveRef = useRef(null)
   const openCount = useRef(0)
 
@@ -81,6 +268,9 @@ export function ExportPdfDialog() {
           setPaper(opts.paper || 'letter')
           setOrient(opts.orientation || '')
           setGrid(opts.gridlines || 'none')
+          setNameOff(Array.isArray(opts.nameOff) ? opts.nameOff : [])
+          setNameOrder(Array.isArray(opts.nameOrder) ? opts.nameOrder : (opts.nameOrderDefault || []))
+          setNameTyped(null)
           setDlg({ ...opts, n: openCount.current })
         }),
     })
@@ -103,7 +293,8 @@ export function ExportPdfDialog() {
   const paperRec = (dlg.paperRec || {})[orient || 'follow'] || { paper: 'letter', gain: 0 }
   const gridData = GRID_OPTIONS.some((g) => g.value === grid)
     ? GRID_OPTIONS : GRID_OPTIONS.concat([{ value: grid, label: grid.charAt(0).toUpperCase() + grid.slice(1) }])
-  const doExport = () => finish({ paper, orientation: shown, gridlines: grid })
+  const doExport = () => finish({ paper, orientation: shown, gridlines: grid, nameOff, nameOrder,
+    nameTyped: (nameTyped !== null && nameTyped.trim()) ? nameTyped : '' })
   // Enter exports, as the app's other dialogs confirm on Enter -- except on a button, whose own Enter
   // (a native click) must stay the button's: Enter on Cancel cancels.
   const onKey = (e) => {
@@ -121,7 +312,7 @@ export function ExportPdfDialog() {
       closeOnClickOutside={false}
       withinPortal={false}
       centered
-      size="md"
+      size={windowWidth(nameW)}
       radius="lg"
       shadow="xl"
       title="Export PDF"
@@ -157,9 +348,15 @@ export function ExportPdfDialog() {
           <Row label="Grid lines">
             <SegmentedControl fullWidth size="sm" value={grid} onChange={setGrid} aria-label="Grid lines" data={gridData} />
           </Row>
+          {Array.isArray(dlg.nameParts) && dlg.nameParts.length > 0 && (
+            <FileNameRow parts={dlg.nameParts} off={nameOff} setOff={setNameOff} offDefault={dlg.nameOffDefault || []}
+              order={nameOrder} setOrder={setNameOrder}
+              orderDefault={dlg.nameOrderDefault || nameOrder} ext={dlg.nameExt || '.pdf'}
+              typed={nameTyped} setTyped={setNameTyped} onWidth={setNameW} />
+          )}
           <Text size="xs" c="dimmed">
             The paper and orientation are saved with this calendar, and Export to Excel uses them too.
-            Grid lines stay on this computer.
+            Grid lines and the file name’s parts stay on this computer, and every export’s name follows them.
           </Text>
         </Stack>
         <Group justify="flex-end" mt="lg" gap="sm">

@@ -101,6 +101,8 @@ window.addEventListener('load', function () { (async function () {
     return (byId || []).map(function (kv) {
       if (kv[0] !== 'show-version' || !kv[1] || typeof kv[1].value !== 'string') return kv;
       var num = kv[1].value.trim().replace(/^[vV]/, '').trim();
+      // ⭐ Since 18 Nov 2026 a NUMBER opens as the bare number ("v7" and "7" both open as "7"; the header adds the v).
+      if (/^\d+(\.\d+)*\.?$/.test(num) || num === '') return [kv[0], Object.assign({}, kv[1], { value: num })];
       return [kv[0], Object.assign({}, kv[1], { value: num ? 'v' + num : '' })];
     });
   }
