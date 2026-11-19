@@ -21,14 +21,41 @@
   `document.fonts` (or any page-wide list) must expect foreign entries.
 - ⚠️ **Numbered v1.19.2, not v1.19.1** (owner's picker *"Push it as v1.19.2"*): another session had already tagged a
   v1.19.1 locally, unpushed (branch `header-version-label`, "the version under the SPTCal name"). Tags are shared by
-  every worktree, so `git tag` refused the name. That release has to merge this one and re-cut above v1.19.2.
+  every worktree, so `git tag` refused the name. Moments later that session pushed its v1.19.1, so it was merged in
+  here (only the version files and the docs' tops conflicted; this side's 1.19.2 kept, both docs kept) before the push.
+  The label it adds reads "v1.19.2" on this build, so the owner can now see which version the app runs.
 - **Cut as v1.19.2:** `APP_VERSION`, `version.json`, `package.json`; README entry; `releases/v1.19.2.html` cmp-identical to
-  the build (sha256 `56fa0d28d9db26b9…`); `tests/fixtures/v1.19.2-saved.sptcal` identical to v1.19.0's but `lastEdited`.
+  the build (sha256 `e7e3061267f6c697…`, with v1.19.1 merged in); `tests/fixtures/v1.19.2-saved.sptcal` identical to v1.19.0's but `lastEdited`.
   `npm run check` 42/42. **Checks on that build** (the patch-release practice, not a full gate; with only the app's
   Inter face the rule's answer is provably the old one): `monthpage` on all ten of its gate runs (13/13 each, 2/2 with
   no calendar), `monthrowlimit` 17 + 3 + 3, `mvnotesize` 12/12 on `month-dense60` and `mvnotes`, `monthlanes` 6/6,
   `autonoterename` 25/25 (also at 1584 x 1200), `softlines` 6/6 x 2; **gate 13** byte-identical on `reference`,
   `monthscale` and `month-dense60` (`monthexport` 9/9 each); **gate 10** identical on `reference` and `month-lanecap`.
+
+### 🏷️ 18 Nov 2026: v1.19.1 — THE VERSION UNDER THE SPTCal NAME. Branch `header-version-label` (worktree `.claude/worktrees/header-version-label`, from `origin/main` `a3fac82` = v1.19.0). Tracker card `header-version-label`.
+- **The ask:** *"in small grey text, add v1.19 or whatever the current version of the app is right below the SPTCal
+  header in the top left corner of the app. Mock it up before you build it"*. Mockup `mockups/header-version-label.html`;
+  owner's picks: the full number ("v1.19.0", not "v1.19") and "Hide with the name" below 1200 px. Tried on localhost,
+  then *"Looks good, finish it"*.
+- ⚠️ **Learned: the main checkout's local `main` was two releases behind** (at v1.17.0 while `origin/main` was v1.19.0),
+  so the first reading of the version there was wrong; the owner caught it. Read `origin/main` (`git fetch`) for "what
+  is live", never the main checkout's `main`.
+- **Built:** `Header.jsx` wraps the name in `.app-brand-text` with `.app-brand-ver` under it; the number is
+  `import { version } from '../../package.json'` (build time, only that string bundled). ⛔ Never type the number into
+  the header: `npm run check` holds `package.json` = `version.json` = `APP_VERSION`, which is what makes the label
+  trustworthy and lets every version cut update it with no extra step. CSS in `legacy.css` beside `.app-brand-name`:
+  17 + 13 px lines inside the mark's 30 px, so the header stays 63 px and `--header-h` does not move; the 1200 px rung
+  now hides `.app-brand-text` (name and version) instead of `.app-brand-name`.
+- **Cut as v1.19.1:** `APP_VERSION`, `version.json`, `package.json`; README entry; `releases/v1.19.1.html`
+  cmp-identical to the build (sha256 `2e8c6fa6b3e12f32…`, 2,292,969 bytes); `tests/fixtures/v1.19.1-saved.sptcal` a real
+  Save (`mintfixture`: 46 keys, 77 ids, 0 clipped), byte-identical to v1.19.0's but `lastEdited`.
+- **Verified (no full gate: chrome only, nothing frozen, no export or save change):** `npm run check` 42/42; on the
+  build at 1440 px the label reads the version, at 1100 px it is hidden, the header 63 px at both. A partial gate
+  assembled from `gate.sh` (base, waterfall PDF + workbook against their baselines, seams, pdfmark, monthexport and
+  gate 13, toolbarfit, laptopfit at 1280x800 / 1366x768 / 1280x943) on port 8766: 343 PASS / 2 FAIL. The 2 were
+  `monthexport` X4 ("the click's activation ran out") on `mvheader` and `shootorder`, run while another session's full
+  gate shared the machine; both 9/9 alone straight after. The waterfall PDF is identical bar the date stamp, the
+  workbook parts identical, gate 13's reference byte-identical, the mark names 1.19.1.
 
 ### 🚀 18 Nov 2026: v1.19.0 — THE MONTH SHRINK AND THE 10-LINE DAY, RELEASED TOGETHER from `claude/dreamy-keller-2ed2c2` (the two entries below are the features). ✅ PUSHED (`714df71..a3fac82`, tag `v1.19.0`) on the owner's picker *"Push v1.19.0"* AND VERIFIED LIVE at 14:29 on 18 Nov: `version.json` 1.19.0 about 80 s after the push, the live page byte-identical to `releases/v1.19.0.html`
 - **Owner's pickers, 18 Nov:** *"Commit locally"* (`c87655b`) and *"Push to main"*. When the push was approved,
