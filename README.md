@@ -31,6 +31,23 @@ way a user would notice or a future session would need to return to. See
 
 ## Unreleased
 
+### The app opens filling the screen (18 Nov 2026)
+
+The owner: *"when you first download/open the app, its opening with a smaller window - it needs to open as wide such
+that it fills the users screen"*. A web app's manifest cannot ask for a window size: Chrome opens a newly installed app
+at its own default size, then remembers whatever size the user leaves it at.
+
+- `src/index.html`, the install gate's script (the first script that runs): the FIRST time SPTCal runs in an installed
+  app window it moves to the top left of the screen it is on and takes that screen's whole usable area
+  (`screen.availWidth` / `availHeight`, so never under the Dock, menu bar or taskbar), before the app paints, with one
+  retry at load if Chrome had not applied it. Once only (`localStorage 'sptcal.windowFilled'`): after that the window is
+  the user's and Chrome reopens it at the size they left it. Never in a browser tab or fullscreen; with storage blocked it
+  does nothing rather than resize every launch.
+- Everyone already installed gets it once, at their next launch, since no one has the flag yet.
+- Nothing saved, exported or frozen is touched.
+- Verified on the build: `pwagatelogic` 15/15 (new W1-W5 drive `window.__fillAppWindow` with a stand-in window, since
+  headless Chrome has no app window), `pwagate` green, `npm run check` 43/43. Not yet seen in a real installed window.
+
 ### New is gone from the File menu (18 Nov 2026)
 
 The owner: *"remove the new button from here"* (the File menu's dropdown). New was put above Load… for audit WIN-2

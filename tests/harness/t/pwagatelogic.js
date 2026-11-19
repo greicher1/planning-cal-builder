@@ -21,6 +21,8 @@
 //   L7  decide() on the cases the events above cannot reach
 //   L8  Safari/Firefox and phones get their screen at once, before any signal
 //   L9  the localStorage hook reaches a page with no query (what an installed TEST app opens)
+//   W1-W5  the first app window fills the screen, once (owner, 18 Nov 2026), driven through
+//          window.__fillAppWindow with a stand-in window: headless Chrome has no app window to size
 window.__T.memoryIDB();
 window.addEventListener('load', function () { (async function () {
   var T = window.__T, cases = [];
@@ -144,6 +146,45 @@ window.addEventListener('load', function () { (async function () {
     fn.remove();
     add('L9', 'the localStorage hook gates a page with no query; without it the same page is the app',
       !!hooked && hooked !== 'null' && unhooked === null, {hooked: hooked, unhooked: unhooked}, 'a gate screen / null');
+
+    // W: the first app window fills the screen (owner, 18 Nov 2026). Headless Chrome has no app window, so a stand-in
+    // window records what the real one would be asked to do.
+    function fakeWin(stored, outer){
+      var store = stored ? {'sptcal.windowFilled': '1'} : {}, calls = [], onload = [];
+      var fw = {
+        screen: {availLeft: 0, availTop: 25, availWidth: 1728, availHeight: 1092},
+        outerWidth: outer[0], outerHeight: outer[1], calls: calls, store: store,
+        localStorage: {getItem: function (k) { return store[k] || null; }, setItem: function (k, v) { store[k] = String(v); }},
+        moveTo: function (x, y) { calls.push('move ' + x + ',' + y); },
+        resizeTo: function (a, b) { calls.push('size ' + a + 'x' + b); fw.outerWidth = a; fw.outerHeight = b; },
+        addEventListener: function (t, fn) { if (t === 'load') onload.push(fn); },
+        fireLoad: function () { onload.forEach(function (fn) { fn(); }); }
+      };
+      return fw;
+    }
+    var fill = window.__fillAppWindow;
+    var a = fakeWin(false, [1024, 768]), ra = fill ? fill(a, true) : 'missing';
+    add('W1', 'the first launch in an app window moves to the top left and takes the whole usable screen, once',
+      ra === 'filled' && a.calls.join('|') === 'move 0,25|size 1728x1092' && a.store['sptcal.windowFilled'] === '1',
+      {result: ra, calls: a.calls, store: a.store}, 'filled, move 0,25|size 1728x1092, flag set');
+    var b = fakeWin(true, [1024, 768]), rb = fill ? fill(b, true) : 'missing';
+    add('W2', 'a later launch leaves the window the size the user left it', rb === 'done before' && b.calls.length === 0,
+      {result: rb, calls: b.calls}, 'done before, no calls');
+    var c = fakeWin(false, [1024, 768]), rc = fill ? fill(c, false) : 'missing';
+    add('W3', 'a browser tab is never sized, and does not use up the first launch',
+      rc === 'not an app window' && c.calls.length === 0 && !c.store['sptcal.windowFilled'],
+      {result: rc, calls: c.calls, store: c.store}, 'not an app window, no calls, no flag');
+    var e2 = fakeWin(false, [1024, 768]);
+    e2.resizeTo = function (a1, b1) { e2.calls.push('size ' + a1 + 'x' + b1); };   // Chrome had not applied it yet
+    var re = fill ? fill(e2, true) : 'missing';
+    e2.fireLoad();
+    var d2 = fakeWin(false, [1728, 1092]), rd = fill ? fill(d2, true) : 'missing';
+    add('W4', 'one retry at load when the size had not taken; nothing when the window already fills the screen',
+      re === 'filled' && e2.calls.length === 4 && rd === 'already full' && d2.calls.length === 0,
+      {retry: e2.calls, full: rd, fullCalls: d2.calls}, '4 calls / already full, none');
+    // The real window (headless: a tab) must not have been touched or flagged by the page's own run.
+    add('W5', "the page's own run in this tab left no first-launch flag", localStorage.getItem('sptcal.windowFilled') === null,
+      localStorage.getItem('sptcal.windowFilled'), null);
   } catch (e) { cases.push({id: 'EX', title: 'harness', pass: null, observed: String(e && e.stack || e)}); }
   try { localStorage.removeItem('sptcal.gateTest'); } catch (e) {}
   if (f0) f0.remove();

@@ -4,6 +4,19 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### 🖥️ 18 Nov 2026: THE FIRST APP WINDOW FILLS THE SCREEN — on local `main`, NOT committed or pushed. README "Unreleased". Tracker card `app-opens-full-screen`.
+- **Owner:** *"when you first download/open the app, its opening with a smaller window - it needs to open as wide such
+  that it fills the users screen"*.
+- **Done:** `fillAppWindow()` in the install gate's script (`src/index.html`, before the gate's own returns, so it runs on
+  every host): in a standalone / window-controls-overlay / minimal-ui window, once (`localStorage 'sptcal.windowFilled'`),
+  `moveTo(availLeft, availTop)` + `resizeTo(availWidth, availHeight)`, retried once at `load`. ⛔ ONCE is deliberate:
+  Chrome remembers the size a user leaves an app window at, and resizing every launch would fight them. Storage blocked
+  = do nothing. ⚠️ A reinstall that keeps the site's data keeps the flag, so it opens at Chrome's remembered size.
+- ⚠️ Relies on Chrome honouring `window.resizeTo` in an installed app window (it ignores it in a tab). Not yet seen in a
+  real installed window: headless Chrome has none. Try it by installing the localhost build (`npm run dev`, then Chrome's
+  install icon) or on the hosted app after a push.
+- **Legs:** `pwagatelogic` W1-W5 (15/15), `pwagate`, `npm run check` 43/43. No full gate (startup chrome, no frozen code).
+
 ### 🧹 18 Nov 2026: NEW REMOVED FROM THE FILE MENU — LIVE (`64ef772`, pushed on the owner's picker; deploy green to both addresses). README "Unreleased". Tracker card `file-menu-no-new`.
 - **Owner:** *"remove the new button from here"* (the File menu dropdown, which read New / Load… / Changes since last save…).
 - **Done:** `Header.jsx` drops the `data-action="new"` item (WIN-2 had added it) and the hint names "Load and recent calendars";
