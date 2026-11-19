@@ -25,7 +25,9 @@ see §7a, which is the densest part of the app added since the original version 
 It is used by production and scheduling staff to plan TV seasons. The output is the sort of one-page
 planning calendar that gets circulated to a production team.
 
-**Live URL:** https://greicher1.github.io/planning-cal-builder/
+**Live URL:** https://sptcal.pages.dev/ since v1.21.0 (18 Nov 2026), behind a Cloudflare Access sign-in
+(`CLOUDFLARE-ACCESS-PLAN.md`). The old GitHub Pages address, https://greicher1.github.io/planning-cal-builder/,
+serves the same build with "SPTCal has moved" for the switch-over window, then goes away.
 **Repo:** https://github.com/greicher1/planning-cal-builder (public)
 **Owner:** the repository owner, `greicher1` on GitHub
 
@@ -1329,6 +1331,11 @@ https.get('https://greicher1.github.io/planning-cal-builder/?t='+Date.now(),r=>{
 ```
 GitHub's CDN can serve a stale copy for a minute — cache-bust with a query string, and tell the
 user to hard-refresh (Cmd+Shift+R) or use Incognito.
+
+⚠️ **The new address cannot be checked this way:** `sptcal.pages.dev` answers every unsigned request with a 302 to
+`sptcal.cloudflareaccess.com` (that 302 is itself the check that the lock is on). To see the deployed file, read the
+"Publish to Cloudflare Pages" step of the deploy run (`gh run view <id> --log`: "Deployment complete"), or have the
+owner open it signed in. The GitHub Pages address can still be checked as above while it lives.
 
 ---
 

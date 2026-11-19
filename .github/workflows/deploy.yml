@@ -192,3 +192,16 @@ jobs:
       - name: Deploy
         id: deployment
         uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5.0.1
+
+      # ⭐ CLOUDFLARE PAGES: sptcal.pages.dev, behind a Cloudflare Access sign-in (CLOUDFLARE-ACCESS-PLAN.md, owner,
+      # 18 Nov 2026). The SAME checked dist/ (or the same rollback copy) goes to both hosts for the switch-over window;
+      # the build tells them apart by host and shows "SPTCal has moved" on the old one. After the window the GitHub
+      # Pages steps above are removed (plan Phase E) and this is the only publish. AFTER the Pages deploy on purpose:
+      # while users are still on the old address, a Cloudflare failure must not hold back their release.
+      # The two secrets are the owner's (a token with ONLY Account > Cloudflare Pages > Edit; it expires 18 Nov 2028,
+      # renew it before then) and are never printed. wrangler is pinned to an exact version, as the actions are by SHA.
+      - name: Publish to Cloudflare Pages (sptcal.pages.dev)
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: npx --yes wrangler@3.114.17 pages deploy dist --project-name=sptcal --branch=main --commit-dirty=true

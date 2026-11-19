@@ -26,7 +26,9 @@ const ALLOWED_EXTERNAL = ['cdn.jsdelivr.net/npm/exceljs'];
 // Outbound LINKS -- an <a href> the user can click, which is a navigation and fetches nothing. They
 // are allowed only inside an <a> tag, so the same URL anywhere else (a src=, a fetch) still fails.
 // The install gate's OTHER BROWSER screen: "Don't have Chrome? Get it free." (PWA-ONLY-PLAN.md).
-const ALLOWED_LINKS = ['www.google.com/chrome/'];
+// sptcal.pages.dev/: the install gate's "moved" screen on the old address links to the app's new home
+// (CLOUDFLARE-ACCESS-PLAN.md step 8). A link the user clicks, not a load.
+const ALLOWED_LINKS = ['www.google.com/chrome/', 'sptcal.pages.dev/'];
 
 const results = [];
 let failed = 0;
@@ -147,7 +149,9 @@ check(
 // A regression in either direction is serious and silent: a gate that stops matching shows every
 // browser tab the app again, and a manifest whose identity moves makes Chrome treat every existing
 // install as some other app -- and then no installed user is ever recognised.
-const PAGES_URL = 'https://greicher1.github.io/planning-cal-builder/';
+// The app's address and installed identity since 18 Nov 2026 (CLOUDFLARE-ACCESS-PLAN.md); it was
+// https://greicher1.github.io/planning-cal-builder/ until then.
+const PAGES_URL = 'https://sptcal.pages.dev/';
 const manHref = (src.match(/<link rel="manifest" href="data:application\/manifest\+json,([^"]+)"/) || [])[1];
 let man = null;
 try { man = JSON.parse(decodeURIComponent(manHref || '')); } catch (e) { /* reported below */ }
@@ -187,7 +191,10 @@ const moduleAt = src.indexOf('<script type="module"');
 check('gate script is in <head>, before the module',
   gateAt > 0 && gateAt < headEnd && (moduleAt < 0 || gateAt < moduleAt),
   `gate@${gateAt} module@${moduleAt} </head>@${headEnd}`);
-check("gate's GATE_HOSTS names the Pages host", /var GATE_HOSTS = \['greicher1\.github\.io'\]/.test(src));
+check("gate's GATE_HOSTS names the app's host (and the old one, for the switch-over window)",
+  /var GATE_HOSTS = \['greicher1\.github\.io', 'sptcal\.pages\.dev'\]/.test(src));
+check("gate shows the moved screen on the old host only", /var MOVED_FROM = \['greicher1\.github\.io'\]/.test(src)
+  && /data-for="moved"/.test(src));
 check('gate page markup present and hidden by default', /<div id="app-gate" hidden>/.test(src));
 // main.jsx's early return: the bundle must still ask for the attribute, or a gated tab boots the
 // engine underneath the gate (backup slot, autosave, beforeunload) while showing nothing of it.

@@ -28,7 +28,7 @@ export function initLegacyApp() {
   // They are one action, not two: version.json alone makes every user see an update that
   // isn't there, and APP_VERSION alone makes a real update invisible. The release-cut step in
   // README's changelog rules lists them together for exactly this reason.
-  const APP_VERSION = '1.20.1';
+  const APP_VERSION = '1.21.0';
 
   // ---------- Embedded Carlito ----------
   // The two <script type="text/plain"> blocks above hold Carlito, subset and zlib-compressed,
@@ -34838,11 +34838,29 @@ export function initLegacyApp() {
   async function saveToFile(){
     if(!supportsFsAccess){
       // No File System Access: the browser won't let us write a file, so a download is the only
-      // route. Downloads keep the SHARE format -- without a handle there is nothing to write back
-      // to, so a data file the user then can't re-link is worse than a copy that just works.
-      downloadTextFile(buildSavedHtml({ allScenarios: true }), 'text/html', buildSavedFileName('.html'));
+      // route. ⛔ It downloads the CALENDAR (.sptcal), never a working copy of the app (owner's picker, 18 Nov 2026,
+      // CLOUDFLARE-ACCESS-PLAN.md §7a: SPTCal lives behind a sign-in, and a full .html copy runs anywhere without
+      // one). Until then it downloaded buildSavedHtml(), on the reasoning that a copy that just works beats a data
+      // file with nothing to re-link it to; on the hosted address only the installed Chrome/Edge app runs, so this
+      // path is reached only from a file:// copy opened in another browser.
+      downloadTextFile(buildSavedData(), SAVE_MIME, buildSavedFileName());
       markClean();
       return 'download';
+    }
+    // ⛔ AN OLDER .html CALENDAR IS NO LONGER WRITTEN BACK AS .html (owner's picker, 18 Nov 2026, plan §7a). Writing
+    // it back meant writing a whole working copy of the app, which gets around the sign-in. Save asks once and saves
+    // the calendar as a NEW .sptcal file through the picker; the .html file is left exactly as it is. Never silent:
+    // CLAUDE.md, "no file is converted silently" -- this is a question with Cancel, and Cancel changes nothing.
+    if(savedFileHandle && handleIsLegacyHtml(savedFileHandle)){
+      const oldName = savedFileHandle.name || 'This calendar';
+      const ok = await uiConfirm(
+        '“' + oldName + '” is an older .html calendar. SPTCal now saves calendars as .sptcal files.\n\n'
+        + 'Save it as a new .sptcal file? The .html file stays as it is.',
+        { title: 'Save as .sptcal', confirmLabel: 'Save as .sptcal…' });
+      if(!ok){ const e = new Error('Save cancelled'); e.name = 'AbortError'; throw e; }
+      const r = await saveAsFile(sptcalName(oldName));
+      if(r === 'saveas') hideLegacyNotice();
+      return r;
     }
     let isNew = false;
     if(!savedFileHandle){
@@ -34888,11 +34906,8 @@ export function initLegacyApp() {
         const e = new Error('Save cancelled'); e.name = 'AbortError'; throw e;
       }
     }
-    // Write back in whatever format the file already is. Opening a pre-v1.1.0 .html calendar and
-    // hitting Save keeps it an .html -- we never silently convert a file the user didn't ask us
-    // to convert, and their existing workflow is untouched.
-    const legacy = handleIsLegacyHtml(savedFileHandle);
-    const body = legacy ? buildSavedHtml({ allScenarios: true }) : buildSavedData();
+    // Always the calendar's data. An older .html file never gets here: it was asked about above.
+    const body = buildSavedData();
     const baseline = takeSavedBaseline('saved');   // the calendar as written: "Changes since last save" compares from it
     const writeBack = async ()=>{
       const writable = await savedFileHandle.createWritable();
@@ -35387,6 +35402,7 @@ export function initLegacyApp() {
   function refreshSaveStatus(){
     if(fileConflict){ chrome.saveStatus({ text: 'File changed on disk \u2014 autosave paused', tone: 'failed', title: 'Someone (or another window) saved this file since you loaded it, so autosave has stopped rather than overwrite their changes. Click Save to choose: overwrite it, load the newer version, or save yours as a copy.' }); }
     else if(isDirty && autosaveFailed){ chrome.saveStatus({ text: 'Autosave failed — click Save', tone: 'failed', title: 'The linked file couldn’t be written (it may have been moved, deleted, or had its permission revoked). Use Save to choose a location.' }); }
+    else if(isDirty && savedFileHandle && handleIsLegacyHtml(savedFileHandle)){ chrome.saveStatus({ text: 'Autosave paused — click Save', tone: 'failed', title: 'This is an older .html calendar, which SPTCal no longer writes. Click Save to save it as a .sptcal file; autosave keeps that one up to date. Your work is backed up in this browser meanwhile.' }); }
     else if(isDirty && autosaveNeedsFile){ chrome.saveStatus({ text: 'Autosave needs a file — click Save', tone: 'failed', title: 'This calendar isn’t linked to a file yet, so autosave has nowhere to write. Click Save to choose where it lives. Your work is backed up in this browser meanwhile.' }); }
     // A double-clicked file Chrome opened read-only (openRecentFile's needsWrite). startAutosave()
     // skips while handleNeedsPermission is set, so say so -- the same reason as the line above: the
@@ -38043,7 +38059,11 @@ export function initLegacyApp() {
           refreshSaveStatus();
           return;
         }
-        const body = handleIsLegacyHtml(savedFileHandle) ? buildSavedHtml({ allScenarios: true }) : buildSavedData();
+        // ⛔ An older .html calendar is never written by a timer (owner's picker, 18 Nov 2026, plan §7a): writing it
+        // back was a whole working copy of the app, and Save now asks to save it as .sptcal, a question a timer cannot
+        // ask. Autosave PAUSES; refreshSaveStatus() says why, and Save's question is the way on.
+        if(handleIsLegacyHtml(savedFileHandle)){ refreshSaveStatus(); return; }
+        const body = buildSavedData();
         const writable = await savedFileHandle.createWritable();
         await writable.write(body);
         await writable.close();
@@ -38319,7 +38339,8 @@ export function initLegacyApp() {
   // (linkedFileUnwritable); every other caller takes the usual show-title-and-date name.
   async function saveAsFile(suggested){
     if(!supportsFsAccess){
-      downloadTextFile(buildSavedHtml({ allScenarios: true }), 'text/html', buildSavedFileName('.html'));
+      // The calendar, never a working copy of the app (plan §7a), as saveToFile's download.
+      downloadTextFile(buildSavedData(), SAVE_MIME, buildSavedFileName());
       return 'download';
     }
     const handle = await window.showSaveFilePicker({
@@ -38327,9 +38348,10 @@ export function initLegacyApp() {
       types: SAVE_TYPES,
     });
     // Save As always produces the current format, even when forking a legacy .html calendar --
-    // the user is naming a new file here, so there is no existing format to preserve.
+    // the user is naming a new file here, so there is no existing format to preserve. ⛔ Even a name typed ending in
+    // .html gets the calendar's data, never a working copy of the app (plan §7a); Load reads it by its content.
     const writable = await handle.createWritable();
-    const body = handleIsLegacyHtml(handle) ? buildSavedHtml({ allScenarios: true }) : buildSavedData();
+    const body = buildSavedData();
     const baseline = takeSavedBaseline('saved');   // "Changes since last save" (AUD2-103), as saveToFile
     await writable.write(body);
     await writable.close();
@@ -38613,8 +38635,8 @@ export function initLegacyApp() {
       if(btn.disabled) return;
       btn.disabled = true;
       try {
-        // Save As, not Save: Save deliberately writes back in the file's own format, so it would
-        // rewrite the .html and change nothing. Save As names a NEW file, which gets .sptcal.
+        // Save As, which names a NEW file and gets .sptcal. (Since 18 Nov 2026 Save on an .html calendar asks and ends
+        // here too, plan §7a; before then it wrote the .html back, changing nothing.)
         const r = await saveAsFile();
         // Only stand down once the calendar actually lives somewhere new. On the download
         // fallback the user still has no linked file, so the advice still stands.
@@ -48104,6 +48126,35 @@ export function initLegacyApp() {
       // theirs and may not have their calendar in it.
       if(!/^https?:$/.test(location.protocol)) return;
 
+      // ⭐ THE OLD ADDRESS SAYS SPTCAL HAS MOVED (CLOUDFLARE-ACCESS-PLAN.md step 8; owner, 18 Nov 2026). SPTCal moves
+      // from GitHub Pages to sptcal.pages.dev, behind a Cloudflare Access sign-in. For the switch-over window the SAME
+      // build is published to both, so the build tells them apart by host. On the old one this strip replaces the
+      // update check (an update there is beside the point: the app is leaving), and says so in the installed app
+      // window; a browser TAB on the old host never gets this far, since the install gate shows its "moved" screen.
+      // The strip is #update-notice itself, retold, so no new strip has to join the one-at-a-time machinery.
+      // Test hook, localhost only (the gate's own rule): localStorage 'sptcal.movedTest' = '1' shows it there.
+      const MOVED_FROM = ['greicher1.github.io'];
+      const MOVED_TO = 'https://sptcal.pages.dev/';
+      let movedTest = false;
+      if(/^(localhost|127\.0\.0\.1)$/.test(location.hostname)){
+        try { movedTest = localStorage.getItem('sptcal.movedTest') === '1'; } catch(_){}
+      }
+      if(MOVED_FROM.indexOf(location.hostname) >= 0 || movedTest){
+        const strip = document.getElementById('update-notice');
+        if(!strip) return;
+        strip.querySelector('.ln-text').innerHTML =
+          '<strong>SPTCal has moved</strong> to sptcal.pages.dev. Save your work first, then install it from there. '
+          + 'Your saved calendar files aren’t affected.';
+        const go = strip.querySelector('.ln-go');
+        go.textContent = 'Go to the new SPTCal';
+        // Out of this app's scope, so Chrome opens it in a browser tab, where the new address's sign-in and its
+        // install screen take over. Nothing here is navigated away from, so unsaved work stays on screen.
+        go.addEventListener('click', ()=>{ window.open(MOVED_TO, '_blank', 'noopener'); });
+        strip.querySelector('.ln-x').addEventListener('click', ()=>{ strip.hidden = true; });
+        strip.hidden = false;
+        return;
+      }
+
       const MARKER = 'version.json';
       const EVERY  = 30 * 60 * 1000;   // the marker is a few dozen bytes; this is not traffic
       let lastCheck = 0, shownVersion = null, dismissedVersion = null;
@@ -48149,7 +48200,13 @@ export function initLegacyApp() {
           // Cache-bust twice over. The marker is served from the same Pages host and inherits
           // the same ten-minute cache as the app, so a plain fetch could be answered from cache
           // with precisely the version we are trying to detect a change away from.
-          const res = await fetch(MARKER + '?t=' + Date.now(), { cache: 'no-store' });
+          // ⭐ SIGNED OUT IS NOT A FAILURE (CLOUDFLARE-ACCESS-PLAN.md step 9, 18 Nov 2026). Behind Cloudflare Access a
+          // sign-in that has run out answers this fetch with a redirect to the sign-in page, on another origin. Followed,
+          // that is a CORS error, which counted toward MAX_FAILURES and stopped the checks for the session. Not followed
+          // (redirect: 'manual'), it is an 'opaqueredirect': nothing to show, nothing counted, and the next check (or the
+          // user's next launch, which signs in again) finds the version as usual. GitHub Pages never redirects it.
+          const res = await fetch(MARKER + '?t=' + Date.now(), { cache: 'no-store', redirect: 'manual' });
+          if(res.type === 'opaqueredirect') return;
           if(!res.ok){ if(++failures >= MAX_FAILURES) giveUp(); return; }
           const data = await res.json();
           failures = 0;

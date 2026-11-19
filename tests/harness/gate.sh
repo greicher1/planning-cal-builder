@@ -1697,6 +1697,8 @@ done
 # Since 15 Oct 2026 the 'half'/'onhalf' marks are WITHDRAWN as choices (a half day is an episode's .5,
 # the halfdays leg), so it loads dayoverrides-onhalf and guards the saved marks: honoured, shown,
 # moved with the calendar, clearable, and never offered again.
+# cfmove (CLOUDFLARE-ACCESS-PLAN.md, 18 Nov 2026): the old address's "SPTCal has moved" strip (localStorage hook), Save on an
+#   older .html calendar asks and writes .sptcal data (never the app), autosave pauses on one, Export App With Data gone.
 # pwagate + pwagatelogic guard the install gate (PWA-ONLY-PLAN.md, 30 Sep 2026): the hosted link's
 # browser tab shows only the gate and never starts the engine, with the owner's approved wording.
 # First in the list on purpose: the batch-4 session appends at the END, so the two never conflict.
@@ -2300,7 +2302,7 @@ done
 # startrecents (owner, 16 Nov 2026, version 7 of mockups/start-recents.html): the recents on an empty start as two cards,
 #   the last calendar's own card and "Other recent calendars" with Load…, one file and none, names without .sptcal, the
 #   when-lines, a row's click loading it; 7 of 10 red on releases/v1.15.0.html (C1-C4, L2, O1, O0).
-for AFSPEC in pwagate:-:120 pwagatelogic:-:120 settingswin:-:240 newtab:-:120 \
+for AFSPEC in pwagate:-:120 pwagatelogic:-:120 cfmove:-:180 settingswin:-:240 newtab:-:120 \
               interfonts:-:60 monthlayout:-:150 monthlayout:colswap-simpost-refuse:150 \
               loadcarry:-:90 hiatusblank:hiatus-blank:90 hostile:xss-mixed:240 hostile:xss-proto:240 sharecopy2:-:90 loadfail:-:1500 \
               snapoff:snapoff-sheet:60 snapoff:snapoff-onecol:60 snapoff:snapoff-friday:60 \

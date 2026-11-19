@@ -36,9 +36,9 @@
 //       from inside closes it and puts focus back on the button; an Escape elsewhere does not close it
 //   W12 a file saved with the old Settings tab up (sidebarTab 'settings') opens on Show, the window closed
 //   W13 the merged Preferences tab, BY VIEW: in the waterfall it shows ONE Waterfall card holding the old Calendar
-//       tab's waterfall settings and Grid Lines, Automatic notes, Hiatus (since 4 Nov 2026) and App, no Month view card, and the opening line
+//       tab's waterfall settings and Grid Lines, Automatic notes, Hiatus (since 4 Nov 2026; App until 18 Nov 2026), no Month view card, and the opening line
 //       that names Grid Lines; in the month view ONE Month view card holding Label Production by, the grey-text
-//       switches, Pause prep and Number Production Days, Automatic notes and App, no Waterfall card, and the line
+//       switches, Pause prep and Number Production Days, Automatic notes and Hiatus, no Waterfall card, and the line
 //       that names the grey-text switches. Exactly one opening line shows in each view
 //   W14 the rail stays live while it is open (owner, 23 Oct 2026): no head of its own, its tabs straight under
 //       the rail; the Settings button takes the selected look and the sidebar tab gives it up; a hit-tested click
@@ -411,12 +411,12 @@ window.addEventListener('load', function () { (async function () {
     var scopeAll = document.querySelectorAll('#settings-window .sw-scope').length;
     var scopeText = /travel with it|stays? on this computer/.test(el('settings-window').textContent);
     out.w13.noScope = {nodes: scopeAll, text: scopeText};
-    add('W13', 'Preferences, by view: in the waterfall ONE Waterfall card (Single Column Mode and Dates with its four formats; no Paper, no Grid Lines in Exports, no Custom Column Headings switch), Automatic notes and App; in the month view ONE Month view card (Label Production by, the grey-text switches, Pause prep, Number Production Days), Automatic notes and App; and no tab opens on a "saved in this file / stays on this computer" line',
+    add('W13', 'Preferences, by view: in the waterfall ONE Waterfall card (Single Column Mode and Dates with its four formats; no Paper, no Grid Lines in Exports, no Custom Column Headings switch), Automatic notes and Hiatus; in the month view ONE Month view card (Label Production by, the grey-text switches, Pause prep, Number Production Days), Automatic notes and Hiatus (no App card since 18 Nov 2026: Export App With Data is gone, CLOUDFLARE-ACCESS-PLAN.md D7); and no tab opens on a "saved in this file / stays on this computer" line',
       // Hiatus (HIATUS-RIPPLE-PLAN.md §5, 4 Nov 2026): "Ripple Hiatus Periods", a preference for both views, before App.
-      eq(l13s.heads, ['Waterfall', 'Automatic notes', 'Hiatus', 'App']) && l13s.wf && gridGone && oneShown
+      eq(l13s.heads, ['Waterfall', 'Automatic notes', 'Hiatus']) && l13s.wf && gridGone && oneShown
         && eq(dateOpts, ['m/d/yyyy=MM/DD/YYYY', '=MM/DD/YY', 'd/m/yyyy=DD/MM/YYYY', 'd/m/yy=DD/MM/YY']) && out.w13.noHdrSwitch
         && l13s.scope.length === 0
-        && eq(l13m.heads, ['Month view', 'Automatic notes', 'Hiatus', 'App']) && l13m.mv
+        && eq(l13m.heads, ['Month view', 'Automatic notes', 'Hiatus']) && l13m.mv
         && l13m.scope.length === 0 && scopeAll === 0 && !scopeText
         && l13mShown.label && l13mShown.pause && l13mShown.days && mvRows.length >= 1,
       out.w13, 'one card per view, no scope line in any tab');
