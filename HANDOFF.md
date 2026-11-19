@@ -4,7 +4,7 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### ↔️ 19 Nov 2026: A DROP LINE BETWEEN SCENARIO TABS WHILE ONE IS DRAGGED — on `scenario-version-offer`, committed, NOT pushed (awaiting the owner's picker). README "Unreleased". Tracker card `scenario-drag-marker`.
+### ↔️ 19 Nov 2026: A DROP LINE BETWEEN SCENARIO TABS WHILE ONE IS DRAGGED — on `scenario-version-offer` (`684e722`), LIVE: pushed on the owner's picker, deploy green, the live file carries `drop-before`. README "Unreleased". Tracker card `scenario-drag-marker`.
 - **Owner:** *"there should be little markers between scenario tabs that appear when you drag to rearrange the scenarios
   so you know where they are going to drop"*. Tried on localhost: *"Yes, finish it"*.
 - **As built** (`ScenarioTabs.jsx`, `gap` state, `slotAt` / `moves` / `markOf`; CSS `.sc-tab.drop-before` /
