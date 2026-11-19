@@ -223,7 +223,9 @@ export function ScenarioTabs() {
     const sr = s.getBoundingClientRect(), r = el.getBoundingClientRect()
     if (r.left < sr.left + FADE) s.scrollLeft -= sr.left + FADE - r.left
     else if (r.right > sr.right - FADE) s.scrollLeft += r.right - (sr.right - FADE)
-  }, [st.current, st.tabs.length])
+  // `editing` and the offer too: a fresh copy goes at the far right (duplicateScenario, 19 Nov 2026), and its name box
+  // and "→ v4" open a render AFTER it becomes current, widening it, so a scroll taken only then left "→ v4" under the fade.
+  }, [st.current, st.tabs.length, editing, st.verOffer && st.verOffer.to])
 
   if (!st.visible || !st.tabs.length) return null
   const many = st.tabs.length > 1

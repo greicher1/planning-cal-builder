@@ -31,6 +31,20 @@ way a user would notice or a future session would need to return to. See
 
 ## Unreleased
 
+### A new scenario goes at the far right of the strip (19 Nov 2026)
+
+Owner, asked whether a copy made from a tab that is not the last should go at the far right rather than just right of
+the tab it copies: *"Yes, far right"*. The "+" now always puts the copy LAST (`duplicateScenario`, a `push` where it
+was a splice beside the source). Why it matters: the copy's name (the next unused letter) and its offered version (the
+highest on any tab + 1) both continue from the last tab, so copying v1 of v1 v2 v3 used to read v1 v4 v2 v3. A drag
+still reorders. The strip's keep-in-view scroll (`ScenarioTabs.jsx`) now also runs when the name box and "→ vN" open,
+a render after the copy becomes current: without it, in a strip that scrolls, the new tab's "→ vN" sat 13 px under the
+right-edge fade. Chrome + scenario engine, nothing frozen, no saved key.
+Verified: leg `scenversion` V7 now copies the FIRST tab and expects it at the far right (red on the old splice), 9/9;
+`scenarios` 23/23, `scenariofacts` 12/12, `scenlist` (real time) 9/9, `changessince` 15/15, `comparebreaks` 10/10,
+`exportnames` 12/12, `comparehiatus` 8/8, `lastedited` 22/22; `npm run check` 43/43. In the browser at 800 px, six
+tabs, a copy of the first lands sixth with "→ v6" fully in view.
+
 ### The waterfall note editor's grey prompt is gone (19 Nov 2026)
 
 Owner: *"delete this text in waterfall"*, pointing at "Note text (Shift+Enter for a new line)" inside an empty note's

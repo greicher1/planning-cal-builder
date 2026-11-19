@@ -34028,13 +34028,17 @@ export function initLegacyApp() {
     refreshScenarioFacts();   // ...which pushes the chrome
     return true;
   }
-  // "+": a copy of the tab on screen, next to it, on screen at once (the live app already IS its state). The copy
-  // starts with no undo history; the original keeps its own.
+  // "+": a copy of the tab on screen, on screen at once (the live app already IS its state). The copy starts with no
+  // undo history; the original keeps its own.
+  // ⭐ AT THE FAR RIGHT, whichever tab it copies (owner, 19 Nov 2026, "Yes, far right"). It went just right of its
+  // source until then, but its name (nextScenarioName) and its offered version (nextScenarioVersion, the highest on any
+  // tab + 1) both continue from the LAST tab, so copying v1 of v1 v2 v3 read "v1 v4 v2 v3". The strip scrolls the tab
+  // on screen into view by itself (ScenarioTabs.jsx), so a far-right copy is never off screen. A drag still reorders.
   function duplicateScenario(){
     if(scenarioTabs.length >= SCENARIO_MAX) return null;
-    const from = parkCurrentScenario();
+    parkCurrentScenario();
     const copy = { id: 's' + (++scenarioCounter), name: nextScenarioName(), snapshot: null, undo: null, facts: null };
-    scenarioTabs.splice(scenarioTabs.indexOf(from) + 1, 0, copy);
+    scenarioTabs.push(copy);
     currentScenarioId = copy.id;
     update();          // the {scenario} header token reads the new name
     // The copy's history starts empty, based on the state AFTER that render: update() settles derived stores, and

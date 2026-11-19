@@ -4,6 +4,21 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### ➡️ 19 Nov 2026: A NEW SCENARIO GOES AT THE FAR RIGHT — on `scenario-version-offer`, after `7dae77b`, NOT pushed. README "Unreleased". Tracker card `scenario-copy-far-right`.
+- ⚠️ **This branch is BEHIND `origin/main`** (checked 19 Nov 2026): the version badges were merged and pushed from another
+  session as `4d03a10` (with Show info's Tandem Days and field order), so the entry below that says "NOT pushed" is out
+  of date. Unpushed here: `7dae77b` (the placeholder) and this change. Merge `origin/main` in before any push.
+- **Owner:** asked whether a copy made while a tab other than the last is on screen should go at the far right instead
+  of just right of the tab copied; on the recommendation, *"Yes, far right"*.
+- **Done:** `duplicateScenario()` pushes the copy last. Reason kept in its comment: `nextScenarioName()` and
+  `nextScenarioVersion()` both continue from the last tab, so a copy beside its source scrambled the strip's order.
+- ⚠️ **The strip's keep-in-view effect now also depends on `editing` and `st.verOffer.to`.** The copy's name box and
+  "→ vN" open a render after it becomes current and widen the tab; scrolled only on `st.current`, a far-right copy's
+  "→ vN" was left 13 px under the right fade (measured at 800 px with six tabs).
+- **Legs:** `scenversion` V7 re-expected (copies the first tab, expects it last), 9/9. Green on the build: scenarios 23,
+  scenariofacts 12, scenlist (rt) 9, changessince 15, comparebreaks 10, exportnames 12, comparehiatus 8, lastedited 22;
+  `npm run check` 43/43. No full gate (chrome + scenario engine, nothing frozen, no saved key).
+
 ### ✂️ 19 Nov 2026: THE WATERFALL NOTE EDITOR HAS NO PLACEHOLDER — committed on `scenario-version-offer` after `e690859`, NOT pushed
 - **Owner:** *"delete this text in waterfall"* (the grey "Note text (Shift+Enter for a new line)" in an empty note box).
 - **Done:** the waterfall note editor's `<textarea>` carries no `placeholder`; a hiatus band keeps "Hiatus label", and the

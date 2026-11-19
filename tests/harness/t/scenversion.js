@@ -16,7 +16,7 @@
 //   V4  a click on the tab's badge brings "→ v4" back; a second click puts it away
 //   V5  the offer goes on the next edit (Show info's Location)
 //   V6  a click on ANOTHER tab's badge switches to it and offers there; the number is the highest on any tab + 1
-//   V7  a copy with no Version: no badge and no offer
+//   V7  a copy of the FIRST tab goes to the far right (19 Nov 2026); with no Version, no badge and no offer
 //   V8  a saved file carries no new key (the offer and the badge are session UI)
 //   E0  no page errors
 window.__T.memoryIDB();
@@ -107,13 +107,14 @@ window.addEventListener('load', function () { (async function () {
     add('V6', 'another tab\'s badge switches to it and offers the highest version on any tab + 1',
       v6 === '*Scenario A v3 → v8 | Scenario B v7', {tabs: v6}, '*Scenario A v3 → v8 | Scenario B v7');
 
-    // V7 -- clear A's Version, copy: no badge on either, no offer.
+    // V7 -- clear A's Version, copy: no badge on either, no offer. A is the FIRST tab, and the copy goes to the far
+    // right, not between A and B (owner, 19 Nov 2026, "Yes, far right").
     setField('show-version', ''); await T.sleep(500);
     addBtn().click(); await T.sleep(900);
     var v7 = tabs();
     enterName(); await T.sleep(400);
-    add('V7', 'a copy with no Version shows no badge and no offer',
-      v7 === 'Scenario A | *[Scenario C] | Scenario B v7' && !q('.sc-ver-bump'), {tabs: v7}, 'Scenario A | *[Scenario C] | Scenario B v7');
+    add('V7', 'a copy of the first tab goes to the far right; with no Version it shows no badge and no offer',
+      v7 === 'Scenario A | Scenario B v7 | *[Scenario C]' && !q('.sc-ver-bump'), {tabs: v7}, 'Scenario A | Scenario B v7 | *[Scenario C]');
 
     // V8 -- the file: the scenarios' tab entries hold only their own keys, and no top-level key names the offer.
     document.getElementById('save-file-btn').click(); await T.sleep(1200);
