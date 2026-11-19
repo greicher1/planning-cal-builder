@@ -31,6 +31,13 @@ way a user would notice or a future session would need to return to. See
 
 ## Unreleased
 
+### The waterfall note editor's grey prompt is gone (19 Nov 2026)
+
+Owner: *"delete this text in waterfall"*, pointing at "Note text (Shift+Enter for a new line)" inside an empty note's
+box. The waterfall note editor's box now has no placeholder; a hiatus band's "Hiatus label" and the month view's note
+editor are unchanged. Chrome only (`openNoteEditor`'s markup), nothing frozen and nothing saved. No leg reads the text.
+Verified in the build: the editor's textarea carries no `placeholder` attribute, and an emptied box shows blank.
+
 ### Scenario tabs show their Version, and a copy is offered the next one (19 Nov 2026)
 
 The owner asked whether, once the first scenario has a Version, a new scenario should be named after it or the Version

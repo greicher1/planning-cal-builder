@@ -4,6 +4,12 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### ✂️ 19 Nov 2026: THE WATERFALL NOTE EDITOR HAS NO PLACEHOLDER — committed on `scenario-version-offer` after `e690859`, NOT pushed
+- **Owner:** *"delete this text in waterfall"* (the grey "Note text (Shift+Enter for a new line)" in an empty note box).
+- **Done:** the waterfall note editor's `<textarea>` carries no `placeholder`; a hiatus band keeps "Hiatus label", and the
+  month note editor's prompt is untouched (not asked). README "Unreleased". Checked in the build (attribute absent, empty
+  box blank). Its own commit, after the scenario-version commit, so either can be dropped alone.
+
 ### 🏷️ 19 Nov 2026: SCENARIO TABS SHOW THEIR VERSION, A COPY IS OFFERED THE NEXT — branch `scenario-version-offer` (from `main` `ee05f69`), committed locally, NOT pushed. README "Unreleased". Tracker card `scenario-version-bump`.
 - **Owner, in order:** asked whether a new scenario should take the Version as its name or the Version show in the bottom
   bar; then *"it could automatically set the version number to the next number"*; *"could there be a dialogue that asks"*;

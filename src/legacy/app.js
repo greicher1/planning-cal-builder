@@ -19330,7 +19330,7 @@ export function initLegacyApp() {
     pop.innerHTML = `<div class="note-pop-head"><div class="note-pop-heading"><span class="note-pop-title">${escHtml(popName)}</span>`
       + ` <span class="note-pop-when">${escHtml(popWhen)}</span></div>${headBtn}</div>
       <div class="note-editor">
-      <textarea rows="2" placeholder="${isHiatus?'Hiatus label':'Note text (Shift+Enter for a new line)'}">${textVal.replace(/</g,'&lt;')}</textarea>
+      <textarea rows="2"${isHiatus ? ' placeholder="Hiatus label"' : ''}>${textVal.replace(/</g,'&lt;')}</textarea>
       ${popHint ? `<div class="note-pop-hint">${popHint}</div>` : ''}
       <div class="note-list">
       ${dayRow}
