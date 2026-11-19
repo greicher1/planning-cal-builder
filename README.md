@@ -29,6 +29,45 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+## v1.19.2 — a crowded month shrinks in the installed app too (18 Nov 2026)
+
+### A crowded month shrinks in the installed app too (18 Nov 2026)
+
+Right after v1.19.0 went out the owner opened a crowded calendar in the installed app, and its month was still drawn
+full size in a card taller than a page, after several hard reloads. The app was v1.19.0. What differed was the page's
+fonts: something on that Mac (a browser extension, by the look of it) adds dozens of faces named Inter to every page,
+and in the app they never load (some are never used, the rest are blocked by the app's Content-Security-Policy). The
+shrink waited until EVERY face called Inter had loaded, so on that machine it never ran, and the month fell back to
+the old look. The test runs never saw it: headless Chrome has no extensions.
+
+Now it waits only while an Inter face is still loading, and goes once one has loaded; a face that never loads, or
+failed to load, holds nothing back. With only the app's own face, as in every test run, the answer is exactly what it
+was, so no output and no fitting month can change.
+
+**Verified:** new case `monthpage` W adds two foreign Inter faces (one never used, one whose source fails), pages away
+and back, and requires the shrunk month's factor unchanged: red on v1.19.0 (the factor went from 0.61 to 1, full size),
+green on this build. Reproduced by hand the same way on a crowded test calendar. The month-view legs on this build
+(`monthpage` on all ten of its gate runs, `monthrowlimit`, `mvnotesize`, `monthlanes`, `autonoterename`, `softlines`),
+gate 13's written month PDF and gate 10's print document on the reference calendar: see HANDOFF. `npm run check` 42/42.
+
+## v1.19.1 — the version under the SPTCal name (18 Nov 2026)
+
+### The version under the SPTCal name (18 Nov 2026)
+
+The owner: *"in small grey text, add v1.19 or whatever the current version of the app is right below the SPTCal
+header in the top left corner of the app. Mock it up before you build it"* (`mockups/header-version-label.html`; the
+owner's picks: the full number, "v1.19.0", and "Hide with the name" in a narrow window).
+- The header's top-left corner now reads **SPTCal** with **v1.19.1** under it in small grey text (11 px, Mantine
+  gray-6). Below 1200 px wide, where the name already hides so no button label is cut, the version hides with it.
+- The number is never typed into the header: `Header.jsx` imports it from `package.json` at build time, and
+  `npm run check` already holds `package.json` = `version.json` = the engine's `APP_VERSION`. So the label cannot
+  disagree with the update check or the PDFs' "Made with SPTCal" mark, and every version cut updates it.
+- The name and version share the icon's 30 px (17 + 13 px lines), so the header stays 63 px tall and `--header-h`
+  does not move. Nothing in the grid, the exports or the save file changes.
+- Verified: on the build at 1440 px the label reads the version and the header is 63 px; at 1100 px it is hidden and
+  the header is still 63 px. `npm run check` 42/42; a partial gate (the waterfall PDF and workbook against their
+  baselines, `pdfmark`, `monthexport` and gate 13, `toolbarfit`, `laptopfit` at its three windows): see HANDOFF.
+
 ## v1.19.0 — a crowded month shrinks on screen like its PDF; a day in the Month view holds 10 lines (18 Nov 2026)
 
 ### A crowded month shrinks on screen exactly as its PDF does (17 Nov 2026)

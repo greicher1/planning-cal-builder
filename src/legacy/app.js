@@ -28,7 +28,7 @@ export function initLegacyApp() {
   // They are one action, not two: version.json alone makes every user see an update that
   // isn't there, and APP_VERSION alone makes a real update invisible. The release-cut step in
   // README's changelog rules lists them together for exactly this reason.
-  const APP_VERSION = '1.19.0';
+  const APP_VERSION = '1.19.2';
 
   // ---------- Embedded Carlito ----------
   // The two <script type="text/plain"> blocks above hold Carlito, subset and zlib-compressed,
@@ -32208,17 +32208,26 @@ export function initLegacyApp() {
   // still loading (measured 17 Nov 2026: a render 16 ms after the first counted "Writer's Room Opens 1/5/26" as one
   // line in the fallback face, with check() true), and document.fonts.status reads 'loaded' before anything has
   // asked for a face at all. With no Inter face in the set (a copy that takes it from elsewhere), the set's status.
+  // ⛔ NOT "every Inter face is loaded" (fixed 18 Nov 2026, v1.19.2). A page can hold Inter faces that are not the
+  // app's: on the owner's Mac something (a browser extension, by the look of it) adds dozens to every page, and in the
+  // installed app they sat at "unloaded" (never used) and "error" (their source blocked by the app's
+  // Content-Security-Policy) for good. Requiring all of them loaded kept this false forever, so a crowded month was
+  // never shrunk on that machine and stayed full size in a taller card. Headless Chrome has no extensions, so no leg
+  // saw it. The rule now: wait while any Inter face is still LOADING (the 17 Nov case above: the app's own face
+  // mid-load), and go once one has LOADED; a face that never loads or failed to load holds nothing back. Before any
+  // Inter text is drawn the app's face is "unloaded" and none is loaded, so it still waits. monthpage W holds it.
   let mvDrawnBeforeFonts = false;
   function mvFontsIn(){
     try {
       if(!document.fonts) return true;
-      let seen = false;
+      let seen = false, loaded = false;
       for(const f of document.fonts){
         if(String(f.family).replace(/['"]/g, '') !== 'Inter') continue;
         seen = true;
-        if(f.status !== 'loaded') return false;
+        if(f.status === 'loading') return false;
+        if(f.status === 'loaded') loaded = true;
       }
-      return seen ? true : document.fonts.status === 'loaded';
+      return seen ? loaded : document.fonts.status === 'loaded';
     } catch(e){ return true; }
   }
   function mvAfterFonts(){

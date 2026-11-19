@@ -136,7 +136,7 @@ there for a specific, measured reason, and the reasons are not visible from the 
   - ⛔ `fitMonthPage`'s MutationObserver must stay the FIRST one made on `#table-wrap` (near the top of `app.js`):
     observers are told of a render in the order they were made, and a dozen later ones measure the month. That same
     observer renders a month a second time when it was drawn with no day cell on screen to measure (from the
-    waterfall, or at load), and only once Inter is in (`mvFontsIn()`, `mvAfterFonts()`): note line counts are cached
+    waterfall, or at load), and only once Inter is in (`mvFontsIn()`, `mvAfterFonts()`; ⛔ "in" is NO Inter face loading and ONE loaded, since v1.19.2: a page can carry Inter faces that are not the app's, an extension's, that never load, and waiting for all of them kept the owner's installed app from ever shrinking a month; `monthpage` W): note line counts are cached
     by box width, so one taken in the fallback face poisons every later render.
   - The `monthpage` leg holds it: every week's height on screen is the written PDF's row within 0.1 px, in a shrunk
     month too; T the factor is the PDF's, N a shrunk month's notes are in the PDF's boxes, K Stay one page.

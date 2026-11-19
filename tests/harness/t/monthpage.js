@@ -41,6 +41,9 @@
 //   X   a line added to a week (the row's "+") stays inside the week, and the "+" strip sits at the week's bottom edge
 //   K   "Stay one page": in a month the PDF shrinks, a line added to a week (the row's "+") leaves the card one page
 //       and that week the height it had (the PDF's row; the PDF draws no blank lines)
+//   W   Inter faces that are not the app's (one never used, one whose source fails, as an extension's stylesheet adds
+//       them) do not stop a crowded month shrinking: away and back, the factor is the one it had (v1.19.2; on v1.19.0
+//       mvFontsIn() waited for every Inter face to load, and the month went back to full size)
 //   V   the fit's numbers are on #table-wrap's own style in the month view only: the waterfall carries none
 //   F   a month drawn where there was none (coming from the waterfall) is already measured at the page's day: every
 //       note has the lines it has after any later render. (Frozen mvNoteBoxWidth() reads a day cell already on screen
@@ -305,6 +308,29 @@ window.addEventListener('load', function () { (async function () {
       kase('K', 'in a month the PDF shrinks, a line added to a week (the row\'s "+") leaves the card one page and the week the height it had' + (wantShrunk ? ' (this calendar has such a month)' : ''),
         kk ? (kk.lanesAfter > kk.lanesBefore && Math.abs(kk.rowAfter - kk.rowBefore) <= 0.1 && Math.abs(kk.cardAfter[1] - PAGE_H) <= 0.1 && Math.abs(kk.cardAfter[1] - kk.cardBefore[1]) <= 0.1 && kk.k < 1)
            : (!wantShrunk && !shrunkMonths.length), kk || { none: shrunkMonths.length ? 'no week with a + strip that takes a line' : 'no shrunk month on this calendar' });
+
+      // ---- W: Inter faces that are not the app's (18 Nov 2026, v1.19.2) ----
+      // On the owner's Mac something (a browser extension, by the look of it) adds dozens of faces named Inter to every
+      // page; in the installed app they sat at "unloaded" and "error" (blocked by the CSP) for good, and the shrink,
+      // which waited for EVERY Inter face, never ran. Here: one face that is never used and one whose source fails,
+      // then away from the shrunk month and back. The factor must be the one it had. Taken out again afterwards.
+      var ww = null;
+      if (shrunkMonths.length && document.fonts && typeof FontFace === 'function') {
+        var shrunkLabel = q('#table-wrap .mv-monthyear').textContent.trim(), kBefore = kNow();
+        var unused = new FontFace('Inter', 'url(https://example.invalid/inter-300-cyrillic.woff2)', { weight: '300', unicodeRange: 'U+0400-045F' });
+        var broken = new FontFace('Inter', 'url(https://example.invalid/inter-800.woff2)', { weight: '800' });
+        document.fonts.add(unused); document.fonts.add(broken);
+        try { await broken.load(); } catch (e) {}
+        var away = next().disabled ? prev() : next(), back = away === next() ? prev : next;
+        away.click(); await T.sleep(200); await settle();
+        back().click(); await T.sleep(400); await settle();
+        ww = { month: q('#table-wrap .mv-monthyear').textContent.trim(), want: shrunkLabel, kBefore: kBefore, kAfter: kNow(), faces: [unused.status, broken.status] };
+        document.fonts.delete(unused); document.fonts.delete(broken);
+        away.click(); await T.sleep(200); back().click(); await T.sleep(300); await settle();
+      }
+      kase('W', 'Inter faces that are not the app\'s, one never used and one that failed to load, do not stop a crowded month shrinking',
+        ww ? (ww.month === ww.want && ww.kBefore < 1 && Math.abs(ww.kAfter - ww.kBefore) < 1e-9 && ww.faces[0] === 'unloaded' && ww.faces[1] === 'error')
+           : (!wantShrunk && !shrunkMonths.length), ww || { none: shrunkMonths.length ? 'no FontFace in this browser' : 'no shrunk month on this calendar' });
 
       // ---- V: the fit's numbers ----
       var inMonth = (tw().getAttribute('style') || '').match(/--mvp-[fm]\d/g) || [], nWeeks = weeks().length;

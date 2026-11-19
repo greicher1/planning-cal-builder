@@ -58,6 +58,63 @@
 ||||||| 1c9b008
 
 ### 🚀 18 Nov 2026: v1.19.0 — THE MONTH SHRINK AND THE 10-LINE DAY, RELEASED TOGETHER from `claude/dreamy-keller-2ed2c2` (the two entries below are the features)
+||||||| a3fac82
+### 🚀 18 Nov 2026: v1.19.0 — THE MONTH SHRINK AND THE 10-LINE DAY, RELEASED TOGETHER from `claude/dreamy-keller-2ed2c2` (the two entries below are the features)
+
+### 🔨 18 Nov 2026: v1.19.2 — A CROWDED MONTH SHRINKS IN THE INSTALLED APP TOO (branch `claude/dreamy-keller-2ed2c2`)
+- **Owner, after v1.19.0 went live:** a crowded calendar's May was still full size in a card taller than a page, in
+  the installed app, after several Cmd+Shift+R. Their console (a read-only snippet): v1.19.0, standalone,
+  `#table-wrap` carrying the page fit's numbers and `zoom: 0.5` but NO `--mvk`, and `document.fonts` holding dozens of
+  faces named Inter, many `unloaded` and many `error`. The app embeds ONE. Something on that Mac (a browser extension,
+  by the look of it) adds them to every page; their web sources are blocked by the app's CSP (hence `error`).
+- **Cause:** `mvFontsIn()` required EVERY Inter face to be `loaded`, so it was false forever there, `mvWriterFit()`
+  returned null and the month was drawn as before. Reproduced by hand: on v1.19.0 a crowded test month loses its factor
+  (0.77 → none) once two foreign Inter faces are added (one unused, one failed). The owner's own calendar, loaded
+  locally into v1.19.0 with the CSP on, shrank normally (k = 34/64), at 90% zoom too: only the foreign faces differ.
+- **Fix:** `mvFontsIn()` waits while any Inter face is LOADING and goes once one has LOADED; `unloaded` and `error`
+  faces hold nothing back. With only the app's face (every test run) the answer is unchanged, so no output can move.
+  New case `monthpage` W (two foreign faces, away and back, the factor unchanged): red on v1.19.0 (0.61 → 1), green.
+- ⚠️ **Headless Chrome has no extensions, so no leg can see what an extension adds to a page.** A check that reads
+  `document.fonts` (or any page-wide list) must expect foreign entries.
+- ⚠️ **Numbered v1.19.2, not v1.19.1** (owner's picker *"Push it as v1.19.2"*): another session had already tagged a
+  v1.19.1 locally, unpushed (branch `header-version-label`, "the version under the SPTCal name"). Tags are shared by
+  every worktree, so `git tag` refused the name. Moments later that session pushed its v1.19.1, so it was merged in
+  here (only the version files and the docs' tops conflicted; this side's 1.19.2 kept, both docs kept) before the push.
+  The label it adds reads "v1.19.2" on this build, so the owner can now see which version the app runs.
+- **Cut as v1.19.2:** `APP_VERSION`, `version.json`, `package.json`; README entry; `releases/v1.19.2.html` cmp-identical to
+  the build (sha256 `e7e3061267f6c697…`, with v1.19.1 merged in); `tests/fixtures/v1.19.2-saved.sptcal` identical to v1.19.0's but `lastEdited`.
+  `npm run check` 42/42. **Checks on that build** (the patch-release practice, not a full gate; with only the app's
+  Inter face the rule's answer is provably the old one): `monthpage` on all ten of its gate runs (13/13 each, 2/2 with
+  no calendar), `monthrowlimit` 17 + 3 + 3, `mvnotesize` 12/12 on `month-dense60` and `mvnotes`, `monthlanes` 6/6,
+  `autonoterename` 25/25 (also at 1584 x 1200), `softlines` 6/6 x 2; **gate 13** byte-identical on `reference`,
+  `monthscale` and `month-dense60` (`monthexport` 9/9 each); **gate 10** identical on `reference` and `month-lanecap`.
+
+### 🏷️ 18 Nov 2026: v1.19.1 — THE VERSION UNDER THE SPTCal NAME. Branch `header-version-label` (worktree `.claude/worktrees/header-version-label`, from `origin/main` `a3fac82` = v1.19.0). Tracker card `header-version-label`.
+- **The ask:** *"in small grey text, add v1.19 or whatever the current version of the app is right below the SPTCal
+  header in the top left corner of the app. Mock it up before you build it"*. Mockup `mockups/header-version-label.html`;
+  owner's picks: the full number ("v1.19.0", not "v1.19") and "Hide with the name" below 1200 px. Tried on localhost,
+  then *"Looks good, finish it"*.
+- ⚠️ **Learned: the main checkout's local `main` was two releases behind** (at v1.17.0 while `origin/main` was v1.19.0),
+  so the first reading of the version there was wrong; the owner caught it. Read `origin/main` (`git fetch`) for "what
+  is live", never the main checkout's `main`.
+- **Built:** `Header.jsx` wraps the name in `.app-brand-text` with `.app-brand-ver` under it; the number is
+  `import { version } from '../../package.json'` (build time, only that string bundled). ⛔ Never type the number into
+  the header: `npm run check` holds `package.json` = `version.json` = `APP_VERSION`, which is what makes the label
+  trustworthy and lets every version cut update it with no extra step. CSS in `legacy.css` beside `.app-brand-name`:
+  17 + 13 px lines inside the mark's 30 px, so the header stays 63 px and `--header-h` does not move; the 1200 px rung
+  now hides `.app-brand-text` (name and version) instead of `.app-brand-name`.
+- **Cut as v1.19.1:** `APP_VERSION`, `version.json`, `package.json`; README entry; `releases/v1.19.1.html`
+  cmp-identical to the build (sha256 `2e8c6fa6b3e12f32…`, 2,292,969 bytes); `tests/fixtures/v1.19.1-saved.sptcal` a real
+  Save (`mintfixture`: 46 keys, 77 ids, 0 clipped), byte-identical to v1.19.0's but `lastEdited`.
+- **Verified (no full gate: chrome only, nothing frozen, no export or save change):** `npm run check` 42/42; on the
+  build at 1440 px the label reads the version, at 1100 px it is hidden, the header 63 px at both. A partial gate
+  assembled from `gate.sh` (base, waterfall PDF + workbook against their baselines, seams, pdfmark, monthexport and
+  gate 13, toolbarfit, laptopfit at 1280x800 / 1366x768 / 1280x943) on port 8766: 343 PASS / 2 FAIL. The 2 were
+  `monthexport` X4 ("the click's activation ran out") on `mvheader` and `shootorder`, run while another session's full
+  gate shared the machine; both 9/9 alone straight after. The waterfall PDF is identical bar the date stamp, the
+  workbook parts identical, gate 13's reference byte-identical, the mark names 1.19.1.
+
+### 🚀 18 Nov 2026: v1.19.0 — THE MONTH SHRINK AND THE 10-LINE DAY, RELEASED TOGETHER from `claude/dreamy-keller-2ed2c2` (the two entries below are the features). ✅ PUSHED (`714df71..a3fac82`, tag `v1.19.0`) on the owner's picker *"Push v1.19.0"* AND VERIFIED LIVE at 14:29 on 18 Nov: `version.json` 1.19.0 about 80 s after the push, the live page byte-identical to `releases/v1.19.0.html`
 - **Owner's pickers, 18 Nov:** *"Commit locally"* (`c87655b`) and *"Push to main"*. When the push was approved,
   `origin/main` had moved to v1.17.5 (five Tandem-day releases since the v1.17.0 merged here), so it was merged in
   (`61dcadf`); while that tree was being gated another session released **v1.18.0** (Finish before + the note editor's
@@ -90,7 +147,7 @@
 - ⚠️ Any leg that loads through `openViaFakePicker` and then waits only on TIME has the same race. `autonoterename`'s
   `load()` is the pattern to copy.
 
-### ✅ 17 Nov 2026: A CROWDED MONTH SHRINKS ON SCREEN EXACTLY AS ITS PDF DOES. STAGE 2 DONE (owner: *"finish"*), ON THE ROW LIMIT'S BRANCH `claude/dreamy-keller-2ed2c2` WITH `origin/main` v1.17.0 MERGED IN; FULL GATE RUN 18 Nov (5,731 PASS, 14 timeouts each green alone, gates 10 and 13 byte-identical); NOT PUSHED. Stage 1 was built on branch `claude/month-shrink-build-c94fac` (worktree `.claude/worktrees/month-shrink-build-c94fac`, cut from the planning branch `month-shrink` at `c6b7830`, which is `origin/main` `aa16ffe` plus the plan; its `node_modules` is a real copy, not a symlink, so there is nothing to unlink). Its own branch stops at the stage 1 WIP commits (`01dac2f`); ⛔ the tests, the docs and the full gate are ONLY on `claude/dreamy-keller-2ed2c2`, which carries this build with the 10-line limit on top, so the two ship together. Tracker card `month-view-shrink-like-pdf`. ⭐ [`MONTH-SHRINK-PLAN.md`](MONTH-SHRINK-PLAN.md) is the design
+### ✅ 17 Nov 2026: A CROWDED MONTH SHRINKS ON SCREEN EXACTLY AS ITS PDF DOES. STAGE 2 DONE (owner: *"finish"*), ON THE ROW LIMIT'S BRANCH `claude/dreamy-keller-2ed2c2` WITH `origin/main` v1.17.0 MERGED IN; FULL GATE RUN 18 Nov (5,731 PASS, 14 timeouts each green alone, gates 10 and 13 byte-identical); ✅ RELEASED AS v1.19.0 AND LIVE (entry above). Stage 1 was built on branch `claude/month-shrink-build-c94fac` (worktree `.claude/worktrees/month-shrink-build-c94fac`, cut from the planning branch `month-shrink` at `c6b7830`, which is `origin/main` `aa16ffe` plus the plan; its `node_modules` is a real copy, not a symlink, so there is nothing to unlink). Its own branch stops at the stage 1 WIP commits (`01dac2f`); ⛔ the tests, the docs and the full gate are ONLY on `claude/dreamy-keller-2ed2c2`, which carries this build with the 10-line limit on top, so the two ship together. Tracker card `month-view-shrink-like-pdf`. ⭐ [`MONTH-SHRINK-PLAN.md`](MONTH-SHRINK-PLAN.md) is the design
 - **Owner, 17 Nov 2026**, with a PDF and a screenshot of one crowded month: *"1st image is pdf export, 2nd image is live
   viewer...the live viewer still looks different and is changing the height and stretching the whole calendar"*, and
   *"I think id rather the live view look like it will in the pdf"*. That was the month page's "Full size, taller page"
@@ -245,7 +302,7 @@
   the next turn: hand over the Bash-run port. `tests/harness/zzbase.html` (untracked, ignored) is `origin/main`'s
   build for side by side.
 
-### ✅ 17 Nov 2026: A DAY IN THE MONTH VIEW HOLDS 10 LINES (the limit on how tall a month row can get). FINISHED, COMMITTED LOCALLY (`2b9439a`), NOT PUSHED. Branch `claude/dreamy-keller-2ed2c2` (worktree `.claude/worktrees/dreamy-keller-2ed2c2`, a fast-forward of the month-shrink build's `01dac2f`, so it carries that build, whose stage 2 was then finished here too; `origin/main` v1.17.0 merged in; its `node_modules` is a real directory). Local commits only. Tracker card `month-row-max-height`. ⭐ [`MONTH-ROW-LIMIT-PLAN.md`](MONTH-ROW-LIMIT-PLAN.md) is the design
+### ✅ 17 Nov 2026: A DAY IN THE MONTH VIEW HOLDS 10 LINES (the limit on how tall a month row can get). FINISHED; ✅ RELEASED AS v1.19.0 AND LIVE (top entry). Branch `claude/dreamy-keller-2ed2c2` (worktree `.claude/worktrees/dreamy-keller-2ed2c2`, a fast-forward of the month-shrink build's `01dac2f`, so it carries that build, whose stage 2 was then finished here too; `origin/main` v1.17.0 merged in; its `node_modules` is a real directory). Local commits only. Tracker card `month-row-max-height`. ⭐ [`MONTH-ROW-LIMIT-PLAN.md`](MONTH-ROW-LIMIT-PLAN.md) is the design
 - **Owner, 17 Nov 2026**, while trying the month-shrink build: *"there reall should be a max limit on how tall a
   calendar row can be"*. Read as a week row in the Month view.
 - **What exists:** `MV_MAX_LANES = 6` caps only the week's "+" strip (frozen `renderMonthView`: "Manual expansion is
