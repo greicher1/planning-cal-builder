@@ -19,7 +19,7 @@
 // `defaultValue`. See UI-CONVENTIONS.md §2c.
 import { useState, useLayoutEffect } from 'react'
 import { TextInput, NativeSelect, NumberInput, Input, Button, Text, Group, Stack, Box, Switch, Divider, SegmentedControl, Tooltip, CloseButton } from '@mantine/core'
-import { IconTv, IconMapPin, IconCalendarDot, IconCalendarRange, IconShare, IconHeading, IconNote, IconRows, IconCalendarPlain, IconPause } from './icons.jsx'
+import { IconTv, IconMapPin, IconCalendarDot, IconCalendarRange, IconHeading, IconNote, IconRows, IconCalendarPlain, IconPause } from './icons.jsx'
 import { InfoHint } from './InfoHint.jsx'
 import { installChrome } from './bridge.js'
 import { keyLabel } from './keys.js'
@@ -922,24 +922,18 @@ export function HiatusPrefsCard() {
   )
 }
 
+// ⛔ "EXPORT APP WITH DATA" IS GONE FOR USERS (owner's picker, 18 Nov 2026, CLOUDFLARE-ACCESS-PLAN.md §7 D7). It wrote a
+// whole working copy of the app into one file, which runs anywhere and so gets around the sign-in SPTCal now sits
+// behind. The card is not drawn. What stays is the engine's flow (buildSavedHtml, still the definition of what a
+// shareable copy holds, and every copy already sent keeps opening, forever) and, on LOCALHOST ONLY, a hidden
+// #share-copy-btn, because some thirty harness legs and cspproof / excelretry still build a copy through it to prove
+// that what was sent still opens and carries nothing it should not. Never visible, never on the hosted address.
+const ON_LOCALHOST = typeof location !== 'undefined' && /^(localhost|127\.0\.0\.1)$/.test(location.hostname)
 export function AppCard() {
+  if (!ON_LOCALHOST) return null
   return (
-    <section className="card">
-      <h2>
-        <IconShare className="card-ic" /><span>App</span>
-        <InfoHint label="Export App With Data">
-          A standalone HTML copy of the app with this calendar loaded — for sending to someone who
-          doesn’t have the tool. It opens by double-click, anywhere, offline.
-        </InfoHint>
-      </h2>
-      <div className="side-block">
-        {/* #share-copy-btn: the engine's document-delegated click listener matches this id — the
-            same flow that used to live on a header button (owner moved it here, 29 Aug 2026). */}
-        <Button id="share-copy-btn" type="button" variant="default" size="xs" fullWidth>
-          Export App With Data
-        </Button>
-      </div>
-    </section>
+    // #share-copy-btn: the engine's document-delegated click listener matches this id. Test use only.
+    <button id="share-copy-btn" type="button" hidden>Export App With Data</button>
   )
 }
 

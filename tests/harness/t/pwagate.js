@@ -12,7 +12,7 @@
 //   P0  localhost with no hook boots the app: no data-app-gate, #app-gate hidden, no __appGate,
 //       phase rows rendered, and the retired #install-app-btn is gone
 //   P1  no form field and no id on any control inside #app-gate (UI-CONVENTIONS §10 gate 9)
-//   S-<screen>  for each of the nine screens:
+//   S-<screen>  for each of the ten screens (moved: the old address, CLOUDFLARE-ACCESS-PLAN.md, 18 Nov 2026):
 //       - exactly that screen is visible, and the page's title is right
 //       - the app's skeleton is display:none and the ENGINE NEVER STARTED (no phase rows, no
 //         React header, empty #react-root)
@@ -38,12 +38,14 @@ window.addEventListener('load', function () { (async function () {
     already: "Please use the SPTCal app, not the browser Open it from your Dock (Mac) or Start menu (Windows). Open SPTCal Or use Chrome's Open in app button in the address bar.",
     menu: "Install SPTCal from Chrome's menu Click ⋮ at the top right of Chrome. Choose Cast, save, and share, then Install SPTCal… Click Install. Already installed? Open SPTCal from your Dock or Start menu. In an Incognito or Guest window? Apps can't be installed there — open this link in a regular window. Installed it under another Chrome profile? Switch to that profile.",
     other: "Open this link in Google Chrome SPTCal installs and runs in Google Chrome or Microsoft Edge. Copy link Don't have Chrome? Get it free.",
-    phone: 'Open SPTCal on your computer Open this link in Chrome on your Mac or PC to install it. Copy link'
+    phone: 'Open SPTCal on your computer Open this link in Chrome on your Mac or PC to install it. Copy link',
+    // The OLD address during the switch-over window (CLOUDFLARE-ACCESS-PLAN.md step 8, 18 Nov 2026).
+    moved: "SPTCal has moved It now lives at sptcal.pages.dev. Sign in there with your work email, then install it. Go to the new SPTCal Your saved calendar files aren't affected. Already have the old SPTCal app installed? Open it once and save any unsaved work first."
   };
   var MENU_EDGE = "Install SPTCal from Edge's menu Click … at the top right of Edge. Choose Apps, then Install SPTCal. Click Install. Already installed? Open SPTCal from your Dock or Start menu. In an InPrivate or Guest window? Apps can't be installed there — open this link in a regular window. Installed it under another Edge profile? Switch to that profile.";
-  var TITLES = { already: 'Open the SPTCal app', done: 'Open the SPTCal app' };
+  var TITLES = { already: 'Open the SPTCal app', done: 'Open the SPTCal app', moved: 'SPTCal has moved' };
   var HELP = 'Contact Graham Reicher for help.';
-  var BIG = { install: 1, cancelled: 1, already: 1, other: 1, phone: 1 };
+  var BIG = { install: 1, cancelled: 1, already: 1, other: 1, phone: 1, moved: 1 };
 
   // A same-origin frame the size of a laptop window, so the gate lays out at full size.
   async function frame(query){
