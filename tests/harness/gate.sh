@@ -1899,7 +1899,8 @@ done
 # before a phase on Ends and nowhere else (Writer's Rm gains one, Localization never has one, custom phases none, no
 # id), its label following a renamed phase, a click putting the card on Ends with its last working week before the
 # next phase (Production: its last shoot day), one undo step, the end holding while Production grows (no automatic
-# pull, R3), a Dates built-in moving whole, and both kinds stepping back over the 12/21/26 hiatus. Own line.
+# pull, R3), a Dates built-in moving whole, and both kinds stepping back over the 12/21/26 hiatus; R5 (19 Nov 2026):
+# an EMPTY card before a dated phase offers it with nothing on Ends, beside Start after between two dated phases. Own line.
 # spancounts (owner, 2 Nov 2026: "three icons: one that says the number of production weeks, one that says the number
 # of holidays costing a shoot day, and something that says the number of Off Days"; version D, then "D replaces the
 # whole line") holds the counts under Production's span: weeks = the meta line's, the holidays and Off days that cost

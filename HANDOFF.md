@@ -4,6 +4,22 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### ↩️ 19 Nov 2026: FINISH BEFORE ON AN EMPTY CARD BEFORE A DATED PHASE (ruling R5; branch `finish-before-dated`, worktree `.claude/worktrees/finish-before-dated`, from `origin/main` `1b45340`; `node_modules` is a symlink, unlink it before `git worktree remove`). README "Unreleased". Tracker card `finish-before-dated`.
+- **Owner,** with a screenshot (only Production dated, 11/23/26; Writer's Rm, Pre-Prep, Prod Prep empty): *"when you give a
+  start date to a later phase, previous phases should allow you to click Finish before"*. Tried on localhost: *"Looks
+  good, finish it"*.
+- **R5, as built** (`chainOpenBetween()` beside `reflectFinishBefore()` in app.js; CSS beside `.finish-before-btn`): a card
+  with NO segment of its own and a scheduled chain phase after it offers Finish before though nothing is on Ends. No
+  scheduled chain phase before it: `chain-back` (in place of Start after). One before it too: the new class `chain-both`,
+  the one case that shows BOTH buttons. R1 wins over R5 (a later Ends phase still means Finish before alone). A card with
+  dates of its own is unchanged, so C1's finished calendar on Starts reads exactly as before.
+- **The click on an empty card:** Weeks goes on Ends with the end (as before) and an empty Length, and `focusEmpty()` puts
+  the cursor in `weeks-<key>`; Dates (built-in, no Ends) writes only `end-<key>`, the last weekday before the next phase,
+  and focuses `start-<key>` (it used to return and do nothing). Production empty is not special-cased.
+- **Legs:** `finishbefore` R5a-R5d (16/16); `endsdate`, `prodends`, `spancounts`, `overrides` (dayoverrides),
+  `snaptools` (dayoverrides), `builtindates` (live + restored) green; `npm run check` 43/43. No full gate: sidebar chrome,
+  no frozen code, writer or saved key.
+
 ### 🤏 18 Nov 2026: PINCH, CTRL-SCROLL AND ⌘+ / ⌘− ZOOM THE CALENDAR, NOT THE APP (branch `pinch-zoom`, worktree `.claude/worktrees/pinch-zoom`, from `origin/main` `0aaf387` = v1.22.0; NOT pushed). README "Unreleased". Tracker card `pinch-zoom-calendar`.
 - **Owner:** *"Allow trackpad pinch and related mouse zoom buttons to control the viewport of the waterfall and month
   view rather than just zooming in the entire UI of the app"*.

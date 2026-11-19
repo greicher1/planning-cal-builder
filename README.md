@@ -29,6 +29,22 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — Finish before on an empty card before a dated phase (19 Nov 2026)
+
+- **What.** An empty phase card (no dates) with a dated phase after it in the chain now offers **↳ Finish before <next
+  phase>** even when nothing is on Ends. If nothing before it has a date, Finish before replaces Start after (which had
+  nothing to chain to). If there's a dated phase on each side, the card shows both. Clicking it on an empty Weeks card puts
+  the card on Ends, ending the Friday before the next phase, and moves the cursor to Length. On an empty Dates card it
+  writes the last day (the last weekday before the next phase) and moves the cursor to the start. Cards that already have
+  dates are unchanged.
+- **Why.** Owner, with a screenshot of a calendar where only Production had a date: *"when you give a start date to a
+  later phase, previous phases should allow you to click Finish before"*. Until now Finish before showed only before a
+  phase on Ends (R1), so starting a calendar from Production's date and building back needed Ends first. Ruling R5.
+- **Verified.** `finishbefore` 16/16 (new R5a-R5d: the swap, the click on an empty Weeks card through to its length, both
+  buttons between two dated phases, an empty Dates card); `endsdate` 17/17, `prodends` 14/14, `spancounts` 10/10,
+  `overrides` 20/20, `snaptools` 14/14, `builtindates` 19/19 live and restored; `npm run check` 43/43; tried in the
+  browser by the owner. No frozen code, no save-format change, no new id.
+
 ### Unreleased — Pinch, Ctrl-scroll and ⌘+ / ⌘− zoom the calendar, not the app (18 Nov 2026)
 
 Owner: *"Allow trackpad pinch and related mouse zoom buttons to control the viewport of the waterfall and month view
