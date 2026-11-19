@@ -4,6 +4,66 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### 🔨 19 Nov 2026: A NEW NOTE STAYS WITH ITS PHASE WEEK BY DEFAULT — BUILT; owner said "Finish it"; ✅ FULL GATE GREEN (every failure load, green alone); ASKING TO COMMIT / PUSH. Branch `notes-follow-phase` (worktree `.claude/worktrees/notes-follow-phase`, from `origin/main` `1b45340`; `node_modules` is a symlink, unlink it before `git worktree remove`). Uncommitted. Tracker card `notes-default-stay-with-phase`.
+- **Owner:** *"New default, notes should stay with their specifc phase week and not the specific actual week"*. Pickers:
+  which phase in a shared week = **First in the list** (`wfLinkOptions[0]`, the row's left-most phase cell); saved notes
+  = **Leave them on their week**; **Yes, both editors**; **Yes, pasted notes too**.
+- **As built (`src/legacy/app.js`, no frozen code, no save-format change):**
+  - Waterfall editor: `link.init` is the row's STARTING choice; `link.sel0` still says what the cell holds ('' = the
+    week). A cell with no note of the user's (`wfCellHasOwnLines` false: no line beyond its automatic text, no linked
+    note) starts on `opts[0]`, so a save with the row untouched takes commit's "changed" branch and links the typed lines.
+    ⛔ A HIDDEN row (a rename of the cell's one automatic note, a box of other notes' lines) counts as no choice
+    (`linkRowShown`): its select can sit on a phase while hidden.
+  - ⭐ `preEdits`: in that "changed" branch, `wfLineEdits` now runs on the WHOLE box first, so an automatic line renamed
+    or taken out in the same save as a new line is a rename/hide, never swept into the linked note's text (it was, for a
+    phase picked by hand too). The week's own save then skips `wfLineEdits`.
+  - Month editor: `linkInit` = `linkOpts[0]` for a NEW day note (`kind === 'day'`, `editIdx === null`); `linkSel0` stays ''.
+  - Paste (`wfNotesPaste`): a cell with no note of the user's before the paste gets `wfLinkNewNote(wk)` after
+    `wfPutNote`: the week's typed lines become ONE linked note at `opts[0]` (look, Day → `dow`, "Show in month view"),
+    automatic lines stay the week's. Drag is NOT changed (it moves an existing note).
+  - Month-view paste (owner, same day: *"do it also for pasted month notes"*): `mvLinkPastedNote(iso, e)` links each
+    note ⌘V (`mvNotesPaste`) or the Paste notes… box (`addPastedNotes`) adds to `mvLinkOptions(iso)[0]` through
+    `addPhaseNote` (dow, `sheetHidden: true`, colour; fmt / place via `carryDayNoteLook`), joined to a note already at that
+    link; a day with no phase keeps a day note. ⌘V's highlight picks only the day notes it wrote. The 10-line door still
+    counts on a trial `dayNotes` list (a linked note is a line too, so the count is unchanged).
+- ⭐ **Month-only linked notes are drawn WITHOUT their date** (owner's picker *"Drop the date"*, asked once every new Month
+  note linked by default): `placePhaseNotes` appends " m/d/yy" only when `v.sheetHidden !== true`. `dated` / `dayIso`
+  are unchanged, and every waterfall reader filters sheetHidden notes out (`wfLinkedLinesFor`), so only the month view
+  (and both month PDFs, which parse it) change. Turning "Show in waterfall" on brings the date back in both views.
+- ⛔ **ONLY A FREE PHASE WEEK (`newNoteLinkKey`, found by the first full gate's `mvnotes` V4):** a phase week holds ONE
+  linked note (`<phase>@<n>`, a permanent key shape), so a second note linked there JOINED the first: it took the first
+  one's day and colour (five notes pasted Mon-Fri of one prep week became one note on Monday), and a Waterfall note typed
+  over a Month-only note's phase week vanished into it (`sheetHidden`). So a new note starts on the first phase ONLY while
+  that link holds no note; otherwise it starts on "Week of …" / "This day", and nothing is ever joined. Both editors, both
+  pastes. Production's shoot days are keyed per day, so on a shoot day only a note on that same day is affected. ⚠️ Owner
+  told: the second note of a prep week stays on its day; making every note follow needs a new key shape (a save-format
+  change, a ruling).
+- ⭐ **Case 3, one cell one home for an ADDED line** (owner, 20 Nov 2026, after the worked example: *"yeah do the case 3
+  thing"*): in `commitActiveNoteEditor`'s unchanged branch, when the editor opened on the cell's ONE linked note
+  (`sel0`), a line left over after `wfLinkedLineEdits` that is not an automatic line JOINS that note (`preEdits` first,
+  so an automatic rename stays a rename); the Day stamp comes off it. Until now it became the week's own text, and the
+  next phase move split the cell in two. `notephase` C3 (+ M1 moves both).
+- `data-new-note` on the Stays with select marks a row that started on a phase; only `t/lib.js` reads it.
+- **Proof:** `notephase` 17/17 (W1-W7, C3, P1, M1, Q1-Q3, N1, N1D, N2, E0; fixture `phasenotes`), in `gate.sh` after
+  `notedates`. ⭐ `t/lib.js` now picks "Week of …" / "This day" the moment an editor opens on a NEW note
+  (`select[data-new-note]`, a MutationObserver) in every leg but `notephase` / `phasemonth`
+  (`window.__keepNewNoteDefault`), the ripple switch-off's pattern. ⚠️ An observer is a microtask: a leg that opens a "+"
+  and saves in the same synchronous step gets the default anyway, so `regionlock` L1, `mvmenu` V6 and `mvkeysreal`
+  (no lib.js) pick This day themselves. `T.typeUserNote`, `notedates`, `mvkeys` openPlus, `phasemonth` B2 do too.
+  Paste has no such choice; re-expected to the ruled behaviour: `mvkeys` / `mvkeysreal` / `monthrowlimit` read a day's
+  day + wf blocks; `mvnotes` V4/V5 read dayNotes or phaseNotes; `phasekeys` X1/C4, `autonoterename` P1, `wfkeys`
+  C6/C13 expect the pasted note linked. `phasemonth` P3/E2/E4 re-expected without the date.
+- **First full gate** (port 8627, 19 Nov 2026, ~9.5 h under a load of ~30): 5,804 PASS / 66 FAIL, EVERY BASELINE
+  IDENTICAL (waterfall PDF, workbook, restore, gate 10, gate 13). The 66: the re-premises above, plus `nofsa`,
+  `regioncaveat`, `noswapbtns`, `hostile` S2, `numclamp` N4, `wfmenu` (load: all green alone). Every flagged leg green
+  alone after the fixes.
+- **Final full gate** (port 8627, on the final build, case 3 included; ended 12:40 19 Nov 2026): 5,888 PASS / 21 FAIL,
+  EVERY BASELINE IDENTICAL again, `notephase` 17/17 inside it. The 21, each re-run ALONE on the same build and green:
+  `pilllabel` blocks + blocksoff (gate's own checker, 0 FAIL), `hdrrow` 40/40, `caholidays` 11/11 and `offweek` 42/42
+  (the file-menu load timeout), `mvhdroff` 9/9, `mvbarsize` mvnotes 13/13, `monthexport` mvheader 9/9 and monthnotes
+  9/9 (whose missing PDF is gate 13's one red line).
+- **Next:** ask the owner to commit, then separately to push.
+
 ### 🤏 18 Nov 2026: PINCH, CTRL-SCROLL AND ⌘+ / ⌘− ZOOM THE CALENDAR, NOT THE APP (branch `pinch-zoom`, worktree `.claude/worktrees/pinch-zoom`, from `origin/main` `0aaf387` = v1.22.0; NOT pushed). README "Unreleased". Tracker card `pinch-zoom-calendar`.
 - **Owner:** *"Allow trackpad pinch and related mouse zoom buttons to control the viewport of the waterfall and month
   view rather than just zooming in the entire UI of the app"*.

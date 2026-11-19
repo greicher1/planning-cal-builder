@@ -332,10 +332,21 @@ window.addEventListener('load', function () { (async function () {
       q('.paste-notes-add').click();
       await settle();
       var after = await snap();
-      var got = ['2026-03-02', '2026-03-03', '2026-03-04', '2026-03-05', '2026-03-06', '2026-03-09', '2026-03-10', '2026-03-12'].map(function (d) {
-        var l = dayList(after, d); return l.length ? [l[0].text, l[0].color, l[0].lane] : null;
+      // ⭐ Since 19 Nov 2026 a pasted note on a day where a phase runs STAYS WITH that phase (t/notephase.js Q2): it is a
+      // linked note (phaseNotes, its colour on it), not a note of the day. Either way it is read back as [text, colour, lane].
+      var PASTED = ['Table read', 'Network notes due', 'Wardrobe fittings', 'Call sheet, cast, crew', 'Kickoff', 'Spotting session', 'Plain one', 'Odd colour, teel, x'];
+      function linkedWith(state, text){
+        var pn = state.phaseNotes || {};
+        var k = Object.keys(pn).filter(function (k) { return String(pn[k].text || '').split('\n').indexOf(text) !== -1; })[0];
+        return k ? pn[k] : null;
+      }
+      var got = ['2026-03-02', '2026-03-03', '2026-03-04', '2026-03-05', '2026-03-06', '2026-03-09', '2026-03-10', '2026-03-12'].map(function (d, i) {
+        var l = dayList(after, d); if (l.length) return [l[0].text, l[0].color, l[0].lane];
+        var v = linkedWith(after, PASTED[i]); return v ? [PASTED[i], v.color || null, null] : null;
       });
       var tenth = dayList(after, '2025-12-10').map(function (n) { return [n.text, n.color]; });
+      var tenthLinked = linkedWith(after, 'Second note on the tenth');
+      if (tenthLinked) tenth.push(['Second note on the tenth', tenthLinked.color || null]);
       add('V4', 'Add writes each note as the editor does: names, hex, "Gray", No fill and the remembered colour (Dark grey, for a line with none) read right; commas kept in the text; lane null; a second note on 12/10/25 AFTER the one already there; the box closes',
         !overlay() && eq(got, [['Table read', '#BBDCF7', null], ['Network notes due', '#F7C1D9', null], ['Wardrobe fittings', '#595959', null],
                                ['Call sheet, cast, crew', '#595959', null], ['Kickoff', '#A6A6A6', null], ['Spotting session', '#ABCDEF', null],
@@ -343,14 +354,16 @@ window.addEventListener('load', function () { (async function () {
           && eq(tenth, [['Deal memo signed', '#FFFFFF00'], ['Second note on the tenth', '#FF0000']]),
         {notes: got, tenth: tenth}, 'eight days and the tenth');
       // The pasted notes on screen: March 2026 holds eight of the nine (the ninth is on 12/10/25).
-      function marchPasted(){ return qa('#table-wrap .mv-note-block[data-note-kind="day"][data-note-day^="2026-03-"]').length; }
+      function marchPasted(){ return qa('#table-wrap .mv-note-block[data-note-day^="2026-03-"]').filter(function (b) {
+        var k = b.getAttribute('data-note-kind'); return (k === 'day' || k === 'wf') && PASTED.indexOf((b.textContent || '').replace(/\s+/g, ' ').trim()) !== -1; }).length; }
       var onScreen = [monthLabel(), marchPasted()];
       el('undo-btn').click(); await settle();
       var undone = await snap(), undoneScreen = marchPasted();
       el('redo-btn').click(); await settle();
       var redone = await snap(), redoneScreen = marchPasted();
       add('V5', 'the whole paste is ONE undo step: one undo takes all nine notes away, one redo puts them all back',
-        eq(undone.dayNotes, before.dayNotes) && eq(redone.dayNotes, after.dayNotes) && !eq(before.dayNotes, after.dayNotes)
+        eq([undone.dayNotes, undone.phaseNotes], [before.dayNotes, before.phaseNotes]) && eq([redone.dayNotes, redone.phaseNotes], [after.dayNotes, after.phaseNotes])
+          && !eq([before.dayNotes, before.phaseNotes], [after.dayNotes, after.phaseNotes])
           && onScreen[0] === 'March 2026' && onScreen[1] === 8 && undoneScreen === 0 && redoneScreen === 8,
         {undoKeys: Object.keys(undone.dayNotes || {}).length, beforeKeys: Object.keys(before.dayNotes || {}).length,
          afterKeys: Object.keys(after.dayNotes || {}).length, march: [onScreen, undoneScreen, redoneScreen]}, 'undo = before, redo = after; 8, 0, 8 in March');

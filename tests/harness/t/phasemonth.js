@@ -27,6 +27,8 @@
 //       again: back in the waterfall
 //   E3  Stays with "This day": the note becomes 7/6's own typed line, dated, with the size and row height it lent the
 //       cell, and Production moved leaves it there
+//   (19 Nov 2026, owner's picker "Drop the date": a note hidden from the waterfall is drawn in the month view WITHOUT
+//    its date, so P3, E2 and E4 read "Tech scout" / "Rig check"; in the waterfall it still reads "Tech scout 6/3/26".)
 //   E4  a "+" on Wed 7/8 linked to "Production · Day 7": a linked note hidden from the waterfall (a month note starts
 //       off), drawn on 7/8, and on the 7th shoot day (7/14) when Production moves a week
 //   E5  8/10's typed "Network call" linked to its shoot day: out of the week's typed note, into the linked note; it
@@ -50,6 +52,7 @@
 //
 // ⛔ No dollar sign anywhere in this file (srv.js splices legs in with String.replace).
 window.__T.memoryIDB();
+window.__keepNewNoteDefault = true;   // this leg tests the new note's default "Stays with" (t/lib.js)
 window.addEventListener('load', function () { (async function () {
   var T = window.__T, out = { test: 'phasemonth', cases: [] };
   function kase(id, title, pass, extra) {
@@ -275,7 +278,7 @@ window.addEventListener('load', function () { (async function () {
       await load(with_(function (s) { s.phaseNotes['prodPrep@3'].sheetHidden = true; }));
       var o = { d63: await texts('2026-06-03'), wf: await cell('2026-06-01') };
       kase('P3', 'sheetHidden: Tech scout leaves the waterfall (6/1 empty) and stays in the month view on 6/3',
-        same(o.d63, ['Tech scout 6/3/26']) && o.wf === '', o);
+        same(o.d63, ['Tech scout']) && o.wf === '', o);
       await load(S0text);
     });
 
@@ -306,7 +309,7 @@ window.addEventListener('load', function () { (async function () {
       var s2 = await snap();
       o.note2 = pn(s2)['prodPrep@3'] || null; o.wf2 = await cell('2026-06-01');
       kase('E2', '"Show in waterfall" off: Tech scout leaves the waterfall (sheetHidden), stays in the month view, reopens off; switched on again it is back in the 6/1 cell',
-        same(o.note, { text: 'Tech scout', dow: 2, color: '#00B0F0', sheetHidden: true }) && o.wf === '' && same(o.mv, ['Tech scout 6/3/26']) &&
+        same(o.note, { text: 'Tech scout', dow: 2, color: '#00B0F0', sheetHidden: true }) && o.wf === '' && same(o.mv, ['Tech scout']) &&
         o.reopen === false && same(o.note2, { text: 'Tech scout', dow: 2, color: '#00B0F0' }) && o.wf2 === 'Tech scout 6/3/26', o);
       await load(S0text);
     });
@@ -335,10 +338,10 @@ window.addEventListener('load', function () { (async function () {
                 mv: await texts('2026-07-08'), wf: await cell('2026-07-06') };
       T.set('start-production', '2026-07-06'); await settle();
       o.m714 = await texts('2026-07-14'); o.m78 = await texts('2026-07-08');
-      kase('E4', 'a "+" on Wed 7/8 (switch off, no Delete Note) linked to "Production · Day 7": production@day7 hidden from the waterfall, drawn on 7/8 and not in 7/6\'s cell; Production a week later draws it on its 7th shoot day, 7/14',
-        info.text === '' && info.on === false && info.sel === '' && !info.del && info.opts.some(function (x) { return x[0] === 'production@day7' && x[1] === 'Production · Day 7'; }) &&
-        same(o.note, { text: 'Rig check', sheetHidden: true }) && !o.day && same(o.mv, ['Rig check 7/8/26']) && o.wf === 'Stunt rehearsal' &&
-        o.m714.indexOf('Rig check 7/14/26') !== -1 && o.m78.join('|').indexOf('Rig check') === -1, o);
+      kase('E4', 'a "+" on Wed 7/8 (switch off, no Delete Note; Stays with OPENS on its first phase since 19 Nov 2026, notephase) linked to "Production · Day 7": production@day7 hidden from the waterfall, drawn on 7/8 and not in 7/6\'s cell; Production a week later draws it on its 7th shoot day, 7/14',
+        info.text === '' && info.on === false && info.sel === 'production@day7' && !info.del && info.opts.some(function (x) { return x[0] === 'production@day7' && x[1] === 'Production · Day 7'; }) &&
+        same(o.note, { text: 'Rig check', sheetHidden: true }) && !o.day && same(o.mv, ['Rig check']) && o.wf === 'Stunt rehearsal' &&
+        o.m714.indexOf('Rig check') !== -1 && o.m78.join('|').indexOf('Rig check') === -1, o);
       await load(S0text);
     });
     await step('E5', async function () {
@@ -472,6 +475,7 @@ window.addEventListener('load', function () { (async function () {
     });
     await step('B2', async function () {
       var add = popInfo(await openAdd('2026-07-07'));
+      choose('');   // a note of the DAY: a "+" opens on the day's first phase since 19 Nov 2026 (t/notephase.js)
       await commitMv('Fittings');
       var p = await openBlock('2026-07-07', 'Fittings');
       var at = topRight(p, q('.note-pop-head .mv-note-delete', p));

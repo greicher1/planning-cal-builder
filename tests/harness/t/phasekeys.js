@@ -220,10 +220,14 @@ window.addEventListener('load', function () { (async function () {
       o.bg = bg('2026-09-21'); o.keys2 = Object.keys(pn(s2));
       T.set('start-prodPrep', '2026-05-25'); await settle();
       o.after = noteText('2026-09-21'); o.t68 = noteText('2026-06-08');
-      kase('X1', 'Cut on Tech scout\'s cell: its line on the clipboard, prodPrep@3 gone; pasted on 9/21 it is a PLAIN note pinned to that week\'s Wednesday, in its colour, and Prod Prep moved a week leaves it there',
+      // ⭐ Since 19 Nov 2026 a note pasted into an empty cell stays with that week's first phase (t/notephase.js P1): on
+      // 9/21 that is Production's wk 13, so the pasted note is production@13 on Wednesday, in its colour, and Prod Prep
+      // moved a week leaves it there (it was a plain note pinned to the Wednesday until then).
+      o.linked = pn(s2)['production@13'] || null;
+      kase('X1', 'Cut on Tech scout\'s cell: its line on the clipboard, prodPrep@3 gone; pasted on 9/21 (an empty cell) it STAYS WITH Production wk 13 on Wednesday, in its colour, and Prod Prep moved a week leaves it there',
         o.prevented && o.clip === 'Tech scout 6/3/26\n' && o.emptied === '' && !pn(s1)['prodPrep@3'] &&
-        o.pasted === 'Tech scout 9/23/26' && same(o.user, { text: 'Tech scout 9/23/26', date: '2026-09-23' }) && o.colour === '#00B0F0' &&
-        o.bg === 'rgb(0, 176, 240)' && same(o.keys2, o.keys) && o.after === 'Tech scout 9/23/26' && !/Tech scout/.test(o.t68), o);
+        o.pasted === 'Tech scout 9/23/26' && o.user === null && same(o.linked, { text: 'Tech scout', dow: 2, color: '#00B0F0' }) &&
+        o.bg === 'rgb(0, 176, 240)' && same(o.keys2, o.keys.concat(['production@13']).sort()) && o.after === 'Tech scout 9/23/26' && !/Tech scout/.test(o.t68), o);
       await load(S0text);
     });
     await step('C1', async function () {
@@ -279,8 +283,9 @@ window.addEventListener('load', function () { (async function () {
       var s = await snap();
       var o = { clip: c.text, pasted: noteText('2026-09-21'), user: (s.userNotes || {})['2026-09-21'] || null, colour: (s.noteColors || {})['2026-09-21'],
                 visitor: pn(s)['production@6'] || null, src: noteText('2026-08-03') };
-      kase('C4', 'Copy 8/3 (typed + Visitor), Paste on 9/21: one plain note of both lines in 8/3\'s look (#FFC000); Visitor stays linked on 8/3',
-        o.pasted === 'Table read\nVisitor' && o.user && o.user.text === 'Table read\nVisitor' && o.colour === '#FFC000' &&
+      o.linked = pn(s)['production@13'] || null;
+      kase('C4', 'Copy 8/3 (typed + Visitor), Paste on 9/21 (an empty cell): one note of both lines in 8/3\'s look (#FFC000) that stays with Production wk 13 (19 Nov 2026); Visitor stays linked on 8/3',
+        o.pasted === 'Table read\nVisitor' && o.user === null && !!o.linked && o.linked.text === 'Table read\nVisitor' && o.linked.color === '#FFC000' &&
         same(o.visitor, pn(S0)['production@6']) && o.src === 'Table read\nVisitor', o);
       await load(S0text);
     });

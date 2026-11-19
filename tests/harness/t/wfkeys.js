@@ -273,7 +273,11 @@ window.addEventListener('load', function () { (async function () {
           'C4 Paste fills three weeks down (Q3: the third, an automatic note, emptied by the blank line), with the look (Q2)');
     check(hiIs(['*note:2026-10-05', 'note:2026-10-12', 'note:2026-10-19']), 'C5 the pasted cells end up highlighted (' + hi().join(' ') + ')');
     var S3 = await snap();
-    check((S3.noteFontSize || {})['2026-10-05'] === 9 && !('2026-10-19' in (S3.userNotes || {})) && !Object.keys(S3.autoNotesOff || {}).length &&
+    // ⭐ Since 19 Nov 2026 a note pasted into an empty cell stays with that week's first phase (t/notephase.js P1), and its
+    // look goes on the note (R7(a)): the size is the linked note's when it is not the week's.
+    function linkedHolding(S, text){ var pn = S.phaseNotes || {}; var k = Object.keys(pn).filter(function (k) { return pn[k].text === text; })[0]; return k ? pn[k] : null; }
+    var tr = linkedHolding(S3, 'Table read');
+    check(((S3.noteFontSize || {})['2026-10-05'] === 9 || (!!tr && tr.size === 9)) && !('2026-10-19' in (S3.userNotes || {})) && !Object.keys(S3.autoNotesOff || {}).length &&
           JSON.stringify(S3.autoNotesView) === '{"principalWrap":{"sheet":false}}',
           'C6 saved: the size travelled, and the emptied automatic note is hidden from the waterfall (R4), with no week blank (ruling 6)');
     await undo();
@@ -316,7 +320,9 @@ window.addEventListener('load', function () { (async function () {
     await click(noteTd('2026-09-28'));
     await paste(c2.text, c2.rich);
     var S4 = await snap();
-    check(noteText('2026-09-28') === 'Wrap party 10/1/26' && ((S4.userNotes || {})['2026-09-28'] || {}).date === '2026-10-01',
+    // ...the day goes on the linked note (its weekday, dow 3) when the paste made one (19 Nov 2026), else on the week's note.
+    var wp = linkedHolding(S4, 'Wrap party');
+    check(noteText('2026-09-28') === 'Wrap party 10/1/26' && (((S4.userNotes || {})['2026-09-28'] || {}).date === '2026-10-01' || (!!wp && wp.dow === 3)),
           'C13 a note pinned to Thursday lands on that week\'s Thursday, its stamped date re-stamped (' + noteText('2026-09-28') + ')');
     await undo();
     // The same text through navigator.clipboard's path: no custom data, the look comes from the last copy.

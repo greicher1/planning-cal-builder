@@ -20,6 +20,23 @@
     localStorage.setItem('sptcal.prefs', JSON.stringify(o));
   } catch(e){}
 })();
+// ⭐ A NEW NOTE IS A NOTE OF ITS WEEK (OR DAY) IN EVERY LEG BUT THOSE THAT TEST THE DEFAULT. Since 19 Nov 2026 (owner: "New
+// default, notes should stay with their specifc phase week") a note editor opened on a NEW note starts "Stays with" on the
+// row's first phase; the app marks that row's select `data-new-note`. The legs written before were written for a note of
+// the week / day, so this picks "Week of …" / "This day" the moment such an editor opens -- what a user now does for one.
+// A leg that tests the default (t/notephase.js, t/phasemonth.js) sets window.__keepNewNoteDefault = true at its top. Paste
+// has no such choice: legs that paste were re-expected one by one.
+(function(){
+  try {
+    new MutationObserver(function(){
+      if(window.__keepNewNoteDefault) return;
+      var sel = document.querySelector('select.note-link-select[data-new-note]:not([data-harness-week])');
+      if(!sel) return;
+      sel.setAttribute('data-harness-week', '');
+      if(sel.value){ sel.value = ''; sel.dispatchEvent(new Event('change', {bubbles: true})); }
+    }).observe(document.documentElement, {childList: true, subtree: true});
+  } catch(e){}
+})();
 window.__T = (function(){
   // ⚠️ NATIVE SETTER, not `e.value = v`.
   // React installs its own `value` setter on the input prototype and tracks the last value it
@@ -185,6 +202,11 @@ window.__T = (function(){
     if(!ta) throw new Error('note editor did not open');
     ta.value=text;
     ta.dispatchEvent(new Event('input',{bubbles:true}));
+    // ⭐ A NOTE OF THE WEEK, as this helper always made: since 19 Nov 2026 a new note's "Stays with" opens on the row's
+    // first phase (t/notephase.js holds that default), so the helper picks "Week of …", as a user now does for one. A
+    // week with no phase has no row; a cell already holding a week note opens on it.
+    var lk=document.querySelector('.note-pop .note-link-select');
+    if(lk && lk.value){ lk.value=''; lk.dispatchEvent(new Event('change',{bubbles:true})); }
     // Ctrl+Enter is the explicit commit; a body click relies on an outside-click handler that
     // a synthetic click does not always satisfy.
     ta.dispatchEvent(new KeyboardEvent('keydown',{key:'Enter',ctrlKey:true,bubbles:true}));

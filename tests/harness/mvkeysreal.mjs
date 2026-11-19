@@ -137,7 +137,12 @@ try {
     const b = Array.from(document.querySelectorAll('#table-wrap .mv-note-block[data-note-day="${iso}"]')).find(x => ${re}.test(x.textContent));
     if (!b) return null; b.scrollIntoView({ block: 'center', inline: 'nearest' });
     const r = b.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; })()`);
-  const notes = iso => ev(`Array.from(document.querySelectorAll('#table-wrap .mv-note-block[data-note-day="${iso}"][data-note-kind="day"]')).map(b => b.innerText.trim())`);
+  // A day's typed notes: its own ('day'), then the lines drawn with the Waterfall's ('wf'), where a note that stays with a
+  // phase is drawn. Since 19 Nov 2026 a note pasted onto a day a phase runs on stays with that phase (t/notephase.js Q1).
+  const notes = iso => ev(`Array.from(document.querySelectorAll('#table-wrap .mv-note-block[data-note-day="${iso}"][data-note-kind="day"]')).concat(Array.from(document.querySelectorAll('#table-wrap .mv-note-block[data-note-day="${iso}"][data-note-kind="wf"]'))).map(b => b.innerText.trim())`);
+  // A "+" opens Stays with on the day's first phase since 19 Nov 2026: R6 / R7 are about a note of the DAY, so they pick
+  // "This day", as a user now does for one (t/lib.js does the same for the legs it is injected into).
+  const thisDay = () => ev(`(() => { const s = document.querySelector('#mv-note-pop .note-link-select'); if (s && s.value) { s.value = ''; s.dispatchEvent(new Event('change', { bubbles: true })); } return true; })()`);
   const lookOf = (iso, re) => ev(`(() => { const b = Array.from(document.querySelectorAll('#table-wrap .mv-note-block[data-note-day="${iso}"]')).find(x => ${re}.test(x.textContent));
     if (!b) return null; const cs = getComputedStyle(b); return { bg: cs.backgroundColor, weight: cs.fontWeight, italic: cs.fontStyle }; })()`);
   const click = async p => {
@@ -218,7 +223,7 @@ try {
   await load();
   {
     let p = await plusPt('2026-07-17'); if (!p) throw new Error('no + on 7/17');
-    await click(p);
+    await click(p); await thisDay();
     await typeText('Table read');
     await enter(SHIFT);
     await typeText('Room 4');
@@ -232,7 +237,7 @@ try {
     kase('R6', 'month editor, real keys: Shift+Enter and Alt+Enter each put ONE line break in the box; Enter saves the three lines and closes it',
          v === 'Table read\nRoom 4\n' && open === false && JSON.stringify(saved) === '["Table read","Room 4","10am"]', out.R6);
     p = await plusPt('2026-07-20'); if (!p) throw new Error('no + on 7/20');
-    await click(p);
+    await click(p); await thisDay();
     await typeText('Costume fittings');
     await key('Escape', 'Escape', 27);
     const n = await notes('2026-07-20'), open2 = await ev(`!!document.getElementById('mv-note-pop')`);

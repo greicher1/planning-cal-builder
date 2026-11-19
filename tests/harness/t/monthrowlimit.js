@@ -66,6 +66,10 @@ window.addEventListener('load', function () { (async function () {
   }
   function blocks(iso, kind){ return qa('#table-wrap .mv-note-block[data-note-day="' + iso + '"]' + (kind ? '[data-note-kind="' + kind + '"]' : '')); }
   function texts(iso, kind){ return blocks(iso, kind).map(txt); }
+  // A day's typed notes, its own ('day') and the lines drawn with the Waterfall's ('wf'), where a note that stays with a
+  // phase is drawn: since 19 Nov 2026 a pasted note on a day a phase runs on stays with that phase (t/notephase.js Q1-Q3),
+  // so the paste cases count both. Sorted, since the two kinds are drawn apart.
+  function typed(iso){ return texts(iso, 'day').concat(texts(iso, 'wf')).sort(); }
   function block(iso, re){ return blocks(iso).filter(function (b) { return re.test(txt(b)); })[0] || null; }
   function centre(e){ var r = e.getBoundingClientRect(); return {x: r.left + r.width / 2, y: r.top + r.height / 2}; }
   function mouse(t, type, p, mods){
@@ -256,24 +260,24 @@ window.addEventListener('load', function () { (async function () {
         l2.handled === true && l2.said === FULL_MSG && l2.same && l2.undoOffBefore === true && l2.undoOffAfter === true, l2, 'none landed, the message, Undo off');
       await chipGone();
       await click(block(NEAR, /Near 01/));
-      var near0 = texts(NEAR, 'day');
+      var near0 = typed(NEAR);
       var p2 = clip('paste', THREE); await settle();
-      var near1 = texts(NEAR, 'day'), said2 = chip();
+      var near1 = typed(NEAR), said2 = chip();
       await undo();
-      var near2 = texts(NEAR, 'day');
+      var near2 = typed(NEAR);
       add('L2b', '⌘V of three notes onto the day at 9 lines lands ONE (it then holds 10) and says "This day is full (10 lines). 1 of 3 notes were pasted."; one Undo takes it back',
-        p2.handled === true && near1.length === near0.length + 1 && near1[near1.length - 1] === 'Pasted one' && said2 === 'This day is full (10 lines).\n1 of 3 notes were pasted.' && same(near2, near0),
-        {before: near0.length, after: near1.length, last: near1[near1.length - 1], said: said2, afterUndo: near2.length}, '+1, the message, then back');
+        p2.handled === true && near1.length === near0.length + 1 && near1.indexOf('Pasted one') !== -1 && near0.indexOf('Pasted one') === -1 && said2 === 'This day is full (10 lines).\n1 of 3 notes were pasted.' && same(near2, near0),
+        {before: near0.length, after: near1.length, landed: near1.indexOf('Pasted one') !== -1, said: said2, afterUndo: near2.length}, '+1, the message, then back');
       await chipGone();
       var ec = q('#table-wrap .mv-note-add[data-note-day="' + EMPTY + '"]');
       ec.scrollIntoView({block: 'center'}); await T.sleep(100);
       await clickAt(centre(q('#table-wrap .mv-note-add[data-note-day="' + EMPTY + '"]')));
       await closeEditor();
       var p3 = clip('paste', THREE); await settle();
-      var l2c = {handled: p3.handled, notes: texts(EMPTY, 'day'), said: chip()};
+      var l2c = {handled: p3.handled, notes: typed(EMPTY), said: chip()};
       await undo();
       add('L2c', '⌘V of three notes onto an empty day lands all three and says nothing (control)',
-        l2c.handled === true && same(l2c.notes, ['Pasted one', 'Pasted two', 'Pasted three']) && l2c.said === '' && same(texts(EMPTY, 'day'), []),
+        l2c.handled === true && same(l2c.notes, ['Pasted one', 'Pasted three', 'Pasted two']) && l2c.said === '' && same(typed(EMPTY), []),
         l2c, 'three notes, no message');
 
       // ---- L3: Paste notes… ----
@@ -292,13 +296,13 @@ window.addEventListener('load', function () { (async function () {
         same(texts(FILL, 'day'), []) && same(texts(FULL, 'day'), before2), {fill: texts(FILL, 'day').length, full: texts(FULL, 'day').length}, 'unchanged');
       var b3 = await boxType(twelve.slice(0, room).join('\n'));
       q('.paste-notes-add', box()).click(); await settle();
-      var added = texts(FILL, 'day'), closed = !box();
+      var added = typed(FILL).filter(function (t) { return /^Row \d\d$/.test(t); }), closed = !box();
       await T.closeSettings(); bodyFocus();
       var fillLines = dayLines(FILL).lines;
       await undo();
       add('L3d', 'with the rows past the day\'s 10th line removed, Add adds the rest (the day then holds 10 lines); one Undo takes them all back (control)',
-        b3.addOff === false && closed && added.length === room && fillLines === MAX && same(texts(FILL, 'day'), []),
-        {addText: b3.addText, added: added.length, lines: fillLines, afterUndo: texts(FILL, 'day').length}, room + ' added, 10 lines, then none');
+        b3.addOff === false && closed && added.length === room && fillLines === MAX && !typed(FILL).some(function (t) { return /^Row \d\d$/.test(t); }),
+        {addText: b3.addText, added: added.length, lines: fillLines, afterUndo: typed(FILL).length}, room + ' added, 10 lines, then none');
 
       // ---- L4: the drag ----
       await toMonth('July 2026'); bodyFocus(); await chipGone();
