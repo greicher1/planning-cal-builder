@@ -127,7 +127,7 @@ export function WhatsNewDialog() {
       <Stack gap="md">
         {entries.map(e => (
           <div key={e.id} className="whatsnew-entry">
-            <Text size="xs" c="dimmed" className="whatsnew-date" style={{ marginBottom: 8 }}>{e.date}</Text>
+            <Text size="xs" c="dimmed" className="whatsnew-date" style={{ marginBottom: 8 }}>{e.version ? 'Version ' + e.version + ' · ' + e.date : e.date}</Text>
             <ul className="whatsnew-list">
               {e.items.map((it, i) => (
                 <li key={i} className="whatsnew-item">

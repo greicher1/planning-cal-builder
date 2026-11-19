@@ -4,6 +4,16 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### 🏷️ 19 Nov 2026: v1.23.0 CUT AND LIVE — owner: *"Yes, cut v1.23.0"* (so every installed copy sees the blue bar: the build before the bar-and-What's-New release reads version numbers only, and that release went out as 1.22.1). Tracker card `whats-new-dialog`.
+- Carries everything "Unreleased" since v1.22.1: new notes stay with their phase week, the update bar on every update +
+  What's New, "Final Delivery", the scenario-tab drop line, the hover-only Notes "+", the week-count prompt on Enter.
+- ⚠️ **What's New's entry is `2026-11-19-2`** (version 1.23.0), replacing `2026-11-19` (live under an hour), which lacked
+  "New notes stay with their phase" (pushed by another session just before). The window now shows "Version 1.23.0 ·
+  19 Nov 2026". Machines that saw the old entry see the new one once more, by design.
+- Checked: `npm run check` 46/46, `whatsnew` 12/12, `releases/v1.23.0.html` cmp-identical, fixture
+  `v1.23.0-saved.sptcal` (mintfixture: 46 keys, 77 ids, only `lastEdited` differs from v1.22.1's). No full gate (version
+  strings and the list only).
+
 ### 🔨 19 Nov 2026: THE WATERFALL'S NOTES "+" SHOWS ONLY ON HOVER — BUILT; owner tried it on localhost and said "finish it"; targeted legs, NOT a full gate; owner's picker *"Merge into main and push"*: `origin/main` (`e53e38b`) merged in as `0fcd9bc` (README, HANDOFF and gate.sh conflicts: both sides kept), PUSHED to `main`; deploy run green, the rule seen in the GitHub Pages copy. Branch `note-plus-hover` (worktree `.claude/worktrees/note-plus-hover`, from `origin/main` `2215aa5`; `node_modules` is a symlink, unlink it before `git worktree remove`). Tracker card `waterfall-note-plus-hover`.
 - **Owner:** *"What if the plus symbol only appears in the notes collumn of the waterfall when you hover over it - similar
   to how it works in the month view"*, then *"Yes, build it"*, *"finish it"*.

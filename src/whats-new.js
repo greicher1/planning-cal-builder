@@ -12,13 +12,21 @@
 //     OUT: small look and label changes, small fixes, anything behind the scenes (tests, docs, speed, the build).
 //   - Written for a user, in the app's own words: a short title, one or two plain sentences. No ids, no code names, no
 //     plan names, no owner quotes, and nothing confidential (this file ships inside the app).
+//   - `version` (optional) is shown beside the date: the version cut that carries the entry.
 //   - `id` is unique and sorts by time ('YYYY-MM-DD', with '-2', '-3' for a second release on one day). It is what a
 //     machine remembers as seen (localStorage 'sptcal.whatsNew'), so never change an id once it has shipped.
 export const WHATS_NEW = [
   {
-    id: '2026-11-19',
+    // v1.23.0. ⚠️ Replaced '2026-11-19', live for under an hour before this cut on a build with the same list less
+    // the first item: the few machines that saw it see this one once more, with the item it was missing.
+    id: '2026-11-19-2',
+    version: '1.23.0',
     date: '19 Nov 2026',
     items: [
+      {
+        title: 'New notes stay with their phase',
+        text: 'A note you add now moves with its phase week when that phase moves. Pick “Week of …” in Stays with to keep a note on its date instead.',
+      },
       {
         title: 'Scenario tabs show their version',
         text: 'Each scenario tab shows its Version. When you duplicate a scenario, SPTCal offers the next version number, one click to take it.',

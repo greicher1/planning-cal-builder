@@ -29,7 +29,16 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
-### Unreleased — The waterfall's Notes "+" shows only while you point at its cell (19 Nov 2026)
+## v1.23.0 — New notes stay with their phase week; the update bar on every update and a What's New window; "Final Delivery" on Post's last day (19 Nov 2026)
+
+Cut so that every installed copy sees the blue bar for these changes: a copy on the build before v1.23.0's update
+check reads version numbers only, and the bar-and-What's-New release went out still numbered 1.22.1. Its What's New
+entry is `2026-11-19-2` (it replaces `2026-11-19`, live for under an hour, which lacked "New notes stay with their
+phase"; the window now shows the version beside the date). `releases/v1.23.0.html` is cmp-identical to the build;
+fixture `v1.23.0-saved.sptcal` a real Save. No full gate: the version strings and the What's New list only, and
+everything in it was checked with its own legs when it went live.
+
+### The waterfall's Notes "+" shows only while you point at its cell (19 Nov 2026)
 
 The owner asked for the "+" in the waterfall's Notes column to appear only on hover, as the month view's does. Every
 empty Notes cell used to show a light grey "+"; now it is hidden until you point at that cell, when it shows in the
@@ -42,7 +51,7 @@ rules, which are not edited: opacity only, so no cell, column or export moves, a
 and tried in the browser (fixture `carry-rich`: all 45 empty cells hidden, the hovered one shown in purple,
 double-click opens the editor).
 
-### Unreleased — "Enter a week count" waits for Enter (19 Nov 2026)
+### "Enter a week count" waits for Enter (19 Nov 2026)
 
 The owner asked for the red "Enter a week count to include this phase" under a phase card to show only when asked for.
 It used to appear the moment a start date was typed, while the length was still to come. Now it shows only after Enter
@@ -51,7 +60,7 @@ next start typed on that card waits again. Finish before on an empty card (which
 says it too, where it used to say nothing. The other lines ("of 1 or more", a missing start date, Production's) are
 unchanged. The line is written by the frozen renderer and hidden from outside; nothing saved, nothing frozen edited.
 Verified: new leg `weekprompt` 8/8, `finishbefore` 16/16, `npm run check` 46/46.
-### Unreleased — A new note stays with its phase week by default (19 Nov 2026)
+### A new note stays with its phase week by default (19 Nov 2026)
 
 Owner: *"New default, notes should stay with their specifc phase week and not the specific actual week"*, then the
 pickers *"First in the list"*, *"Leave them on their week"*, *"Yes, both editors"*, *"Yes, pasted notes too"*.
@@ -85,7 +94,7 @@ pickers *"First in the list"*, *"Leave them on their week"*, *"Yes, both editors
   after the fixes. Final full gate: every baseline identical again, its 21 failures load timeouts, each green
   alone.
 
-### Unreleased — The update bar on every update, and a What's New window (19 Nov 2026)
+### The update bar on every update, and a What's New window (19 Nov 2026)
 
 Owner: *"Whenever theres a new update to the app, lets add the blue update bar to the top as we've done previously. When a
 new update launches lets add a quick dialogue that explains what new features/updates were added. But only for things the
@@ -111,7 +120,7 @@ user would actually care about"*; then *"the what's new dialogue should come bef
   two builds give one stamp; tried in the browser, including the order with a real recovery question. No frozen code,
   no saved-file change.
 
-### Unreleased — Post's end note reads "Final Delivery 9/22/28" (19 Nov 2026)
+### Post's end note reads "Final Delivery 9/22/28" (19 Nov 2026)
 
 The owner asked for the automatic note on the last Friday of Post's last week to read "Final Delivery" and its date.
 Post's end note (kind `postEnd`, off until ticked in Settings › Automatic notes) now reads "Final Delivery 9/22/28"
@@ -123,7 +132,7 @@ working; a typed note that already carried "Post Ends …" keeps the words it wa
 18/18, `autonoterename` 25/25, `autonotekinds` 11/11, `npm run check` 43/43; tried in the browser (Post wk 13 of
 9/18/28: waterfall and month view both show it on Fri 9/22/28).
 
-### Unreleased — Dragging a scenario tab shows where it will drop (19 Nov 2026)
+### Dragging a scenario tab shows where it will drop (19 Nov 2026)
 
 The owner asked for markers between the scenario tabs while one is dragged to reorder them. A short line in the app's
 primary colour now sits in the gap where the tab will land: before a tab, or after the last one. The whole strip takes
