@@ -4,7 +4,7 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### 🔨 19 Nov 2026: A NEW NOTE STAYS WITH ITS PHASE WEEK BY DEFAULT — BUILT; owner said "Finish it"; ✅ FULL GATE GREEN (every failure load, green alone); ASKING TO COMMIT / PUSH. Branch `notes-follow-phase` (worktree `.claude/worktrees/notes-follow-phase`, from `origin/main` `1b45340`; `node_modules` is a symlink, unlink it before `git worktree remove`). Uncommitted. Tracker card `notes-default-stay-with-phase`.
+### 🔨 19 Nov 2026: A NEW NOTE STAYS WITH ITS PHASE WEEK BY DEFAULT — BUILT; owner said "Finish it"; ✅ FULL GATE GREEN (every failure load, green alone); owner's pickers *"Commit on the branch"*, *"Merge into main and push"*: committed `df1a209`, `origin/main` (`2b77e98`) merged in as `ccce702`, PUSHED to `main`. Branch `notes-follow-phase` (worktree `.claude/worktrees/notes-follow-phase`, from `origin/main` `1b45340`; `node_modules` is a symlink, unlink it before `git worktree remove`). Uncommitted. Tracker card `notes-default-stay-with-phase`.
 - **Owner:** *"New default, notes should stay with their specifc phase week and not the specific actual week"*. Pickers:
   which phase in a shared week = **First in the list** (`wfLinkOptions[0]`, the row's left-most phase cell); saved notes
   = **Leave them on their week**; **Yes, both editors**; **Yes, pasted notes too**.
@@ -62,7 +62,12 @@
   `pilllabel` blocks + blocksoff (gate's own checker, 0 FAIL), `hdrrow` 40/40, `caholidays` 11/11 and `offweek` 42/42
   (the file-menu load timeout), `mvhdroff` 9/9, `mvbarsize` mvnotes 13/13, `monthexport` mvheader 9/9 and monthnotes
   9/9 (whose missing PDF is gate 13's one red line).
-- **Next:** ask the owner to commit, then separately to push.
+- **Merged build re-checked** (no second full gate: the merged commits were live and gated): `npm run check` 43/43;
+  `notephase` 17/17, `phasenotes` 21/21, `phaselink` 14/14, `phasekeys` 18/18, `phaselook` 10/10, `notedates` 18/18,
+  `wfnoteeditor` 14/14, `noteviews` 15/15, `mvnotes` 14/14, `wfkeys` 84/84, and main's `finishbefore` 16/16,
+  `scenversion` 11/11, `autonotephases` 27/27. Merge conflicts: Help (main removed the "Reset hiatus bands" sentence
+  from the paragraph this branch rewrote), README and HANDOFF (both sides' entries kept). No version cut. Local `main`
+  NOT moved.
 
 ### 📦 19 Nov 2026: POST'S END NOTE READS "FINAL DELIVERY 9/22/28" — on `scenario-version-offer`, committed locally, NOT pushed. README "Unreleased". Tracker card `post-end-final-delivery`.
 - **Owner:** *"the auto note for the final friday of the last week of post production should be changed to "Final
