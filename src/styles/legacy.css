@@ -1537,8 +1537,10 @@
   .autostart-btn:disabled, .finish-before-btn:disabled{ color:var(--text-faint); cursor:default; }
   .autostart-btn:focus-visible, .finish-before-btn:focus-visible{ outline:2px solid var(--accent); outline-offset:1px; border-radius:3px; }
   /* FINISH BEFORE (owner, 18 Nov 2026, R1): a card shows it IN PLACE OF "Start after" while a later phase in the chain
-     is on Ends; reflectFinishBefore() sets the card's chain-back class from update(). One of the two, never both. */
-  .phase-row:not(.chain-back) .finish-before-btn,
+     is on Ends; reflectFinishBefore() sets the card's chain-back class from update(). R5 (19 Nov 2026): an empty card
+     with a dated phase after it offers it too, alone (chain-back) or, with a dated phase before it, beside Start after
+     (chain-both, the one case that shows both). */
+  .phase-row:not(.chain-back):not(.chain-both) .finish-before-btn,
   .phase-row.chain-back .autostart-btn{ display:none; }
   .phase-switches{ padding:6px 12px 0; }
   /* Production's one switch (Snap to Monday) sits alone between Starts and the shooting-days box, with no hairline. */

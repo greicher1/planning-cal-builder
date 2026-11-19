@@ -32666,18 +32666,37 @@ export function initLegacyApp() {
     return ((document.getElementById('name-' + key) || {}).value || '').trim()
       || (PHASES.find(x => x.key === key) || {}).label || 'next phase';
   }
+  // R5 (owner, 19 Nov 2026: "when you give a start date to a later phase, previous phases should allow you to click
+  // Finish before"): an EMPTY card (not scheduled) with a dated phase after it in the chain offers Finish before too,
+  // though nothing is on Ends, so a calendar can be started from Production's date and built back from it. With no
+  // dated phase before it, Start after has nothing to chain to, so Finish before takes its place (chain-back); with one,
+  // the card offers both (chain-both), since it could go either way. A card with dates of its own is unchanged, so a
+  // finished calendar on Starts looks exactly as before.
+  function chainOpenBetween(key, schedule){
+    const segs = (schedule && schedule.segments) || [];
+    if(segs.some(s => s.key === key)) return null;
+    if(!nextChainSegment(key, schedule)) return null;
+    return prevChainSegment(key, schedule) ? 'both' : 'back';
+  }
   function reflectFinishBefore(){
     document.querySelectorAll('#phase-rows > .phase-row').forEach(row=>{
       const btn = row.querySelector('.finish-before-btn');
       const key = phaseRowKey(row);
-      const back = !!btn && chainEndsAfter(key);
+      const open = !!btn && !chainEndsAfter(key) ? chainOpenBetween(key, currentSchedule) : null;
+      const back = !!btn && (chainEndsAfter(key) || open === 'back');
+      const both = open === 'both';
       if(row.classList.contains('chain-back') !== back) row.classList.toggle('chain-back', back);
+      if(row.classList.contains('chain-both') !== both) row.classList.toggle('chain-both', both);
       if(!btn) return;
-      const next = back ? nextChainSegment(key, currentSchedule) : null;
+      const next = (back || both) ? nextChainSegment(key, currentSchedule) : null;
       const label = '↳ Finish before ' + (next ? chainPhaseName(next.key) : 'next phase');
       if(btn.textContent !== label) btn.textContent = label;
       if(btn.disabled !== !next) btn.disabled = !next;
     });
+  }
+  function focusEmpty(id){
+    const el = document.getElementById(id);
+    if(el && !el.value && el.offsetParent) el.focus();
   }
   // A mover (owner ruling R2, v1.3.1): Production's day marks travel with it by shoot-day number.
   function finishBeforePhase(key){
@@ -32715,14 +32734,18 @@ export function initLegacyApp() {
         endEl.value = isoOf(e);
         reflectPhaseEnds();
         update();
+        // R5: an empty card has its end now but no length; the cursor goes where the length is typed.
+        focusEmpty('weeks-' + key);
         return;
       }
       // Dates: the same length, both dates moved, its last day the last weekday before the next phase starts.
       const startEl = document.getElementById('start-' + key), endEl = document.getElementById('end-' + key);
       const s = startEl ? parseDateUTC(startEl.value) : null, en = endEl ? parseDateUTC(endEl.value) : null;
-      if(!s || !en) return;
       let last = addDays(next.seg.start, -1), g = 0;
       while(g++ < 600 && (last.getUTCDay() === 0 || last.getUTCDay() === 6 || inHiatus(last))) last = addDays(last, -1);
+      // R5: an empty Dates card has no length to keep, so it takes its last day and waits for a start.
+      if(!s && endEl){ endEl.value = isoOf(last); update(); syncCustomUnitFallback(key); focusEmpty('start-' + key); return; }
+      if(!s || !en) return;
       if(setPhaseStart(key, isoOf(addDays(s, Math.round((last - en) / DAY_MS))))){ update(); syncCustomUnitFallback(key); }
     });
   }
