@@ -51,6 +51,9 @@
   number). Rerun the way the gate runs them, all green: `monthexport` 9/9 on reference, UTC+14, 1280x800, blocks, mvheader,
   doubleups; `cmdprint` 6/6, `pdfdialog` 15/15, `filekeys` 16/16, `monthpick` 10/10, `scenarios` 23/23, `phasesui` 8/8,
   `cspproof` 15/15.
+- ✅ **`origin/main` (`a3fac82`, v1.19.0) merged in at `41cedec`** (conflict in HANDOFF only, both kept), and a **SECOND FULL GATE on the
+  merged build: 5,848 PASS / 0 FAIL, `=== GATE PASSED ===`** (port 8985, 18 Nov 2026, alone). Ready to ship: merging and pushing
+  wait on the owner's picker (CLAUDE.md).
 
 ||||||| 1c9b008
 
