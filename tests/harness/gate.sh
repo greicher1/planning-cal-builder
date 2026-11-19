@@ -2304,12 +2304,15 @@ done
 #   ⭐ X9 / X10 ADDED 16 Nov 2026 (WIN-5, owner's picker "Cut long titles"): a 200-character title is cut to 150 at a
 #   word in the workbook's and the waterfall PDF's names (exportFileName cuts what frozen S1b / S2b hand it; X9 red
 #   without), and a 150-character title is kept whole.
+# whatsnew (owner, 19 Nov 2026): the update bar on a new build stamp (not only a new version; never on a rollback), and
+#   the What's New window: once per entry, quiet on a first-ever launch, the newest entry after the bar's Reload, BEFORE
+#   the "Recover unsaved work" question; the version label reopens it. 9 of 12 red on releases/v1.22.1.html.
 # firstrun (2.13, AUD2-030 to -033, WIN-2): recents on an empty start, Production's Season message, the File menu's
 #   keys and New, Help with nothing stale; 21 of 22 red before (H1 also caught a lost Help correction at the merge).
 # startrecents (owner, 16 Nov 2026, version 7 of mockups/start-recents.html): the recents on an empty start as two cards,
 #   the last calendar's own card and "Other recent calendars" with Load…, one file and none, names without .sptcal, the
 #   when-lines, a row's click loading it; 7 of 10 red on releases/v1.15.0.html (C1-C4, L2, O1, O0).
-for AFSPEC in pwagate:-:120 pwagatelogic:-:120 cfmove:-:180 settingswin:-:240 newtab:-:120 \
+for AFSPEC in pwagate:-:120 pwagatelogic:-:120 cfmove:-:180 whatsnew:-:240 settingswin:-:240 newtab:-:120 \
               interfonts:-:60 monthlayout:-:150 monthlayout:colswap-simpost-refuse:150 \
               loadcarry:-:90 hiatusblank:hiatus-blank:90 hostile:xss-mixed:240 hostile:xss-proto:240 sharecopy2:-:90 loadfail:-:1500 \
               snapoff:snapoff-sheet:60 snapoff:snapoff-onecol:60 snapoff:snapoff-friday:60 \

@@ -42,6 +42,60 @@
 - **Legs:** new `weekprompt` 8/8 (P1-P7, E0; in gate.sh after `finishbefore`), `finishbefore` 16/16, `npm run check`
   46/46. Not tried in the browser pane (all five server slots held by other chats); the leg drives the real build.
 
+### 🆕 19 Nov 2026: THE UPDATE BAR ON EVERY RELEASE + A "WHAT'S NEW" WINDOW — on `scenario-version-offer`, FINISHED (owner: *"Yes, finish it"*), not pushed. README "Unreleased"; CLAUDE.md's release rules gain the What's New step; leg `whatsnew` (12/12, in gate.sh's loop). Tracker card `whats-new-dialog`.
+- **Owner:** *"Whenever theres a new update to the app, lets add the blue update bar to the top as we've done previously.
+  When a new update launches lets add a quick dialogue that explains what new features/updates were added. But only for
+  things the user would actually care about - small UI changes, tiny bug fixes (not major ones), and anything behind the
+  scenes, don't tell the user. For real substantial changes, give a list of the changes just like a real app would"*.
+- ⚠️ **Why the bar had gone quiet:** it compared VERSION NUMBERS only, and most pushes since v1.22.1 went live as
+  "Unreleased" with `APP_VERSION` unchanged, so no user was told.
+- **The bar (build stamp):** `tools/build-stamp.mjs` (a Vite plugin, last in `vite.config.js`) hashes the finished
+  `dist/index.html` and writes the first 12 hex digits into `<meta name="sptcal-build">` (placeholder `dev` in
+  `src/index.html`) and into `dist/version.json` = `{version, build}`. The engine's update check shows the bar when the
+  live version is newer OR the stamp differs (never when the live version is OLDER: a rollback; never for `dev` or a
+  marker with no stamp). Text: "An update to SPTCal is available. Reload to get it…" (a new number is named). A
+  docs/tests-only push builds the same bytes and the same stamp (checked: two builds, one stamp), so it shows nothing.
+  ⛔ `deploy.yml`'s "Include version.json" step (`cp version.json dist/`) is GONE: it would overwrite the stamp. The
+  root `version.json` still holds the version and `check-build` still holds it to package.json and APP_VERSION.
+- **What's New:** `src/whats-new.js` (the list, newest first, with the in/out rule in its header) and
+  `src/chrome/WhatsNewDialog.jsx`. Once per machine per entry: `localStorage 'sptcal.whatsNew'` = the newest id seen.
+  A release with no entry shows no window. A machine with no key (everyone, the first time) sees the newest entry only
+  if the bar's Reload was pressed (`sptcal.updating`, set by the engine) or `sptcal.prefs` exists; a first-ever launch
+  stays quiet. ⭐ **It comes BEFORE the "Recover unsaved work" question** (owner, 19 Nov 2026, then *"Good"* on seeing
+  it): the launch's list is decided once while the chrome first renders, and `offerBackupRecovery()` awaits
+  `chrome.whatsNewDone()` (settles when the window closes, at once with nothing to show, or after ~75 s if it never
+  could show), placed BEFORE its `fileLaunchSeen` check so a double-clicked file still outranks the question. Seen in
+  the browser: What's New, Got it, then Recover. ⚠️ Testing it: two Cancels on a recovery stop the launch asking
+  (`backupAskable`), so make a fresh backup (type a title, wait, reload) to see the order again.
+  Deployed app (https) only; on localhost `?whatsnew=1` previews the newest entry (writes nothing), `?whatsnew=live`
+  runs the real rule. The version under the SPTCal name is now a button that reopens it (`chrome.whatsNew`).
+- **The first entry (19 Nov 2026), for the owner to edit:** scenario tabs show their version; Tandem days in Show info;
+  Finish before on an empty card; zoom just the calendar; "Final Delivery". Left out as small: the drag line, "+
+  Duplicate", the far-right tab, the grey prompt, the field order, Reset hiatus bands' removal.
+- **Checked:** `npm run check` 46/46 (3 new: the stamp, dist/version.json agrees, entry ids); `cfmove` 9/9;
+  `cspproof` 15/15; in the browser: the bar with a faked new stamp, Reload → What's New once, not again on the next
+  launch, quiet for a first-time user, the version label reopens it, preview writes nothing.
+- **Leg `whatsnew`** (six launches, the backupdecline reload pattern; fakes the engine's `version.json` fetch): W0-W7,
+  U1-U4; 9 of 12 red on `releases/v1.22.1.html`. ⚠️ Two harness traps learned: lib.js writes `sptcal.prefs` at the top
+  of EVERY leg page (Ripple Hiatus off), so a leg playing a first-ever launch must delete it in its synchronous top
+  block; and `location.reload` cannot be stubbed in Chrome (unforgeable), so U4 lets the bar's Reload really reload.
+- ⛔ **For every later session:** a release users would care about adds an entry to `src/whats-new.js` (CLAUDE.md's
+  changelog rules say what qualifies). The bar needs nothing.
+
+### 🎬 19 Nov 2026: PRODUCER'S CUT 1, 6 WEEKS AFTER EACH EPISODE WRAPS — PLANNED, nothing built: `PRODUCERS-CUT-PLAN.md`, ⛔ LOCAL ONLY (owner, 19 Nov 2026: *"dont push the plan to git, keep it local"*; listed in `.git/info/exclude`, so it is in the main checkout only and a worktree will not have it: copy it in by hand). Tracker card `post-milestones`.
+- **The ask:** the executives' review (17 Nov) wanted the first cut on the calendar (typed by hand at Production week 12
+  so far). The post executive's answer (19 Nov): on average 6 weeks from the completion of filming of an episode or
+  block to the first studio cut, counted from the unit's OWN wrap, not from the Post phase (confirmed with the owner).
+  Wording (owner): "101 Producer's Cut 1 to <studio>".
+- **The plan's rulings** (owner: *"write the plan with your recommendations"*): one automatic note per episode or
+  block; wrap includes the unit's Tandem days; 6 working weeks (all-phase hiatus days not counted, a holiday or weekend
+  landing moves to the next working day); the number is the calendar's, default 6; off on saved calendars, on for New;
+  no frozen edit, no baseline moves.
+- **R1, settled (owner's picker, 19 Nov 2026):** the default text is the owner's wording exactly, studio initials
+  included, although the repo is still public. Next: build it on its own branch.
+- ⚠️ **Learned:** every automatic-note kind was one note per calendar, and its name, Delete, drag and
+  `followLineId()` (`'k:' + kind`) all assume it. This kind is one per unit, so the plan gives each a per-unit answer.
+
 ### 🔨 19 Nov 2026: A NEW NOTE STAYS WITH ITS PHASE WEEK BY DEFAULT — BUILT; owner said "Finish it"; ✅ FULL GATE GREEN (every failure load, green alone); owner's pickers *"Commit on the branch"*, *"Merge into main and push"*: committed `df1a209`, `origin/main` (`2b77e98`) merged in as `ccce702`, PUSHED to `main`. Branch `notes-follow-phase` (worktree `.claude/worktrees/notes-follow-phase`, from `origin/main` `1b45340`; `node_modules` is a symlink, unlink it before `git worktree remove`). Uncommitted. Tracker card `notes-default-stay-with-phase`.
 - **Owner:** *"New default, notes should stay with their specifc phase week and not the specific actual week"*. Pickers:
   which phase in a shared week = **First in the list** (`wfLinkOptions[0]`, the row's left-most phase cell); saved notes
@@ -107,6 +161,7 @@
   from the paragraph this branch rewrote), README and HANDOFF (both sides' entries kept). No version cut. Local `main`
   NOT moved.
 
+||||||| parent of 9ba2ac5 (The update bar on every update, and a What's New window (owner))
 ### 📦 19 Nov 2026: POST'S END NOTE READS "FINAL DELIVERY 9/22/28" — on `scenario-version-offer` (`2b77e98`), LIVE: pushed to `main` on the owner's "Yes, push it", deploy green, the live file carries `text:`Final Delivery``. README "Unreleased". Tracker card `post-end-final-delivery`.
 - **Owner:** *"the auto note for the final friday of the last week of post production should be changed to "Final
   Delivery 9/22/28" - where 9/22/28 is the friday date"*.

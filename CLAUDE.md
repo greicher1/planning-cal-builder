@@ -525,6 +525,15 @@ format change, a decision about how something should work.
 
   The tag and the copy are not redundant: the tag is how you diff and bisect, the copy is the one
   you can hand someone or double-click when `index.html` has moved on.
+- ⭐ **What's New: every release users would care about adds an entry to `src/whats-new.js`** (owner, 19 Nov 2026),
+  a version cut or an "Unreleased" push alike, in the same commit as its changelog entry. *"only for things the user
+  would actually care about - small UI changes, tiny bug fixes (not major ones), and anything behind the scenes, don't
+  tell the user. For real substantial changes, give a list of the changes just like a real app would."* So: features,
+  changes to how something works or prints, fixes for bugs users hit; never tweaks, small fixes, tests, docs or the
+  build. Plain user words (no ids, plan names, quotes or anything confidential: it ships in the app); newest first; an
+  id once shipped never changes (machines remember it). A release with nothing worth telling adds nothing.
+  ⚠️ The blue update bar needs no step: since 19 Nov 2026 it shows for any build whose bytes differ
+  (`tools/build-stamp.mjs`), so it no longer waits for a version cut.
 - Changelog entries are **not** a substitute for `HANDOFF.md`. The changelog is what shipped;
   `HANDOFF.md` is where things stand and what was learned.
 

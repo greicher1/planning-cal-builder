@@ -106,6 +106,7 @@ import { ZoomControl } from './chrome/ZoomControl.jsx'
 import { ScenarioTabs } from './chrome/ScenarioTabs.jsx'
 import { CompareDialog } from './chrome/CompareDialog.jsx'
 import { ChangesDialog } from './chrome/ChangesDialog.jsx'
+import { WhatsNewDialog } from './chrome/WhatsNewDialog.jsx'
 import { StartRecents } from './chrome/StartRecents.jsx'
 import { APP_ICON } from './chrome/appIcon.js'
 import { initLegacyApp } from './legacy/app.js'
@@ -183,6 +184,8 @@ function Chrome() {
       <CompareDialog />
       {/* File menu ▸ "Changes since last save…" (audit AUD2-103). In #react-root for DatePop's reason. */}
       <ChangesDialog />
+      {/* What's New, once after an update (owner, 19 Nov 2026). In #react-root for DatePop's reason. */}
+      <WhatsNewDialog />
     </>
   )
 }

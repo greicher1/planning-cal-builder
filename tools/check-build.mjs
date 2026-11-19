@@ -144,6 +144,25 @@ check(
   engineVersion ? `literal ${engineVersion} in dist` : 'APP_VERSION not found in src/legacy/app.js'
 );
 
+// The build stamp (owner, 19 Nov 2026; tools/build-stamp.mjs): the update bar shows on every release whose built file
+// differs, by comparing this meta with dist/version.json's `build`. They must be written, and agree, or the bar is
+// permanently on (a phantom update) or shows only on a version cut again (deploy.yml no longer copies the root file).
+const stampMeta = (src.match(/<meta name="sptcal-build" content="([^"]*)">/) || [])[1];
+const distMarkerFile = path.join(ROOT, 'dist', 'version.json');
+const distMarker = fs.existsSync(distMarkerFile) ? JSON.parse(fs.readFileSync(distMarkerFile, 'utf8')) : null;
+check('the build is stamped (<meta name="sptcal-build"> holds a 12-digit hash, not "dev")',
+  /^[0-9a-f]{12}$/.test(stampMeta || ''), `meta=${stampMeta}`);
+check('dist/version.json carries this build\'s stamp and version',
+  !!distMarker && distMarker.build === stampMeta && distMarker.version === pkg.version,
+  `dist/version.json=${JSON.stringify(distMarker)} meta=${stampMeta}`);
+// What's New (src/whats-new.js): ids unique and newest first, or a machine shows an entry twice or never.
+const wnSrc = fs.readFileSync(path.join(ROOT, 'src', 'whats-new.js'), 'utf8');
+const wnIds = [...wnSrc.matchAll(/^\s*id:\s*'([^']+)'/gm)].map(m => m[1]);
+check("What's New entry ids are unique, look like YYYY-MM-DD[-n], and run newest first",
+  wnIds.every(id => /^\d{4}-\d{2}-\d{2}(-\d+)?$/.test(id)) && new Set(wnIds).size === wnIds.length
+    && wnIds.every((id, i) => i === 0 || wnIds[i - 1] > id),
+  `ids=${wnIds.join(', ')}`);
+
 // --- 6. The install gate (PWA-ONLY-PLAN.md) -----------------------------------------------
 // The hosted link runs the app only in the installed app window; a browser tab gets the gate.
 // A regression in either direction is serious and silent: a gate that stops matching shows every

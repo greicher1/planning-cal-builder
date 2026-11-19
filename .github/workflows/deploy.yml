@@ -152,12 +152,9 @@ jobs:
         if: env.RELEASE == ''
         run: npm run check
 
-      - name: Include version.json beside the app
-        # The app polls version.json relative to itself to spot a new deploy. It lives at the repo
-        # root, not in dist/, so the build output alone would 404 that poll and the update banner
-        # would never fire. Copy it in rather than moving it -- the legacy root app polls it too.
-        if: env.RELEASE == ''
-        run: cp version.json dist/version.json
+      # (No "Include version.json" step any more: since 19 Nov 2026 the build writes dist/version.json itself, with the
+      # build stamp the update bar compares (tools/build-stamp.mjs). Copying the root version.json over it would drop
+      # that stamp, and the bar would again show only on a version cut. `npm run check` above holds the two together.)
 
       - name: ROLLBACK -- publish a stored release instead of main
         # dist/ is built here from releases/<release>.html: the release copy, byte-identical to that version's build

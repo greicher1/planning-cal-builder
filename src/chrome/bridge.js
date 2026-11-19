@@ -168,6 +168,11 @@ export const chrome = {
   // { from, to } | null> — the month view's Export PDF dialog (src/chrome/MonthPdfDialog.jsx; audit AUD2-026). The
   // default, for a chrome that failed to mount, writes EVERY month, exactly as before the dialog existed.
   monthPdfDialog: () => Promise.resolve({ all: true }),
+  // () — opens the What's New window on its latest entries (src/chrome/WhatsNewDialog.jsx), from the version label.
+  whatsNew: noop,
+  // () → Promise, settled when this launch's What's New is closed, or at once when there is none. The engine's backup
+  // recovery question waits on it (owner, 19 Nov 2026: What's New comes first).
+  whatsNewDone: () => Promise.resolve(),
 }
 
 export function installChrome(impl) {

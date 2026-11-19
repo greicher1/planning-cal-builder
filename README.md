@@ -85,6 +85,32 @@ pickers *"First in the list"*, *"Leave them on their week"*, *"Yes, both editors
   after the fixes. Final full gate: every baseline identical again, its 21 failures load timeouts, each green
   alone.
 
+### Unreleased — The update bar on every update, and a What's New window (19 Nov 2026)
+
+Owner: *"Whenever theres a new update to the app, lets add the blue update bar to the top as we've done previously. When a
+new update launches lets add a quick dialogue that explains what new features/updates were added. But only for things the
+user would actually care about"*; then *"the what's new dialogue should come before the "recover unsaved work" dialogue"*.
+
+- **The blue bar shows on every update again.** It compared version numbers only, and most changes since v1.22.1 went
+  live without a new number, so nobody was told. The build now stamps a hash of itself into the page
+  (`<meta name="sptcal-build">`) and into `version.json` (`tools/build-stamp.mjs`), and the bar shows when the live stamp
+  differs too: "An update to SPTCal is available. Reload to get it." A push that changes only docs or tests builds the
+  same bytes and stamp, so it shows nothing; a rollback (an older live version) never shows it. `deploy.yml` no longer
+  copies the root `version.json` into `dist/` (the build writes it, with the stamp).
+- **What's New.** After an update a short window lists what changed that users would care about, once per machine,
+  then never again for those changes. The list is `src/whats-new.js`; a release with nothing worth telling adds nothing
+  and gets the bar alone. It opens before "Recover unsaved work", which follows when it closes. A first-ever launch
+  stays quiet. Clicking the version under the SPTCal name opens it again. Shown in the installed app only (on localhost,
+  `?whatsnew=1` previews it).
+- **The first list:** scenario tabs show their version; Tandem days in Show info; Finish before on an empty card; zoom
+  just the calendar; "Final Delivery" on Post's last day.
+- ⚠️ This first time, no machine has a record yet, so the window shows only to someone who presses the bar's Reload or
+  has changed a setting before. From the next update on it works for everyone.
+- **Verified:** new leg `whatsnew` 12/12 on the build (9 red on `releases/v1.22.1.html`, the 3 controls green on both);
+  `cfmove` 9/9; `cspproof` 15/15; `npm run check` 46/46 (3 new: the stamp, `dist/version.json` agrees, entry ids);
+  two builds give one stamp; tried in the browser, including the order with a real recovery question. No frozen code,
+  no saved-file change.
+
 ### Unreleased — Post's end note reads "Final Delivery 9/22/28" (19 Nov 2026)
 
 The owner asked for the automatic note on the last Friday of Post's last week to read "Final Delivery" and its date.

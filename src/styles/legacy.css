@@ -170,6 +170,18 @@
   .app-brand-text .app-brand-name{ line-height:17px; }
   .app-brand-ver{ font-size:11px; line-height:13px; font-weight:400; color:var(--mantine-color-gray-6);
     white-space:nowrap; font-variant-numeric:tabular-nums; }
+  /* The version is a button that opens What's New (19 Nov 2026): the label's own box, nothing a button adds. */
+  button.app-brand-ver{ appearance:none; background:none; border:0; padding:0; margin:0; font-family:inherit;
+    text-align:left; cursor:pointer; }
+  button.app-brand-ver:hover{ color:var(--mantine-color-blue-7); text-decoration:underline; }
+  button.app-brand-ver:focus-visible{ outline:2px solid var(--mantine-color-blue-5); outline-offset:1px; border-radius:2px; }
+  /* What's New (WhatsNewDialog.jsx): a plain list, a blue dot before each change. */
+  .whatsnew-list{ list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:12px; }
+  .whatsnew-item{ position:relative; padding-left:16px; }
+  .whatsnew-item::before{ content:''; position:absolute; left:2px; top:7px; width:6px; height:6px; border-radius:50%;
+    background:var(--mantine-color-blue-6); }
+  .whatsnew-title{ line-height:1.35; }
+  .whatsnew-text{ line-height:1.45; margin-top:2px; }
   .app-toolbar-div{ width:1px; height:22px; background:var(--mantine-color-gray-3); flex:none; }
   /* Fixed header slots (owner, 11 Nov 2026, Header.jsx): a view-dependent button is as wide as the wider of its two
      labels. The real label and a hidden zero-height ghost of the other stack in one grid column; the ghost is ::after

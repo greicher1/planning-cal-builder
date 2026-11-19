@@ -23,6 +23,9 @@
      opens without ?test= -- the gate's iframes, a shareable copy -- still runs under it.
      frame-ancestors cannot be set from a <meta> (audit N-6: documented, no change). -->
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<!-- This copy's build stamp, written by tools/build-stamp.mjs (a hash of the built file). The update check compares
+     it with version.json's `build`, so the blue update bar shows on every release that changes the app. "dev" = unbuilt. -->
+<meta name="sptcal-build" content="dev">
 <title>SPTCal</title>
 <!-- ⛔ THE INSTALL GATE (PWA-ONLY-PLAN.md; owner, 30 Sep 2026: the hosted link is for INSTALLING
      SPTCal, and the app itself runs only in the installed app window).

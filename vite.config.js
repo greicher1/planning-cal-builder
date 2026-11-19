@@ -13,12 +13,16 @@ import react from '@vitejs/plugin-react'
 import { viteSingleFile } from 'vite-plugin-singlefile'
 // The CSP's script hashes are computed from the built file, never typed (audit L-4): see the module.
 import { cspHashes } from './tools/csp-hashes.mjs'
+// A fingerprint of the built app for the update bar (owner, 19 Nov 2026): see the module.
+import { buildStamp } from './tools/build-stamp.mjs'
+import pkg from './package.json' with { type: 'json' }
 
 export default defineConfig({
   root: 'src',
   // Relative asset URLs: the built file is opened from file:// at least as often as it is served.
   base: './',
-  plugins: [react(), viteSingleFile(), ...cspHashes()],
+  // buildStamp LAST: it hashes the finished file, after the CSP plugin has written its hashes.
+  plugins: [react(), viteSingleFile(), ...cspHashes(), buildStamp({ version: pkg.version })],
   build: {
     outDir: '../dist',
     emptyOutDir: true,

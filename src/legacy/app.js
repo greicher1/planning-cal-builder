@@ -38553,6 +38553,10 @@ export function initLegacyApp() {
     refreshKeptBackups();   // the file menu's "Unsaved work", whatever happens below
     const x = kept[0];
     const p = await prepareBackup(x);
+    // ⭐ WHAT'S NEW GOES FIRST (owner, 19 Nov 2026: *"the what's new dialogue should come before the "recover unsaved
+    // work" dialogue"*). Resolves at once when this launch has no What's New to show (WhatsNewDialog.jsx), else when
+    // it is closed. Before the file-launch check below, so a file double-clicked meanwhile still outranks the question.
+    await chrome.whatsNewDone();
     // The app was started by a double-clicked .sptcal: the user asked for THAT calendar, so it is not
     // buried under this question. It loads first, and offerBackupAfterLaunch() then asks about its own
     // unsaved work, or names another file's in a strip (AUD2-076). Checked HERE, after the IndexedDB
@@ -48560,6 +48564,14 @@ export function initLegacyApp() {
       }
 
       const MARKER = 'version.json';
+      // ⭐ EVERY RELEASE, NOT ONLY A VERSION CUT (owner, 19 Nov 2026: *"Whenever theres a new update to the app, lets add
+      // the blue update bar to the top"*). Most pushes go live as "Unreleased" with APP_VERSION unchanged, and the bar
+      // compared versions only, so nobody was told. The build now stamps a hash of itself into <meta name=
+      // "sptcal-build"> and into version.json's `build` (tools/build-stamp.mjs), and a DIFFERENT stamp is an update too.
+      // A push that changes only docs or tests builds the same bytes and the same stamp, so it shows nothing. Never when
+      // the live version is OLDER than this copy (a rollback: reloading would take the user backwards), and never for
+      // "dev" (an unbuilt page) or a marker with no stamp (a rollback's, or an old release's).
+      const BUILD = ((document.querySelector('meta[name="sptcal-build"]') || {}).content) || 'dev';
       const EVERY  = 30 * 60 * 1000;   // the marker is a few dozen bytes; this is not traffic
       let lastCheck = 0, shownVersion = null, dismissedVersion = null;
       // Stop asking after a few consecutive failures. A frozen releases/vX.Y.Z.html copy
@@ -48582,15 +48594,17 @@ export function initLegacyApp() {
         return false;
       }
 
-      function show(remote){
+      // `key` is what a dismissal remembers (the version, plus the stamp when there is one); `remote` is the version.
+      function show(remote, key){
         const el = document.getElementById('update-notice');
-        // Dismissal is per VERSION, not forever: waving away 1.2.1 should not hide 1.3.0.
-        if(!el || dismissedVersion === remote) return;
-        shownVersion = remote;
-        el.querySelector('.ln-text').innerHTML =
-          'Version <strong>' + escHtml(remote) + '</strong> of the calendar builder is available' +
-          ' — this copy is <strong>' + escHtml(APP_VERSION) + '</strong>. Reloading picks it ' +
-          'up. <strong>Save first</strong> if you have unsaved changes.';
+        // Dismissal is per RELEASE, not forever: waving away one update should not hide the next.
+        if(!el || dismissedVersion === key) return;
+        shownVersion = key;
+        // A new version number is named; a release without one (the same number, a new stamp) is just "an update".
+        el.querySelector('.ln-text').innerHTML = (remote !== APP_VERSION
+          ? 'Version <strong>' + escHtml(remote) + '</strong> of SPTCal is available. '
+          : '<strong>An update to SPTCal is available.</strong> ') +
+          'Reload to get it. <strong>Save first</strong> if you have unsaved changes.';
         el.hidden = false;
       }
 
@@ -48614,8 +48628,12 @@ export function initLegacyApp() {
           if(!res.ok){ if(++failures >= MAX_FAILURES) giveUp(); return; }
           const data = await res.json();
           failures = 0;
-          if(data && typeof data.version === 'string' && isNewer(data.version, APP_VERSION)){
-            show(data.version);
+          if(data && typeof data.version === 'string'){
+            const stamp = typeof data.build === 'string' ? data.build : '';
+            if(isNewer(data.version, APP_VERSION)
+               || (stamp && BUILD !== 'dev' && stamp !== BUILD && !isNewer(APP_VERSION, data.version))){
+              show(data.version, data.version + '/' + stamp);
+            }
           }
         } catch(_){
           // Offline, blocked, or the marker is not deployed yet. Silence is the correct
@@ -48635,6 +48653,9 @@ export function initLegacyApp() {
           // SSO gate (HANDOFF §2f), a navigation is the form that can complete an interactive
           // login; a background fetch simply fails. The existing beforeunload handler still
           // guards unsaved work, so this cannot silently discard a calendar.
+          // ⭐ Tells the What's New window (WhatsNewDialog.jsx) that the next launch is an UPDATE, which it needs only
+          // when this machine has never recorded a What's New entry (the first release that carries the window).
+          try { localStorage.setItem('sptcal.updating', '1'); } catch(_){}
           location.reload();
         });
       }

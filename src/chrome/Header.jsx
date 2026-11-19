@@ -13,7 +13,7 @@
 //     replaces or wraps it.
 import { useState, useLayoutEffect, useCallback, useEffect } from 'react'
 import { Button, Menu, Group, Text, Badge, CloseButton, Box } from '@mantine/core'
-import { installChrome } from './bridge.js'
+import { installChrome, chrome } from './bridge.js'
 import { IconFolder, IconFilePlus, IconFloppy, IconCopyPlus, IconTable, IconDownload, IconRotateCcw, IconColumns, IconRows } from './icons.jsx'
 import { APP_ICON } from './appIcon.js'
 // The version under the brand name (owner, 18 Nov 2026: "in small grey text, add v1.19 or whatever the current
@@ -103,7 +103,9 @@ export function Header() {
         {/* Name over version, both inside the mark's 30 px (legacy.css), so --header-h does not move. */}
         <div className="app-brand-text">
           <span className="app-brand-name">SPTCal</span>
-          <span className="app-brand-ver">v{APP_VERSION}</span>
+          {/* A button since 19 Nov 2026: it opens What's New again (WhatsNewDialog.jsx). Same box and type as the
+              label it was, so the header does not move. */}
+          <button type="button" className="app-brand-ver" title="What’s new" onClick={() => chrome.whatsNew()}>v{APP_VERSION}</button>
         </div>
       </div>
       <div className="app-toolbar-div" aria-hidden="true" />
