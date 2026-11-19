@@ -29,6 +29,44 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+## Unreleased
+
+### Phase cards lose their switch rows: Snap to Monday in the date picker, Hide in waterfall in the corner (18 Nov 2026)
+
+The owner: *"what do you think about putting snap to monday slider inside the mini calendar pop up box, at the bottom
+where the message currently is?"* (*"Yes, build it"*), then *"mockup a few ways the 'Hide in waterfall' functionality
+could be moved to the top right corner of each phase in a clean way and integrate with the 'Month view only' tag"*
+(four options in [`mockups/hide-in-waterfall-corner.html`](mockups/hide-in-waterfall-corner.html); *"Build A"*, then
+*"lets go with fix 1"*). A built-in phase card is now its head, Starts and Length, "Start after…" and Hiatus.
+
+- **Snap to Monday is switched in the phase's Starts picker**, at its foot where "Snap to Monday is on, so only Mondays
+  can be picked." used to be. Flip it and the calendar above changes at once (Mondays only, or any day). Shown on a Weeks
+  phase's Starts and Production's; not on a hiatus (always a Monday), an Ends date, a Days or Dates phase, a custom
+  holiday or Build Around's date, which keeps its line. The card's row is hidden.
+- **Hide in waterfall is an eye in the card head's top right corner.** Click it and it becomes the blue
+  **"Month view only"** tag in the same spot, an icon the eye's size (its words on hover); click the tag to put the phase
+  back. Episodic Prep and Double-ups show the same icon, not clickable. A custom phase's × joins the corner, so the
+  dates under the name keep the card's full width. The body's row is hidden. Works on a folded card.
+- **Nothing in a saved file changes.** Both controls drive the card's own `#snap-<key>` box and `.phase-hidewf-cb` tick,
+  which stay in the page, hidden: `fields.byId`, `phaseHidden`, the one undo step and every older file are as before.
+  The new controls carry no id.
+- **One behaviour kept on purpose:** a Wednesday picked with Snap off stays when Snap is switched back on, as it did with
+  the card's switch (switching Snap off again gives it back). In the picker the box keeps focus, so the switch sends the
+  box the focusout the card's click used to, before it flips (`flipSnap`); without it, leaving the box rewrote the
+  Wednesday to its Monday.
+- Engine: `DatePop.jsx` (`snapBoxOf`, `flipSnap`); `app.js` `MVONLY_TAG`, `phaseHeadHtml` (the floated
+  `.phase-head-corner`), `reflectPhaseHidden` (the eye) and a delegated click on the corner; `legacy.css`. The grid, the
+  exports and the frozen surface are untouched.
+- Tests: new legs `snappicker` and `wfcorner`; `datepick`, `builtindates`, `customunits`, `hidewf`, `phasesui` and
+  `endsdate` read the picker's switch and the corner instead of the card rows.
+- Verified (port 8483, the build, 18 Nov 2026): `snappicker` 8/8 (S5 red on a build without `flipSnap`'s focusout),
+  `wfcorner` 8/8, `datepick` 17/17, `hidewf` 19/19, `phasesui` 8/8, `endsdate` 17/17, `customunits` and `builtindates`
+  live and restore, `snapbox` 12/12, `snapoff` x3, `snaptools` 14/14, `prodends` 14/14, `buildendsby` 21/21,
+  `dayfirstwf` 11/11, `simpostdays` 14/14, `anchorside` 39/39, `buildalongside` 8/8, `phasearrows` 26/26, `overrides`
+  20/20, `mvmenu` 81/81, `wfmenu` 39/39, `phiatuspick` 12/12, `finishbefore` 12/12, `phasefold` 11/11, `phasecolors`
+  10/10, `loadcarry`, `swapnewphase`, `dlgkeys`, `phiatusnum`, `autonotephases`, `phasenotes`, `phasemonth` green;
+  `npm run check` 42/42. Tried by hand in the app. The full gate has not run (see HANDOFF).
+
 ## v1.20.1 — one Size for the month view's bars and notes: Standard, Large, Extra Large (18 Nov 2026)
 
 ### One Size for the month view's bars and notes: Standard, Large, Extra Large (18 Nov 2026)

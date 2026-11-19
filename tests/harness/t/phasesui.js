@@ -191,11 +191,16 @@ window.addEventListener('load', function () { (async function () {
       var r = rowOf(key); if (!r) return null;
       var head = r.querySelector(':scope > .custom-phase-header'), sw = r.querySelector(':scope > .swatch');
       var rr = r.getBoundingClientRect(), sr = sw.getBoundingClientRect();
-      var cb = r.querySelector('.phase-switches .sw-row > .phase-hidewf-cb'), cr = cb ? cb.getBoundingClientRect() : { width: 0, height: 0 };
+      // The switch measured is Number weeks: Hide in waterfall's row is hidden since 18 Nov 2026 (owner, "Build A"),
+      // its control the eye / tag in the head's corner, measured as `corner`.
+      var cb = r.querySelector('.phase-switches .sw-row > .phase-wknum-cb'), cr = cb ? cb.getBoundingClientRect() : { width: 0, height: 0 };
+      var cc = r.querySelector('.phase-head-corner .phase-wf-eye:not([hidden]), .phase-head-corner .phase-mvonly-tag:not([hidden])'),
+          ccr = cc ? cc.getBoundingClientRect() : { width: 0, height: 0 };
       var name = r.querySelector('.phase-name-input'), ns = getComputedStyle(name);
       return { head: getComputedStyle(head).backgroundColor, phaseColor: r.style.getPropertyValue('--phase-color'), swatch: sw.style.backgroundColor,
                sq: [Math.round(sr.left - rr.left), Math.round(sr.top - rr.top), Math.round(sr.width), Math.round(sr.height)],
-               sw: [Math.round(cr.width), Math.round(cr.height)], title: [ns.fontSize, ns.fontWeight, ns.color] };
+               sw: [Math.round(cr.width), Math.round(cr.height)], corner: [Math.round(ccr.width), Math.round(ccr.height)],
+               title: [ns.fontSize, ns.fontWeight, ns.color] };
     }
     await step('P3', async function () {
       function caret() { return rowOf('custom1').querySelector(':scope > .custom-phase-header > .phase-collapse-btn'); }
@@ -212,8 +217,9 @@ window.addEventListener('load', function () { (async function () {
       var open1 = look('custom1');
       kase('P3', 'a folded custom card is rebuilt by undo (a new element) and stays folded through undo and redo',
            el1 !== el0 && folded1 && folded2, { rebuilt: el1 !== el0, folded1: folded1, folded2: folded2 });
-      kase('P4', 'the card undo rebuilt keeps its look: head colour, --phase-color, the square\'s place and size, the switch, the title',
-           !!open0 && same(open0, open1) && open0.sq[2] === 16 && open0.sw[0] === 32 && open0.sw[1] === 16,
+      kase('P4', 'the card undo rebuilt keeps its look: head colour, --phase-color, the square\'s place and size, the switch, the corner control, the title',
+           !!open0 && same(open0, open1) && open0.sq[2] === 16 && open0.sw[0] === 32 && open0.sw[1] === 16 &&
+           open0.corner[0] === 22 && open0.corner[1] === 22,
            { before: open0, after: open1 });
     });
 

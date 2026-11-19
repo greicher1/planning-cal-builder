@@ -34,6 +34,15 @@ window.addEventListener('load', function () { (async function () {
     return el.map(function (e) { return (e.textContent || '').replace(/\s+/g, ' ').trim(); }).join(' || ');
   }
   function shown(el){ var l = el && el.closest('label'); return !!l && getComputedStyle(l).display !== 'none'; }
+  // Snap to Monday's switch moved from the card into the phase's Starts picker (owner, 18 Nov 2026): the card's row is
+  // always hidden, so "Snap applies here" is asked of the picker. Opens it on start-<key>, reads, closes it.
+  async function pickerSnap(key){
+    var el = $('start-' + key); if(!el) return null;
+    el.dispatchEvent(new FocusEvent('focusin', {bubbles: true})); await T.sleep(150);
+    var on = !!document.querySelector('.date-pop .dp-snap');
+    document.body.dispatchEvent(new MouseEvent('mousedown', {bubbles: true})); await T.sleep(100);
+    return on;
+  }
   async function settle(){ await T.sleep(700); }   // past the 500 ms undo debounce
   async function view(mode){ $(mode === 'month' ? 'view-month-btn' : 'view-sheet-btn').click(); await T.sleep(300); }
   async function gotoMonth(label){
@@ -121,9 +130,12 @@ window.addEventListener('load', function () { (async function () {
         days:  [shown($('weeks-custom2')), shown($('days-custom2')), shown($('end-custom2')), shown($('snap-custom2'))],
         dates: [shown($('weeks-custom3')), shown($('days-custom3')), shown($('end-custom3')), shown($('snap-custom3'))],
       };
-      check(out.boxes.weeks.join() === 'true,false,false,true', 'Weeks shows Weeks + Snap only');
+      out.pickerSnap = {weeks: await pickerSnap('custom1'), days: await pickerSnap('custom2'), dates: await pickerSnap('custom3')};
+      check(out.boxes.weeks.join() === 'true,false,false,false', 'Weeks shows Weeks only (its Snap to Monday row is hidden: the switch is in the Starts picker)');
       check(out.boxes.days.join()  === 'false,true,false,false', 'Days shows the Days box only');
       check(out.boxes.dates.join() === 'false,false,true,false', 'Dates shows the End date only');
+      check(out.pickerSnap.weeks === true && out.pickerSnap.days === false && out.pickerSnap.dates === false,
+        'only the Weeks phase\'s Starts picker offers Snap to Monday');
 
       // ⭐ Reachable by a real pointer, not just by a dispatched event (MONTH-VIEW-PLAN §8 step 5).
       var tb = document.querySelector('.side-tab-btn[data-tab="phases"]'); if(tb) tb.click(); await T.sleep(150);

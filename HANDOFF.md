@@ -4,6 +4,40 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### 🧩 18 Nov 2026: PHASE CARDS LOSE THEIR SWITCH ROWS — Snap to Monday in the date picker, Hide in waterfall in the head's corner (branch `claude/snap-in-picker`, worktree `.claude/worktrees/snap-in-picker`, from `origin/main` `7c2e34e` = v1.20.1). README "Unreleased". Tracker cards `snap-switch-in-date-picker`, `hide-in-waterfall-corner`.
+- **Owner:** *"putting snap to monday slider inside the mini calendar pop up box, at the bottom where the message
+  currently is"* → *"Yes, build it"*; then a mockup of four ways to move Hide in waterfall to the card's top right corner
+  ([`mockups/hide-in-waterfall-corner.html`](mockups/hide-in-waterfall-corner.html): A tag-is-the-switch, B eye + tag
+  under the name, C waterfall/month icon chip, D ⋯ menu) → *"Build A"*; A cut names (the "Month only" words took 83 px
+  of a 155 px name box) → *"lets go with fix 1"*: the tag is an icon the eye's size, its words in its title. Fix 2 (a
+  custom phase's × only on hover, which would give "Music & Sound Mix" its last 8 px) was offered and NOT chosen.
+- **How it is built (no saved-file change, no frozen code):**
+  - The picker's switch (`DatePop.jsx` `snapBoxOf` / `flipSnap`, id-less, `.dp-snap`) CLICKS the card's `#snap-<key>`,
+    which stays in the page hidden by `.phase-row .phase-snap{display:none}`. Shown on a Weeks phase's Starts and
+    Production's only; Build Around's date keeps its hint (a tool's field is not where a phase setting changes).
+  - ⛔ `flipSnap` dispatches a `focusout` on the box BEFORE the click. The card's click used to take focus out first, so
+    `showSnappedMonday()` settled a typed/picked date under the OLD setting; in the picker focus stays in the box, and
+    without it a Wednesday picked with Snap off was rewritten to its Monday when the box was left after switching Snap
+    on, breaking the deliberate "Snap off again gives the Wednesday back" (datepick P7) and folding the rewrite into an
+    unrelated undo step. `snappicker` S5 holds it.
+  - The head's corner (`phaseHeadHtml` → `.phase-head-corner`, FLOATED inside `.phase-head-text` before the title, so
+    only the name's line gives it room and the dates keep full width) holds `MVONLY_TAG`: on a hideable phase an id-less
+    `.phase-wf-eye` button and the tag as a `button.phase-mvonly-tag` (hidden until hidden); on Episodic Prep and
+    Double-ups the tag as a span. A delegated click on `#phase-rows` / `#custom-phase-rows` clicks the card's
+    `.phase-hidewf-cb` (its row hidden), so `phaseHidden`, its handler and the one undo step are unchanged;
+    `reflectPhaseHidden()` swaps eye and tag. The tag keeps "Month view only" as its text (font-size 0) and title.
+  - A custom phase's `.remove-custom-phase` moved into the corner (same element, its direct listener intact).
+  - A `.phase-switches` block with no row left to show is hidden (every built-in's; custom phases keep Number weeks).
+- **Legs:** new `snappicker` 8/8 (S5 red on a mutant without the focusout: it reopens the picker by a CLICK, since a
+  dispatched focusin clears `snapTyped` and hides the bug) and `wfcorner` 8/8 (both in gate.sh's AFSPEC list after
+  `hidewf`); `endsdate` E1 asks Localization's picker for Snap. ~30 other snap / card legs green (README). Re-expected:
+  `datepick` (P1/P4/P5/P7 read the switch, not the hint; U1/R1 no switch), `builtindates` / `customunits` (the card's
+  snap row is never shown; the Starts picker is asked whether it offers Snap), `hidewf` (`clickTick` clicks the corner's
+  eye / tag, hit-tested), `phasesui` P4 (measures Number weeks and the 22 px corner control).
+- **Not done:** the full gate (another session's v1.21.0 gate was running when this was finished; two at once stall),
+  commit, merge, push — all wait on the owner's pickers. ⚠️ `origin/main` is moving to v1.21.0 under this branch: merge
+  it in before the gate.
+
 ### 🚀 18 Nov 2026: v1.20.1 — ONE MONTH SIZE — Standard / Large / Extra Large (branch `month-one-size`, worktree `.claude/worktrees/month-one-size`, from `origin/main` `bf6e235`, v1.20.0 merged in). Pushed to `main` on the owner's picker.
 - **Owner:** *"lets make the phase bar size and notes size one size adjuster - and the unit should be Standard, Large,
   Extra Large"*; asked whether to add a fourth step (Medium, 11 px, would have been free; anything under 10 px is a

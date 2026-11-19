@@ -172,13 +172,22 @@ window.addEventListener('load', function () { (async function () {
     });
 
     // ===== E1 / U1: to Ends moves nothing ===========================================================================
+    // Snap to Monday's switch is in the phase's Starts picker since 18 Nov 2026 (its card row is always hidden), so
+    // "Localization keeps Snap" is asked of Localization's picker.
+    async function pickerSnap(key) {
+      var el = byId('start-' + key); if (!el) return null;
+      el.dispatchEvent(new FocusEvent('focusin', { bubbles: true })); await T.sleep(150);
+      var on = !!document.querySelector('.date-pop .dp-snap');
+      document.body.dispatchEvent(new MouseEvent('mousedown', { bubbles: true })); await T.sleep(100);
+      return on;
+    }
     await step('E1', async function () {
       await anchor('post', 'ends');
       var p = postState();
       var ok = same(p, Object.assign({}, P0, { end: '2027-03-05' })) && p.start === '2026-11-02' && p.last === '3/1/27:Post wk 16';
       var ui = rowOf('post').classList.contains('ends-mode') && shown(box('post')) && box('post').value === '2027-03-05'
             && !shown(byId('start-post')) && !shown(byId('snap-post')) && !shown(byId('autostart-post'))
-            && shown(byId('snap-localization')) && shown(byId('autostart-localization'));
+            && (await pickerSnap('localization')) === true && shown(byId('autostart-localization'));
       kase('E1', 'to Ends moves nothing (the same Post cells, start 11/2/26); end-post is Fri 3/5/27, shown in the start box\'s place; Snap and "Start after previous phase" go, Localization keeps both',
            ok && ui, { before: P0, after: p, ui: ui });
     });

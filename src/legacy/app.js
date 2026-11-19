@@ -9070,6 +9070,8 @@ export function initLegacyApp() {
       if(cb.checked !== on) cb.checked = on;
       const tag = row.querySelector('.custom-phase-header .phase-mvonly-tag');
       if(tag && tag.hidden === on) tag.hidden = !on;
+      const eye = row.querySelector('.custom-phase-header .phase-wf-eye');   // the corner's other half: one or the other
+      if(eye && eye.hidden !== on) eye.hidden = on;
     });
   }
   ['input', 'change'].forEach(evt=>{
@@ -9086,6 +9088,20 @@ export function initLegacyApp() {
         reflectPhaseHidden();
         update();
       });
+    });
+  });
+
+  // The head's corner (see MVONLY_TAG): the eye hides the phase in the waterfall, the tag shows it again. Each is a real
+  // click on the card's own .phase-hidewf-cb (hidden with its row), so the handler above does the rest. Delegated, so a
+  // custom row rebuilt by undo or Load needs no binding.
+  ['phase-rows', 'custom-phase-rows'].forEach(cid=>{
+    const host = document.getElementById(cid);
+    if(!host) return;
+    host.addEventListener('click', e=>{
+      const b = e.target && e.target.closest && e.target.closest('.phase-wf-eye, button.phase-mvonly-tag');
+      if(!b) return;
+      const cb = b.closest('.phase-row') && b.closest('.phase-row').querySelector('.phase-hidewf-cb');
+      if(cb) cb.click();
     });
   });
 
@@ -9238,14 +9254,31 @@ export function initLegacyApp() {
   //   - a switch is CSS on the native checkbox (.sw-row), never a Mantine Switch (UI-CONVENTIONS §8.9). Each keeps
   //     its own <label>, so a click anywhere on the row toggles it, as the old caption did.
   const MVONLY_PHASE_TITLE = 'Hidden in the waterfall: it shows in the month view and its PDF only, never in the waterfall, the Excel workbook or the waterfall PDF';
-  const MVONLY_TAG = (hidden, title) => `<span class="phase-mvonly-tag"${hidden ? ' hidden' : ''} title="${title}">Month view only</span>`;
+  // ⭐ HIDE IN WATERFALL LIVES IN THE HEAD'S TOP RIGHT CORNER (owner, 18 Nov 2026, option A of
+  // mockups/hide-in-waterfall-corner.html: "Build A"). A phase that can be hidden shows a faint eye there; click it and
+  // the eye becomes the blue "Month view only" tag, in the same spot; click the tag to put the phase back in the waterfall. The
+  // body's "Hide in waterfall" row is hidden by CSS and its .phase-hidewf-cb stays: both buttons click that tick, so
+  // its delegated handler, the one undo step and phaseHidden are exactly as before. Episodic Prep and Double-ups,
+  // month only by nature, show the same tag in the same corner as plain text (MVONLY_TAG(false, ...)).
+  // ⛔ No id on either button (collectFieldValues). The tag is an ICON in the corner, the eye's own size (owner, 18 Nov
+  // 2026, "lets go with fix 1"): with its words showing it took 83 px of the name's line, and names were cut (Episodic
+  // Prep, any long custom name). The words stay in the markup, hidden by CSS, so the tag keeps its accessible name, and
+  // its title says them on hover. The name's room is now the same whether the phase is hidden or not.
+  const MVONLY_TAG = (hidden, title) => hidden
+    ? `<button type="button" class="phase-wf-eye" title="Hide in waterfall" aria-label="Hide in waterfall"></button>`
+      + `<button type="button" class="phase-mvonly-tag" hidden title="Month view only. ${title}. Click to show it in the waterfall again.">Month view only</button>`
+    : `<span class="phase-mvonly-tag" title="Month view only. ${title}">Month view only</span>`;
+  // The corner (the tag above, and a custom phase's ×) FLOATS at the right of the head's text, so only the name's line
+  // gives it room: the dates under it keep the card's full width. It comes before the title in the markup for that.
   function phaseHeadHtml(nameHtml, tagHtml, metaHtml, endHtml){
+    const corner = (tagHtml || '') + (endHtml || '');
     return `<div class="custom-phase-header">
           ${PHASE_COLLAPSE_BTN}
           <div class="phase-head-text">
-            <div class="phase-head-title">${nameHtml}${tagHtml}</div>
+            ${corner ? `<div class="phase-head-corner">${corner}</div>` : ''}
+            <div class="phase-head-title">${nameHtml}</div>
             ${metaHtml}
-          </div>${endHtml || ''}
+          </div>
         </div>`;
   }
   function swRow(cls, label, inputHtml, title){

@@ -30,6 +30,15 @@ window.addEventListener('load', function () { (async function () {
     return el.map(function (e) { return (e.textContent || '').replace(/\s+/g, ' ').trim(); }).join(' || ');
   }
   function shown(el){ var l = el && el.closest('label'); return !!l && getComputedStyle(l).display !== 'none'; }
+  // Snap to Monday's switch moved from the card into the phase's Starts picker (owner, 18 Nov 2026): the card's row is
+  // always hidden, so "Snap applies here" is asked of the picker. Opens it on start-<key>, reads, closes it.
+  async function pickerSnap(key){
+    var el = $('start-' + key); if(!el) return null;
+    el.dispatchEvent(new FocusEvent('focusin', {bubbles: true})); await T.sleep(150);
+    var on = !!document.querySelector('.date-pop .dp-snap');
+    document.body.dispatchEvent(new MouseEvent('mousedown', {bubbles: true})); await T.sleep(100);
+    return on;
+  }
   async function settle(){ await T.sleep(700); }   // past the 500 ms undo debounce
   async function view(mode){ $(mode === 'month' ? 'view-month-btn' : 'view-sheet-btn').click(); await T.sleep(300); }
   async function gotoMonth(label){
@@ -92,8 +101,11 @@ window.addEventListener('load', function () { (async function () {
         weeks: [shown($('weeks-writersRoom')), shown($('end-writersRoom')), shown($('snap-writersRoom'))],
         dates: [shown($('weeks-prePrep')), shown($('end-prePrep')), shown($('snap-prePrep'))]
       };
-      check(out.boxes.weeks.join() === 'true,false,true', 'a built-in in Weeks shows Weeks and Snap to Mon');
+      out.pickerSnap = {weeks: await pickerSnap('writersRoom'), dates: await pickerSnap('prePrep')};
+      check(out.boxes.weeks.join() === 'true,false,false', 'a built-in in Weeks shows Weeks (its Snap to Monday row is hidden: the switch is in the Starts picker)');
+      check(out.pickerSnap.weeks === true, 'a built-in in Weeks: its Starts picker offers Snap to Monday');
       check(out.boxes.dates.join() === 'false,true,false', 'a built-in in Dates shows only the End date');
+      check(out.pickerSnap.dates === false, 'a built-in in Dates: its Starts picker offers no Snap to Monday');
       var tb = document.querySelector('.side-tab-btn[data-tab="phases"]'); if(tb) tb.click(); await T.sleep(150);
       var sel = $('unit-prePrep'); sel.scrollIntoView({block: 'center'}); await T.sleep(100);
       var r = sel.getBoundingClientRect();
