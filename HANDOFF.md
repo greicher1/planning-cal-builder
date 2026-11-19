@@ -4,12 +4,15 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### 🔨 19 Nov 2026: TANDEM DAYS IN SHOW INFO — built, waiting for the owner to try it. Branch `show-info-tandem` (worktree `.claude/worktrees/show-info-tandem`, from `origin/main` `1b45340`; `node_modules` is a symlink, unlink it before `git worktree remove`). Mockup [`mockups/show-info-tandem.html`](mockups/show-info-tandem.html) (main checkout, untracked). Tracker card `show-info-tandem`.
+### 🔨 19 Nov 2026: TANDEM DAYS IN SHOW INFO — finished on the owner's *"Finish it"*, NOT pushed. Branch `show-info-tandem` (worktree `.claude/worktrees/show-info-tandem`, from `origin/main` `1b45340`; `node_modules` is a symlink, unlink it before `git worktree remove`). Mockup [`mockups/show-info-tandem.html`](mockups/show-info-tandem.html) (main checkout, untracked). Tracker card `show-info-tandem`.
 - **Owner:** *"add double-up/tandem days in the Show Info section. To the right of the Shooting days per episode should be a big plus symbol and then to the right of that another box"*; then *"the plus doesn't need to be that big"*, *"could all be on one line"*, *"remove the subtext below it, then build it"*.
 - **Built:** Show info's days row is `days box + Tandem Days` on one line, in Episodes and in Blocks mode (`TandemDaysBox` in `Sidebar.jsx`, `.si-days-tandem` in `legacy.css`). The box is a SECOND view of the Tandem card's "Default tandem days" (`doubleUpDays`, saved as `doubleUps.days`): a delegated `input` listener writes it as the card's box does, `reflectShowInfoTandem()` (from `update()`) writes it back. Undo, both directions and Blocks mode checked in the pane; `npm run check` 43/43.
 - ⛔ **No id on the box:** a PLAIN `<input>`, the Region mirror's pattern. A Mantine `Input` inside `Input.Wrapper` TOOK THE WRAPPER'S MINTED ID (seen in the built page), which the save sweep would have baked into `fields.byId`.
 - The days label runs over the plus column (`nowrap`), which keeps it to one line in the 280 px sidebar (142 of 146 px). "Whole days only" sits under the row (absolute), not in the 72 px column, where it wrapped and lifted the box.
-- **Not done:** a leg, README, the owner's ruling on "one value in two places" (assumed; the mockup asked). Unruled = not pushed.
+- **Finished:** leg `doubleups` LIVE run gained SI0-SI7 (one line in both modes, no id on either copy, Show info -> card and
+  card -> Show info, one Undo, Save adds no `fields.byId` key, Load, the whole-days ring with the box kept in line); help
+  text in the Tandem paragraph; README "Unreleased". "One value in two places" was never ruled; the owner tried it and said
+  finish. No full gate (chrome + a sidebar listener, nothing frozen).
 
 ### 🤏 18 Nov 2026: PINCH, CTRL-SCROLL AND ⌘+ / ⌘− ZOOM THE CALENDAR, NOT THE APP (branch `pinch-zoom`, worktree `.claude/worktrees/pinch-zoom`, from `origin/main` `0aaf387` = v1.22.0; NOT pushed). README "Unreleased". Tracker card `pinch-zoom-calendar`.
 - **Owner:** *"Allow trackpad pinch and related mouse zoom buttons to control the viewport of the waterfall and month

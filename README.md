@@ -29,6 +29,22 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — Tandem Days in Show info, beside the shooting days (19 Nov 2026)
+
+Owner: *"add double-up/tandem days in the Show Info section. To the right of the Shooting days per episode should be a big
+plus symbol and then to the right of that another box to add the double up/tandem days"*; after the mockup
+(`mockups/show-info-tandem.html`, main checkout): a smaller plus, all on one line, no line of text under it.
+- **Show info** reads `Shooting Days per Episode + Tandem Days` on one line (`Shooting Days per Block` in Blocks mode).
+  The box is the Tandem card's **Default tandem days** a second time: type in either and the other follows, one undo step.
+  Nothing new is saved: the count is still `doubleUps.days`.
+- ⛔ The box has **no id** (a plain `<input>`, the Region mirror's pattern): a Mantine `Input` inside `Input.Wrapper` took
+  the wrapper's minted id in the built page, which `collectFieldValues()` would have saved into every calendar.
+- The days label runs over the plus column, so it stays on one line in the narrowest sidebar (280 px: 142 of 146 px);
+  "Whole days only" sits under the row so the boxes stay in line.
+- **Verified:** `doubleups` LIVE run SI0-SI7 (one line in both modes, no id, both directions, Undo, Save adds no field,
+  Load, the whole-days ring); the leg's other runs, `restore` (gate 5's key set), `loadsparse`, `firstrun`, `numclamp`;
+  `npm run check`. No full gate: chrome and a sidebar listener only, nothing frozen.
+
 ### Unreleased — Pinch, Ctrl-scroll and ⌘+ / ⌘− zoom the calendar, not the app (18 Nov 2026)
 
 Owner: *"Allow trackpad pinch and related mouse zoom buttons to control the viewport of the waterfall and month view

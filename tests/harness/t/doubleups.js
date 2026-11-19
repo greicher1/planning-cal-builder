@@ -328,6 +328,52 @@ window.addEventListener('load', function () { (async function () {
       out.l9 = {err: (cardBox(cardList()[1].id).closest('.du-unit-row') || {}).getAttribute && cardBox(cardList()[1].id).closest('.du-unit-row').getAttribute('data-whole-err'),
                 invalid: cardBox(cardList()[1].id).classList.contains('is-invalid')};
       check(out.l9.err === 'Whole days only' && out.l9.invalid, 'L9 a fraction is ringed "Whole days only", as Prep’s boxes are');
+
+      // ---- Show info's Tandem Days box (owner, 19 Nov 2026; Sidebar.jsx TandemDaysBox): the card's default, a 2nd time ----
+      cardType(cardList()[1].id, ''); await settle();
+      cardType(null, ''); await settle();
+      tab('show'); await T.sleep(300);
+      var siBoxes = function () { return [].slice.call(document.querySelectorAll('.si-tandem-in')); };
+      var siShown = function () { return siBoxes().filter(shownEl)[0]; };
+      var siVals = function () { return siBoxes().map(function (b) { return b.value; }).join(); };
+      var lineOf = function (box, days) {
+        var a = box.getBoundingClientRect(), b = $(days).getBoundingClientRect(), lab = $(days + '-label').getBoundingClientRect();
+        return {sameLine: Math.abs(a.bottom - b.bottom) < 0.5 && a.left > b.right, labelOneLine: lab.height < 20,
+                plus: !!box.closest('.si-days-tandem').querySelector('.si-plus svg')};
+      };
+      var sb = siShown();
+      out.si0 = {n: siBoxes().length, ids: siBoxes().filter(function (b) { return b.id; }).length, line: sb && lineOf(sb, 'shoot-days-per-ep'),
+                 ph: sb && sb.placeholder, val: siVals(), label: sb && sb.closest('.si-tandem').textContent.trim()};
+      check(out.si0.n === 2 && out.si0.ids === 0 && sb && sb.closest('.show-mode-episodes') && out.si0.line.sameLine && out.si0.line.labelOneLine
+            && out.si0.line.plus && out.si0.ph === 'None' && out.si0.val === ',' && out.si0.label === 'Tandem Days',
+            'SI0 Show info: "Shooting Days per Episode" + "Tandem Days" on one line, the box blank ("None"), and NO id on either copy');
+      setVal(sb, '2'); await settle();
+      out.si1 = {card: cardBox(null).value, si: siVals(), ep: cardList()[2].n};
+      check(out.si1.card === '2' && out.si1.si === '2,2' && out.si1.ep === '2',
+            'SI1 a count typed in Show info IS the card’s default: the card reads 2, and so does every episode without its own');
+      await undo();
+      check(cardBox(null).value === '' && siVals() === ',', 'SI2 ...one Undo takes both back to none');
+      cardType(null, '3'); await settle();
+      check(siVals() === '3,3', 'SI3 a default typed on the card shows in Show info');
+      var s4 = JSON.parse(await save());
+      out.si4 = {days: s4.doubleUps && s4.doubleUps.days, extra: Object.keys(s4.fields.byId).filter(function (k) { return !(k in s0.fields.byId); })};
+      check(out.si4.days === 3 && out.si4.extra.length === 0, 'SI4 Save writes doubleUps.days 3 and no new field: fields.byId has exactly the keys it had');
+      s4.doubleUps.days = 1;
+      await load(JSON.stringify(s4)); tab('show'); await T.sleep(300);
+      check(siVals() === '1,1' && cardBox(null).value === '1', 'SI5 Load a file with a default of 1: Show info reads 1');
+      sb = siShown();
+      setVal(sb, '3.5'); await settle();
+      var w = sb.closest('.si-tandem');
+      out.si6 = {err: w.getAttribute('data-whole-err'), invalid: sb.classList.contains('is-invalid'), line: lineOf(sb, 'shoot-days-per-ep')};
+      check(out.si6.err === 'Whole days only' && out.si6.invalid && out.si6.line.sameLine,
+            'SI6 a fraction there is ringed "Whole days only" too, and the box stays in line with the days box');
+      setVal(sb, '1'); await settle();
+      var mode = $('show-mode'); mode.value = 'blocks'; mode.dispatchEvent(new Event('change', {bubbles: true})); await settle();
+      sb = siShown();
+      out.si7 = {inBlocks: !!(sb && sb.closest('.show-mode-blocks')), line: sb && lineOf(sb, 'days-per-block'), val: sb && sb.value};
+      check(out.si7.inBlocks && out.si7.line.sameLine && out.si7.line.labelOneLine && out.si7.val === '1',
+            'SI7 Blocks mode: "Shooting Days per Block" + "Tandem Days" on one line, the same count');
+      mode.value = 'episodes'; mode.dispatchEvent(new Event('change', {bubbles: true})); await settle();
     }
 
     if(out.run === 'restore'){
