@@ -3966,6 +3966,24 @@ for c in a.get('checks') or []:
 sys.exit(0 if a.get('pass') is True and a.get('checks') else 1)
 PYCZ
 
+# ---- pinchzoom: pinch, Ctrl-scroll and the zoom keys zoom the calendar, never the app (owner, 18 Nov 2026) ---------
+# Wheel events with ctrlKey (a trackpad pinch, Ctrl + a mouse wheel) and Cmd/Ctrl + = / - are cancelled and become the
+# slider's own zoom, about the pointer; Cmd/Ctrl+0 resets the calendar and is left to Chrome too. app.js, "PINCH,
+# CTRL-SCROLL AND THE ZOOM KEYS".
+rm -f "$HERE/pinchzoom.json"
+HARNESS_PAGE="$PAGE" HARNESS_STATE=mvnotes "$HERE/run.sh" pinchzoom 300 >/dev/null 2>&1
+python3 - "$HERE/pinchzoom.json" <<'PYPZ' || FAIL=1
+import json,sys
+try: a=json.load(open(sys.argv[1]))
+except Exception as e:
+    print('  FAIL  pinchzoom produced no result: '+str(e)); sys.exit(1)
+if a.get('EX'):
+    print('  FAIL  pinchzoom threw: '+str(a['EX'])[:200])
+for c in a.get('checks') or []:
+    print(('  PASS  ' if c.get('ok') else '  FAIL  ')+'pinchzoom: '+str(c.get('what'))[:170])
+sys.exit(0 if a.get('pass') is True and a.get('checks') else 1)
+PYPZ
+
 # ---- zoomresize: the waterfall's resize handles at every zoom (owner, 22 Oct 2026) ------------------------------
 # Frozen edits Z1-Z6 (owner sign-off by picker) divide installGridResizers' and the drags' screen measurements by
 # the zoom, 1 at 100%. At 100%, 50%, 150% and 200% the leg checks every row, column and cell-edge handle on its

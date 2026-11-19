@@ -29,6 +29,23 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — Pinch, Ctrl-scroll and ⌘+ / ⌘− zoom the calendar, not the app (18 Nov 2026)
+
+Owner: *"Allow trackpad pinch and related mouse zoom buttons to control the viewport of the waterfall and month view
+rather than just zooming in the entire UI of the app"*.
+- **A trackpad pinch** (Mac, and Windows precision touchpads) now drives the calendar zoom, the slider bottom right, in
+  the waterfall and the month view, and zooms about the pointer: what is under it stays under it. The sidebar, header and
+  toolbar never zoom. **Ctrl + a mouse wheel** (and a mouse zoom button, which mouse software sends the same way) steps
+  10% a notch, as the slider's buttons do. **⌘+ / ⌘−** (Ctrl on Windows) step the calendar too; **⌘0** puts the
+  calendar back to 100% and also lets Chrome reset the app's own zoom, so a window zoomed before this change has a way
+  back.
+- Same clamp (25–200%), same per-view preference, same settle as the slider (`setCalZoom`); nothing frozen changed, and
+  the exports cannot see a zoom. With a dialog up, the gesture is swallowed and nothing zooms.
+- **Verified:** new leg `pinchzoom` (20/20, in `gate.sh` beside `calzoom`): the cancel, the pointer anchor within 1.5 px
+  in both views, the notch and key steps, ⌘0, the dialog, no dirty mark or undo step. `calzoom` 26/26, `zoomresize`
+  40/40, `npm run check` 43/43. Synthetic events cannot show Chrome's own page zoom being refused; a real pinch was not
+  tried in an installed window.
+
 ## v1.22.0 — Snap to Monday in the date picker, Hide in waterfall in the card's corner; New leaves the File menu; the app opens filling the screen (18 Nov 2026)
 
 ### Phase cards lose their switch rows: Snap to Monday in the date picker, Hide in waterfall in the corner (18 Nov 2026)

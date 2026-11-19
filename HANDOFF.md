@@ -4,6 +4,28 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### 🤏 18 Nov 2026: PINCH, CTRL-SCROLL AND ⌘+ / ⌘− ZOOM THE CALENDAR, NOT THE APP (branch `pinch-zoom`, worktree `.claude/worktrees/pinch-zoom`, from `origin/main` `0aaf387` = v1.22.0; NOT pushed). README "Unreleased". Tracker card `pinch-zoom-calendar`.
+- **Owner:** *"Allow trackpad pinch and related mouse zoom buttons to control the viewport of the waterfall and month
+  view rather than just zooming in the entire UI of the app"*.
+- **Done:** app.js "PINCH, CTRL-SCROLL AND THE ZOOM KEYS", right after the slider's `sptcal-zoom` listener. A capture
+  `wheel` listener on `window` (`passive: false`) cancels every wheel with `ctrlKey` (Chrome's pinch and Ctrl+wheel) and
+  feeds `setCalZoom()`: a small delta is a pinch (`× exp(−dy·0.01)`, kept unrounded in `pinchZoom` across the
+  gesture), |dy| ≥ 50 is a mouse notch (the buttons' 10% step, `calZoomStep`). ⌘ / Ctrl + `=` `+` `-` `_` are
+  cancelled and stepped; ⌘0 / Ctrl+0 sets 100% and is NOT cancelled, so Chrome resets the app too (the only way back
+  for a window pinch-zoomed before this). With nothing to zoom or a dialog up (`appDialogOpen()`), the gesture is still
+  cancelled and nothing zooms.
+- ⚠️ **The pointer anchor holds an ELEMENT, not a scroll offset** (`calZoomAnchor`, `zoomCalendarAbout`): Chrome lays
+  the waterfall out a little differently at each zoom (83 own px over 45 rows from 149% to 182%), so a point's place in
+  the box's own px drifts. And a pinch keeps ONE anchor for the whole gesture (`pinchHold`, dropped after 400 ms idle,
+  a render, or 8 px of pointer travel): where the box cannot scroll yet (a window wider than the month page at 100%),
+  the point slides off and a per-step anchor kept that slide for good. Zoomed out until the grid fits, it sits on the
+  box's left edge as at 100%, and no point right of that can be held (the leg's P9 stops before then).
+- ⛔ Chrome hands these to the page before it zooms; the leg's events are synthetic, so it reads `defaultPrevented`.
+  **Not yet tried with a real trackpad in an installed window.** Touchscreen pinch (pointer events, not wheel) is not
+  handled.
+- **Legs:** new `pinchzoom` 20/20 (in `gate.sh`, after `calzoom`), `calzoom` 26/26, `zoomresize` 40/40, `npm run
+  check` 43/43. No full gate (chrome only, no frozen code).
+
 ### 🧩 18 Nov 2026: PHASE CARDS LOSE THEIR SWITCH ROWS — Snap to Monday in the date picker, Hide in waterfall in the head's corner (branch `claude/snap-in-picker`, worktree `.claude/worktrees/snap-in-picker`, from `origin/main` `7c2e34e` = v1.20.1). README "Unreleased". Tracker cards `snap-switch-in-date-picker`, `hide-in-waterfall-corner`.
 - **Owner:** *"putting snap to monday slider inside the mini calendar pop up box, at the bottom where the message
   currently is"* → *"Yes, build it"*; then a mockup of four ways to move Hide in waterfall to the card's top right corner

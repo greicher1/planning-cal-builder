@@ -32022,6 +32022,107 @@ export function initLegacyApp() {
     const d = e && e.detail;
     if(d && d.zoom != null) setCalZoom(d.zoom);
   });
+
+  // ⭐ PINCH, CTRL-SCROLL AND THE ZOOM KEYS ZOOM THE CALENDAR, NEVER THE APP (owner, 18 Nov 2026: "Allow trackpad
+  // pinch and related mouse zoom buttons to control the viewport of the waterfall and month view rather than just
+  // zooming in the entire UI of the app"). Chrome hands a page every one of these before it zooms the page itself:
+  //   * a trackpad pinch (Mac, and Windows precision touchpads) arrives as `wheel` events with ctrlKey set and small
+  //     deltas; Ctrl + a mouse wheel (and a mouse's zoom button, which most mouse software sends as it) arrives the
+  //     same way with a notch's ~100 px delta;
+  //   * ⌘+ / ⌘− (Ctrl on Windows and Linux) are keydowns, and so is a mouse zoom button mapped to those keys.
+  // Each is cancelled, so the app around the calendar never zooms, and turned into setCalZoom(), the slider's own
+  // path: the same clamp, the same preference, the same settle. Nothing frozen is touched (a magnification of
+  // #table-wrap, "CALENDAR ZOOM" above).
+  //   ⌘0 / Ctrl+0 is the one key NOT cancelled: it puts the calendar back to 100% AND lets Chrome put the app back to
+  // its own 100%, so an app window that was pinch-zoomed before this change (Chrome remembers a site's zoom) has a
+  // way back.
+  // A pinch zooms about the pointer (what is under it stays under it), as every map and drawing app does; a key,
+  // or a pinch made away from the calendar, about the middle of what is in view.
+  // ⚠️ Held by the ELEMENT under that point, not by a scroll offset: Chrome lays the waterfall out a little
+  // differently at each zoom (see "WHAT ZOOM BREAKS": its rows are not quite the 100% rows), so a point's place in
+  // the zoomed box's own px drifts with the zoom; 83 px over 45 rows from 149% to 182%, measured. The element is
+  // where it is drawn, so it is read again after the zoom and the box scrolled by what it moved. The scroll offsets
+  // are in the zoomed box's own px, hence the division by the new zoom.
+  function calZoomScroller(){
+    const tw = document.getElementById('table-wrap');
+    if(!tw) return null;
+    return viewMode === 'month' ? tw : tw.querySelector(':scope > .sheet-scroll');
+  }
+  // `hold` is a pinch's anchor, kept for the whole gesture: where the box cannot scroll that far yet (a window wider
+  // than the page at 100%, the top or left edge), what is under the pointer slides off it, and an anchor re-read at
+  // every step would keep that slide for good. Held from the gesture's start, it comes back under the pointer as soon
+  // as there is room to scroll.
+  function calZoomAnchor(sc, cx, cy){
+    const r = sc.getBoundingClientRect();
+    const inside = cx != null && cx >= r.left && cx <= r.right && cy >= r.top && cy <= r.bottom;
+    // The middle of what shows of the box, which a narrow window may cut on the right or the bottom.
+    const x = inside ? cx : (r.left + Math.min(r.right, window.innerWidth)) / 2;
+    const y = inside ? cy : (r.top + Math.min(r.bottom, window.innerHeight)) / 2;
+    const el = document.elementFromPoint(x, y);
+    if(!el || !sc.contains(el) || el === sc) return null;
+    const b = el.getBoundingClientRect();
+    if(!(b.width > 0 && b.height > 0)) return null;
+    return { el, x, y, fx: (x - b.left) / b.width, fy: (y - b.top) / b.height };
+  }
+  function zoomCalendarAbout(next, cx, cy, hold){
+    const sc = calZoomScroller();
+    const before = calZoom[calZoomView()];
+    // A hold is dropped when its element went in a render, or when the pointer has moved off where it was taken.
+    const keep = hold && hold.el && hold.el.isConnected && sc && sc.contains(hold.el)
+      && (cx == null || Math.hypot(cx - hold.x, cy - hold.y) <= 8);
+    const at = keep ? hold : (sc ? calZoomAnchor(sc, cx, cy) : null);
+    setCalZoom(next);
+    if(!at || calZoom[calZoomView()] === before || !at.el.isConnected) return at;
+    const sc2 = calZoomScroller();
+    if(!sc2 || !sc2.contains(at.el)) return at;
+    const b = at.el.getBoundingClientRect();
+    const k = gridZoom(sc2);
+    sc2.scrollLeft += (b.left + at.fx * b.width - at.x) / k;
+    sc2.scrollTop += (b.top + at.fy * b.height - at.y) / k;
+    return at;
+  }
+  // The buttons' steps (ZoomControl.jsx): to the next whole ten, so 105% goes to 110% or 100%.
+  function calZoomStep(dir){
+    const pct = Math.round(calZoom[calZoomView()] * 100);
+    return dir > 0 ? (Math.floor(pct / 10) + 1) / 10 : (Math.ceil(pct / 10) - 1) / 10;
+  }
+  // Nothing to zoom: an empty calendar, an error, or a dialog over it. The gesture is still cancelled there, so the
+  // app never zooms.
+  function calZoomable(){ return calendarShown() && !appDialogOpen(); }
+  // A pinch's own zoom, unrounded, so its many small steps add up (setCalZoom keeps whole percents). Taken afresh
+  // from the calendar's zoom when a pinch starts, or when anything else changed the zoom since.
+  let pinchZoom = null, pinchAt = 0, pinchHold = null;
+  window.addEventListener('wheel', e=>{
+    if(!e.ctrlKey) return;
+    e.preventDefault();
+    if(!calZoomable()) return;
+    const dy = e.deltaY * (e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? 400 : 1);
+    if(!dy) return;
+    const cur = calZoom[calZoomView()];
+    const now = performance.now();
+    if(pinchZoom == null || now - pinchAt > 400 || Math.abs(clampCalZoom(pinchZoom) - cur) > 0.005){ pinchZoom = cur; pinchHold = null; }
+    pinchAt = now;
+    if(Math.abs(dy) >= 50){
+      // A mouse wheel's notch: one button step a notch.
+      pinchZoom = calZoomStep(dy < 0 ? 1 : -1);
+    } else {
+      // A pinch: proportional, so a slow pinch is fine and a quick one goes far.
+      pinchZoom = Math.min(CAL_ZOOM_MAX, Math.max(CAL_ZOOM_MIN, pinchZoom * Math.exp(-dy * 0.01)));
+    }
+    pinchHold = zoomCalendarAbout(pinchZoom, e.clientX, e.clientY, pinchHold);
+  }, { passive: false, capture: true });
+  document.addEventListener('keydown', e=>{
+    // The platform's own zoom modifier only: ⌘ on a Mac, Ctrl elsewhere (Ctrl+= on a Mac zooms nothing in Chrome).
+    const mod = platformIsMac() ? (e.metaKey && !e.ctrlKey) : (e.ctrlKey && !e.metaKey);
+    if(!mod || e.altKey) return;
+    const k = e.key;
+    const dir = (k === '=' || k === '+') ? 1 : (k === '-' || k === '_') ? -1 : 0;
+    if(k === '0'){ if(calZoomable()) zoomCalendarAbout(1); return; }   // not cancelled: Chrome resets the app too
+    if(!dir) return;
+    e.preventDefault();
+    if(calZoomable()) zoomCalendarAbout(calZoomStep(dir));
+  }, true);
+
   // Every render may add or remove the calendar. Observing mutates nothing; the re-apply writes only
   // #table-wrap's own style, never a child, so it cannot feed this observer (childList only).
   new MutationObserver(applyCalZoom).observe(document.getElementById('table-wrap'), { childList: true });
