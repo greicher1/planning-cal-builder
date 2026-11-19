@@ -38,6 +38,39 @@ next start typed on that card waits again. Finish before on an empty card (which
 says it too, where it used to say nothing. The other lines ("of 1 or more", a missing start date, Production's) are
 unchanged. The line is written by the frozen renderer and hidden from outside; nothing saved, nothing frozen edited.
 Verified: new leg `weekprompt` 8/8, `finishbefore` 16/16, `npm run check` 46/46.
+### Unreleased — A new note stays with its phase week by default (19 Nov 2026)
+
+Owner: *"New default, notes should stay with their specifc phase week and not the specific actual week"*, then the
+pickers *"First in the list"*, *"Leave them on their week"*, *"Yes, both editors"*, *"Yes, pasted notes too"*.
+
+- **The waterfall note editor:** in a Notes cell that holds no note of the user's yet, "Stays with" now opens on the
+  first phase it offers (the left-most phase cell of that row, e.g. "Production wk 4") instead of "Week of …". Saving
+  with it left alone links the note to that phase week, so it moves when the phase moves. "Week of …" is still in the
+  list. A week where no phase runs has no row, and its note stays on its week as before.
+- **The Month view's "+"** opens "Stays with" on the first phase too (on a shoot day, "Production · Day N").
+- **Text pasted into an empty Notes cell** is linked the same way (`wfLinkNewNote`). Pasting over a week note keeps it a
+  week note.
+- **Notes pasted into the Month view** (owner: *"do it also for pasted month notes"*): ⌘V onto a day and the Paste notes…
+  box link each note to that day's first phase (`mvLinkPastedNote`), as a "+" saved with the row left alone does: that
+  weekday, Production's shoot day on a shoot day, hidden from the waterfall, its colour kept. A day no phase runs on keeps
+  it as the day's own note.
+- **A note made in the Month view shows no date there** (owner's picker *"Drop the date"*): a linked note hidden from
+  the Waterfall is drawn "Rig check", not "Rig check 7/8/26" (`placePhaseNotes`), as a Month note always was. One the
+  Waterfall also shows keeps its date in both views, as a Waterfall line does.
+- **A line added to a cell whose note stays with a phase joins that note** (owner, 20 Nov 2026: *"yeah do the case 3
+  thing"*): the editor says "Stays with Production wk 4" for the whole cell, so the added line moves with it. Until now
+  it was left as a week note, and the next move split the two. Pick "Week of …" to keep a line on its week.
+- **Only into a free phase week:** a phase week holds one linked note, so a second new note there (another day of the
+  same prep week, say) starts on "Week of …" / "This day" instead of joining the first and taking its day and colour.
+- **Nothing already saved changes:** a cell that holds a week note opens on "Week of …", so old notes keep their week.
+- **Found on the way:** renaming a cell's automatic note and adding a line in the same save now keeps the rename (the
+  automatic line's edits are worked out before the new line is linked, `preEdits`). No save-format change, no frozen
+  code.
+- **Verified:** new leg `notephase` 17/17 (in `gate.sh` beside `notedates`). The harness (`t/lib.js`) picks "Week of …"
+  / "This day" for a new note in the legs written before this, and paste checks were re-expected to the new behaviour.
+  First full gate: every baseline identical; its 66 failures were those premises and load timeouts, each green alone
+  after the fixes. Final full gate: every baseline identical again, its 21 failures load timeouts, each green
+  alone.
 
 ### Unreleased — Post's end note reads "Final Delivery 9/22/28" (19 Nov 2026)
 

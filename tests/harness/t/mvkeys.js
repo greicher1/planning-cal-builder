@@ -78,6 +78,10 @@ window.addEventListener('load', function () { (async function () {
   function blocks(iso, kind){ return qa('#table-wrap .mv-note-block[data-note-day="' + iso + '"]' + (kind ? '[data-note-kind="' + kind + '"]' : '')); }
   function texts(iso, kind){ return blocks(iso, kind).map(txt); }
   function block(iso, re){ return blocks(iso).filter(function (b) { return re.test(txt(b)); })[0] || null; }
+  // A day's TYPED notes: its own ('day'), then the lines drawn with the Waterfall's ('wf': a note that stays with a phase
+  // is drawn as one). Since 19 Nov 2026 a note pasted onto a day where a phase runs stays with that phase (t/notephase.js
+  // Q1), so the paste cases read both.
+  function mine(iso){ return blocks(iso, 'day').concat(blocks(iso, 'wf')).map(txt); }
   // What a note block looks like: its fill, weight and slant (the colour and the month text style).
   function look(b){ if(!b) return null; var cs = getComputedStyle(b); return {bg: cs.backgroundColor, weight: cs.fontWeight, italic: cs.fontStyle}; }
   function centre(e){ var r = e.getBoundingClientRect(); return {x: r.left + r.width / 2, y: r.top + r.height / 2}; }
@@ -116,7 +120,10 @@ window.addEventListener('load', function () { (async function () {
   // ---- the month editor ----
   function pop(){ return byId('mv-note-pop'); }
   function plus(iso){ return q('#table-wrap .mv-note-add[data-note-day="' + iso + '"]:not(.mv-note-add-full)') || q('#table-wrap .mv-note-add[data-note-day="' + iso + '"]'); }
-  async function openPlus(iso){ await reset(); var p = plus(iso); if(!p) throw new Error('no + on ' + iso + ' (' + txt(q('#table-wrap .mv-monthyear')) + ', ' + qa('#table-wrap .mv-note-add').length + ' + in all, start ' + (byId('start-production') || {}).value + ')'); p.click(); await T.sleep(250); if(!pop()) throw new Error('no editor on ' + iso); return q('textarea', pop()); }
+  async function openPlus(iso){ await reset(); var p = plus(iso); if(!p) throw new Error('no + on ' + iso + ' (' + txt(q('#table-wrap .mv-monthyear')) + ', ' + qa('#table-wrap .mv-note-add').length + ' + in all, start ' + (byId('start-production') || {}).value + ')'); p.click(); await T.sleep(250); if(!pop()) throw new Error('no editor on ' + iso);
+    // A note of the DAY, as these cases are about: a "+" opens Stays with on the day's first phase since 19 Nov 2026.
+    var ls = q('.note-link-select', pop()); if(ls && ls.value){ ls.value = ''; ls.dispatchEvent(new Event('change', {bubbles: true})); }
+    return q('textarea', pop()); }
   async function openNote(b){
     await reset();
     var p = centre(b), t = document.elementFromPoint(p.x, p.y) || b;
@@ -173,7 +180,7 @@ window.addEventListener('load', function () { (async function () {
     }
     if(G === 'mint'){
       // g=mint: tests/fixtures/mvkeys.sptcal, the calendar mvkeysreal.mjs loads (copy mvkeys.sptcal there by hand).
-      add('M0', 'the calendar loaded with its notes', same(texts('2026-07-08', 'day'), []) || true, {}, 'loaded');
+      add('M0', 'the calendar loaded with its notes', same(mine('2026-07-08'), []) || true, {}, 'loaded');
     }
     if(G === 'pick'){
       await toMonth('July 2026');
@@ -187,8 +194,8 @@ window.addEventListener('load', function () { (async function () {
         {boxes: picked, focus: document.activeElement && document.activeElement.tagName, look: look0}, '1 outline');
       var took = key('Delete'); await settle();
       add('P1', 'Delete on a picked month note removes it (and only it): 7/8 is empty, 7/9 and 7/15 keep theirs',
-        took && same(texts('2026-07-08', 'day'), []) && same(texts('2026-07-09', 'day'), ['Costume test']) && same(texts('2026-07-15', 'day'), ['Crew call']),
-        {handled: took, jul8: texts('2026-07-08', 'day'), jul9: texts('2026-07-09', 'day'), jul15: texts('2026-07-15', 'day')}, 'jul8 []');
+        took && same(mine('2026-07-08'), []) && same(mine('2026-07-09'), ['Costume test']) && same(mine('2026-07-15'), ['Crew call']),
+        {handled: took, jul8: mine('2026-07-08'), jul9: mine('2026-07-09'), jul15: mine('2026-07-15')}, 'jul8 []');
       await undo();
       var back = block('2026-07-08', /Production Mtg/);
       add('P2', 'one Undo brings it back, amber, bold and italic as before',
@@ -198,8 +205,8 @@ window.addEventListener('load', function () { (async function () {
       // P3 Backspace
       await click(block('2026-07-09', /Costume test/));
       took = key('Backspace'); await settle();
-      add('P3', 'Backspace on a picked month note removes it', took && same(texts('2026-07-09', 'day'), []),
-        {handled: took, jul9: texts('2026-07-09', 'day')}, 'jul9 []');
+      add('P3', 'Backspace on a picked month note removes it', took && same(mine('2026-07-09'), []),
+        {handled: took, jul9: mine('2026-07-09')}, 'jul9 []');
       await undo();
 
       // P4 two picks, one Delete, one Undo
@@ -207,9 +214,9 @@ window.addEventListener('load', function () { (async function () {
       await click(block('2026-07-15', /Crew call/), {metaKey: true});
       var two = selBoxes();
       took = key('Delete'); await settle();
-      var gone = {jul8: texts('2026-07-08', 'day'), jul15: texts('2026-07-15', 'day'), jul9: texts('2026-07-09', 'day')};
+      var gone = {jul8: mine('2026-07-08'), jul15: mine('2026-07-15'), jul9: mine('2026-07-09')};
       await undo();
-      var again = {jul8: texts('2026-07-08', 'day'), jul15: texts('2026-07-15', 'day')};
+      var again = {jul8: mine('2026-07-08'), jul15: mine('2026-07-15')};
       add('P4', 'two picked notes (a click, then ⌘-click): one Delete removes both, one Undo brings both back',
         two === 2 && took && same(gone.jul8, []) && same(gone.jul15, []) && same(gone.jul9, ['Costume test'])
           && same(again.jul8, ['Production Mtg 9am']) && same(again.jul15, ['Crew call']),
@@ -229,12 +236,12 @@ window.addEventListener('load', function () { (async function () {
       var p1 = clip('paste', {'text/plain': c1.text, 'application/x-sptcal-notes': c1.rich}); await settle();
       var arrived = block('2026-07-15', /Production Mtg/);
       add('P6', '⌘V after a click on Wed 7/15: the copy arrives there, amber, bold and italic; the original stays on 7/8',
-        p1.handled && same(texts('2026-07-15', 'day'), ['Crew call', 'Production Mtg 9am']) && same(look(arrived), look0)
-          && same(texts('2026-07-08', 'day'), ['Production Mtg 9am']),
-        {handled: p1.handled, jul15: texts('2026-07-15', 'day'), look: look(arrived), jul8: texts('2026-07-08', 'day')}, 'Crew call + Production Mtg 9am, amber bold italic');
+        p1.handled && same(mine('2026-07-15'), ['Crew call', 'Production Mtg 9am']) && same(look(arrived), look0)
+          && same(mine('2026-07-08'), ['Production Mtg 9am']),
+        {handled: p1.handled, jul15: mine('2026-07-15'), look: look(arrived), jul8: mine('2026-07-08')}, 'Crew call + Production Mtg 9am, amber bold italic');
       await undo();
-      add('P7', 'one Undo takes back only the paste', same(texts('2026-07-15', 'day'), ['Crew call']) && same(texts('2026-07-08', 'day'), ['Production Mtg 9am']),
-        {jul15: texts('2026-07-15', 'day'), jul8: texts('2026-07-08', 'day')}, 'jul15 Crew call only');
+      add('P7', 'one Undo takes back only the paste', same(mine('2026-07-15'), ['Crew call']) && same(mine('2026-07-08'), ['Production Mtg 9am']),
+        {jul15: mine('2026-07-15'), jul8: mine('2026-07-08')}, 'jul15 Crew call only');
 
       // P8 the date naming the old day moves with it
       await click(block('2026-07-22', /Wardrobe/));
@@ -242,27 +249,27 @@ window.addEventListener('load', function () { (async function () {
       await click(block('2026-07-09', /Costume test/));
       var p2 = clip('paste', {'text/plain': c2.text, 'application/x-sptcal-notes': c2.rich}); await settle();
       add('P8', 'a note naming its own day ("Wardrobe 7/22/26") pasted on Thu 7/9 reads "Wardrobe 7/9/26"; 7/22 keeps its own',
-        p2.handled && same(texts('2026-07-09', 'day'), ['Costume test', 'Wardrobe 7/9/26']) && same(texts('2026-07-22', 'day'), ['Wardrobe 7/22/26']),
-        {jul9: texts('2026-07-09', 'day'), jul22: texts('2026-07-22', 'day')}, 'Wardrobe 7/9/26 on 7/9');
+        p2.handled && same(mine('2026-07-09'), ['Costume test', 'Wardrobe 7/9/26']) && same(mine('2026-07-22'), ['Wardrobe 7/22/26']),
+        {jul9: mine('2026-07-09'), jul22: mine('2026-07-22')}, 'Wardrobe 7/9/26 on 7/9');
       await undo();
 
       // P9 cut and paste
       await click(block('2026-07-09', /Costume test/));
       var c3 = clip('cut'); await settle();
-      var afterCut = texts('2026-07-09', 'day');
+      var afterCut = mine('2026-07-09');
       await click(block('2026-07-15', /Crew call/));
       var p3 = clip('paste', {'text/plain': c3.text, 'application/x-sptcal-notes': c3.rich}); await settle();
       add('P9', '⌘X removes the picked note (7/9) and puts it on the clipboard; ⌘V after a click on 7/15 puts it there',
-        c3.handled && c3.text === 'Costume test\n' && same(afterCut, []) && p3.handled && same(texts('2026-07-15', 'day'), ['Crew call', 'Costume test']),
-        {cut: c3.text, afterCut: afterCut, jul15: texts('2026-07-15', 'day')}, 'cut then pasted');
+        c3.handled && c3.text === 'Costume test\n' && same(afterCut, []) && p3.handled && same(mine('2026-07-15'), ['Crew call', 'Costume test']),
+        {cut: c3.text, afterCut: afterCut, jul15: mine('2026-07-15')}, 'cut then pasted');
       await undo(); await undo();
 
       // P10 text from anywhere else: one note on the day last clicked
       await click(block('2026-07-22', /Wardrobe/));
       var p4 = clip('paste', {'text/plain': 'Table read 10am'}); await settle();
       add('P10', 'plain text copied from anywhere else ("Table read 10am") pastes as one note on the day last clicked (7/22)',
-        p4.handled && same(texts('2026-07-22', 'day'), ['Wardrobe 7/22/26', 'Table read 10am']),
-        {handled: p4.handled, jul22: texts('2026-07-22', 'day')}, 'Table read 10am on 7/22');
+        p4.handled && same(mine('2026-07-22'), ['Wardrobe 7/22/26', 'Table read 10am']),
+        {handled: p4.handled, jul22: mine('2026-07-22')}, 'Table read 10am on 7/22');
       await undo();
 
       // P11 controls: a holiday, a bar
@@ -328,8 +335,8 @@ window.addEventListener('load', function () { (async function () {
       await toMonth('July 2026');
       add('P13', '⌘C with only a bar picked, ⌘V into an open editor, and ⌘V once the day clicked (7/15) is off screen are left to the browser',
         c4.handled === false && c4.text === '' && c5.handled === true && pEd.handled === false && pOff.handled === false && sepBefore === sepAfter
-          && same(texts('2026-07-15', 'day'), ['Crew call']) && same(texts('2026-07-16', 'day'), []),
-        {barCopy: c4, editorPaste: pEd.handled, offPaste: pOff.handled, sepSame: sepBefore === sepAfter, jul15: texts('2026-07-15', 'day'), jul16: texts('2026-07-16', 'day')}, 'none handled');
+          && same(mine('2026-07-15'), ['Crew call']) && same(texts('2026-07-16', 'day'), []),
+        {barCopy: c4, editorPaste: pEd.handled, offPaste: pOff.handled, sepSame: sepBefore === sepAfter, jul15: mine('2026-07-15'), jul16: texts('2026-07-16', 'day')}, 'none handled');
 
       // P14 control: a sidebar field holds focus
       await click(block('2026-07-08', /Production Mtg/));
@@ -338,8 +345,8 @@ window.addEventListener('load', function () { (async function () {
       var fCopy = clip('copy');
       await settle();
       add('P14', 'with a sidebar field focused, Delete and ⌘C are the field\'s: the picked note stays, nothing copied',
-        fTook === false && fCopy.handled === false && same(texts('2026-07-08', 'day'), ['Production Mtg 9am']),
-        {handled: fTook, copy: fCopy.handled, jul8: texts('2026-07-08', 'day')}, 'nothing');
+        fTook === false && fCopy.handled === false && same(mine('2026-07-08'), ['Production Mtg 9am']),
+        {handled: fTook, copy: fCopy.handled, jul8: mine('2026-07-08')}, 'nothing');
       bodyFocus();
 
       // P16-P18 (the 14 Nov 2026 review of item 2.8): a holiday or an automatic note keeps its own day, as in the
@@ -355,14 +362,14 @@ window.addEventListener('load', function () { (async function () {
       var said16 = chipNow();
       await click(block('2026-07-15', /Crew call/));
       var p16 = clip('paste', {'text/plain': c16.text, 'application/x-sptcal-notes': c16.rich}); await settle();
-      var jul15 = texts('2026-07-15', 'day'), jul9 = texts('2026-07-09', 'day'), jul3 = texts('2026-07-03', 'wf');
+      var jul15 = mine('2026-07-15'), jul9 = mine('2026-07-09'), jul3 = texts('2026-07-03', 'wf');
       add('P16', '⌘X on "Costume test" with "Independence Day (Observed)" also picked: only the typed note travels; the paste on 7/15 adds "Costume test" and no holiday, 7/3 keeps its holiday, and the grid says why',
         !!hol2 && picks16 === 2 && c16.handled && c16.text === 'Costume test\n' && !!c16.parsed && c16.parsed.items.length === 1
           && p16.handled && same(jul15, ['Crew call', 'Costume test']) && same(jul9, []) && same(jul3, [hol2Text]) && KEEP.test(said16),
         {holiday: hol2Text, picks: picks16, cut: c16.text, items: c16.parsed && c16.parsed.items, said: said16, jul15: jul15, jul9: jul9, jul3: jul3},
         'clipboard "Costume test" only; 7/15 Crew call + Costume test; holiday stays on 7/3');
       await undo(); await undo();
-      var back16 = {jul9: texts('2026-07-09', 'day'), jul15: texts('2026-07-15', 'day')};
+      var back16 = {jul9: mine('2026-07-09'), jul15: mine('2026-07-15')};
       add('P16b', 'two Undos (the paste, then the cut) put both days back', same(back16.jul9, ['Costume test']) && same(back16.jul15, ['Crew call']),
         back16, 'jul9 Costume test, jul15 Crew call');
 
@@ -441,10 +448,10 @@ window.addEventListener('load', function () { (async function () {
       var ta = await openPlus('2026-07-08');
       typeIn(ta, 'Table read 10am');
       var took = press(ta, 'Enter'); await settle();
-      add('M1', 'month: Enter in a new note saves it and closes the editor', took && !pop() && same(texts('2026-07-08', 'day'), ['Table read 10am']),
-        {handled: took, open: !!pop(), jul8: texts('2026-07-08', 'day')}, 'saved, closed');
+      add('M1', 'month: Enter in a new note saves it and closes the editor', took && !pop() && same(mine('2026-07-08'), ['Table read 10am']),
+        {handled: took, open: !!pop(), jul8: mine('2026-07-08')}, 'saved, closed');
       await undo();
-      add('M2', 'one Undo takes the Enter-saved note back', same(texts('2026-07-08', 'day'), []), {jul8: texts('2026-07-08', 'day')}, 'jul8 []');
+      add('M2', 'one Undo takes the Enter-saved note back', same(mine('2026-07-08'), []), {jul8: mine('2026-07-08')}, 'jul8 []');
 
       // M3 Shift+Enter, Alt+Enter, the 3-line cap, then Enter
       ta = await openPlus('2026-07-09');
@@ -465,8 +472,8 @@ window.addEventListener('load', function () { (async function () {
       ta = await openPlus('2026-07-15');
       typeIn(ta, 'Costume fittings');
       press(ta, 'Escape'); await settle();
-      add('M4', 'Esc on a NEW note with text keeps it (was thrown away, with no undo)', !pop() && same(texts('2026-07-15', 'day'), ['Costume fittings']),
-        {open: !!pop(), jul15: texts('2026-07-15', 'day')}, 'kept');
+      add('M4', 'Esc on a NEW note with text keeps it (was thrown away, with no undo)', !pop() && same(mine('2026-07-15'), ['Costume fittings']),
+        {open: !!pop(), jul15: mine('2026-07-15')}, 'kept');
 
       // M5 Esc keeps a changed note (its own note, saved by Tab, so the case stands on its own)
       ta = await openPlus('2026-07-14');

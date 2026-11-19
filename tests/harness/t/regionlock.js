@@ -134,6 +134,9 @@ window.addEventListener('load', function () { (async function () {
     await T.sleep(400);
     var ta = document.querySelector('#mv-note-pop textarea');
     if(!ta) throw new Error('the day-note editor did not open');
+    // A note of the DAY: a "+" opens Stays with on the day's first phase since 19 Nov 2026 (t/notephase.js).
+    var lk = document.querySelector('#mv-note-pop .note-link-select');
+    if(lk && lk.value){ lk.value = ''; lk.dispatchEvent(new Event('change', {bubbles: true})); }
     ta.value = 'Crew BBQ';
     ta.dispatchEvent(new Event('input', {bubbles: true}));
     ta.dispatchEvent(new KeyboardEvent('keydown', {key: 'Enter', ctrlKey: true, bubbles: true}));

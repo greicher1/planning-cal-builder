@@ -45,7 +45,7 @@
 //   D2  Delete on the waterfall cell holding the start AND the holiday: the cell empties, the note and the holiday are
 //       hidden from the waterfall only (both still in the month view, the holiday still a day off), no week blank
 //   U1  one undo puts the whole cell back; redo empties it again
-//   P1  a note pasted over that cell replaces both lines the same way, and is the week's typed note
+//   P1  a note pasted over that cell replaces both lines the same way, and (since 19 Nov 2026) stays with Production wk 1
 //   R1  Reset Notes clears the typed notes and leaves the Automatic notes switches alone (the wrap, hidden in the month
 //       view only, stays in its waterfall cell)
 //   C1  a custom phase's automatic note (ticked on in the fixture) renames, and Delete hides it from the waterfall,
@@ -495,10 +495,13 @@ window.addEventListener('load', function () { (async function () {
       await pick(noteTd('2026-06-29'));
       pasteText('Shoot day one'); await settle();
       var c = cellText('2026-06-29'), s = JSON.parse(await save());
-      kase('P1', 'a note pasted over the cell replaces both lines the same way, and is the week\'s typed note',
+      // ⭐ Since 19 Nov 2026 a note pasted into a cell holding no note of the user's (only automatic lines here) is a NEW
+      // note, and stays with that week's first phase (t/notephase.js P1): Production wk 1, not the week's typed note.
+      var lk = Object.keys(s.phaseNotes || {}).filter(function (k) { return s.phaseNotes[k].text === 'Shoot day one'; });
+      kase('P1', 'a note pasted over the cell replaces both lines the same way, and is a new note that stays with Production\'s first week',
            c === 'Shoot day one' && same((s.autoNotesView || {}).principalStart, { sheet: false }) && !(s.autoNotesOff || {}).principalStart
-             && s.holidayView[IND].sheet === false && JSON.stringify(s.userNotes['2026-06-29']) === JSON.stringify({ text: 'Shoot day one' }),
-           { cell: c, autoNotesOff: s.autoNotesOff, view: s.autoNotesView, holiday: s.holidayView[IND], userNote: s.userNotes['2026-06-29'] });
+             && s.holidayView[IND].sheet === false && !(s.userNotes || {})['2026-06-29'] && same(lk, ['production@1']),
+           { cell: c, autoNotesOff: s.autoNotesOff, view: s.autoNotesView, holiday: s.holidayView[IND], userNote: (s.userNotes || {})['2026-06-29'], linked: lk });
     });
     await step('R1', async function () {
       byId('tb-notes-reset-btn').click();

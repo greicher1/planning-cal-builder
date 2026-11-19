@@ -137,7 +137,10 @@ window.addEventListener('load', function () { (async function () {
     q('textarea', pop).dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', ctrlKey: true, bubbles: true }));
     await settle();
   }
-  async function typeSave(wk, text) { var pop = await openWf(wk); type(pop, text); var d = dayOf(pop); await commit(pop); return d; }
+  // ⭐ A new note stays with its phase week by default since 19 Nov 2026 (t/notephase.js). These cases are about a note
+  // of the WEEK, so they pick "Week of …" first, as a user now does for one (a week with no phase has no row).
+  function weekOf(pop) { var sel = q('.note-link-select', pop); if (sel && sel.value) choose(pop, ''); }
+  async function typeSave(wk, text) { var pop = await openWf(wk); weekOf(pop); type(pop, text); var d = dayOf(pop); await commit(pop); return d; }
   function un(s, wk) { return (s.userNotes || {})[wk]; }
 
   try {
@@ -150,7 +153,7 @@ window.addEventListener('load', function () { (async function () {
 
     // ===== N0, T1: the Day follows a typed short date, and saves as a picked one ==========================================
     await step('N0', async function () {
-      var pop = await openWf('2026-07-20');
+      var pop = await openWf('2026-07-20'); weekOf(pop);
       var a = { dflt: dayDefault(pop), day: dayOf(pop) };
       type(pop, 'Camera test 7-22');
       var b = { day: dayOf(pop), shown: dayShown(pop) };
@@ -192,7 +195,7 @@ window.addEventListener('load', function () { (async function () {
 
     // ===== T5, T6: typed away; picked after typing ========================================================================
     await step('T5', async function () {
-      var pop = await openWf('2026-11-09');
+      var pop = await openWf('2026-11-09'); weekOf(pop);
       type(pop, 'Temp 11-11'); var a = dayOf(pop);
       type(pop, 'Temp'); var b = dayOf(pop);
       await commit(pop);
@@ -201,7 +204,7 @@ window.addEventListener('load', function () { (async function () {
         a === '2026-11-11' && b === '' && same(un(s, '2026-11-09'), { text: 'Temp' }), { typed: a, deleted: b, saved: un(s, '2026-11-09') });
     });
     await step('T6', async function () {
-      var pop = await openWf('2027-02-01');
+      var pop = await openWf('2027-02-01'); weekOf(pop);
       type(pop, 'Dailies 2-3'); pickDay(pop, '2027-02-05');
       var b = box(pop);
       await commit(pop);
@@ -212,7 +215,7 @@ window.addEventListener('load', function () { (async function () {
 
     // ===== T7: a note of two lines ===================================================================================
     await step('T7', async function () {
-      var pop = await openWf('2026-12-28');
+      var pop = await openWf('2026-12-28'); weekOf(pop);
       type(pop, 'Studio cut due\nNetwork cut due 12-30'); var d = dayOf(pop);
       await commit(pop);
       var s = await snap();

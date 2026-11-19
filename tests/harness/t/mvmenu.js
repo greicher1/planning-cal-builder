@@ -1349,6 +1349,10 @@ window.addEventListener('load', function () { (async function () {
     await bringIntoView(plus6);
     plus6.click();
     var ta6v = document.querySelector('#mv-note-pop textarea');
+    // A note of the DAY (one a holiday change can misplace): a "+" opens Stays with on the day's first phase since
+    // 19 Nov 2026, and t/lib.js's observer runs too late for this synchronous save, so the leg picks This day itself.
+    var lk6 = document.querySelector('#mv-note-pop .note-link-select');
+    if(lk6 && lk6.value){ lk6.value = ''; lk6.dispatchEvent(new Event('change', {bubbles: true})); }
     if(ta6v){ ta6v.value = 'Holiday check'; ta6v.dispatchEvent(new Event('input', {bubbles: true})); ta6v.dispatchEvent(new KeyboardEvent('keydown', {key: 'Tab', bubbles: true, cancelable: true})); }
     await settle();
     await T.sleep(700);

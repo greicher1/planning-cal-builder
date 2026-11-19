@@ -351,11 +351,13 @@ window.addEventListener('load', function () { (async function () {
       var b = { p2: s2.phaseNotes['production@2'], pp3: s2.phaseNotes['prodPrep@3'], p6: s2.phaseNotes['production@6'] || null, d10: s2.phaseNotes['production@day10'],
                 own76: s2.userNotes['2026-07-06'] || null, own61: s2.userNotes['2026-06-01'] || null, own83: s2.userNotes['2026-08-03'], own713: s2.userNotes['2026-07-13'],
                 c713: cellLines('2026-07-13'), c83: cellLines('2026-08-03'), c76: cellLines('2026-07-06'), c61: cellLines('2026-06-01') };
-      kase('E1', 'the editor opens on the linked line and, committed unchanged, writes nothing; renamed in place it renames its note (Tech scout\'s date taken out, its Wed kept); taken out it deletes it; a line added is the week\'s own',
+      // ⭐ A line added beside the cell's one linked note JOINS it since 20 Nov 2026 (owner, "case 3"; t/notephase.js C3): it
+      // was the week's own text. "Catering" goes into production@day10, and the note's drawn date sits on its last line.
+      kase('E1', 'the editor opens on the linked line and, committed unchanged, writes nothing; renamed in place it renames its note (Tech scout\'s date taken out, its Wed kept); taken out it deletes it; a line added joins the note',
         a.box === 'Stunt rehearsal' && a.own === null && same(a.note, { text: 'Stunt rehearsal', size: 9, height: 60 })
           && same(b.p2, { text: 'Stunt rehearsal B', size: 9, height: 60 }) && same(b.pp3, { text: 'Tech survey', dow: 2, color: '#00B0F0' }) && b.p6 === null
-          && same(b.d10, { text: 'Day ten' }) && b.own76 === null && b.own61 === null && b.own83.text === 'Table read' && same(b.own713, { text: 'Catering' })
-          && same(b.c713, ['Catering', 'Day ten 7/13/26']) && same(b.c83, ['Table read']) && same(b.c76, ['Stunt rehearsal B']) && same(b.c61, ['Tech survey 6/3/26']),
+          && same(b.d10, { text: 'Day ten\nCatering' }) && b.own76 === null && b.own61 === null && b.own83.text === 'Table read' && !b.own713
+          && same(b.c713, ['Day ten', 'Catering 7/13/26']) && same(b.c83, ['Table read']) && same(b.c76, ['Stunt rehearsal B']) && same(b.c61, ['Tech survey 6/3/26']),
         { opened: a, after: b });
       await load(S0text);
     });
