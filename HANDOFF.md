@@ -4,7 +4,7 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### 🖥️ 18 Nov 2026: THE FIRST APP WINDOW FILLS THE SCREEN — on local `main`, NOT committed or pushed. README "Unreleased". Tracker card `app-opens-full-screen`.
+### 🖥️ 18 Nov 2026: THE FIRST APP WINDOW FILLS THE SCREEN — LIVE (`fcc213c`, pushed on the owner's picker; deploy green, GitHub Pages serves it, the Cloudflare address is behind the sign-in so it was not fetched). README "Unreleased". Tracker card `app-opens-full-screen`.
 - **Owner:** *"when you first download/open the app, its opening with a smaller window - it needs to open as wide such
   that it fills the users screen"*.
 - **Done:** `fillAppWindow()` in the install gate's script (`src/index.html`, before the gate's own returns, so it runs on
