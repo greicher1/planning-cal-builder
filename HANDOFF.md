@@ -4,7 +4,7 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### 🏷️ 19 Nov 2026: THE SCENARIO "+" NAMES THE TAB IT COPIES — on `scenario-version-offer` after `040f154`, committed locally, NOT pushed. README "Unreleased". Tracker card `scenario-plus-which-tab`.
+### 🏷️ 19 Nov 2026: THE SCENARIO "+" NAMES THE TAB IT COPIES — on `scenario-version-offer` (`590fd5b`), LIVE: pushed on the owner's picker, deploy green, the live file carries the tooltip. README "Unreleased". Tracker card `scenario-plus-which-tab`.
 - **Owner** asked whether "+" should copy the right-most tab (earlier ones from the caret menu) and whether a copy of B
   beside C v3 / D v4 should be offered v5. Analysis given in chat: it already offers the highest + 1 (v5), the caret menu
   already has Duplicate, and a "+" that copies a tab you are not looking at fails silently. **Ruling: "+" keeps copying
