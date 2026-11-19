@@ -4,6 +4,23 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### 🤫 19 Nov 2026: "ENTER A WEEK COUNT TO INCLUDE THIS PHASE" WAITS TO BE ASKED FOR — on `scenario-version-offer`, BUILT, NOT COMMITTED (the working tree also holds the What's New work below, uncommitted: commit only these files). README "Unreleased". Tracker card `week-count-prompt-on-enter`.
+- **Owner:** *"this message should only show up when someone clicks enter (even tho i know the app doesn't need enter to
+  be clicked) or when they click the start after or finish before buttons"*.
+- **Done:** frozen `render()` still writes the red line the moment a Weeks card has a start and no length; it is HIDDEN
+  from outside (`reflectWeekCountPrompt()`, beside `reflectProductionMissing()`, run by the same `metaObserver`;
+  sanctioned pattern 3) by the class `is-quiet` (`legacy.css`, `.phase-meta.phase-meta.is-quiet`, doubled to beat the
+  custom header's `display`). Enter in any box of the card, or a click on its ↳ Start after / ↳ Finish before, ARMS it
+  (`weekPromptArmed`, session only, never saved); it lapses the moment the line says anything else, so the next start
+  typed waits again. Only that sentence, word for word: Production's line, "of 1 or more" (a 0 typed), the start-date
+  prompt and a Days / Dates card's own line are untouched. Nothing frozen edited, nothing saved.
+- ⚠️ **Finish before on an EMPTY Weeks card (R5) leaves the frozen line BLANK** (on Ends, an end, no length: render()
+  asks for a length only beside a start), so an armed card WRITES the prompt there itself, in red, and puts it back
+  after every render. ⛔ The arming click listener runs AFTER the button's own handler (bubble, registered later on
+  `#phase-rows`): armed first, it read the empty card's old blank line as "something else" and lapsed at once.
+- **Legs:** new `weekprompt` 8/8 (P1-P7, E0; in gate.sh after `finishbefore`), `finishbefore` 16/16, `npm run check`
+  46/46. Not tried in the browser pane (all five server slots held by other chats); the leg drives the real build.
+
 ### 📦 19 Nov 2026: POST'S END NOTE READS "FINAL DELIVERY 9/22/28" — on `scenario-version-offer` (`2b77e98`), LIVE: pushed to `main` on the owner's "Yes, push it", deploy green, the live file carries `text:`Final Delivery``. README "Unreleased". Tracker card `post-end-final-delivery`.
 - **Owner:** *"the auto note for the final friday of the last week of post production should be changed to "Final
   Delivery 9/22/28" - where 9/22/28 is the friday date"*.

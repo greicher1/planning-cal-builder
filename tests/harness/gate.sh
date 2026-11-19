@@ -1901,6 +1901,8 @@ done
 # next phase (Production: its last shoot day), one undo step, the end holding while Production grows (no automatic
 # pull, R3), a Dates built-in moving whole, and both kinds stepping back over the 12/21/26 hiatus; R5 (19 Nov 2026):
 # an EMPTY card before a dated phase offers it with nothing on Ends, beside Start after between two dated phases. Own line.
+# weekprompt (owner, 19 Nov 2026) holds "Enter a week count to include this phase" hidden until Enter in the card or a
+# click on its Start after / Finish before, lapsing when a length is typed, and written by an armed empty Ends card. Own line.
 # spancounts (owner, 2 Nov 2026: "three icons: one that says the number of production weeks, one that says the number
 # of holidays costing a shoot day, and something that says the number of Off Days"; version D, then "D replaces the
 # whole line") holds the counts under Production's span: weeks = the meta line's, the holidays and Off days that cost
@@ -2327,6 +2329,7 @@ for AFSPEC in pwagate:-:120 pwagatelogic:-:120 cfmove:-:180 settingswin:-:240 ne
               endsdate:-:400 \
               prodends:-:400 \
               finishbefore:-:300 \
+              weekprompt:-:200 \
               spancounts:-:300 \
               retiredplaces:-:300 \
               caholidays:-:400 \

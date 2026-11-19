@@ -1450,6 +1450,9 @@
      right of .phase-head-text, so the title (a flex box, so it shrinks beside a float rather than flowing round it)
      gives it room and the dates under it keep the full width. 3 + 24 px tall, inside the title's 28 px line. */
   .phase-head-corner{ float:right; display:flex; align-items:center; gap:2px; margin:2px -2px 0 4px; }
+  /* "Enter a week count to include this phase" until Enter or ↳ Start after / Finish before asks for it (app.js,
+     reflectWeekCountPrompt; owner, 19 Nov 2026). Doubled class to outrank the header rule above, which sets display. */
+  .phase-meta.phase-meta.is-quiet{ display:none; }
   .phase-head-corner .icon-btn{ margin-top:0; }
   /* In the corner the tag is the name line's height and, on a phase that can be hidden, a button: click it to put the
      phase back in the waterfall. Episodic Prep's and Double-ups' stay plain text (a span). */

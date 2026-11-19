@@ -29,6 +29,16 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — "Enter a week count" waits for Enter (19 Nov 2026)
+
+The owner asked for the red "Enter a week count to include this phase" under a phase card to show only when asked for.
+It used to appear the moment a start date was typed, while the length was still to come. Now it shows only after Enter
+is pressed in that card, or after a click on its ↳ Start after or ↳ Finish before; typing a length clears it, and the
+next start typed on that card waits again. Finish before on an empty card (which leaves it on Ends with no length) now
+says it too, where it used to say nothing. The other lines ("of 1 or more", a missing start date, Production's) are
+unchanged. The line is written by the frozen renderer and hidden from outside; nothing saved, nothing frozen edited.
+Verified: new leg `weekprompt` 8/8, `finishbefore` 16/16, `npm run check` 46/46.
+
 ### Unreleased — Post's end note reads "Final Delivery 9/22/28" (19 Nov 2026)
 
 The owner asked for the automatic note on the last Friday of Post's last week to read "Final Delivery" and its date.
