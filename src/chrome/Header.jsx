@@ -156,7 +156,7 @@ export function Header() {
                 /* It reads as the file's name, so say what it is (audit 2026-11, AUD2-030 / AUD2-033): a hover hint, and a
                    name for screen readers. The chip itself is unchanged (no header restructure). */
                 aria-label={'File menu, ' + menu.label}
-                title="File menu: New, Load and recent calendars"
+                title="File menu: Load and recent calendars"
                 leftSection={<IconFolder className="btn-ic" />}
                 rightSection={<span className="caret" aria-hidden="true">▾</span>}
                 /* FIXED width, not max-width (owner, round 5): the chip must show much of a real
@@ -178,12 +178,8 @@ export function Header() {
                   delegated handler still decides everything -- Open… keeps data-action="open",
                   every recent keeps data-id/data-remove, and a click on the search box matches
                   neither branch and correctly does nothing. */}
-              {/* New, above Load… as in Excel's File menu (audit 2026-11, WIN-2: Chrome keeps Ctrl+N on Windows, so New
-                  needed a home away from the key). The engine's delegated handler presses #new-file-btn for it, so New's
-                  own unsaved-work question comes along. The header's New button stays (no restructure). */}
-              <Menu.Item className="file-menu-item" data-action="new" role="menuitem">
-                <span className="fm-name">New</span>
-              </Menu.Item>
+              {/* No New here (owner, 18 Nov 2026: "remove the new button from here"). It was added above Load… for audit
+                  WIN-2 (Chrome keeps Ctrl+N on Windows); the header's New button is that home now, and Help points there. */}
               <Menu.Item className="file-menu-item" data-action="open" role="menuitem">
                 {/* "Load", per the terminology rule (loading = opening a file into the PWA).
                     data-action="open" is the engine contract and deliberately does NOT rename. */}

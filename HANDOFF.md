@@ -4,6 +4,14 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### 🧹 18 Nov 2026: NEW REMOVED FROM THE FILE MENU — in the MAIN checkout, uncommitted, not pushed. README "Unreleased". Tracker card `file-menu-no-new`.
+- **Owner:** *"remove the new button from here"* (the File menu dropdown, which read New / Load… / Changes since last save…).
+- **Done:** `Header.jsx` drops the `data-action="new"` item (WIN-2 had added it) and the hint names "Load and recent calendars";
+  `app.js`'s delegated handler loses its `new` branch; Help's `data-os="other"` line points Windows/Linux at the header's
+  **New** button. The header button (`#new-file-btn`) is untouched and is New's only control besides ⌘N on a Mac.
+- **Legs:** `firstrun` M3 re-premised (asserts no New in the menu, presses `#new-file-btn`), H1's Help regex; `oskeys` H2.
+  firstrun 22/22, oskeys win/mac/linux 10/10 each, `npm run check` 43/43. No full gate (chrome only, no frozen code).
+
 ### 🔐 18 Nov 2026: v1.21.0 — SPTCAL MOVES TO sptcal.pages.dev, BEHIND A CLOUDFLARE ACCESS SIGN-IN. Branch `cloudflare-access` (worktree `.claude/worktrees/cloudflare-access`, from `origin/main` `7c2e34e`, v1.20.1; `node_modules` is a symlink, unlink it before `git worktree remove`). Plan, test results, rulings and as-built record: [`CLOUDFLARE-ACCESS-PLAN.md`](CLOUDFLARE-ACCESS-PLAN.md) (supersedes `CUSTOM-DOMAIN-PLAN.md`). Tracker card `private-repo-password`.
 - **The ask (owner):** make the repo private and put a password in front of getting the app. Settled: Cloudflare Pages behind Cloudflare Access with emailed one-time codes; the repo stays on the owner's GitHub, made private after the window. Decisions D1-D8 answered on the owner's pickers (plan §7): `sptcal.pages.dev`; team `sptcal`; owner + a backup Super Admin; ONLY listed emails; a month's sign-in; a two-week window; Export App With Data removed (§7a's three Save paths ruled); single sign-on later, if ever.
 - **Tested first (plan §2)** from a private test repo `sptcal-access-test` (local clone `cloudflare-test/` in the MAIN checkout, kept out of git by `.git/info/exclude`): owner and a coworker on Mac and Windows. Revoking a session needed a relaunch and a reload. ⚠️ **A natural expiry is still untested (D9).**

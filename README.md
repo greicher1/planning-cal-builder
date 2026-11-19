@@ -29,6 +29,21 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+## Unreleased
+
+### New is gone from the File menu (18 Nov 2026)
+
+The owner: *"remove the new button from here"* (the File menu's dropdown). New was put above Load… for audit WIN-2
+(Chrome on Windows keeps Ctrl+N for a new window), but the header's **New** button, right beside the File menu, already
+does the same thing with the same unsaved-work question. The menu now opens on Load…, then Changes since last save….
+
+- `Header.jsx`: the `data-action="new"` item is gone, and the File menu button's hover hint reads "Load and recent
+  calendars". `app.js`: the delegated handler's `new` branch is gone. Help's Windows/Linux line now says to use the
+  **New** button at the top, instead of New in the File menu.
+- Nothing saved, exported or frozen is touched. ⌘N on a Mac is unchanged.
+- Verified on the build: `firstrun` 22/22 (M3 now asserts the menu has NO New and drives the header button), `oskeys`
+  10/10 on Windows, Mac and Linux (H2 re-expected for the new Help line), `npm run check` 43/43.
+
 ## v1.21.0 — SPTCal moves to sptcal.pages.dev, behind a sign-in (18 Nov 2026)
 
 ### A new address behind a sign-in; "SPTCal has moved" on the old one; no more working copies of the app

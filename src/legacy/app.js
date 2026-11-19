@@ -40611,7 +40611,8 @@ export function initLegacyApp() {
   // ⚠️ Ctrl+N did not reach the page on Windows (audit 2026-11, WIN-2: Chrome on GitHub's Windows runner, two runs, no
   // key event at all; Chrome keeps it for a new window). That was a browser window: an installed app window cannot be
   // made by a test, so whether it arrives there is unmeasured. The handler still takes it if it arrives, but Help offers
-  // New's key as a Mac key only and points Windows at New in the File menu.
+  // New's key as a Mac key only and points Windows at the header's New button (the File menu's New item
+  // was removed by the owner, 18 Nov 2026).
   // While focus is inside an editable field (a text/number input, a textarea -- e.g. the
   // waterfall or month-view note editor -- or a contenteditable header line), Z/Shift+Z is left
   // alone so the browser's own in-field undo runs instead; app-level undo takes back over once
@@ -40797,9 +40798,6 @@ export function initLegacyApp() {
         if(!item) return;
         closeFileMenu();
         if(item.dataset.backup){ await recoverKeptBackup(item.dataset.backup); return; }
-        // New, in the File menu (audit 2026-11, WIN-2: Chrome on Windows keeps Ctrl+N for itself, so New needs a home
-        // that no key has to reach). It presses the New button, so New's own question and re-click guard come along.
-        if(item.dataset.action === 'new'){ if(newBtn) newBtn.click(); return; }
         // "Changes since last save…" (audit 2026-11 AUD2-103): a window over the calendar, not a navigation, so it sits
         // above the unsaved-changes guard below, as Export does.
         if(item.dataset.action === 'changes'){ openChangesSinceSave(); return; }
