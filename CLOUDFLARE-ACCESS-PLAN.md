@@ -165,6 +165,9 @@ hand. The moved strip (step 8) says the two that matter.
   moved/sign-in wording can tell users "reload once".
 - **Code emails in spam or quarantine.** Arrived fine in the test; one company's filter can change.
   If it starts happening, IT can allow the sender, or add single sign-on.
+- **A first code can go missing.** On the real address (18 Nov 2026) the owner's first code never came and "Send
+  again" worked. Put a line on the Access login page's footer and in the announcement: "No code within a minute?
+  Check junk, then press Send again."
 - **The sign-in guards the address, not copies.** Anyone let in can still Export shareable copy…
   (a full working app in one file) and pass it on, as anyone can with a saved file (D7).
 - **Free plan: 50 users.** Beyond that it is paid per user per month.

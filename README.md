@@ -58,7 +58,9 @@ The owner asked to make the repo private and put a password in front of getting 
 a new leg **cfmove** 9/9 (the moved strip and its button, Save's question on an .html calendar, the .sptcal written
 and nothing written to the .html, Cancel, autosave paused, no visible Export App control); **pwagate** 14/14 with the
 moved screen's approved words; **settingswin** 21/21 without the App card; pwagatelogic, nofsa, loadcarry,
-legacyparse, backuplinkstale and firstrun unchanged and green. The full gate: see HANDOFF. Before the build, the route
+legacyparse, backuplinkstale and firstrun unchanged and green. The full gate on this build: 5,807 PASS; its 4 FAILs were
+timeouts during a machine-wide load spike, and all four legs pass run alone (simpostname 14/14, layoutrules r23 6/6,
+pilldrag 30/30, phaseedge 23/23). Release copy cmp-identical; fixture `v1.21.0-saved.sptcal` a real Save. Before the build, the route
 was proven end to end from a private test repo, by the owner and a coworker on Mac and Windows (plan §2).
 
 ## v1.20.1 — one Size for the month view's bars and notes: Standard, Large, Extra Large (18 Nov 2026)
