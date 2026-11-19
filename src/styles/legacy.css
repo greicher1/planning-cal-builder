@@ -4025,6 +4025,13 @@
   td.sheet-note-cell:hover:not(.has-note):not(.editing){ background:#faf5ff; }
   td.sheet-note-cell .note-add-hint{color:#ccc; font-size:11px; font-family:'Inter',sans-serif; user-select:none; padding:2px 4px;}
   td.sheet-note-cell:hover .note-add-hint{color:#b39ddb;}
+  /* Owner, 19 Nov 2026: the empty Notes cell's "+" shows only while you point at that cell, as the
+     month view's "+" does (.mv-note-add), instead of a "+" in every empty week. An ADDED rule, not an
+     edit of the two frozen ones above: opacity only, so the cell's size, the width model and every
+     export are untouched (print already hides it: #print-root .note-add-hint), and the double-click
+     that adds a note is the cell's, not the "+"'s. */
+  #table-wrap td.sheet-note-cell .note-add-hint{ opacity:0; transition:opacity .12s; }
+  #table-wrap td.sheet-note-cell:hover .note-add-hint{ opacity:1; }
   .note-editor{display:flex; flex-direction:column; gap:var(--mantine-spacing-xs);}
   /* The note/hiatus editor is a popover anchored to the cell, not markup injected into it. It
      used to replace the cell's contents, so the cell grew to hold a two-row textarea plus three
