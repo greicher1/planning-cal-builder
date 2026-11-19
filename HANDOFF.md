@@ -4,7 +4,7 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### 🔨 19 Nov 2026: THE WATERFALL'S NOTES "+" SHOWS ONLY ON HOVER — BUILT; owner tried it on localhost and said "finish it"; targeted legs, NOT a full gate; ASKING TO MERGE / PUSH. Branch `note-plus-hover` (worktree `.claude/worktrees/note-plus-hover`, from `origin/main` `2215aa5`; `node_modules` is a symlink, unlink it before `git worktree remove`). Tracker card `waterfall-note-plus-hover`.
+### 🔨 19 Nov 2026: THE WATERFALL'S NOTES "+" SHOWS ONLY ON HOVER — BUILT; owner tried it on localhost and said "finish it"; targeted legs, NOT a full gate; owner's picker *"Merge into main and push"*: `origin/main` (`e53e38b`) merged in as `0fcd9bc` (README, HANDOFF and gate.sh conflicts: both sides kept), PUSHED to `main`; deploy run green, the rule seen in the GitHub Pages copy. Branch `note-plus-hover` (worktree `.claude/worktrees/note-plus-hover`, from `origin/main` `2215aa5`; `node_modules` is a symlink, unlink it before `git worktree remove`). Tracker card `waterfall-note-plus-hover`.
 - **Owner:** *"What if the plus symbol only appears in the notes collumn of the waterfall when you hover over it - similar
   to how it works in the month view"*, then *"Yes, build it"*, *"finish it"*.
 - **As built:** two ADDED rules in `legacy.css`, right under the two frozen `td.sheet-note-cell .note-add-hint` rules
@@ -21,7 +21,9 @@
 - **Verified:** `npm run check` 43/43; `noteplushover` 7/7; `softlines` 6/6 (dayoverrides) and 6/6 (halfmarks), `notelook` 13/13, `wfnoteeditor` 14/14, `noteviews` 15/15, `textfit` g=small 5/5 and g=wf 2/2, `forcedcolors` (control) 7/7; browser (fixture `carry-rich`, 45 empty
   cells hidden, the hovered one shown, double-click opens the editor). Not a full gate: the change is opacity only and
   the gate measures boxes and exports, neither of which it can move.
-- **Next:** ask the owner to commit, then separately to push (merge `origin/main` first if it moved).
+- **Merged build re-checked:** `npm run check` 43/43, `noteplushover` 7/7, main's `weekprompt` 8/8 and `finishbefore`
+  16/16, `wfnoteeditor` 14/14. No version cut. Local `main` NOT moved.
+- **Next:** nothing. Once nothing else needs the worktree: unlink `node_modules`, then `git worktree remove`.
 
 ### 🤫 19 Nov 2026: "ENTER A WEEK COUNT TO INCLUDE THIS PHASE" WAITS TO BE ASKED FOR — on `scenario-version-offer`, BUILT, NOT COMMITTED (the working tree also holds the What's New work below, uncommitted: commit only these files). README "Unreleased". Tracker card `week-count-prompt-on-enter`.
 - **Owner:** *"this message should only show up when someone clicks enter (even tho i know the app doesn't need enter to
