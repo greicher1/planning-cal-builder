@@ -29,7 +29,7 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
-## Unreleased
+## v1.22.0 — Snap to Monday in the date picker, Hide in waterfall in the card's corner; New leaves the File menu; the app opens filling the screen (18 Nov 2026)
 
 ### Phase cards lose their switch rows: Snap to Monday in the date picker, Hide in waterfall in the corner (18 Nov 2026)
 

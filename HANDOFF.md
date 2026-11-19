@@ -38,7 +38,17 @@
   conflicts only, both kept). **Full gate** on the merge (port 8491): 5,791 PASS / 16 FAIL; `phasesmore` M1/M5/M8 x2
   were this change (re-expected: Snap is no card switch, Hide in waterfall counts as the corner's eye or tag), the other
   ten pass alone (`phasesui` P1 and `offweek` R12/R13 the load timeout v1.21.0's gate also had, `monthexport` X6 9/9,
-  `sideboxes` 78/78). Every baseline identical. **Push waits on the owner's picker.**
+  `sideboxes` 78/78). Every baseline identical.
+- **v1.22.0 (owner's picker *"Cut v1.22.0 and push"*):** `origin/main` `fcc213c` (New removed from the File menu, the
+  first window fills the screen: both already live, no version of their own) merged in at `4cc8eee` (README / HANDOFF
+  conflicts only; the one "## Unreleased" now holds all three entries). After it: `npm run check` 43/43, `firstrun`
+  22/22, `pwagatelogic` 15/15, `oskeys` 10/10, `snappicker`, `wfcorner`, `datepick`, `hidewf`, `phasesmore` green (no
+  second full gate: the two merged commits were live already and touch the File menu and the window). Cut:
+  `APP_VERSION`, `version.json`, `package.json` at 1.22.0; `releases/v1.22.0.html` cmp-identical to the build (sha256
+  `bd2128f4aca7f825…`, 2,310,630 bytes); `tests/fixtures/v1.22.0-saved.sptcal` a real Save (46 keys, 77 ids, 0 clipped,
+  v1.21.0's but `lastEdited`); tag `v1.22.0`.
+  - ⚠️ Found, not touched: README and HANDOFF on `main` carry stray diff3 markers (`||||||| bf6e235` etc.) left by an
+    earlier release merge. Harmless text; worth deleting in a docs pass.
 
 ### 🖥️ 18 Nov 2026: THE FIRST APP WINDOW FILLS THE SCREEN — on local `main`, NOT committed or pushed. README "Unreleased". Tracker card `app-opens-full-screen`.
 - **Owner:** *"when you first download/open the app, its opening with a smaller window - it needs to open as wide such
