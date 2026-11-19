@@ -29,6 +29,24 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+## v1.19.1 — the version under the SPTCal name (18 Nov 2026)
+
+### The version under the SPTCal name (18 Nov 2026)
+
+The owner: *"in small grey text, add v1.19 or whatever the current version of the app is right below the SPTCal
+header in the top left corner of the app. Mock it up before you build it"* (`mockups/header-version-label.html`; the
+owner's picks: the full number, "v1.19.0", and "Hide with the name" in a narrow window).
+- The header's top-left corner now reads **SPTCal** with **v1.19.1** under it in small grey text (11 px, Mantine
+  gray-6). Below 1200 px wide, where the name already hides so no button label is cut, the version hides with it.
+- The number is never typed into the header: `Header.jsx` imports it from `package.json` at build time, and
+  `npm run check` already holds `package.json` = `version.json` = the engine's `APP_VERSION`. So the label cannot
+  disagree with the update check or the PDFs' "Made with SPTCal" mark, and every version cut updates it.
+- The name and version share the icon's 30 px (17 + 13 px lines), so the header stays 63 px tall and `--header-h`
+  does not move. Nothing in the grid, the exports or the save file changes.
+- Verified: on the build at 1440 px the label reads the version and the header is 63 px; at 1100 px it is hidden and
+  the header is still 63 px. `npm run check` 42/42; a partial gate (the waterfall PDF and workbook against their
+  baselines, `pdfmark`, `monthexport` and gate 13, `toolbarfit`, `laptopfit` at its three windows): see HANDOFF.
+
 ## v1.19.0 — a crowded month shrinks on screen like its PDF; a day in the Month view holds 10 lines (18 Nov 2026)
 
 ### A crowded month shrinks on screen exactly as its PDF does (17 Nov 2026)
