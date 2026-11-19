@@ -16,6 +16,13 @@ import { Button, Menu, Group, Text, Badge, CloseButton, Box } from '@mantine/cor
 import { installChrome } from './bridge.js'
 import { IconFolder, IconFilePlus, IconFloppy, IconCopyPlus, IconTable, IconDownload, IconRotateCcw, IconColumns, IconRows } from './icons.jsx'
 import { APP_ICON } from './appIcon.js'
+// The version under the brand name (owner, 18 Nov 2026: "in small grey text, add v1.19 or whatever the current
+// version of the app is right below the SPTCal header"; mockups/header-version-label.html, owner's picks "v1.19.0" and
+// "Hide with the name"). Read from package.json at BUILD time (a named JSON import, so only this one string is
+// bundled), never typed here: `npm run check` already holds package.json = version.json = the engine's APP_VERSION,
+// so this label cannot disagree with the update check or the PDFs' "Made with SPTCal" mark, and a version cut
+// updates it with no extra step.
+import { version as APP_VERSION } from '../../package.json'
 
 // The four sizes this toolbar uses, named once. Everything is size="xs" (30px) because the app's
 // current control measures 30.0px and the sidebar it shares a scale with already overflows its
@@ -93,7 +100,11 @@ export function Header() {
             (owner, round 5). The drawn navy-chip glyph this replaced lives on in icons.jsx as
             IconCalendarPlain; the brand now carries the app's actual icon instead. */}
         <img className="app-brand-mark" src={APP_ICON} alt="" aria-hidden="true" />
-        <span className="app-brand-name">SPTCal</span>
+        {/* Name over version, both inside the mark's 30 px (legacy.css), so --header-h does not move. */}
+        <div className="app-brand-text">
+          <span className="app-brand-name">SPTCal</span>
+          <span className="app-brand-ver">v{APP_VERSION}</span>
+        </div>
       </div>
       <div className="app-toolbar-div" aria-hidden="true" />
 

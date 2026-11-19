@@ -157,6 +157,12 @@
     font-size:15px; font-weight:650; letter-spacing:-.01em;
     color:var(--mantine-color-gray-9); white-space:nowrap;
   }
+  /* The version under the name (owner, 18 Nov 2026; mockups/header-version-label.html). Name and version share the
+     mark's 30 px (17 + 13), so the header is exactly as tall as before and --header-h does not move. */
+  .app-brand-text{ display:flex; flex-direction:column; justify-content:center; height:30px; }
+  .app-brand-text .app-brand-name{ line-height:17px; }
+  .app-brand-ver{ font-size:11px; line-height:13px; font-weight:400; color:var(--mantine-color-gray-6);
+    white-space:nowrap; font-variant-numeric:tabular-nums; }
   .app-toolbar-div{ width:1px; height:22px; background:var(--mantine-color-gray-3); flex:none; }
   /* Fixed header slots (owner, 11 Nov 2026, Header.jsx): a view-dependent button is as wide as the wider of its two
      labels. The real label and a hidden zero-height ghost of the other stack in one grid column; the ghost is ::after
@@ -180,9 +186,9 @@
   /* Step 1 — the chip gives up room first: it is the widest single control and the least
      information-dense (the same name is in the menu it opens). */
   @media (max-width:1320px){ .file-menu-btn{ width:180px; } }
-  /* Step 2 — the brand NAME goes. The mark stays, so identity survives. (Was 1080; raised because
+  /* Step 2 — the brand NAME goes, and the version under it with it (owner's pick, 18 Nov 2026). The mark stays, so identity survives. (Was 1080; raised because
      the name is ~185px and giving it up early is cheaper than truncating a command.) */
-  @media (max-width:1200px){ .app-brand-name{ display:none; } .app-brand{ padding-right:16px; } }
+  @media (max-width:1200px){ .app-brand-text{ display:none; } .app-brand{ padding-right:16px; } }
   /* Step 2a — Reset Columns (owner, 6 Nov 2026) runs icon-only, with its title= tooltip, a rung before the other
      commands. Measured in the Waterfall view, its widest state: labelled it needs 128px, and the header then
      overflowed by 25px at 1121px and 11px at 1201px (the status keeps an inline 78px minimum, so nothing gives way).
