@@ -29,6 +29,20 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — The template editor opens on variables, not a Manual header's plain text (19 Nov 2026)
+
+The owner asked that, when the template editor opens, the default auto header's lines be the variables rather than plain
+text. Taking the header over (Manual) bakes every auto line into words, and the editor used to open on those words, so
+"10 Episodes" stopped following the episode count. Now Manual -> Template (opening the editor, or the mode menu's
+Template) turns every line still in an auto line's form back into its variable (`hdrAutoLinesAsTokens()`, in both
+views): the text the default template prints now, or, for the lines that carry a date or a count, the auto line's shape
+("Principal Photography 6.29.26 / Wrap: 10.20.26" from before the shoot moved, a date frozen last week, "v2"), in any
+slot. A line the user wrote stays exactly as typed, an emptied line stays empty, and the title lines change only when they
+still read exactly what Auto would print. One undo step, as before; nothing saved changes shape and no output moves for a
+calendar that does not switch. Verified: `hdrtemplate` (new step 11, two new gate checks), `hdreditor`, `hdrpreset`,
+`hdrfile`, `hdrverload`, `hdrcontrols` 12/12, `mvhdroff` 9/9, `seasons` 15/15, `lastedited` 22/22, `npm run check`
+46/46, and in the browser in both views.
+
 ### Unreleased — Post's "Final Delivery" note starts on for new calendars (19 Nov 2026)
 
 The owner asked for the Final Delivery note to be enabled by default. A NEW calendar (the first launch, New, Reset All)

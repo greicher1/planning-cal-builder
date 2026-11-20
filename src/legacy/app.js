@@ -29544,6 +29544,43 @@ export function initLegacyApp() {
   // ⚠️ The OLD toggle never called markDirty() on Auto -> Manual -- a header takeover left the file
   // showing "Saved" and could not be undone. Same bug class as the one the notes-reset branch
   // carries a comment about. Fixed by construction here: one exit path, and it always marks.
+  // ⭐ MANUAL -> TEMPLATE PUTS THE AUTO LINES BACK AS VARIABLES (owner, 19 Nov 2026: "by default when you open the
+  // template editor, all the labels of the default auto-header should be the dynamic variables as opposed to plain
+  // text"; picker "Header was on Manual"). Taking the header over (Manual) bakes every auto line into plain text, and
+  // the editor used to open on those words, so "Test Show S2" no longer followed the title. A Manual line still in an
+  // auto line's form goes back to that line's default template; a line the user wrote stays exactly as typed.
+  // "In an auto line's form" is: (1) the text the default template prints NOW, or (2) for the lines that carry a date
+  // or a count, the SHAPE of the auto line (a stale "Principal Photography 6.29.26 / Wrap: …" from before the
+  // shoot moved, a date snapshotted last week, "v2"), because Manual froze them at the moment of the take-over and
+  // they stop matching the calendar on the first edit after it. The title lines (c1, the month title) are matched
+  // exactly only: an older show title there may be a deliberate choice, and the word is the user's.
+  const HDR_AUTO_SHAPES = {
+    left: /^\d{1,2}\.\d{1,2}\.\d{2}$/,
+    l2:   /^v\d+(\.\d+)*$/,
+    c3:   /^Writer's Room Opens: \d{1,2}\.\d{1,2}\.\d{2}$/,
+    r1:   /^(?:\d+-Week Production Span(?: \/ (?:\d+(?:\.\d+)?-Day Shooting Schedule|\d+ Shooting Blocks?))?|\d+(?:\.\d+)?-Day Shooting Schedule|\d+ Shooting Blocks?)$/,
+    r2:   /^Principal Photography \d{1,2}\.\d{1,2}\.\d{2} \/ Wrap: \d{1,2}\.\d{1,2}\.\d{2}$/,
+    r3:   /^\d+ Episodes$/,
+  };
+  const MV_HDR_AUTO_SHAPES = { today: /^\d{1,2}\.\d{1,2}\.\d{2}$/ };
+  function hdrAutoLinesAsTokens(lines, mv){
+    const defs = mv ? DEFAULT_MV_TEMPLATE : DEFAULT_HEADER_TEMPLATE;
+    const shapes = mv ? MV_HDR_AUTO_SHAPES : HDR_AUTO_SHAPES;
+    const ctx = buildHeaderCtx(currentSchedule);
+    const out = Object.assign({}, lines);
+    // An auto line is recognised in ANY slot, its own first: a Writer's Room line moved to the right column takes
+    // {writersRoom.line} there. An empty line stays empty (it may have been cleared on purpose).
+    const autoIds = Object.keys(defs).filter(k=>defs[k]);
+    Object.keys(out).forEach(id=>{
+      const text = String(out[id] == null ? '' : out[id]).trim();
+      if(!text) return;
+      const order = autoIds.indexOf(id) >= 0 ? [id].concat(autoIds.filter(k=>k !== id)) : autoIds;
+      const hit = order.find(k=> text === resolveHeaderTemplate(defs[k], ctx) || (shapes[k] && shapes[k].test(text)));
+      if(hit) out[id] = defs[hit];
+    });
+    return out;
+  }
+
   function setHeaderMode(next){
     // `shown` includes Off (headerModeKey); `from` is the mode underneath it, which is what the five
     // transitions below move between. Off -> the mode underneath only clears the flag, so the lines
@@ -29568,6 +29605,8 @@ export function initLegacyApp() {
         }
         // Manual -> Template keeps the literal strings as they are: text with no tokens is a valid
         // template, so nothing is lost and the user can add tokens to what is already there.
+        // ⭐ Except a line still in an auto line's form, which goes back to its variable (hdrAutoLinesAsTokens).
+        else headerManual = hdrAutoLinesAsTokens(headerManual, false);
         headerMode = 'manual'; headerTemplates = true;
       } else {
         // -> Manual. From Template this is a BAKE: every line becomes the text it currently
@@ -29625,6 +29664,8 @@ export function initLegacyApp() {
           mvHeaderManual = Object.assign({}, DEFAULT_MV_TEMPLATE);
         }
         // Manual -> Template keeps the literal strings: text with no tokens is a valid template.
+        // ⭐ Except a line still in an auto line's form, which goes back to its variable (hdrAutoLinesAsTokens).
+        else mvHeaderManual = hdrAutoLinesAsTokens(mvHeaderManual, true);
         mvHeaderMode = 'manual'; mvHeaderTemplates = true;
       } else {
         // -> Manual. From Template this is a BAKE: each line becomes the text it resolves to now

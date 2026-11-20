@@ -4,6 +4,26 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### 🔤 19 Nov 2026: THE TEMPLATE EDITOR OPENS ON VARIABLES, NOT A MANUAL HEADER'S PLAIN TEXT — committed `5ee3a54e` on `scenario-version-offer`, cherry-picked onto `origin/main`, pushed on the owner's picker. README "Unreleased". Tracker card `template-editor-variables`.
+- **Owner:** *"by default when you open the template editor, all the labels of the default auto-header should be the
+  dynamic variables as opposed to plain text"*; asked which plain text, picked **"Header was on Manual"**. (From Auto the
+  editor already seeded `DEFAULT_HEADER_TEMPLATE`; only "Planning Calendar" and the month's "Full Prelim Production
+  Calendar" are literal there, and that was not the ask.)
+- **Done:** `hdrAutoLinesAsTokens(lines, mv)` (just above `setHeaderMode()`), called by the Manual -> Template branch of
+  `setHeaderMode()` and `setMvHeaderMode()`, so both the editor's way in and the mode menu's Template do it, inside the
+  transition's one undo step. A non-empty line becomes an auto line's template when it equals what that template prints
+  now, or matches the auto line's SHAPE (`HDR_AUTO_SHAPES` / `MV_HDR_AUTO_SHAPES`: dates, "vN", Writer's Room, the
+  production summary and dates, "N Episodes"), checking its own slot first and then every other (a Writer's Room line
+  moved to r3 becomes `{writersRoom.line}` there). Titles (c1, the month title) have no shape: exact only, since an
+  older title there may be deliberate. Empty stays empty; typed text, unknown tokens and braces stay as typed.
+- ⚠️ My call, not ruled: a date-shaped Manual line (e.g. a fixed "11.10.26" typed top left) becomes `{lastEdited}`.
+- **Verified:** `hdrtemplate` step 11 (`autoLinesBackAsTokens`, `typedLinesKept`, both new gate.sh checks),
+  `hdreditor`, `hdrpreset`, `hdrfile`, `hdrverload` (hdrversion), `hdrcontrols` 12/12, `mvhdroff` 9/9, `seasons` 15/15,
+  `lastedited` 22/22, `npm run check` 46/46; in the browser on `hdrversion`: Manual, then 12 episodes and v4, then the
+  editor showed every auto line as a variable; hand-typed c1 / c3 / r1 kept; one ⌘Z back to Manual; month view too. No
+  full gate: chrome-side header store only, no frozen code, no output changes unless the user switches mode. No What's
+  New entry (small).
+
 ### 📅 19 Nov 2026: BUILD AROUND'S "ENDS BY" PICKS A FRIDAY (PRODUCTION: ANY WEEKDAY) — branch `endsby-picker` (worktree `.claude/worktrees/endsby-picker`, from `origin/main`; `node_modules` is a symlink, unlink it before `git worktree remove`), LIVE: committed `f33015c` (rebased onto `2ef16d2`, the wrap-picker hint removal: its deletion kept, this `weekday` hint added beside it), pushed to `main` on the owner's "commit and push", deploy run green, the GitHub Pages file carries the new hint (sptcal.pages.dev is behind Access, same run). Owner: *"why can i only select mondays? ... it should be only fridays except for production which should be any weekday"*. Chrome only: `fieldKind()` in `src/chrome/DatePop.jsx` read `#tool-solve-date` by the start's rule on both edges. Now on `tool-solve-edge` = end: `friday` for a phase whose `phaseSnapped()` is true (Snap on, or Ends), `weekday` (new kind, weekends greyed) for Production and Days / Dates / unsnapped phases. The engine is untouched (it already took any date as the deadline). ⚠️ Shift's To a date "ends by" is still `day` (any day, weekends too): the owner asked about Build Around only. Legs `datepick` 21/21 (E1-E4 new), `buildendsby`, `buildaround`; `npm run check` 46/46. What's New `2026-11-19-3`. README "Unreleased". Tracker card `build-around-endsby-picker`.
 
 ### ✂️ 19 Nov 2026: THE WRAP-DATE PICKER'S "ONLY SHOOT DAYS" LINE IS GONE — uncommitted on `scenario-version-offer`, NOT pushed

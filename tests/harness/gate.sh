@@ -1011,6 +1011,8 @@ chk(a.get('bakeFroze') and a.get('noSwapInManual'),
 chk(a.get('manualPrintsBraces'), f"hdrtemplate: ⭐ MANUAL NEVER RESOLVES -- decision H4 ({a.get('manualBraces')!r})")
 chk(a.get('autoEmptiedStore'), "hdrtemplate: -> Auto discards headerManual, as 'Header: Auto' always has")
 chk(a.get('oneUndoStep'), f"hdrtemplate: each transition is ONE undo step ({a.get('afterAuto')!r} -> undo -> {a.get('afterUndo')!r})")
+chk(a.get('autoLinesBackAsTokens'), f"hdrtemplate: Manual -> Template puts auto lines back as variables, in any slot ({a.get('reTokenRaw')!r})")
+chk(a.get('typedLinesKept'), "hdrtemplate: Manual -> Template keeps typed lines as typed and emptied lines empty")
 chk(not a.get('errors'), f"hdrtemplate: 0 console errors {a.get('errors')}")
 hv=a.get('clipped') or {}
 chk(not hv.get('h'), f"hdrtemplate: 0 horizontally clipped cells {hv.get('h')}")
