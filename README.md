@@ -29,6 +29,19 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — Four harness checks re-premised for Show info's field order (20 Nov 2026)
+
+`hidewf` F1 + F3, `phasesui` P1 and `hiatusripple` R0 had been red on `main` since `368f9e2` (19 Nov 2026, Show info's
+fields in the order each mode is filled in). All four compare a Save's `fields.byId` with a file saved earlier, and that
+commit moved `#num-episodes` / `#shoot-days-per-ep` after `#num-blocks` / `#days-per-block` in the markup, so the four
+keys are written in a new order. Measured on all 46 `phasesui` fixtures: the four keys' order is the ONLY difference,
+every id and value identical. Nothing reads the order (`applyStateSnapshot` sets each value with no event; Date Last
+Edited hashes sorted keys; the undo base is a fresh capture), so the reorder was intended and harmless, and the checks,
+not the app, were re-premised: `T.showInfoOrderEra()` (t/lib.js, inlined in `hiatusripple.mjs`) puts those four ids of
+an older fixture or baseline in today's order and leaves every other id where it was. No fixture or baseline file
+changed, no app code changed. **Verified:** `hidewf` 19/19, `phasesui` 8/8, `hiatusripple` 19/19 (each alone, on
+`dist/`), `npm run check` 46/46.
+
 ### Unreleased — The whole toolbar fits on a 13" MacBook Air (19 Nov 2026)
 
 The owner asked whether a 13" MacBook Air shows the calendar toolbar in full; it did not (the line needed about 1,690 px,
@@ -364,7 +377,11 @@ says so)"*.
   Production Region, Location.
 - Number of Episodes no longer says "(optional)" in Blocks mode; it still is (a Blocks calendar schedules without it).
 - One `#num-episodes` serves both modes (its id is the save format): the Blocks-only rows sit before it and the
-  Episodes-only row after it, so the DOM order, and Tab, is right in each mode. Nothing saved changed.
+  Episodes-only row after it, so the DOM order, and Tab, is right in each mode. Nothing saved changed. ⚠️ *Corrected
+  20 Nov 2026:* the KEY ORDER of `fields.byId` changed (it is built in document order), so every Save since writes
+  `num-blocks, days-per-block, num-episodes, shoot-days-per-ep` where it wrote `shoot-days-per-ep, num-episodes,
+  num-blocks, days-per-block`. Same ids and values, and nothing reads the order, but it turned `hidewf` F1/F3,
+  `phasesui` P1 and `hiatusripple` R0 red (next entry).
 - **Verified:** `doubleups` SI8 (both orders as shown), `labelsetup` B1u re-premised (plain label; B1 still holds the
   count optional), `blocks`, `restore` (gate 5's key set), `npm run check`.
 

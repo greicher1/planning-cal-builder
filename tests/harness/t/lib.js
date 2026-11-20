@@ -972,6 +972,26 @@ window.__T = (function(){
     document.body.click();
   }
   function done(o){ scrubSurrogates(); document.getElementById('R').textContent=JSON.stringify(o); }
+  // ⭐ SHOW INFO'S FIELD-ORDER ERA (20 Nov 2026). `368f9e2` (19 Nov 2026, owner: "fields in the order each mode is
+  // filled in") moved Show info's markup to num-blocks, days-per-block, num-episodes, shoot-days-per-ep, and
+  // fields.byId is built in DOCUMENT order, so every Save since writes those four keys in that order. A file saved
+  // before writes shoot-days-per-ep, num-episodes, num-blocks, days-per-block. Same ids, same values; only the key
+  // order moved, and nothing reads that order (applyStateSnapshot sets each value with no event; Date Last Edited
+  // hashes sorted keys). A leg that compares a Save's fields.byId with an older fixture or baseline puts the four in
+  // today's order through this, so every OTHER id still has to be where it was. Takes a fields.byId object or an
+  // array of [id, value] pairs (phasesui's records) and returns the same shape; anything without all four is untouched.
+  var SHOW_INFO_ORDER = ['num-blocks', 'days-per-block', 'num-episodes', 'shoot-days-per-ep'];
+  function showInfoOrderEra(byId){
+    var pairs = Array.isArray(byId) ? byId.slice() : Object.keys(byId || {}).map(function(k){ return [k, byId[k]]; });
+    var at = [];
+    pairs.forEach(function(kv, i){ if(SHOW_INFO_ORDER.indexOf(kv[0]) !== -1) at.push(i); });
+    if(at.length === SHOW_INFO_ORDER.length){
+      var val = {}; at.forEach(function(i){ val[pairs[i][0]] = pairs[i]; });
+      at.forEach(function(i, n){ pairs[i] = val[SHOW_INFO_ORDER[n]]; });
+    }
+    if(Array.isArray(byId)) return pairs;
+    var o = {}; pairs.forEach(function(kv){ o[kv[0]] = kv[1]; }); return o;
+  }
   return {set:set,sleep:sleep,closePops:closePops,shiftRow:shiftRow,shiftPress:shiftPress,shiftDrag:shiftDrag,shiftSide:shiftSide,
           solveRow:solveRow,solvePress:solvePress,solveDrag:solveDrag,buildFixture:buildFixture,showHolidaysInSheet:showHolidaysInSheet,
           typeUserNote:typeUserNote,openCell:openCell,addHiatus:addHiatus,openViaFakePicker:openViaFakePicker,
@@ -983,5 +1003,5 @@ window.__T = (function(){
           openSettings:openSettings,closeSettings:closeSettings,settingsTabOf:settingsTabOf,shownInSettings:shownInSettings,
           pdfDialog:pdfDialog,pdfDialogPick:pdfDialogPick,applyBarSizeQuery:applyBarSizeQuery,barSizeShown:barSizeShown,
           applyNoteSizeQuery:applyNoteSizeQuery,noteSizeShown:noteSizeShown,pickSelect:pickSelect,
-          rebuildAll:rebuildAll, solveKeepSide:solveKeepSide};
+          rebuildAll:rebuildAll, solveKeepSide:solveKeepSide, showInfoOrderEra:showInfoOrderEra};
 })();

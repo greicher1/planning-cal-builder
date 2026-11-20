@@ -4,6 +4,23 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### 🧪 20 Nov 2026: FOUR RED HARNESS CHECKS ON `main` EXPLAINED AND RE-PREMISED — branch `fix-showinfo-order-legs` (worktree `.claude/worktrees/sweet-dijkstra-49037f`), committed locally, NOT pushed. Tests and docs only; no app code.
+- **Red since `368f9e2`** (19 Nov, Show info's field order per mode, below): `hidewf` F1 (`sameIds: false`) + F3 (not byte
+  for byte the fixture), `phasesui` P1 (all 46 fixtures' `fields.byId`, the leg lists 12) and `hiatusripple` R0.
+- **Cause:** `fields.byId` is built in DOCUMENT order, and that commit moved the markup to `num-blocks, days-per-block,
+  num-episodes, shoot-days-per-ep` (was `shoot-days-per-ep, num-episodes, num-blocks, days-per-block`). Its own entry
+  said "Nothing saved changed"; the ids and values did not, the KEY ORDER did (corrected in README). Measured on all 46
+  `phasesui` fixtures: those four keys' order is the only difference.
+- **Harmless:** nothing reads the order (`applyStateSnapshot` step 3 sets values with no event; `lastEditedCanon` sorts
+  keys; `resetUndoHistory` takes a fresh capture). So the reorder stands and the CHECKS were re-premised:
+  `T.showInfoOrderEra()` in `t/lib.js` (inlined in `hiatusripple.mjs`) puts those four ids of an older fixture or
+  baseline in today's order, every other id must still be where it was. No fixture or baseline file was edited (the
+  `phasesui` baseline README says so).
+- ⛔ **Lesson:** moving an id'd control past another in the markup changes every saved file's bytes even when no id
+  changes. Before calling a markup reorder "nothing saved changed", run `hidewf`, `phasesui` and `hiatusripple`; the
+  `restore` leg (gate 5) compares the key SET only and stays green.
+- **Verified:** `hidewf` 19/19, `phasesui` 8/8, `hiatusripple` 19/19 (each alone, on `dist/`), `npm run check` 46/46.
+
 ### 💻 19–20 Nov 2026: THE WHOLE TOOLBAR FITS ON A 13" MACBOOK AIR — branch `toolbar-13in` (worktree `.claude/worktrees/toolbar-13in`, from `origin/main` `2ef16d2`; `node_modules` is a symlink, unlink it before `git worktree remove`). Owner tried it on localhost and on another computer, then *"Finish it"*, then *"commit and push it"*: committed `67c729c`, `origin/main` (`a85ca47`) merged in (README and HANDOFF conflicts, both sides kept), re-checked (`npm run check` 46/46; `toolbarfit`, `spancounts`, `stylebarplace`, `calzoom`, `finaldelivery`, `hdrtemplate` green on the merged build), PUSHED to `main`. Tracker card `toolbar-fits-13in`. A follow-up the owner looked at and declined (*"nevermind just leave it as is"*): fitting Production's weeks on the dashed line at 13" widths (`mockups/span-weeks-13in.html`, main checkout, untracked; card `span-weeks-on-line-13in`).
 - **Owner:** *"is a standard 13" macbook air screen not big enough to show the entire menu bar in its full form?"* (no: the
   line needed ~1,690 px; the Air's window is 1,470, or 1,440 on an M1), then *"Make it fit"*, *"mock up the options"*,
@@ -436,6 +453,8 @@
   days-per-episode row (Episodes only); the `(optional)` span is gone. ⛔ Never duplicate `#num-episodes` to get the two
   orders: its id is the save format. Help still says the count is optional in Blocks (true).
 - **Legs:** `doubleups` SI8 (both orders), `labelsetup` B1u re-premised to the plain label.
+- ⚠️ **20 Nov 2026:** the move changed `fields.byId`'s KEY ORDER (built in document order), which turned four checks red;
+  re-premised, see the 20 Nov entry at the top.
 
 ### ✅ 19 Nov 2026: TANDEM DAYS IN SHOW INFO — LIVE (`4562e9d`, pushed on the owner's picker; deploy green to GitHub Pages and Cloudflare, the GitHub Pages copy fetched and carries `si-tandem-in`; the Cloudflare address is behind the sign-in, so not fetched). Branch `show-info-tandem` (worktree `.claude/worktrees/show-info-tandem`, from `origin/main` `1b45340`; `node_modules` is a symlink, unlink it before `git worktree remove`). Mockup [`mockups/show-info-tandem.html`](mockups/show-info-tandem.html) (main checkout, untracked). Tracker card `show-info-tandem`.
 - **Owner:** *"add double-up/tandem days in the Show Info section. To the right of the Shooting days per episode should be a big plus symbol and then to the right of that another box"*; then *"the plus doesn't need to be that big"*, *"could all be on one line"*, *"remove the subtext below it, then build it"*.

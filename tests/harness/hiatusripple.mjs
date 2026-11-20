@@ -294,7 +294,13 @@ try {
       // Pre Prep's Hiatus block's own switches: Number weeks alone.
       ppSwitches: Array.from((document.getElementById('phiatus-fields-prePrep') || document.createElement('div')).querySelectorAll('.sw-label')).map(e => e.textContent.trim()) })`);
     const sv = await saved();
-    const keys = Object.keys(sv.fields.byId), fkeys = Object.keys(fixture.fields.byId);
+    // The fixture predates Show info's 19 Nov 2026 field order (368f9e2): fields.byId is built in document order, and
+    // num-blocks, days-per-block, num-episodes, shoot-days-per-ep now come in that order. Same ids and values; only
+    // those four move (t/lib.js showInfoOrderEra says why nothing reads the order). Every other id stays where it was.
+    const SI = ['num-blocks', 'days-per-block', 'num-episodes', 'shoot-days-per-ep'];
+    const fkeys = Object.keys(fixture.fields.byId), at = fkeys.map((k, i) => SI.includes(k) ? i : -1).filter(i => i >= 0);
+    if (at.length === SI.length) at.forEach((i, n) => { fkeys[i] = SI[n]; });
+    const keys = Object.keys(sv.fields.byId);
     out.R0 = { s, ids, keys: keys.length, fkeys: fkeys.length, json: JSON.stringify(sv).match(/hiatusRipple|ripple-note|hiatus-ripple/g) };
     kase('R0', 'ON with no preference stored: ONE switch, Settings > Preferences > Hiatus, checked, named Ripple Hiatus Periods, in a .prefs-card; no copy on the All-phase card (its spot empty, 0 px) or in Pre Prep\'s Hiatus block (Number weeks alone) -- "Settings only", 10 Nov 2026; a Save holds no ripple key and exactly the fixture\'s fields.byId ids',
          s.pref === 'absent' && s.sw.settings === true && s.sw.copies === 0

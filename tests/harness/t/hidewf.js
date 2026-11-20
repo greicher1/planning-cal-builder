@@ -344,7 +344,9 @@ window.addEventListener('load', function () { (async function () {
     await step('F1', async function () {
       saved = await save();
       var s = JSON.parse(saved), fx = JSON.parse(fixtureText);
-      var ids = Object.keys(s.fields.byId), fxIds = Object.keys(fx.fields.byId);
+      // The fixture was saved before Show info's 19 Nov 2026 field order (T.showInfoOrderEra): those four ids in today's
+      // order, every other id exactly where the fixture has it.
+      var ids = Object.keys(s.fields.byId), fxIds = Object.keys(T.showInfoOrderEra(fx.fields.byId));
       var ok = same(s.phaseHidden, { custom1: { sheet: true } }) && same(ids, fxIds) && ids.every(function (k) { return !/hidewf|hide/i.test(k); });
       // Load the file with the tick off first, so the Load has something to put back.
       var off = JSON.parse(saved); delete off.phaseHidden;
@@ -365,6 +367,8 @@ window.addEventListener('load', function () { (async function () {
       // The fixture was saved when un-renamed episodes were named "Shoot Ep. 201"; since 28 Oct 2026 they open (and so
       // save) as "Episode 201", the default again. A typed name would be kept, and this fixture has none.
       (fx.episodeDefs || []).forEach(function (e) { if (!e.nameEdited) e.name = String(e.name).replace(/^Shoot Ep\. /, 'Episode '); });
+      // ...and before Show info's 19 Nov 2026 field order, so its four count ids go in today's order (T.showInfoOrderEra).
+      fx.fields.byId = T.showInfoOrderEra(fx.fields.byId);
       var noKey = !('phaseHidden' in JSON.parse(plain));
       kase('F3', 'with nothing hidden the file carries no phaseHidden key, and is byte for byte the fixture without one (tab and view aside)',
            noKey && comparable(plain) === comparable(JSON.stringify(fx, null, 1)), { noKey: noKey, len: plain.length });
