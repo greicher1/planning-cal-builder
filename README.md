@@ -29,6 +29,14 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — Show info's boxes have no grey "e.g." examples (19 Nov 2026)
+
+The owner asked to remove the grey examples inside Show info's boxes ("e.g. Show Title", "e.g. 10", "e.g. 8", "e.g. 3",
+"e.g. Winnipeg", and in Blocks mode "e.g. 5" / "e.g. 20"). They are gone from `src/chrome/Sidebar.jsx`; every box is
+blank until typed in. Tandem Days keeps "None" (it is a value, not an example) and Season keeps "—". The phase cards'
+own "e.g. 12" / "e.g. 10" week and day boxes are untouched (not asked). No id, value or saved field changes. Verified:
+the build has none of the seven, the Show info tab screenshotted blank in headless Chrome, `npm run check` 46/46.
+
 ### Unreleased — The waterfall headings' top line no longer splits in two after a scroll (19 Nov 2026)
 
 The owner saw the thick black line over the waterfall's column headings turn into a double line (dark, a white hairline,

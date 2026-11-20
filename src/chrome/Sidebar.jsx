@@ -81,7 +81,7 @@ export function ShowInfoCard() {
           cramped. 16px of air between fields; the Phases-tab overflow argument in theme.js is
           about input HEIGHT, which this does not touch. */}
       <Stack gap="xl">
-        <TextInput id="show-title" label="Title" placeholder="e.g. Show Title" />
+        <TextInput id="show-title" label="Title" />
         {/* ⛔ The Season select, never Mantine's Select: Select puts the option LABEL in the id-bearing
             input, so this would save "Season 2" where the format expects "2". Since 27 Oct 2026 its list is a
             checkbox dropdown (SeasonPop.jsx), so two or more seasons can share one calendar. */}
@@ -119,11 +119,11 @@ export function ShowInfoCard() {
             .si-days-tandem: the days box, a plus and Tandem Days on one line (legacy.css), the label running over the
             plus so it never wraps in the narrowest sidebar. */}
         <Box className="show-mode-blocks">
-          <NumberInput id="num-blocks" label="Number of Blocks" placeholder="e.g. 5"
+          <NumberInput id="num-blocks" label="Number of Blocks"
                        min={1} max={200} step={1} allowDecimal={false} allowNegative={false} hideControls />
         </Box>
         <Box className="show-mode-blocks si-days-tandem">
-          <NumberInput id="days-per-block" label="Shooting Days per Block" placeholder="e.g. 20"
+          <NumberInput id="days-per-block" label="Shooting Days per Block"
                        min={1} step={0.5} decimalScale={1} allowNegative={false} hideControls />
           <TandemDaysBox />
         </Box>
@@ -132,16 +132,17 @@ export function ShowInfoCard() {
             clamps on blur too.
             In Blocks mode the count is still optional (blocks schedule without it, LABELS-SETUP-PLAN.md item 4), but
             the label no longer says so (owner, 19 Nov 2026: "it can still be optional but remove that it says so"). */}
-        <NumberInput id="num-episodes" label="Number of Episodes" placeholder="e.g. 10"
+        <NumberInput id="num-episodes" label="Number of Episodes"
                      min={1} max={200} step={1} allowDecimal={false} allowNegative={false} hideControls />
         <Box className="show-mode-episodes si-days-tandem">
-          <NumberInput id="shoot-days-per-ep" label="Shooting Days per Episode" placeholder="e.g. 8"
+          <NumberInput id="shoot-days-per-ep" label="Shooting Days per Episode"
                        min={1} step={0.5} decimalScale={1} allowNegative={false} hideControls />
           <TandemDaysBox />
         </Box>
         {/* ⛔ TextInput, never NumberInput (owner decision H1, 1 Sep 2026): owners write 3, 3.1
             and 3a, so the field is a LABEL and not arithmetic. Since 3 Nov 2026 it prints EXACTLY as
-            typed (owner: "no longer with a v prefix"), so the placeholder shows the v being typed.
+            typed (owner: "no longer with a v prefix"). No placeholder in any Show info box (owner, 19 Nov
+            2026: "remove all these e.g. labels").
             ⛔ It is NOT part of showInfoStatus()'s completeness test and must never gate
             Production -- a calendar with no version number is a complete calendar.
             The description answers the one question this field raises that the others do not: where
@@ -155,7 +156,7 @@ export function ShowInfoCard() {
             Auto/Template/Manual gets explained; do not try to fix it with 9px of copy here. */}
         {/* A NUMBER (owner, 18 Nov 2026): the header adds the "v", so 3 shows as v3. The engine drops anything but
             digits and dots as it is typed (app.js, the show-version input listener). */}
-        <TextInput id="show-version" label="Version" placeholder="e.g. 3" inputMode="decimal"
+        <TextInput id="show-version" label="Version" inputMode="decimal"
                    description={'A number. The header adds the v: 3 shows as v3.'} />
         {/* The Production Region, a SECOND time (owner, 21 Oct 2026: "below the version number box
             in the Show Info tab ... now it appears in both places"). The Settings window's Region
@@ -179,7 +180,7 @@ export function ShowInfoCard() {
             ⛔ `show-location` IS CALENDAR DATA, so it carries an id and collectFieldValues() sweeps it into
             fields.byId -- a PERMANENT id from the first file saved with it. Never rename it. An absent key means
             blank (applyStateSnapshot's absent-field defaults), so an older file never shows another show's town. */}
-        <TextInput id="show-location" label="Location" placeholder="e.g. Winnipeg" maxLength={40}
+        <TextInput id="show-location" label="Location" maxLength={40}
                    description="Optional. Shown instead of the region when you compare scenarios." />
       </Stack>
       {/* The blue "Production's Total Shooting Days: N" note (#show-info-note) and its "Manually changed" list sat

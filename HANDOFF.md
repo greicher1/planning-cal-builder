@@ -265,6 +265,13 @@
   scenariofacts 12, scenlist (rt) 9, changessince 15, comparebreaks 10, exportnames 12, comparehiatus 8, lastedited 22;
   `npm run check` 43/43. No full gate (chrome + scenario engine, nothing frozen, no saved key).
 
+### ✂️ 19 Nov 2026: SHOW INFO'S BOXES HAVE NO "e.g." EXAMPLES — uncommitted on `scenario-version-offer`, NOT pushed
+- **Owner:** *"remove all these e.g. labels"* (a screenshot of Show info).
+- **Done:** the seven `placeholder="e.g. …"` in `src/chrome/Sidebar.jsx` are gone (Title, Number of Episodes, Shooting
+  Days per Episode, Version, Location, and Blocks mode's Number of Blocks / Shooting Days per Block). Tandem Days keeps
+  "None", Season "—". Not asked, so left: the phase cards' "e.g. 12" / "e.g. 10" (`app.js`). README "Unreleased".
+  Tracker card `show-info-no-examples`.
+
 ### ✂️ 19 Nov 2026: THE WATERFALL NOTE EDITOR HAS NO PLACEHOLDER — committed on `scenario-version-offer` after `e690859`, pushed to `main` with the far-right change
 - **Owner:** *"delete this text in waterfall"* (the grey "Note text (Shift+Enter for a new line)" in an empty note box).
 - **Done:** the waterfall note editor's `<textarea>` carries no `placeholder`; a hiatus band keeps "Hiatus label", and the
