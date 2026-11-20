@@ -12,15 +12,15 @@
 // 11/2/26, paused 11/23-12/6 by an all-phase hiatus (a week later after S1). Empty cells used here: 7/20, 7/27, 8/17,
 // 8/24, 8/31, 9/21, 9/28, 10/5, 11/9, 11/16, 12/14, 12/21, 12/28, 1/4/27, 2/1/27.
 //
-//   N0  an empty cell's Day reads "No date" and holds ''; typing "Camera test 7-22" turns it to Wed 7/22 as you type
+//   N0  an empty cell's Day reads "Default (Monday)" (19 Nov 2026; "No date" 17-19 Nov) and holds ''; typing "Camera test 7-22" turns it to Wed 7/22 as you type
 //   T1  saved: the text "Camera test 7/22/26" (the Day list's form) and the Day 2026-07-22, as a picked date is saved
 //   T2  7/29 forms: "8/19", "8-26-2026", "9-2-26" each saved in the standard form with their day
 //   T3  a full slashed date typed by hand ("7/29/2026") stays exactly as typed and gives the note its Day
-//   T4  words, not a date: "Scenes 12-14" (no day of its week) and "9/30/25" (the wrong year) -- No date, text as typed
-//   T5  a date typed and then deleted puts the Day back to No date, and nothing is pinned
+//   T4  words, not a date: "Scenes 12-14" (no day of its week) and "9/30/25" (the wrong year) -- the Day stays on its default, text as typed
+//   T5  a date typed and then deleted puts the Day back to its default, and nothing is pinned
 //   T6  a Day picked after typing "2-3" REPLACES it ("Dailies 2/5/27"), never a second date beside it
 //   T7  a note of two lines, the date on the last ("Studio cut due" / "Network cut due 12-30"): the date is written
-//       12/30/26 but does NOT pin the note (Day stays No date): a pin would carry the undated first line to 12/30 in the
+//       12/30/26 but does NOT pin the note (Day stays on its default): a pin would carry the undated first line to 12/30 in the
 //       month view. The month view draws "Studio cut due" on Mon 12/28 and "Network cut due" on Wed 12/30
 //   R1  "Wrap shoot 10-20" typed over the automatic wrap: the Day rows stay hidden (a rename), it saves as the renamed
 //       automatic note "Wrap shoot 10/20/26", and no typed note is left on 10/19
@@ -158,8 +158,8 @@ window.addEventListener('load', function () { (async function () {
       type(pop, 'Camera test 7-22');
       var b = { day: dayOf(pop), shown: dayShown(pop) };
       await commit(pop);
-      kase('N0', 'an empty cell\'s Day reads "No date" (value \'\'); typing "Camera test 7-22" turns it to 2026-07-22 as you type',
-        a.dflt === 'No date' && a.day === '' && b.day === '2026-07-22' && b.shown, { opened: a, typed: b });
+      kase('N0', 'an empty cell\'s Day reads "Default (Monday)" (value \'\'); typing "Camera test 7-22" turns it to 2026-07-22 as you type',
+        a.dflt === 'Default (Monday)' && a.day === '' && b.day === '2026-07-22' && b.shown, { opened: a, typed: b });
       var s = await snap();
       kase('T1', 'saved as "Camera test 7/22/26" with the Day 2026-07-22, as a picked date is; the cell reads the same',
         same(un(s, '2026-07-20'), { text: 'Camera test 7/22/26', date: '2026-07-22' }) && same(cellLines('2026-07-20'), ['Camera test 7/22/26']),
@@ -188,7 +188,7 @@ window.addEventListener('load', function () { (async function () {
     await step('T4', async function () {
       var d = [await typeSave('2026-10-05', 'Scenes 12-14'), await typeSave('2026-09-28', 'Notes due 9/30/25')];
       var s = await snap();
-      kase('T4', '"Scenes 12-14" (no day of its week) and "9/30/25" (the wrong year) are words: No date, saved as typed',
+      kase('T4', '"Scenes 12-14" (no day of its week) and "9/30/25" (the wrong year) are words: the Day stays on its default, saved as typed',
         same(d, ['', '']) && same(un(s, '2026-10-05'), { text: 'Scenes 12-14' }) && same(un(s, '2026-09-28'), { text: 'Notes due 9/30/25' }),
         { days: d, saved: [un(s, '2026-10-05'), un(s, '2026-09-28')] });
     });
@@ -200,7 +200,7 @@ window.addEventListener('load', function () { (async function () {
       type(pop, 'Temp'); var b = dayOf(pop);
       await commit(pop);
       var s = await snap();
-      kase('T5', 'a date typed (Day 2026-11-11) and deleted again puts Day back to No date; saved with no Day',
+      kase('T5', 'a date typed (Day 2026-11-11) and deleted again puts Day back to its default; saved with no Day',
         a === '2026-11-11' && b === '' && same(un(s, '2026-11-09'), { text: 'Temp' }), { typed: a, deleted: b, saved: un(s, '2026-11-09') });
     });
     await step('T6', async function () {
@@ -221,7 +221,7 @@ window.addEventListener('load', function () { (async function () {
       var s = await snap();
       await toMonth('December 2026'); var st = mvDaysOf('Studio cut due'), nw = mvDaysOf('Network cut due');
       await view('sheet');
-      kase('T7', 'two lines, the date on the last: written 12/30/26 but no pin (Day No date); the month view keeps "Studio cut due" on Mon 12/28 and draws "Network cut due" on Wed 12/30',
+      kase('T7', 'two lines, the date on the last: written 12/30/26 but no pin (Day on its default); the month view keeps "Studio cut due" on Mon 12/28 and draws "Network cut due" on Wed 12/30',
         d === '' && same(un(s, '2026-12-28'), { text: 'Studio cut due\nNetwork cut due 12/30/26' })
           && same(st, ['2026-12-28']) && same(nw, ['2026-12-30']),
         { day: d, saved: un(s, '2026-12-28'), studio: st, network: nw });

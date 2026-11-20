@@ -19316,11 +19316,14 @@ export function initLegacyApp() {
         ).join('')}</div>`
       : notePaletteRowsHtml(curColor);
     // Day picker: the waterfall's unit is a week, so a note typed here needs a day before the
-    // month view can place it. It is opt-in rather than another required field: its empty choice reads "No date"
-    // (owner, 17 Nov 2026: "the default, for Day should be "No date" rather than Mon (default)"), and a note left on
-    // it still sits on its week's Monday in the month view (a linked one on its phase's first day that week, R6(a)),
-    // the same fallback as before. Only the words changed: until then it read "Mon (default)", or "First day
-    // (default)" on a note that stays with a phase.
+    // month view can place it. It is opt-in rather than another required field: its empty choice reads
+    // "Default (Monday)" (owner, 19 Nov 2026: "Default (Monday)" and then keep Mon xx/xx/xx), and a note left on it sits
+    // on its week's Monday in the month view, with no date added to its text and moving with its week. A note that stays
+    // with a phase sits on that phase's first day that week (R6(a)), so there it names that day: "Default (Wednesday)"
+    // (dayDefaultLabel, re-read when Stays with changes). Words only. It read "Mon (default)" / "First day (default)"
+    // until 17 Nov 2026, then "No date" for two days, which was true of the waterfall and wrong about the month view.
+    // ⛔ Picking "Mon 7/6/26" is NOT the same as the default: it stamps the date into the text, keeps the note on that
+    // date when the calendar shifts, and on a linked note fixes the weekday. Both stay in the list.
     const existing = userNotes[weekKey];
     // ⭐ STAYS WITH (PHASE-LINKED-NOTES-PLAN.md §4.4, rulings R1, R2(a), R3(a); step 2): what this week's note can stay
     // with. A cell whose one note is linked opens on that note's home and its day (`dow`, or a shoot day).
@@ -19347,6 +19350,12 @@ export function initLegacyApp() {
     // isn't a parseable date. The day picker is only built for notes, so skip it for hiatus.
     const weekStart = isHiatus ? null : parseDateUTC(weekKey);
     const DOW = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+    // The Day list's default, by what the note stays with ('' = the week): see the Day picker's note above.
+    const DOW_FULL = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
+    const dayDefaultLabel = linkKey=>{
+      const d = linkKey ? phaseNoteDefaultDay(linkKey, currentSchedule) : null;
+      return 'Default (' + (d ? DOW_FULL[(d.getUTCDay() + 6) % 7] : 'Monday') + ')';
+    };
     const dayOpts = weekStart ? DOW.map((nm,i)=>{
       const dIso = isoOf(addDays(weekStart, i));
       const sel = (pinnedDate === dIso) ? ' selected' : '';
@@ -19366,7 +19375,7 @@ export function initLegacyApp() {
     // .note-link-row, .note-color-row, .note-view-row, .wf-note-items); each is a `.note-item` of `.note-list`.
     const dayRow = isHiatus ? '' : `<div class="note-item note-day-row"${typedShown ? '' : ' style="display:none"'}>
       <label class="note-line"><span class="note-row-name">Day</span><select class="note-day-select">
-        <option value=""${pinnedDate?'':' selected'}>No date</option>
+        <option value=""${pinnedDate?'':' selected'}>${escHtml(dayDefaultLabel(link ? link.sel0 : ''))}</option>
         ${dayOpts}
       </select></label>
     </div>`;
@@ -19544,11 +19553,14 @@ export function initLegacyApp() {
                         escBase: textVal};   // what Esc compares the box with: it keeps a changed note (AUD2-040)
 
     // Stays with: the hint says what will happen (R1), the waiting message is R3(a)'s, and the "Also here" line R2(a)'s.
-    // The Day list's empty choice reads "No date" whatever the row says (17 Nov 2026); it no longer changes with it.
+    // The Day list's empty choice names the day the note would sit on (19 Nov 2026), so it follows the row: Monday on the
+    // week, the phase's first day that week on a phase.
     const linkSel = pop.querySelector('.note-link-select');
     const reflectLinkRow = ()=>{
       if(!linkSel || !link) return;
       const v = linkSel.value, o = link.opts.find(x=> x.value === v);
+      const dflt = pop.querySelector('.note-day-select option[value=""]');
+      if(dflt) dflt.textContent = dayDefaultLabel(v);
       const hint = pop.querySelector('.note-link-hint'), also = pop.querySelector('.note-link-also');
       hint.classList.remove('is-wait');
       if(!v || !o) hint.textContent = 'Stays on the week of ' + fmtShort(link.week) + ', whatever the phases do.';
@@ -21265,12 +21277,7 @@ export function initLegacyApp() {
         parked = kp.n > weeks.length;
         week = parseDateUTC(weeks[Math.min(kp.n, weeks.length) - 1]);
         if(Number.isInteger(v.dow) && v.dow >= 0 && v.dow <= 6){ day = addDays(week, v.dow); dated = true; }
-        else {
-          const from = seg.start > week ? seg.start : week, to = addDays(week, 7) < seg.end ? addDays(week, 7) : seg.end;
-          for(let d = from; d < to && !day; d = addDays(d, 1))
-            if(segCoversDate(seg, d) && !hiatuses.some(h=> d >= h.start && d < h.end) && !isPhaseHiatusDate(seg, d)) day = d;
-          if(!day) day = from;
-        }
+        else day = phaseWeekFirstDay(seg, week, hiatuses);
       }
       // ⭐ A note hidden from the waterfall (a note made in the Month view, R10(a)) is drawn WITHOUT the date (owner's
       // picker "Drop the date", 19 Nov 2026, once every new Month note links to a phase by default): it sits on its own
@@ -21282,6 +21289,30 @@ export function initLegacyApp() {
                                         dayIso: isoOf(day), dated, parked});
     });
     return out;
+  }
+  // A phase's first day in one week (its Monday), as the month view draws its bar (R6(a)): the day a linked note with no
+  // weekday of its own sits on. autoNoteEdgeDefs' drawn() rule, so for Production it is the first SHOOT day. Shared by
+  // placePhaseNotes and the waterfall note editor's "Default (<day>)" (owner, 19 Nov 2026), so the label names the day
+  // the note is drawn on.
+  function phaseWeekFirstDay(seg, week, hiatuses){
+    const from = seg.start > week ? seg.start : week, to = addDays(week, 7) < seg.end ? addDays(week, 7) : seg.end;
+    for(let d = from; d < to; d = addDays(d, 1))
+      if(segCoversDate(seg, d) && !(hiatuses || []).some(h=> d >= h.start && d < h.end) && !isPhaseHiatusDate(seg, d)) return d;
+    return from;
+  }
+  // The day a linked note on `key` (<phase>@<n> or production@day<n>) sits on when no weekday is picked, from `sch`, as
+  // placePhaseNotes places it; null when the phase has no dates. What the Day list's default names (owner, 19 Nov 2026).
+  function phaseNoteDefaultDay(key, sch){
+    const kp = phaseNoteKeyParts(key);
+    const seg = kp && sch && (sch.segments || []).find(s=> s.key === kp.phase && !s.prep);
+    if(!seg) return null;
+    if(kp.day){
+      const sd = seg.shootDays || [];
+      return sd.length ? parseDateUTC(sd[Math.min(kp.n, sd.length) - 1]) : null;
+    }
+    const weeks = Object.keys(seg.weekNo || {}).sort();
+    if(!weeks.length) return null;
+    return phaseWeekFirstDay(seg, parseDateUTC(weeks[Math.min(kp.n, weeks.length) - 1]), sch.hiatuses);
   }
   // The linked notes drawn in one week (its Monday's ISO), in the schedule effectiveNoteText's callers draw: theirs is
   // always currentSchedule (frozen render(), exportExcel, buildWaterfallPdf, sheetColumnWidths, sheetRowCount), as
