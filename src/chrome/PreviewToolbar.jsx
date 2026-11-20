@@ -54,7 +54,8 @@ import { MonthMap, MonthStepper } from './MonthMap.jsx'
 // THE FIRST LINE'S LAYOUT (owner, 10-11 Nov 2026; reworked 16 Nov 2026 for every window size). One measurement, two jobs.
 // 1. THE GAP. One equal gap after every item on the line, Redo's to the toolbar's edge included (owner, 11 Nov 2026:
 //    "the gap should be the same as the gaps between all the other buttons"). It is solved so the line fills the row,
-//    but NEVER over --tb-gap-max (14 px, the gap on the owner's laptop) and never under --tb-gap-min (10 px). On a wide
+//    but NEVER over --tb-gap-max (14 px, the gap on the owner's laptop) and never under --tb-gap-min (10 px; 8 px at
+//    1,700 px and narrower, legacy.css's "THE LAPTOP TOOLBAR"). On a wide
 //    window the toolbar therefore keeps its laptop size and the spare room collects on the RIGHT (owner's picker,
 //    16 Nov 2026: "keep the toolbar at its laptop size, as Excel does"); until then every gap grew with the window, to
 //    116 px on a 2560 px screen. Written as --tb-gap-fit on .preview-panel, which every gap reads through --tb-gap.
@@ -68,9 +69,13 @@ import { MonthMap, MonthStepper } from './MonthMap.jsx'
 //      5. Waterfall and Month show their icons alone, each with its name as a hover hint (written here, below).
 //    Each step is a class on .preview-panel, cumulative (tbf1 ... tbf5), so CSS draws it; this hook only tries the
 //    levels in turn, from 0, and keeps the first whose line fits. Measured with side boxes, the narrowest preview:
-//    step 0 to about 1,700 px, 1 to 1,560, 2 to 1,290, 3 to 1,100, 4 to 1,000, 5 at the app's minimum width (960 px,
-//    legacy.css, "The app shell"), where it fits with about 80 px to spare. Below the minimum the window scrolls
-//    sideways instead.
+//    step 0 to about 1,430 px, 1 to 1,275, 2 to 1,140, 3 to 1,090, and 4 at the app's minimum width (960 px,
+//    legacy.css, "The app shell"), where it fits with about 40 px to spare. Below the minimum the window scrolls
+//    sideways instead. ⭐ Since 19 Nov 2026 (owner: "Make it fit" on a 13" MacBook Air, then "Build Option B") the
+//    laptop toolbar in legacy.css draws every control a little tighter at 1,700 px and narrower, and the sidebar
+//    gives up only what the line still needs (owner, 20 Nov 2026), so a 13" Air (1,470 px, or 1,440 on an M1) shows the whole line unfolded. It was 0 to 1,700, 1 to
+//    1,560, 2 to 1,290, 3 to 1,100, 4 to 1,000, 5 at 960. Step 5 is now reached only by a narrower row than these
+//    calendars give (larger text, a wider scroll bar); toolbarfit F6 reaches it with a 420 px sidebar.
 //    Until 16 Nov 2026 the text bar dropped to a line of its own instead (`.style-own-line`), and the rest of the
 //    line wrapped to a third below about 1150 px.
 // * None of the widths summed depends on the gap, so the answer cannot flip-flop: the sections are flex:none at their
@@ -222,6 +227,12 @@ function useFixedHeaderWidth(ref, setW) {
     }
     measure()
     if (document.fonts && document.fonts.ready) document.fonts.ready.then(measure)
+    // The laptop toolbar (legacy.css, "THE LAPTOP TOOLBAR") draws the button with less padding at 1,700 px and narrower,
+    // so a width measured on one side of that line is wrong on the other: 4 px too narrow going wide (the label
+    // clipped), 4 px of dead room going narrow. ⛔ Keep this query the CSS block's.
+    const mq = window.matchMedia ? window.matchMedia('(max-width:1700px)') : null
+    if (mq && mq.addEventListener) mq.addEventListener('change', measure)
+    return () => { if (mq && mq.removeEventListener) mq.removeEventListener('change', measure) }
   }, [])
 }
 

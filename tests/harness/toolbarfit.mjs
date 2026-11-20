@@ -14,29 +14,32 @@
 // tests/fixtures/sideboxes.sptcal (boxes on both sides: the narrowest preview). Each case loads a fresh page with the
 // origin's storage cleared, so no crash backup from the last one raises "Recover unsaved work" over the toolbar.
 //
-//   F0  each window width folds the toolbar to its level, never back as the window narrows: 0 at 2560 and 1728, 5 at
-//       960; ONE line at every width (every control on show level with the view toggle, none past the row's edge);
+//   F0  each window width folds the toolbar to its level, never back as the window narrows: 0 at 2560, 1728, 1470 and
+//       1440 (a 13" MacBook Air: owner, 19 Nov 2026, "Make it fit", "Build Option B"), 4 at 960; ONE line at every width (every control on show level with the view toggle, none past the row's edge);
 //       the header never overflows; in the waterfall and the month view alike
 //   F1  wide: nothing folded, the gaps at most 14 px (--tb-gap-max), the line packed LEFT, the spare room after Redo
 //   F2  the app never stacks: at 960 and at 820 px the sidebar is beside the preview, the grid box ends inside the
 //       window; at 820 the page is 960 px wide and scrolls sideways; at 960 and wider nothing scrolls sideways
-//   F3  the More menu (1280 and 1470): resting on Side Boxes opens its menu BESIDE the panel, first row level with the
+//   F3  the More menu (1250 and 1150): resting on Side Boxes opens its menu BESIDE the panel, first row level with the
 //       row, no row covered, the panel still open; on Header, Side Boxes' closes and Header's opens; on Fill Gaps both
 //       close; gliding into the menu keeps it; choosing adds the box and closes everything; a second click on an open
 //       row keeps it open; Escape closes everything
-//   F4  each cascading row's arrow points the side its menu opens (› right, ‹ left), at 1470, 1366, 1100, 960 and in
+//   F4  each cascading row's arrow points the side its menu opens (› right, ‹ left), at 1250, 1150, 1100, 960 and in
 //       the month view
-//   F5  the Text menu (step 4, 1100): a picked cell stays picked when Aa opens the text style buttons under it; Bold
+//   F5  the Text menu (step 4, 1050): a picked cell stays picked when Aa opens the text style buttons under it; Bold
 //       applies; a press outside closes it
-//   F6  step 3 (1280): Build Around shows its hammer, not its label, with "Build Around" as its hover hint, and opens its
-//       panel; step 5 (960): Waterfall and Month show icons only, each named by its hover hint; unfolded, neither has one
-//   F7  the month stepper in the More panel steps the month (1366, month view)
+//   F6  step 3 (1100): Build Around shows its hammer, not its label, with "Build Around" as its hover hint, and opens its
+//       panel; at 960 Waterfall and Month keep their labels (step 4: since the laptop toolbar, 19 Nov 2026, no window
+//       reaches step 5 on these calendars); step 5, reached at 960 by a sidebar forced to 420 px (a narrower row, as larger
+//       text or a wider scroll bar would make): Waterfall and Month show icons only, each named by its hover hint;
+//       unfolded, neither has one
+//   F7  the month stepper in the More panel steps the month (1250, month view)
 //   F8  unfolded (1728): Side Boxes' menu still drops under its own button, and a second click closes it
 //   F9  a window being DRAGGED never paints the line on two lines (owner, 16 Nov 2026: "There's a CSS wrap glitch as i
 //       change the size of the window", "at width 1258 px and several other 1 pixel gaps"): narrowed one pixel at a
 //       time from 1330 to 1236 px, then widened in 9 px jumps and narrowed in 31 px jumps, with every painted frame
 //       logged; no frame has More / Undo below the view toggle, every settled width is one line inside the row, and the
-//       sweep did cross a width where the gap is solved (between 10 and 14 px), where the fit used to arrive a frame
+//       sweep did cross a width where the gap is solved (between 8 and 14 px at this width), where the fit used to arrive a frame
 //       late; in the waterfall and the month view. ⛔ F0 cannot see this: it reads each width after it has settled.
 //   Z   no page error or console error in any case
 import fs from 'node:fs';
@@ -152,14 +155,14 @@ try {
   // ---- F0 + F1: the widths ----
   for (const view of [undefined, 'month']) {
     const seen = [];
-    for (const [w, h] of [[2560, 1300], [1728, 1000], [1600, 1000], [1470, 900], [1366, 800], [1280, 800], [1100, 800], [960, 760]]) {
+    for (const [w, h] of [[2560, 1300], [1728, 1000], [1600, 1000], [1470, 900], [1440, 900], [1366, 800], [1280, 800], [1100, 800], [960, 760]]) {
       await load(w, h, view);
       seen.push({ w, ...(await ev(LINE)) });
     }
     const lv = seen.map(s => s.level);
     const mono = lv.every((l, i) => i === 0 || l >= lv[i - 1]);
-    kase('F0' + (view ? 'm' : ''), `${view || 'waterfall'}: each width folds to its level, never back as the window narrows (0 at 2560 and 1728, 5 at 960); one line, inside the row, the header never overflowing, at every width`,
-      mono && lv[0] === 0 && lv[1] === 0 && lv[lv.length - 1] === 5 && seen.every(s => s.oneLine && s.inside && s.hdrOver <= 0),
+    kase('F0' + (view ? 'm' : ''), `${view || 'waterfall'}: each width folds to its level, never back as the window narrows (0 at 2560, 1728, 1470 and 1440, 4 at 960); one line, inside the row, the header never overflowing, at every width`,
+      mono && lv[0] === 0 && lv[1] === 0 && lv[3] === 0 && lv[4] === 0 && lv[lv.length - 1] === 4 && seen.every(s => s.oneLine && s.inside && s.hdrOver <= 0),
       { ladder: seen.map(s => `${s.w}:${s.level}`).join(' '), bad: seen.filter(s => !s.oneLine || !s.inside || s.hdrOver > 0) });
     if (!view) {
       const wide = seen[0];
@@ -189,7 +192,7 @@ try {
       const covered=[...m.querySelectorAll(':scope > button')].filter(it=>{ const b=it.getBoundingClientRect(); const e=document.elementFromPoint(b.left+b.width/2,b.top+b.height/2); return !(e&&it.contains(e)); }).length;
       return { side: r.left >= pr.right - 1 ? 'right' : r.right <= pr.left + 1 ? 'left' : 'overlap', rowDy: Math.round(first.top - row.top), covered }; };
     return { more: document.querySelector('.tb-more').classList.contains('is-open'), side: one('.sb-menu','#tb-side-boxes-btn'), hdr: one('.hdr-mode-pop','#tb-hdr-mode-btn') }; })()`;
-  for (const [w, h] of [[1280, 800], [1470, 900]]) {
+  for (const [w, h] of [[1250, 800], [1150, 800]]) {
     await load(w, h);
     await clickSel('.tb-more-btn');
     const sb = await center('#tb-side-boxes-btn'), hd = await center('#tb-hdr-mode-btn'), fg = await center('#tb-fill-space-btn');
@@ -222,7 +225,7 @@ try {
 
   // ---- F4: the arrow points the side its menu opens ----
   const arrowRes = [];
-  for (const [w, h, view] of [[1470, 900], [1366, 800], [1100, 800], [960, 760], [1366, 800, 'month'], [1100, 800, 'month']]) {
+  for (const [w, h, view] of [[1250, 800], [1150, 800], [1100, 800], [960, 760], [1250, 800, 'month'], [1100, 800, 'month']]) {
     await load(w, h, view);
     await clickSel('.tb-more-btn');
     const rows = view ? [['#tb-hdr-mode-btn', '.hdr-mode-pop']] : [['#tb-side-boxes-btn', '.sb-menu'], ['#tb-hdr-mode-btn', '.hdr-mode-pop']];
@@ -236,11 +239,11 @@ try {
     }
     await esc();
   }
-  kase('F4', "each cascading row's arrow points the side its menu opens (› right, ‹ left), at 1470, 1366, 1100, 960 and in the month view",
+  kase('F4', "each cascading row's arrow points the side its menu opens (› right, ‹ left), at 1250, 1150, 1100, 960 and in the month view",
     arrowRes.length === 10 && arrowRes.every(r => r.arrow === r.opened), { arrowRes });
 
   // ---- F5: the Text menu ----
-  await load(1100, 800);
+  await load(1050, 800);
   const lv5 = await level();
   const cell = await ev("(()=>{ const td=[...document.querySelectorAll('#table-wrap td.sheet-phase-cell')].find(t=>/Writer's Rm wk 3/.test(t.textContent)); if(!td) return null; const b=td.getBoundingClientRect(); for(let x=b.left+6;x<b.right-6;x+=4){ const e=document.elementFromPoint(x,b.top+b.height/2); if(e&&td.contains(e)) return [x,b.top+b.height/2]; } return null; })()");
   await click(...cell); await sleep(300);
@@ -250,34 +253,40 @@ try {
   const still = await ev("document.querySelector('.style-bar').classList.contains('has-target')");
   await clickSel('.style-bar .hf-b'); await sleep(300);
   const bold = await ev("(()=>{ const td=[...document.querySelectorAll('#table-wrap td.sheet-phase-cell')].find(t=>/Writer's Rm wk 3/.test(t.textContent)); return !!td && [td, ...td.querySelectorAll('*')].some(e=>+getComputedStyle(e).fontWeight>=600); })()");
-  await click(1050, 760); await sleep(250);
+  await click(1000, 760); await sleep(250);
   const closed5 = await ev("!document.querySelector('.view-toggle-row > .style-bar-host').classList.contains('is-dropped')");
-  kase('F5', 'the Text menu (step 4, 1100): a picked cell stays picked when Aa opens the text style buttons under it; Bold applies; a press outside closes it',
+  kase('F5', 'the Text menu (step 4, 1050): a picked cell stays picked when Aa opens the text style buttons under it; Bold applies; a press outside closes it',
     lv5 >= 4 && picked && opened5 && still && bold && closed5, { level: lv5, picked, opened5, still, bold, closed5 });
 
   // ---- F6: the hammer, the icon-only view toggle ----
-  await load(1280, 800);
+  await load(1100, 800);
   const ham = await ev(`(()=>{ const b=document.getElementById('pop-solve-btn'); const sec=b.querySelector('.mantine-Button-section[data-position="left"]'), lab=b.querySelector('.mantine-Button-label');
     return { level: [1,2,3,4,5].filter(k=>document.querySelector('.preview-panel').classList.contains('tbf'+k)).length, icon: !!sec && sec.getClientRects().length > 0 && !!sec.querySelector('svg'),
       label: !!lab && lab.getClientRects().length > 0, title: b.title }; })()`);
   await clickSel('#pop-solve-btn');
   const baOpen = await ev("document.getElementById('pop-solve').classList.contains('open')");
   await load(960, 760);
-  const vt960 = await ev("[...document.querySelectorAll('.view-toggle-btn')].map(b=>[b.title, b.querySelector('span').getClientRects().length > 0])");
+  const VT = "[...document.querySelectorAll('.view-toggle-btn')].map(b=>[b.title, b.querySelector('span').getClientRects().length > 0])";
+  const lv960 = await level(), vt960 = await ev(VT);
+  // Step 5: a 420 px sidebar takes 140 px from the row, as larger text would. The fit re-solves on the row's resize.
+  await ev("(()=>{ const st=document.createElement('style'); st.textContent='.form-panel{width:420px !important}'; document.head.appendChild(st); return true; })()");
+  await sleep(600);
+  const lv5f = await level(), vt5 = await ev(VT);
   await load(1728, 1000);
   const vt1728 = await ev("[...document.querySelectorAll('.view-toggle-btn')].map(b=>[b.title, b.querySelector('span').getClientRects().length > 0])");
-  kase('F6', 'step 3: Build Around shows the hammer, not its label, hinted "Build Around…", and opens its panel; step 5: Waterfall and Month are icons named by hover hints; unfolded, no hints',
+  kase('F6', 'step 3 (1100): Build Around shows the hammer, not its label, hinted "Build Around…", and opens its panel; 960: step 4, Waterfall and Month keep their labels; step 5 (a narrower row): Waterfall and Month are icons named by hover hints; unfolded, no hints',
     ham.level === 3 && ham.icon && !ham.label && /^Build Around/.test(ham.title) && baOpen &&
-      JSON.stringify(vt960) === JSON.stringify([['Waterfall', false], ['Month', false]]) && JSON.stringify(vt1728) === JSON.stringify([['', true], ['', true]]),
-    { ham, baOpen, vt960, vt1728 });
+      lv960 === 4 && JSON.stringify(vt960) === JSON.stringify([['', true], ['', true]]) &&
+      lv5f === 5 && JSON.stringify(vt5) === JSON.stringify([['Waterfall', false], ['Month', false]]) && JSON.stringify(vt1728) === JSON.stringify([['', true], ['', true]]),
+    { ham, baOpen, lv960, vt960, lv5f, vt5, vt1728 });
 
   // ---- F7: the stepper in the More panel ----
-  await load(1366, 800, 'month');
+  await load(1250, 800, 'month');
   await clickSel('.tb-more-btn');
   const m0 = await ev("document.querySelector('.tb-more .month-step .ms-label').textContent");
   await clickSel('.tb-more .month-step [data-mvstep="1"]');
   const m1 = await ev("document.querySelector('.tb-more .month-step .ms-label').textContent");
-  kase('F7', 'the month stepper in the More panel steps the month (1366, month view)', !!m0 && !!m1 && m0 !== m1, { m0, m1 });
+  kase('F7', 'the month stepper in the More panel steps the month (1250, month view)', !!m0 && !!m1 && m0 !== m1, { m0, m1 });
 
   // ---- F8: unfolded, the toolbar's own buttons ----
   await load(1728, 1000);
@@ -308,7 +317,8 @@ try {
     for (let w = 1236; w <= 1330; w += 9) await at(w);
     for (let w = 1330; w >= 1236; w -= 31) await at(w);
     const fr = await ev('window.__tbFrames');
-    const solved = settled.filter(s => s.gap > 10.05 && s.gap < 13.95).length;
+    // The laptop toolbar (legacy.css, at 1,700 px and narrower) lowers --tb-gap-min to 8 px.
+    const solved = settled.filter(s => s.gap > 8.05 && s.gap < 13.95).length;
     const bad = settled.filter(s => !s.oneLine || !s.inside);
     kase('F9' + (view ? 'm' : ''), `${view || 'waterfall'}: dragged from 1330 to 1236 px a pixel at a time, then back in jumps, no painted frame has More / Undo on a second line, and every settled width is one line inside the row`,
       fr.n > 100 && fr.wrapped.length === 0 && !bad.length && solved > 10,

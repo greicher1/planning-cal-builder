@@ -220,9 +220,13 @@ window.addEventListener('load', function () { (async function () {
       for(var j = 0; j < tries.length; j++){
         var c = cells[tries[j]];
         if(!c) continue;
+        // Clear the last hover FIRST, then ask what is on top: the button a hover at 100% drew stays until the pointer
+        // leaves, and at 150% it can sit over the very cell tried next (since 19 Nov 2026, when the laptop toolbar's
+        // narrower sidebar widened the grid box and this cell passed the on-screen filter), so the hover went to it.
+        document.body.dispatchEvent(new PointerEvent('pointermove', {bubbles: true, clientX: 1, clientY: 1, pointerType: 'mouse', pointerId: 9}));
+        await T.sleep(50);
         var m = mid(c), e = topAt(m);
         if(!e) continue;
-        document.body.dispatchEvent(new PointerEvent('pointermove', {bubbles: true, clientX: 1, clientY: 1, pointerType: 'mouse', pointerId: 9}));
         e.dispatchEvent(new PointerEvent('pointermove', {bubbles: true, clientX: m.x, clientY: m.y, pointerType: 'mouse', pointerId: 9}));
         await T.sleep(250);
         var b = q('.grid-stint-btn');

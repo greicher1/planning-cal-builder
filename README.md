@@ -29,6 +29,21 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — The whole toolbar fits on a 13" MacBook Air (19 Nov 2026)
+
+The owner asked whether a 13" MacBook Air shows the calendar toolbar in full; it did not (the line needed about 1,690 px,
+and the Air's window is 1,470, or 1,440 on an M1, so Fill Gaps, Side Boxes and Header went into the ••• More menu). On
+"Make it fit" the owner was shown two mockups and picked "Option B": at 1,700 px and narrower the toolbar is drawn a
+little tighter (button padding 8 px, the text style buttons 26 px, the gap between items down to 8 px, the calendar's side
+margins 12 px). The sidebar narrows only as far as the toolbar needs (owner, 20 Nov 2026, after a first build narrowed it
+at every width up to 1,700 px, which wrapped Production's shoot-days line there): as before from 1,513 px up, 320 px at
+1,470 (was 353), 290 at 1,440, 280 from 1,430 down (was 320). Above 1,700 px nothing changes. Every control now shows on
+one line from 1,430 px up, and every narrower window folds later than before
+(the view toggle keeps its labels at 960). The Header button re-measures its fixed width when the window crosses
+1,700 px. `src/styles/legacy.css` ("THE LAPTOP TOOLBAR", the `.form-panel` rule), `src/chrome/PreviewToolbar.jsx`.
+Leg `toolbarfit` moved to the new fold widths (F0 also holds 1,470 and 1,440 unfolded; F6 reaches step 5 with a forced
+420 px sidebar, since no window does on its own now). Verified: see HANDOFF's 19 Nov entry.
+
 ### Unreleased — The wrap-date picker has no "only shoot days" line (19 Nov 2026)
 
 The owner asked to delete "The shoot wraps on a shoot day, so only shoot days can be picked." from under Production's
