@@ -950,12 +950,24 @@ Measured on `sideboxes.sptcal` (the narrowest preview), both views:
 
 | Level | What gives up room | First at (window) |
 |---|---|---|
-| 0 | nothing: every label | 1728 px and wider |
-| 1 | Fill Gaps its switch alone, Header its icon (`IconHeading`); Side Boxes keeps its label, since the month stepper shares their slot and needs about that width | ~1600 |
-| 2 | Fill Gaps, Side Boxes and Header (in the month view the stepper and Header) into the **More menu** (`.tb-more`, a ⋯ button) | ~1470 |
-| 3 | Build Around its **hammer** (`IconHammer`; a pin first, the owner: it read as a location) | ~1280 |
-| 4 | the text style buttons behind an **Aa** button (`.tb-text-btn`) | ~1100 |
-| 5 | Waterfall and Month their icons alone, named by hover hints the hook writes | 960 |
+| 0 | nothing: every label | 1440 px and wider (a 13" MacBook Air) |
+| 1 | Fill Gaps its switch alone, Header its icon (`IconHeading`); Side Boxes keeps its label, since the month stepper shares their slot and needs about that width | ~1430 |
+| 2 | Fill Gaps, Side Boxes and Header (in the month view the stepper and Header) into the **More menu** (`.tb-more`, a ⋯ button) | ~1270 |
+| 3 | Build Around its **hammer** (`IconHammer`; a pin first, the owner: it read as a location) | ~1130 |
+| 4 | the text style buttons behind an **Aa** button (`.tb-text-btn`) | ~1090, and 960 |
+| 5 | Waterfall and Month their icons alone, named by hover hints the hook writes | only a narrower row than any window gives (larger text, a wider scroll bar) |
+
+⭐ **The laptop toolbar (owner, 19 Nov 2026: "Make it fit" on a 13" MacBook Air, then "Build Option B" of
+`mockups/toolbar-13in-options.html`).** At 1,700 px and narrower one `@media (max-width:1700px)` block in `legacy.css`
+draws the line tighter: `--tb-gap-min` 8 px, the view toggle, Shift, Build Around and the page tools 8 px side padding,
+the text style buttons 26 px (the size box 58), `.preview-panel` 12 px side padding. ⭐ The sidebar gives up ONLY what
+the toolbar needs (owner, 20 Nov 2026, after a first build narrowed it to 20.5vw everywhere up to 1,700 px):
+`clamp(280px, min(24vw, 100vw - 1150px), 440px)`, so it is 24vw as always from 1,513 px up, 320 px at 1,470 (a 13" Air,
+was 353), 290 at 1,440 (an M1 Air), 280 from 1,430 down (was 320). The 1,150 is measured: the unfolded line fits at the
+8 px minimum gap while the sidebar is at most the window less 1,130 px, plus 20 px for a classic scroll bar and rounding,
+held in the gaps (10.5 px from 1,430 to 1,513). ⛔ Re-measure it if the first line gets wider (`toolbarfit` F0). Before, level 0 ended at ~1,700, 1 at ~1,560, 2 at ~1,290,
+3 at ~1,100, and 960 was level 5. Above 1,700 px nothing changed. ⛔ The block's query and `useFixedHeaderWidth`'s
+`matchMedia('(max-width:1700px)')` must stay the same: the Header button re-measures its fixed width when it flips.
 
 Every folded control keeps a hover hint (`title=`). The view toggle and Shift go last; Shift never folds.
 

@@ -469,7 +469,16 @@
      ⚠️ Capped at 320 px since 16 Nov 2026 (it was 340): 26vw is 333 px at 1280, so one pixel narrower than 1281 px
      (where 24vw gives the 320 px floor) the sidebar grew 13 px WIDER, and the toolbar folded a step early there. Now
      the sidebar only ever narrows as the window does. */
-  @media (max-width:1280px){ .form-panel{ width:clamp(280px, 26vw, 320px); } }
+  /* ⭐ THE SIDEBAR GIVES THE TOOLBAR ONLY WHAT IT NEEDS (owner, 20 Nov 2026: "narrow it only as much as the toolbar
+     needs", after Option B's flat 20.5vw had narrowed it at every width up to 1,700 px; THE LAPTOP TOOLBAR below).
+     It is 24vw as always, until the window is too narrow for 24vw AND the whole unfolded toolbar: then it is the window
+     less 1,150 px, down to a 280 px floor. 1,150 is measured: the unfolded line, at the 8 px minimum gap, fits when the
+     sidebar is at most the window less 1,130 px (sideboxes.sptcal, both views, 1,440 and 1,470), plus 20 px for a
+     classic scroll bar on the preview (Windows draws one, 17 px) and rounding. So from 1,513 px up it is exactly as
+     before (24vw; 384 px at 1,600), 320 px at 1,470 (a 13" Air, was 353), 290 at 1,440 (an M1 Air), 280 from 1,430
+     down (was 320 at 1,280 and 1,366). ⛔ If the toolbar's first line gets wider, re-measure the 1,150 (toolbarfit F0
+     holds 1,470 and 1,440 unfolded). It still only ever narrows as the window does. */
+  @media (max-width:1700px){ .form-panel{ width:clamp(280px, min(24vw, 100vw - 1150px), 440px); } }
 
   /* The 44px at the bottom is the room the fixed help button and zoom pill sit in (the bottom strip,
      #help-fab below). In the app shell it becomes a margin (below). */
@@ -2267,6 +2276,28 @@
     display:block; position:fixed; z-index:300; padding:5px;
     background:var(--mantine-color-white); border:1px solid var(--mantine-color-gray-3);
     border-radius:var(--mantine-radius-lg); box-shadow:var(--mantine-shadow-md);
+  }
+  /* ⭐ THE LAPTOP TOOLBAR (owner, 19 Nov 2026: "is a standard 13" macbook air screen not big enough to show the entire
+     menu bar in its full form?", then "Build Option B" over folding the text styles first; the mockups are
+     mockups/toolbar-13in-options.html). Unfolded, the line needed about 1,690 px and a 13" Air is 1,470 (1,440 for the
+     M1), so Fill Gaps, Side Boxes and Header went into More. At 1,700 px and narrower the toolbar is drawn tighter
+     instead, so every control shows on a 13" Air: button padding 8 px (was 10-12), the text style buttons 26 px (was
+     30), gaps down to 8 px (--tb-gap-min), the calendar's side margins 12 px (was 28, the .preview-panel rule above) and
+     a narrower sidebar (.form-panel, "Smaller laptops"). Measured with the sidebar's rule: 12 px to spare at 1,470,
+     9 px at 1,440. Narrower than that, useToolbarFit's fold steps carry on as before, from these tighter sizes.
+     ⛔ 1,700, not lower: unfolded at normal size the line fits from about 1,690 px, so one pixel wider than this block
+     the toolbar is level 0 at its laptop size again, and no width shows less than it did before.
+     ⚠️ Header's fixed width is measured with these paddings (useFixedHeaderWidth re-measures when the query flips).
+     Scoped to .view-toggle-row: the header editor's strip uses the same .hf-* controls at 22 px. */
+  @media (max-width:1700px){
+    .preview-panel{ padding-left:12px; padding-right:12px; }
+    .view-toggle-row{ --tb-gap-min:8px; }
+    .preview-panel .view-toggle-btn{ padding-left:8px; padding-right:8px; }
+    .view-toggle-row .shift-btn{ padding-left:8px; padding-right:8px; }
+    .view-toggle-row .tools-wrap > .tools-btn, .view-toggle-row .tb-page .tb-solo{ padding-left:8px !important; padding-right:8px !important; }
+    .view-toggle-row .style-bar .hf-btn, .view-toggle-row .style-bar .hf-swatch{ width:26px; min-width:26px; padding-left:4px; padding-right:4px; }
+    .view-toggle-row .style-bar .hf-size{ width:58px; padding-right:20px; }
+    .view-toggle-row .style-bar .hf-al-toggle{ padding-left:4px; padding-right:4px; }
   }
   .tools-btn[aria-expanded="true"]{background:var(--bg);}
   /* The SHIFTING tools (four until 4 Nov 2026, when Shift From and Anchor To folded into Shift) wear a NAVY OUTLINE (owner, 21 Oct 2026: "right now all the buttons look

@@ -4,7 +4,7 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### 📐 20 Nov 2026: SHIFT KEEPS EVERY PHASE'S DISTANCE FROM THE WRAP — BUILT on branch `shift-wrap-follow` (worktree `.claude/worktrees/shift-wrap-follow`, from `origin/main` `a85ca47c`), full gate run (every baseline identical; no failure from this branch), README "Unreleased" and What's New entries in, committed locally, NOT merged, NOT pushed. Plan and rulings: [`SHIFT-WRAP-FOLLOW-PLAN.md`](SHIFT-WRAP-FOLLOW-PLAN.md). Tracker card `shift-keeps-wrap-gap` (ready).
+### 📐 20 Nov 2026: SHIFT KEEPS EVERY PHASE'S DISTANCE FROM THE WRAP — BUILT on branch `shift-wrap-follow` (worktree `.claude/worktrees/shift-wrap-follow`, from `origin/main` `a85ca47c`), full gate run (every baseline identical; no failure from this branch), README "Unreleased" and What's New entries in, committed locally; `origin/main` (`07d681ed`, the 13" toolbar) merged in and local `main` moved to the merge on the owner's picker *"Merge, don't push"*, NOT pushed. Plan and rulings: [`SHIFT-WRAP-FOLLOW-PLAN.md`](SHIFT-WRAP-FOLLOW-PLAN.md). Tracker card `shift-keeps-wrap-gap` (ready).
 - **Owner:** Shift moves Production onto new holidays, the shoot gains or loses a week, and a 1-week gap or overlap opens before Post.
   Rulings by chat and picker (plan §1): R1 every phase Production's length affects, not just Post; R2 any cause (holidays, Off days,
   worked holidays, worked weekends); R3 a phase alongside the shoot follows only if it ended in the wrap week; R4 Production's own ▲ / ▼
@@ -38,6 +38,46 @@
   writes for those fixtures; unexplained, unfixed. After the gate: README "Unreleased" + What's New `2026-11-20` added,
   rebuilt, `npm run check` 46/46, `whatsnew` 12/12. ⚠️ `origin/main` has moved on (`07d681ed`, the 13" toolbar): merging
   will meet README / What's New / HANDOFF conflicts at their tops (keep both sides).
+
+### 💻 19–20 Nov 2026: THE WHOLE TOOLBAR FITS ON A 13" MACBOOK AIR — branch `toolbar-13in` (worktree `.claude/worktrees/toolbar-13in`, from `origin/main` `2ef16d2`; `node_modules` is a symlink, unlink it before `git worktree remove`). Owner tried it on localhost and on another computer, then *"Finish it"*, then *"commit and push it"*: committed `67c729c`, `origin/main` (`a85ca47`) merged in (README and HANDOFF conflicts, both sides kept), re-checked (`npm run check` 46/46; `toolbarfit`, `spancounts`, `stylebarplace`, `calzoom`, `finaldelivery`, `hdrtemplate` green on the merged build), PUSHED to `main`. Tracker card `toolbar-fits-13in`. A follow-up the owner looked at and declined (*"nevermind just leave it as is"*): fitting Production's weeks on the dashed line at 13" widths (`mockups/span-weeks-13in.html`, main checkout, untracked; card `span-weeks-on-line-13in`).
+- **Owner:** *"is a standard 13" macbook air screen not big enough to show the entire menu bar in its full form?"* (no: the
+  line needed ~1,690 px; the Air's window is 1,470, or 1,440 on an M1), then *"Make it fit"*, *"mock up the options"*,
+  *"lets see mockups without side boxes"*, and *"Build Option B"* (squeeze, rather than A: fold the text buttons first).
+  Mockups: `mockups/toolbar-13in-options.html` (untracked, in the main checkout).
+- **Done:** one `@media (max-width:1700px)` block in `src/styles/legacy.css` ("THE LAPTOP TOOLBAR"): `--tb-gap-min` 8 px
+  (was 10), 8 px side padding on the view toggle, Shift, Build Around and the page tools, the text style buttons 26 px and
+  the size box 58, `.preview-panel` 12 px side padding (was 28). The sidebar, from 1,700 px down, is
+  `clamp(280px, min(24vw, 100vw - 1150px), 440px)` (was `clamp(280px, 26vw, 320px)` from 1,280 only): ⭐ ONLY AS NARROW
+  AS THE TOOLBAR NEEDS (owner, 20 Nov 2026: *"narrow it only as much as the toolbar needs"*). A first build used a flat
+  `20.5vw` up to 1,700 px; the full gate showed it wrapped Production's shoot-days line (`spancounts` M1, N1) at 1,600,
+  and the owner had not noticed the sidebar was part of Option B. Now it is exactly as before from 1,513 px up, 320 at
+  1,470 (was 353), 290 at 1,440, 280 from 1,430 down. The 1,150 is measured (the line fits at the 8 px minimum gap
+  while the sidebar ≤ window − 1,130) plus 20 px for a classic scroll bar and rounding, held in the gaps (10.5 px).
+  ⚠️ That line wrapping is not new on a laptop: before this branch it already wrapped at 1,470 and 1,366
+  (`spancounts` red there on the old build too); the leg runs at 1,600, where it fits again. `useFixedHeaderWidth` re-measures when
+  `matchMedia('(max-width:1700px)')` flips (the Header button's padding changes there; ⛔ keep the two queries equal).
+  Above 1,700 px nothing changed.
+- **The new ladder** (sideboxes, both views): 0 down to ~1,430, 1 to ~1,275, 2 to ~1,140, 3 to ~1,090, 4 at 960.
+  Step 5 (icon-only view toggle) is reached by no window now; `toolbarfit` F6 reaches it with a forced 420 px sidebar.
+  From 1,430 to 1,513 the gaps are 10.5 px (the margin above). UI-CONVENTIONS' fold table is updated.
+- ⚠️ **The harness's 1,600 px window:** the sidebar is 384 px there again; the grid box is 32 px wider (1,192, the preview's
+  12 px side padding). `fence` on the build before and after: every frozen `/waterfall` and month style identical.
+  `calzoom` W6 went red on the first build ONLY because a wider box let it pick a cell whose 100% Swap button still
+  covered it at 150%: the leg now clears the hover before asking what is on top (green on both builds).
+- **Legs:** `toolbarfit` moved to the new widths (F0 also holds 1,470 and 1,440 at level 0; F3 at 1,250 / 1,150; F4 at
+  1,250 / 1,150 / 1,100 / 960; F5 at 1,050; F6 at 1,100 and the forced step 5; F7 at 1,250; F9's solved gap from 8
+  px): 14/14. `stylebarplace` 15/15, `monthmap` ×3 20/20, `hdrcontrols` 12/12, `calzoom` 26/26, `monthpage` ×3 13/13,
+  `laptopfit` ×3 11/11, `spancounts` 10/10, `npm run check` 46/46 (all on the final build).
+- **Full gate** (on the FIRST build, 20.5vw; port 8955, 20 Nov 09:55–11:17): 5,920 PASS / 8 FAIL. Each failing leg re-run
+  alone on the build before this branch (`2ef16d2`) and on this one: `labelsetup` (halfdays) and `buildaround` (a Chrome
+  that sat idle for 13 min) green on both, machine load; ⚠️ **`hidewf` F1 + F3, `phasesui` P1 and `hiatusripple` R0 red
+  on BOTH: broken before this branch, not by it** (saved `fields.byId` differs from the fixtures', and R0's switch
+  check); `spancounts` M1 + N1 red on this branch only (the 20.5vw sidebar), fixed by "only what it needs" above. No
+  second full gate: the final build differs from the gated one only by the sidebar, which is the old width at 1,513 px
+  and up (so at the gate's 1,600 px window), and every leg it touched is green on it.
+- No What's New entry (a small UI change). README "Unreleased".
+
+||||||| 2ef16d26
 
 ### 🔤 19 Nov 2026: THE TEMPLATE EDITOR OPENS ON VARIABLES, NOT A MANUAL HEADER'S PLAIN TEXT — committed `5ee3a54e` on `scenario-version-offer`, cherry-picked onto `origin/main`, pushed on the owner's picker. README "Unreleased". Tracker card `template-editor-variables`.
 - **Owner:** *"by default when you open the template editor, all the labels of the default auto-header should be the
