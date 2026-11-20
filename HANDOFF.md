@@ -4,7 +4,7 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### 📐 20 Nov 2026: SHIFT KEEPS EVERY PHASE'S DISTANCE FROM THE WRAP — BUILT on branch `shift-wrap-follow` (worktree `.claude/worktrees/shift-wrap-follow`, from `origin/main` `a85ca47c`), NOT merged, NOT pushed, waiting for the owner to try it. Plan and rulings: [`SHIFT-WRAP-FOLLOW-PLAN.md`](SHIFT-WRAP-FOLLOW-PLAN.md). Tracker card `shift-keeps-wrap-gap` (building).
+### 📐 20 Nov 2026: SHIFT KEEPS EVERY PHASE'S DISTANCE FROM THE WRAP — BUILT on branch `shift-wrap-follow` (worktree `.claude/worktrees/shift-wrap-follow`, from `origin/main` `a85ca47c`), full gate run (every baseline identical; no failure from this branch), README "Unreleased" and What's New entries in, committed locally, NOT merged, NOT pushed. Plan and rulings: [`SHIFT-WRAP-FOLLOW-PLAN.md`](SHIFT-WRAP-FOLLOW-PLAN.md). Tracker card `shift-keeps-wrap-gap` (ready).
 - **Owner:** Shift moves Production onto new holidays, the shoot gains or loses a week, and a 1-week gap or overlap opens before Post.
   Rulings by chat and picker (plan §1): R1 every phase Production's length affects, not just Post; R2 any cause (holidays, Off days,
   worked holidays, worked weekends); R3 a phase alongside the shoot follows only if it ended in the wrap week; R4 Production's own ▲ / ▼
@@ -28,7 +28,16 @@
   `/dist/index.html`, all green: finishbefore 16, rebuildticks 20, buildaround 36, anchorside 39, buildalongside 8, buildcarry 17,
   buildendsby 21, panelstale 16, builddates 9, shiftbandline 10, yearroll 11, paneldrag 12, phasearrows 26, phasearrowsripple 10,
   rippleundo 29, mvdragcarry 15, stalebandkey 9, shiftheld 13, lastedited 22, ripplemarks 35, autonotefollow 8. Not tried in the browser pane: all five server slots are held by other chats and the
-  pane cannot open a local file. No full gate yet; no README / What's New entry yet (after the owner tries it).
+  pane cannot open a local file.
+- **Full gate** (port 8297, 20 Nov 2026, ~1 h at a load of ~6): 5,953 PASS / 9 FAIL, EVERY BASELINE IDENTICAL (waterfall PDF,
+  workbook, restore, gate 10, gate 13); `shiftwrapfollow` 14/14 inside it. The 9: `settingswin` W10, `noresetall`, `hdrrow`,
+  `calrange` (file-menu load timeout), `mvbarsize` hiatus-blanklabel, all green alone (21/21, 5/5, 40/40, 18/18, 12/12);
+  `hidewf` F1 + F3, `phasesui` P1 and `hiatusripple` R0 are red alone too, and red the same way on this branch's base
+  `a85ca47c` built clean, so they are NOT this branch. ⚠️ **They are red on `main`**: each compares a saved file's
+  `fields.byId` with a fixture's (`phasesui` names 12 fixtures). Some commit at or before `a85ca47c` changed what Save
+  writes for those fixtures; unexplained, unfixed. After the gate: README "Unreleased" + What's New `2026-11-20` added,
+  rebuilt, `npm run check` 46/46, `whatsnew` 12/12. ⚠️ `origin/main` has moved on (`07d681ed`, the 13" toolbar): merging
+  will meet README / What's New / HANDOFF conflicts at their tops (keep both sides).
 
 ### 🔤 19 Nov 2026: THE TEMPLATE EDITOR OPENS ON VARIABLES, NOT A MANUAL HEADER'S PLAIN TEXT — committed `5ee3a54e` on `scenario-version-offer`, cherry-picked onto `origin/main`, pushed on the owner's picker. README "Unreleased". Tracker card `template-editor-variables`.
 - **Owner:** *"by default when you open the template editor, all the labels of the default auto-header should be the

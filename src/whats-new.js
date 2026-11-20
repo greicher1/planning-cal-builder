@@ -17,6 +17,16 @@
 //     machine remembers as seen (localStorage 'sptcal.whatsNew'), so never change an id once it has shipped.
 export const WHATS_NEW = [
   {
+    id: '2026-11-20',
+    date: '20 Nov 2026',
+    items: [
+      {
+        title: 'Shift keeps phases in step with the wrap',
+        text: 'When you shift a calendar and Production gains or loses days on its new dates (a holiday, an Off day or a worked weekend), the phases after the wrap now move with it, so no gap or overlap opens up.',
+      },
+    ],
+  },
+  {
     id: '2026-11-19-4',
     date: '19 Nov 2026',
     items: [

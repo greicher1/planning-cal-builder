@@ -29,6 +29,22 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — Shift keeps every phase's distance from the wrap (20 Nov 2026)
+
+The owner asked that, when a shift moves Production and its new dates change how long the shoot takes, the phases
+around the wrap keep their distance from it, instead of leaving a week's gap or overlap. A shoot can grow or shrink
+on its new dates because a holiday falls in it or drops out, or because a day marked Off or a weekend marked as a shoot
+day lands differently. Now, after Shift (the arrows, By weeks, To a date) or a hiatus ripple moves Production, every
+phase tied to the wrap that the move also moved (one starting after the wrap day, or one running alongside whose last
+working day is in the wrap week) moves by the extra working weeks too (`shiftWithWrapFollow`, `wrapFollowBefore`,
+`wrapFollowAfter`), stepping over held hiatuses as the shift itself does. A phase left unticked stays, a phase straddling the wrap stays,
+and Production's own ▲ / ▼ stay one-phase-only. The result line names the cause and the follow ("Wrap 9/14/26: Labor
+Day falls in the shoot now. Post and Localization were also pushed 1 wk to keep their distance from the wrap.").
+To a date with Production "ends by" now searches back a week at a time until the wrap is on or before the date. One undo
+step, nothing saved changes shape, and no output moves for a calendar whose shoot keeps its length (the reference
+calendar's own shifts are unchanged). Verified: new leg `shiftwrapfollow` 14/14, 21 related shift, build and ripple legs,
+`npm run check` 46/46, and the full gate, whose every baseline comparison is identical.
+
 ### Unreleased — The template editor opens on variables, not a Manual header's plain text (19 Nov 2026)
 
 The owner asked that, when the template editor opens, the default auto header's lines be the variables rather than plain
