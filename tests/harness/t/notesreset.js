@@ -238,7 +238,7 @@ window.addEventListener('load', function () { (async function () {
     var m4 = await pressReset();
     m4.answered = await answer('Reset');
     add('M4', 'with only an automatic note\'s month colour to clear, Reset Month Notes asks to return 1 note to automatic colours, deleting nothing',
-      m4.asked && m4.q.count === 1 && /Reset Month Notes/.test(m4.q.text) && /Return 1 note in the Month view to automatic colours and places\?/.test(m4.q.text)
+      m4.asked && m4.q.count === 1 && /Reset Month Notes/.test(m4.q.text) && /Return 1 note in the Month view to automatic colors and places\?/.test(m4.q.text)
         && /Nothing is deleted/.test(m4.q.text) && m4.q.resetDanger && m4.answered,
       m4, 'one danger question: Return 1 note ...; Reset');
     var m5 = await pressReset(); await T.sleep(600);

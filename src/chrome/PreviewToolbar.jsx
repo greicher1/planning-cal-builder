@@ -559,7 +559,7 @@ export function PreviewToolbar() {
           that step. preventDefault on the press keeps the focus and the text picked where they are, so the buttons
           act on them once the menu is open. No id (collectFieldValues), and a <button>, never an input. */}
       <button type="button" className="tb-text-btn" ref={textBtnRef}
-              title="Text style: size, bold, italic, colour, alignment"
+              title="Text style: size, bold, italic, color, alignment"
               aria-haspopup="true" aria-expanded={textOpen ? 'true' : 'false'}
               onMouseDown={(e) => e.preventDefault()}
               onClick={() => setTextOpen((o) => !o)}>
@@ -621,7 +621,7 @@ export function PreviewToolbar() {
             view only: legacy.css hides it while #view-month-btn is active. A <button>, never an
             id'd input/select/textarea, so collectFieldValues() cannot sweep it into a saved file. */}
         <Button id="tb-side-boxes-btn" className="tools-btn tb-solo" type="button" size="xs" variant="default"
-                title="Add a colour key or a text box beside the waterfall"
+                title="Add a color key or a text box beside the waterfall"
                 aria-haspopup="true" aria-expanded="false"
                 rightSection={<span className="caret" aria-hidden="true">▾</span>}>
           Side Boxes

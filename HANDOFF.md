@@ -4,6 +4,8 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### 🇺🇸 19 Nov 2026: "COLOUR" READS "COLOR" IN THE APP — uncommitted on `scenario-version-offer` (owner: *"Change "Colour" in all places to "Color""*). Every USER-VISIBLE spelling (tooltips, aria-labels, the note editors' Color row and hints, Reset Notes questions, Paste notes' hint and error, toolbar tooltips, the Holidays hint, the Help window) in `src/legacy/app.js`, `src/index.html`, `Sidebar.jsx`, `Header.jsx`, `PreviewToolbar.jsx`. ⛔ Code names, CSS classes (`note-colour-*`), comments, docs and saved keys keep "colour" on purpose: renaming them moves leg selectors and risks the save format for no user gain. New user-facing copy says "color". Legs `notelook`, `hiatuscolour`, `notesreset` updated. README "Unreleased". Tracker card `color-spelling`.
+
 ### 🗓️ 19 Nov 2026: THE NOTE EDITOR'S DAY DEFAULT READS "Default (Monday)" — branch `note-day-default-label` (worktree `.claude/worktrees/note-day-default-label`, from `origin/main` `9a71d11`), owner tried it on localhost, then *"Finish it"*. README "Unreleased". Tracker card `note-day-default-rename`. Supersedes the 17 Nov "No date" label (entry below, `note-day-default-no-date`).
 - **Owner:** *"Putting "No Date" as default selection in waterfall might not make sense as even tho there is no typed
   date, it still is on monday when you go to the month view"*; then, after weighing "Default - Mon xx/xx/xx" with the Mon

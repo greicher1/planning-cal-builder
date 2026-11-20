@@ -474,7 +474,7 @@ export function Header() {
         leftSection={<IconRotateCcw className="btn-ic" />}
         title={notesReset.view === 'month'
           ? 'Clear the notes added in the Month view. Waterfall notes stay — reset those from the Waterfall view.'
-          : 'Return every waterfall note to its automatic text, colour and size. The Month view shows these notes too, so they reset there as well. A deleted automatic note stays deleted: tick it in Settings › Automatic notes to bring it back.'}>
+          : 'Return every waterfall note to its automatic text, color and size. The Month view shows these notes too, so they reset there as well. A deleted automatic note stays deleted: tick it in Settings › Automatic notes to bring it back.'}>
         {/* "Reset Waterfall Notes" in the Waterfall (owner, 11 Nov 2026; "Reset Notes" until then). */}
         <span className="tb-slot-label" data-ghost={notesReset.view === 'month' ? 'Reset Waterfall Notes' : 'Reset Month Notes'}>
           {notesReset.view === 'month' ? 'Reset Month Notes' : 'Reset Waterfall Notes'}

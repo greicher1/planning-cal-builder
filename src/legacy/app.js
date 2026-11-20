@@ -9414,7 +9414,7 @@ export function initLegacyApp() {
       const swColor = PHASE_COLOR_OPTIONS[autoPhaseColorIndex(p)].color;
       row.style.setProperty('--phase-color', swColor);
       row.innerHTML = `
-        <div class="swatch clickable" id="swatch-${p.key}" style="background:${swColor};" title="Change colour" aria-label="Change colour"></div>
+        <div class="swatch clickable" id="swatch-${p.key}" style="background:${swColor};" title="Change color" aria-label="Change color"></div>
         ${phaseHeadHtml(`<input type="text" class="phase-name-input" id="name-${p.key}" value="${p.label}" placeholder="${p.label}" aria-label="Phase name">`,
           p.key !== 'production' ? MVONLY_TAG(true, MVONLY_PHASE_TITLE) : '',
           `<div class="phase-meta" id="meta-${p.key}"></div>
@@ -9496,7 +9496,7 @@ export function initLegacyApp() {
     // always on (prep is month-only already, plan D2), and the per-episode list sits boxed under its own heading
     // (refreshPrepUI). The old caption sentence went with the tag; its fact is the tag's title.
     row.innerHTML = `
-        <div class="swatch clickable" id="swatch-${PREP_KEY}" style="background:${prepColor};" title="Change colour" aria-label="Change colour"></div>
+        <div class="swatch clickable" id="swatch-${PREP_KEY}" style="background:${prepColor};" title="Change color" aria-label="Change color"></div>
         ${phaseHeadHtml(`<input type="text" class="phase-name-input" id="prep-name" value="${autoPrepName()}" placeholder="${autoPrepName()}" aria-label="Prep name">`,
           MVONLY_TAG(false, 'Working days before each episode’s first shoot day, in the month view and its PDF only'),
           `<div class="phase-meta prep-meta" id="prep-meta"></div>`)}
@@ -10116,7 +10116,7 @@ export function initLegacyApp() {
     const look = duColors();
     row.style.setProperty('--phase-color', look.color);
     row.innerHTML = `
-        <div class="swatch clickable du-swatch" id="swatch-${DU_KEY}" style="background:${look.color};" title="Change colour" aria-label="Change colour"></div>
+        <div class="swatch clickable du-swatch" id="swatch-${DU_KEY}" style="background:${look.color};" title="Change color" aria-label="Change color"></div>
         ${phaseHeadHtml(`<input type="text" class="phase-name-input du-name-input" value="${DU_TITLE}" placeholder="${DU_TITLE}" maxlength="${DU_NAME_MAX}" aria-label="Tandem name" title="What the pills say: Tandem 101 unless you type another name. Each episode or block can have its own name below.">`,
           MVONLY_TAG(false, 'A second crew&rsquo;s days, drawn in the month view and its PDF only. They never change Production&rsquo;s days.'),
           `<div class="phase-meta du-meta"></div>`)}
@@ -10435,7 +10435,7 @@ export function initLegacyApp() {
     // The blend (PHASES-TAB-PLAN.md §3.4a); buildPhaseRows() says what it keeps. The id'd controls are in their old
     // order: name, start, unit, weeks, days, end, snap, wknum, then the hiatus.
     row.innerHTML = `
-      <div class="swatch clickable" id="swatch-${key}" style="background:${opt.color};" title="Change colour" aria-label="Change colour"></div>
+      <div class="swatch clickable" id="swatch-${key}" style="background:${opt.color};" title="Change color" aria-label="Change color"></div>
       ${phaseHeadHtml(`<input type="text" class="phase-name-input" id="name-${key}" placeholder="Phase name" aria-label="Phase name">`,
         MVONLY_TAG(true, MVONLY_PHASE_TITLE),
         `<div class="phase-meta" id="meta-${key}"></div>
@@ -11018,7 +11018,7 @@ export function initLegacyApp() {
       const can = weeks.length > 0;
       if(sw.classList.contains('clickable') !== can){
         sw.classList.toggle('clickable', can);
-        sw.title = can ? 'Change colour' : 'Enter its dates to choose a colour';
+        sw.title = can ? 'Change color' : 'Enter its dates to choose a color';
         sw.setAttribute('aria-label', sw.title);
       }
     });
@@ -11106,7 +11106,7 @@ export function initLegacyApp() {
       const can = keys.length > 0;
       if(sw.classList.contains('clickable') !== can || !sw.title){
         sw.classList.toggle('clickable', can);
-        sw.title = can ? 'Change colour' : 'Enter its dates to choose a colour';
+        sw.title = can ? 'Change color' : 'Enter its dates to choose a color';
         sw.setAttribute('aria-label', sw.title);
       }
     });
@@ -11232,7 +11232,7 @@ export function initLegacyApp() {
     row.innerHTML = `
       <div class="hiatus-head">
         ${HIATUS_COLLAPSE_BTN}
-        <div class="swatch clickable hiatus-swatch" title="Change colour" aria-label="Change colour"></div>
+        <div class="swatch clickable hiatus-swatch" title="Change color" aria-label="Change color"></div>
         <div class="hiatus-head-text">
           <input type="text" class="hiatus-name" placeholder="Hiatus" value="${escAttr(prefillName)}" aria-label="Hiatus name">
           <div class="hiatus-range"></div>
@@ -19439,7 +19439,7 @@ export function initLegacyApp() {
                                                      : 'Renames it wherever it shows. Its date follows the schedule.') : '';
     // Colour, the list's third row: its name, the picked colour's name at the right, then the swatches (a hiatus band's
     // standard ten, a note's whole palette in two rows, ten then eight).
-    const colourRow = `<div class="note-item note-colour-item"><div class="note-line"><span class="note-row-name">Colour</span>`
+    const colourRow = `<div class="note-item note-colour-item"><div class="note-line"><span class="note-row-name">Color</span>`
       + `<span class="note-colour-name">${escHtml(noteColourName(curColor))}</span></div>${swatchRows}</div>`;
     pop.innerHTML = `<div class="note-pop-head"><div class="note-pop-heading"><span class="note-pop-title">${escHtml(popName)}</span>`
       + ` <span class="note-pop-when">${escHtml(popWhen)}</span></div>${headBtn}</div>
@@ -27033,7 +27033,7 @@ export function initLegacyApp() {
     const noColor = !!(look && look.noColor);
     q('.hf-color').disabled = noColor;
     q('.hf-swatch:not(.hf-swatch-hl)').classList.toggle('is-disabled', noColor);
-    q('.hf-swatch:not(.hf-swatch-hl)').title = noColor ? 'A phase, episode or Simultaneous Post bar keeps its own text colour' : 'Text color';
+    q('.hf-swatch:not(.hf-swatch-hl)').title = noColor ? 'A phase, episode or Simultaneous Post bar keeps its own text color' : 'Text color';
     // Highlight is ALWAYS in the bar since 11 Nov 2026, greyed (and its picker off) unless the picked text takes a
     // highlight (header and side-box lines). It used to appear only then, which widened the bar and moved the whole
     // toolbar as you clicked around (owner: "I don't like the menu changing as you click around").
@@ -28128,10 +28128,10 @@ export function initLegacyApp() {
           '</select>' +
           '<button type="button" class="hde-ctl hde-btn hde-b" title="Bold"><b>B</b></button>' +
           '<button type="button" class="hde-ctl hde-btn hde-i" title="Italic"><i>I</i></button>' +
-          '<label class="hde-well" title="Text colour"><span>A</span>' +
-            '<i class="hde-ink-bar"></i><input type="color" class="hde-ink" aria-label="Text colour"></label>' +
+          '<label class="hde-well" title="Text color"><span>A</span>' +
+            '<i class="hde-ink-bar"></i><input type="color" class="hde-ink" aria-label="Text color"></label>' +
           '<label class="hde-well" title="Highlight"><span>A</span>' +
-            '<i class="hde-hl-bar"></i><input type="color" class="hde-hl" aria-label="Highlight colour"></label>' +
+            '<i class="hde-hl-bar"></i><input type="color" class="hde-hl" aria-label="Highlight color"></label>' +
           '<span class="hde-sep"></span>' +
           '<button type="button" class="hde-ctl hde-btn hde-align" data-align="left" title="Align left">⮨</button>' +
           '<button type="button" class="hde-ctl hde-btn hde-align" data-align="center" title="Align centre">≡</button>' +
@@ -30061,7 +30061,7 @@ export function initLegacyApp() {
   async function askResetWaterfallNotes(){
     const n = waterfallNotesToReset(), them = n === 1 ? 'it' : 'them';
     if(!n) return false;
-    if(!(await uiConfirm('Reset ' + plural(n, 'waterfall note', 'waterfall notes') + ' to automatic text, colour and size? '
+    if(!(await uiConfirm('Reset ' + plural(n, 'waterfall note', 'waterfall notes') + ' to automatic text, color and size? '
                          + 'This clears ' + them + ' in the Month view too. Undo brings ' + them + ' back.',
                          { title: 'Reset Waterfall Notes', confirmLabel: 'Reset', danger: true }))) return false;
     resetWaterfallNotes();
@@ -30073,9 +30073,9 @@ export function initLegacyApp() {
     if(m.added || m.restyled){
       const msg = m.added
         ? 'Delete ' + plural(m.added, 'note', 'notes') + ' added in the Month view?'
-          + (m.restyled ? ' The other notes there go back to their automatic colours and places.' : '')
+          + (m.restyled ? ' The other notes there go back to their automatic colors and places.' : '')
           + ' Waterfall notes stay. Undo brings ' + (m.added === 1 && !m.restyled ? 'it' : 'them') + ' back.'
-        : 'Return ' + plural(m.restyled, 'note', 'notes') + ' in the Month view to automatic colours and places? '
+        : 'Return ' + plural(m.restyled, 'note', 'notes') + ' in the Month view to automatic colors and places? '
           + 'Nothing is deleted. Undo brings them back.';
       if(!(await uiConfirm(msg, { title: 'Reset Month Notes', confirmLabel: 'Reset', danger: true }))) return false;
     }
@@ -43834,7 +43834,7 @@ export function initLegacyApp() {
     if(m){ const n = parseInt(m[1], 16); return [(n >> 16 & 255) / 255, (n >> 8 & 255) / 255, (n & 255) / 255]; }
     m = /^#([0-9a-f])([0-9a-f])([0-9a-f])$/i.exec(s);
     if(m) return [m[1], m[2], m[3]].map(function(h){ return parseInt(h + h, 16) / 255; });
-    throw new Error('Month PDF: a colour of "' + s + '".');
+    throw new Error('Month PDF: a color of "' + s + '".');
   }
   // No fill (MV_NOTE_NOFILL, MONTH-NOTES-PLAN.md §2): the one eight-digit colour the renderer can write, a
   // zero-alpha white. mvlRgb still throws on it, so a caller that forgot to ask cannot paint it white.
@@ -45937,20 +45937,20 @@ export function initLegacyApp() {
       + ` <span class="note-pop-when">${escHtml(mvWhen)}</span></div>`
       + (isAuto ? `<button type="button" class="note-pop-delete" title="Hides it from the month view and its PDF. Tick its Month box in Settings ▸ Automatic notes to bring it back.">Hide Auto-Note</button>`
                 : isHol ? '' : delNoteHtml) + `</div>`;
-    const colourRow = `<div class="note-item note-colour-item"><div class="note-line"><span class="note-row-name">Colour</span>`
+    const colourRow = `<div class="note-item note-colour-item"><div class="note-line"><span class="note-row-name">Color</span>`
       + `<span class="note-colour-name">${escHtml(noteColourName(curColor))}</span></div>${notePaletteRowsHtml(curColor)}</div>`;
     const footHtml = `<div class="note-pop-foot">${(isAuto || isHol) ? '<span class="note-pop-keys">Enter to save · Esc to cancel</span>' : ''}`
       + `<button type="button" class="note-pop-save">Save</button></div>`;
     pop.innerHTML = isAuto
       ? `${headHtml}
       <textarea rows="2" placeholder="Clear to hide this auto note">${curText.replace(/</g,'&lt;')}</textarea>
-      <div class="mv-note-pop-hint">Renames it wherever it shows. Its date follows the schedule. Colour is for the month view.${autoStd}</div>
+      <div class="mv-note-pop-hint">Renames it wherever it shows. Its date follows the schedule. Color is for the month view.${autoStd}</div>
       <div class="note-list">${colourRow}</div>
       ${footHtml}`
       : isHol
       ? `${headHtml}
       <textarea rows="2" placeholder="Clear to go back to “${escHtml(holiday.origName)}”">${curText.replace(/</g,'&lt;')}</textarea>
-      <div class="mv-note-pop-hint">Renames this holiday wherever it shows. Colour is for the month view.</div>
+      <div class="mv-note-pop-hint">Renames this holiday wherever it shows. Color is for the month view.</div>
       <div class="note-list">${colourRow}</div>
       ${footHtml}`
       : `${headHtml}
@@ -46740,7 +46740,7 @@ export function initLegacyApp() {
       let color = mvNoteStartColor();
       if(colorW){
         color = pasteNoteColor(colorW);
-        if(!color) return bad('can’t read the colour “' + colorW + '”');
+        if(!color) return bad('can’t read the color “' + colorW + '”');
       }
       out.push({line: n, iso: isoOf(date), date: date, text: note, color: color});
     });
@@ -46787,8 +46787,8 @@ export function initLegacyApp() {
     ov.innerHTML = '<div class="paste-notes" role="dialog" aria-modal="true" aria-label="Paste notes">'
       + '<div class="paste-notes-head"><div class="paste-notes-title">Paste notes</div>'
       + '<button type="button" class="paste-notes-x" aria-label="Close">×</button></div>'
-      + '<p class="paste-notes-hint">One note per line: <b>date, text, colour</b>. Dates as ' + pasteDateExample() + ' or 2026-10-20. '
-      + 'A colour is a swatch’s name (red, pink, pale blue, light grey, no fill…) or #RRGGBB, and can be left off. '
+      + '<p class="paste-notes-hint">One note per line: <b>date, text, color</b>. Dates as ' + pasteDateExample() + ' or 2026-10-20. '
+      + 'A color is a swatch’s name (red, pink, pale blue, light grey, no fill…) or #RRGGBB, and can be left off. '
       + 'Columns copied from a spreadsheet work too.</p>'
       + '<textarea class="paste-notes-text" rows="8" spellcheck="false" aria-label="Notes, one per line" '
       + 'placeholder="' + pasteDateExample() + ', Table read, pale blue&#10;' + pasteDateExample(23) + ', Network notes due"></textarea>'

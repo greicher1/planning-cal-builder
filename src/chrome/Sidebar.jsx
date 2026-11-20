@@ -670,7 +670,7 @@ export function MonthViewCard() {
         <Divider my="sm" />
         <SettingRow htmlFor="paste-notes-btn" label="Paste notes">
           <Button id="paste-notes-btn" type="button" size="xs" variant="default"
-                  title="Add many month-view notes at once: one per line, as date, text, colour">
+                  title="Add many month-view notes at once: one per line, as date, text, color">
             Paste notes…
           </Button>
         </SettingRow>
@@ -957,7 +957,7 @@ export function HolidaysCard() {
         <IconCalendarDot className="card-ic" /><span>Holidays</span>
         <InfoHint label="Holidays" width={280}>
           Un-tick <strong>Enable</strong> to work a holiday: it stops costing a day and stops appearing
-          as a note. It only shows where that moves a date. A coloured strip marks the holidays inside a
+          as a note. It only shows where that moves a date. A colored strip marks the holidays inside a
           phase that counts days (Production, a phase counted in Days, episode prep). The two note columns control where an
           enabled holiday shows up. <strong>Costs a shoot day</strong> marks a weekday holiday that falls
           during Production, on a day the shoot would otherwise have worked.

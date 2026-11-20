@@ -29,6 +29,18 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — "Colour" reads "Color" everywhere a user sees it (19 Nov 2026)
+
+The owner asked for "Colour" to be "Color" in all places. Every user-facing spelling changed: the swatches' "Change
+color" tooltips (phase, Prep, Tandem, custom phase and hiatus squares), the note editors' **Color** row and "Color is for
+the month view." hints in both views, the header editor's Text / Highlight color, the Reset Notes and Reset Month Notes
+questions, Paste notes' hint and its "can't read the color" error, the toolbar's Text style and side-box tooltips, the
+Holidays card's hint, and the Help window. ⛔ Left as they were on purpose: code names, CSS classes (`note-colour-item`,
+`note-colour-name`, `hiatuscolour`…), comments, docs, and every saved-file key, so no file, leg selector or output
+moves. Paste notes still reads any colour word it read before. Legs `notelook`, `hiatuscolour` and `notesreset` were
+updated to the new words; verified: `npm run check` 46/46, the built file carries no user-visible "colour", and those
+three legs plus `mvnotes` pass on the build.
+
 ### Unreleased — The note editor's Day list starts on "Default (Monday)" (19 Nov 2026)
 
 In the waterfall's note editor the Day list's empty choice read "No date" (since 17 Nov 2026). The owner pointed out that

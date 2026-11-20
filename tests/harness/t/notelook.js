@@ -191,7 +191,7 @@ window.addEventListener('load', function () { (async function () {
       kase('W1', 'a typed cell: "Note" then "Week of 11/2/26", Delete Note at the top right; ONE list under the box in A2\'s order (Day, Stays with, Colour, Show in month view, In this cell); Colour named, 18 swatches ten then eight on one grid; a foot with Save, no keys line; 272 px',
            f.a2 && f.width === 272 && f.name === 'Note' && f.when === 'Week of 11/2/26' && f.button === 'Delete Note' && f.btnTopRight
              && f.hint === '' && f.listUnderBox
-             && same(f.rows, ['Day', 'Stays with', 'Colour', 'Show in month view', 'In this cell'])
+             && same(f.rows, ['Day', 'Stays with', 'Color', 'Show in month view', 'In this cell'])
              && f.colourName === 'Purple' && same(f.swRows, [10, 8]) && f.swOneLine && f.swAligned && f.swSize === 18
              && same(f.foot, { keys: '', save: 'Save', last: true, saveRight: true }),
            f);
@@ -219,7 +219,7 @@ window.addEventListener('load', function () { (async function () {
       kase('W3', 'one automatic note: "Auto-Note" then "Tue 10/20/26", Hide Auto-Note at the top right, what saving does right under the box, then only Colour; Save in the foot',
            f.a2 && f.name === 'Auto-Note' && f.when === 'Tue 10/20/26' && f.button === 'Hide Auto-Note' && f.btnTopRight
              && f.hint === 'Renames it wherever it shows. Its date follows the schedule.' && f.hintUnderBox
-             && same(f.rows, ['Colour']) && same(f.foot, { keys: '', save: 'Save', last: true, saveRight: true }),
+             && same(f.rows, ['Color']) && same(f.foot, { keys: '', save: 'Save', last: true, saveRight: true }),
            f);
     });
 
@@ -228,7 +228,7 @@ window.addEventListener('load', function () { (async function () {
       await closeEditor();
       kase('W4', 'one holiday: "Holiday" then "Mon 9/7/26", Hide Holiday at the top right, its line under the box, only Colour',
            f.a2 && f.name === 'Holiday' && f.when === 'Mon 9/7/26' && f.button === 'Hide Holiday' && f.btnTopRight
-             && f.hint === 'Renames this holiday wherever it shows.' && f.hintUnderBox && same(f.rows, ['Colour']),
+             && f.hint === 'Renames this holiday wherever it shows.' && f.hintUnderBox && same(f.rows, ['Color']),
            f);
     });
 
@@ -244,9 +244,9 @@ window.addEventListener('load', function () { (async function () {
       setBox(p, was);                                    // Esc keeps a changed box (AUD2-040): put it back first
       await closeEditor();
       kase('W5', 'a cell of automatic lines: Colour then "In this cell" (its Hides at the right), no button; a typed line brings Day, Stays with and the switch back in A2\'s order, above Colour',
-           a.name === 'Note' && a.when === 'Week of 6/29/26' && a.button === '' && same(a.rows, ['Colour', 'In this cell'])
+           a.name === 'Note' && a.when === 'Week of 6/29/26' && a.button === '' && same(a.rows, ['Color', 'In this cell'])
              && same(items, ['Start Principal Photography [Hide]', 'Independence Day (Observed) [Hide]'])
-             && same(b.rows, ['Day', 'Stays with', 'Colour', 'Show in month view', 'In this cell']),
+             && same(b.rows, ['Day', 'Stays with', 'Color', 'Show in month view', 'In this cell']),
            { before: a.rows, items: items, after: b.rows, name: a.name, when: a.when, button: a.button });
     });
 
@@ -299,8 +299,8 @@ window.addEventListener('load', function () { (async function () {
       kase('M1', 'month view, an automatic note: "Auto-Note" then "Mon 6/29/26" (the heading still .mv-note-pop-day), Hide Auto-Note at the top right, what saving does under the box, Colour, then "Enter to save · Esc to cancel" and Save',
            f.a2 && f.width === 272 && f.name === 'Auto-Note' && f.when === 'Mon 6/29/26' && head === 'Auto-Note Mon 6/29/26'
              && f.button === 'Hide Auto-Note' && f.btnTopRight
-             && f.hint === 'Renames it wherever it shows. Its date follows the schedule. Colour is for the month view.' && f.hintUnderBox
-             && same(f.rows, ['Colour']) && f.colourName === 'Purple' && same(f.swRows, [10, 8]) && f.swAligned
+             && f.hint === 'Renames it wherever it shows. Its date follows the schedule. Color is for the month view.' && f.hintUnderBox
+             && same(f.rows, ['Color']) && f.colourName === 'Purple' && same(f.swRows, [10, 8]) && f.swAligned
              && same(f.foot, { keys: 'Enter to save · Esc to cancel', save: 'Save', last: true, saveRight: true }),
            f);
     });
@@ -311,7 +311,7 @@ window.addEventListener('load', function () { (async function () {
       await closeMv();
       kase('M2', 'a holiday: "Holiday" then "Fri 7/3/26", no button, its line under the box, Colour, the same foot',
            f.a2 && f.name === 'Holiday' && f.when === 'Fri 7/3/26' && f.button === ''
-             && f.hint === 'Renames this holiday wherever it shows. Colour is for the month view.' && same(f.rows, ['Colour'])
+             && f.hint === 'Renames this holiday wherever it shows. Color is for the month view.' && same(f.rows, ['Color'])
              && same(f.foot, { keys: 'Enter to save · Esc to cancel', save: 'Save', last: true, saveRight: true }),
            f);
     });
@@ -322,7 +322,7 @@ window.addEventListener('load', function () { (async function () {
       await closeMv();
       kase('M3', 'a waterfall line: "Waterfall line" then "Tue 11/3/26", Delete Note at the top right; Stays with, Colour, Show in waterfall; Save, no keys line',
            f.a2 && f.name === 'Waterfall line' && f.when === 'Tue 11/3/26' && f.button === 'Delete Note' && f.btnTopRight
-             && f.hint === '' && same(f.rows, ['Stays with', 'Colour', 'Show in waterfall'])
+             && f.hint === '' && same(f.rows, ['Stays with', 'Color', 'Show in waterfall'])
              && same(f.foot, { keys: '', save: 'Save', last: true, saveRight: true }),
            f);
     });
@@ -342,7 +342,7 @@ window.addEventListener('load', function () { (async function () {
       await settle();
       var b = block('2026-11-11', /Crew lunch/), bg = b ? getComputedStyle(b).backgroundColor : null;
       kase('M4', 'a "+": "Note" then "Wed 11/11/26", no button; a swatch renames Colour at once; Save adds the note in its colour and closes the editor',
-           f.name === 'Note' && f.when === 'Wed 11/11/26' && f.button === '' && f.rows.indexOf('Colour') >= 0 && f.rows[f.rows.length - 1] === 'Show in waterfall'
+           f.name === 'Note' && f.when === 'Wed 11/11/26' && f.button === '' && f.rows.indexOf('Color') >= 0 && f.rows[f.rows.length - 1] === 'Show in waterfall'
              && named === 'Light blue' && !mvPop() && !!b && bg === 'rgb(0, 176, 240)',
            { look: f, named: named, closed: !mvPop(), block: !!b, bg: bg });
       byId('undo-btn').click(); await settle();
