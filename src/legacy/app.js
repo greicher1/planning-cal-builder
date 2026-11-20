@@ -36664,6 +36664,116 @@ export function initLegacyApp() {
   function shiftCalendar(weeks, fromIso, opts){
     return asShootDayMove(()=> shiftCalendarDates(weeks, fromIso, opts));
   }
+
+  // ---------- ⭐ THE WRAP FOLLOW: the phases tied to the wrap keep their distance from it ----------
+  // SHIFT-WRAP-FOLLOW-PLAN.md (owner, 20 Nov 2026, rulings R1-R7). A shift moves every phase's START by the same N
+  // working weeks, but Production's wrap is worked out again from its shoot days on the new dates, so it moves N weeks
+  // PLUS OR MINUS whatever those dates change: a union holiday falling into or out of the shoot, a day marked Off now
+  // costing a shoot day, a worked weekend or holiday mark landing on a plain weekday (R2). Every phase after the wrap
+  // moved exactly N, so a week's gap or overlap opened before Post. Now, after the move, every phase tied to the wrap
+  // moves the difference, so it keeps the distance from the wrap it HAD. Not a gap-closer: Build Around closes gaps.
+  //   * TIED TO THE WRAP (read BEFORE the move, wrapFollowBefore): a phase starting after the wrap day (R1), or one
+  //     running alongside the shoot whose last working day is in the wrap week (R3). One that runs on past the wrap
+  //     stays where the shift put it (R7), and so does one ending earlier: it is tied to the shoot's start.
+  //   * ONLY PHASES THE MOVE MOVED, and only when it moved Production: an unticked phase never moves.
+  //   * HOW FAR: the wrap the shoot actually has against the one the shift alone would have given it (`expected`,
+  //     moved by the caller's own mapping), in WORKING weeks over the held breaks the follow move steps over, so a
+  //     locked Christmas break between them does not count.
+  //   * THE FOLLOW MOVE is an ordinary part move of the followers (each one's run as its week window, the owner's T2),
+  //     stepping over held breaks, so a follower's own hiatus, its stores and the notes in its run go with it. Production
+  //     is not in it, so the day marks stay where the first move put them.
+  // ⛔ No switch (R4). Not run by the phase card's ▲ / ▼ or the month drag (one phase each, R4), nor by Build Around
+  // (it builds from the real wrap). A move whose wrap lands where expected changes nothing: most shifts.
+  // The calendar as it stands, for a later wrapFollowAfter. Null when there is no shoot to follow.
+  function wrapFollowBefore(){
+    const sch = wholeCalendar(currentSchedule);
+    const info = sch && sch.productionInfo;
+    if(!info || !info.lastShootDay) return null;
+    const wrap = info.lastShootDay;
+    const wrapWeek = mondayOf(wrap).getTime();
+    const tied = [];
+    ((sch && sch.segments) || []).forEach(s=>{
+      if(!s || !s.key || s.key === 'production' || duIsDerived(s) || s.prep) return;
+      const el = document.getElementById('start-' + s.key);
+      if(!el || !el.value || !s.start) return;
+      const last = phaseLastWorkday(s);
+      if(s.start > wrap || (last && mondayOf(last).getTime() === wrapWeek)) tied.push(s.key);
+    });
+    return {wrap, tied, starts: phaseStartsNow(), counts: wrapCauseCounts(info)};
+  }
+  // What can move the wrap on the new dates (R2), as the shoot's own walk counted it.
+  function wrapCauseCounts(info){
+    return {
+      hols: (info.holidaysHit || []).map(h=> h.name),
+      offs: (info.offsHit || []).length,
+      worked: (info.addedDays || []).length + (info.holidaysWorked || []).length
+    };
+  }
+  // After the caller's move(s): move the tied phases the move moved by the wrap's difference. `expectedOf(date)` is the
+  // date the caller's move alone would give the old wrap. Returns null (nothing to do) or {weeks, keys, wrap, cause}.
+  function wrapFollowAfter(before, expectedOf){
+    if(!before || !before.tied.length) return null;
+    const startsNow = phaseStartsNow();
+    if((before.starts.production || '') === (startsNow.production || '')) return null;   // Production did not move
+    const info = currentSchedule && currentSchedule.productionInfo;
+    if(!info || !info.lastShootDay) return null;
+    const keys = before.tied.filter(k=> startsNow[k] && startsNow[k] !== before.starts[k]);
+    if(!keys.length) return null;
+    const runs = {};
+    ((wholeCalendar(currentSchedule) || {}).segments || []).forEach(s=>{
+      if(s && s.key && keys.indexOf(s.key) !== -1 && s.start) runs[s.key] = {from: isoOf(mondayOf(s.start)), to: isoOf(mondayOf(phaseLastWorkday(s) || s.start))};
+    });
+    const part = {phases: keys, windows: keys.filter(k=> runs[k]).map(k=> runs[k])};
+    const held = shiftHeldWeeks(part);
+    const extra = workingWeeksBetween(expectedOf(before.wrap), info.lastShootDay, held);
+    if(!extra || Math.abs(extra) > MAX_SHIFT_WEEKS) return null;
+    const cause = wrapCauseText(before.counts, wrapCauseCounts(info), extra);
+    colKeepQuiet++;   // a followed phase remembers no column: the user moved the calendar, not this phase (AUD2-057)
+    try { shiftCalendar(extra, null, {part, stepHeld: true, keepView: true}); }
+    finally { colKeepQuiet--; }
+    return {weeks: extra, keys, wrap: productionWrapText(), cause};
+  }
+  // "Thanksgiving falls in the shoot now", "Good Friday no longer falls in the shoot", "2 more Off days fall on shoot
+  // days", ... joined; or, with nothing the walk counted to point at, the shoot's own change.
+  function wrapCauseText(b, a, extra){
+    const bits = [];
+    const list = ns => ns.length <= 1 ? ns.join('') : ns.slice(0, -1).join(', ') + ' and ' + ns[ns.length - 1];
+    const gained = a.hols.filter(n=> b.hols.indexOf(n) === -1), lost = b.hols.filter(n=> a.hols.indexOf(n) === -1);
+    if(gained.length) bits.push(list(gained) + (gained.length === 1 ? ' falls' : ' fall') + ' in the shoot now');
+    if(lost.length) bits.push(list(lost) + ' no longer ' + (lost.length === 1 ? 'falls' : 'fall') + ' in the shoot');
+    const offs = a.offs - b.offs;
+    if(offs) bits.push(Math.abs(offs) + (offs > 0 ? ' more' : ' fewer') + (Math.abs(offs) === 1 ? ' Off day costs' : ' Off days cost') + ' a shoot day');
+    const worked = a.worked - b.worked;
+    if(worked) bits.push(Math.abs(worked) + (worked > 0 ? ' more' : ' fewer') + ' worked ' + (Math.abs(worked) === 1 ? 'day adds' : 'days add') + ' a shoot day');
+    if(!bits.length) bits.push('the shoot takes ' + (extra > 0 ? 'longer' : 'less time') + ' on its new dates');
+    return bits.join('; ');
+  }
+  // The sentence for the Shift line: "Post and Localization were also pushed 1 wk to keep their distance from the wrap."
+  function wrapFollowText(f){
+    if(!f) return '';
+    const names = f.keys.map(rippleName);
+    const list = names.length <= 1 ? names.join('') : names.slice(0, -1).join(', ') + ' and ' + names[names.length - 1];
+    return list + (names.length === 1 ? ' was' : ' were') + ' also ' + (f.weeks > 0 ? 'pushed ' : 'pulled ') + rippleWks(Math.abs(f.weeks))
+      + ' to keep ' + (names.length === 1 ? 'its' : 'their') + ' distance from the wrap.';
+  }
+  // The toolbar arrows' few words: "Post & 1 more pushed 1 wk".
+  function wrapFollowShort(f){
+    if(!f) return '';
+    const n = f.keys.length;
+    return rippleName(f.keys[0]) + (n > 1 ? ' & ' + (n - 1) + ' more' : '') + (f.weeks > 0 ? ' pushed ' : ' pulled ') + rippleWks(Math.abs(f.weeks));
+  }
+  // The Shift tools' wrapper: run `move` (one or more shiftCalendar calls, `weeks` working weeks in all over the held
+  // weeks `held`, the obstacles the move steps over) and follow the wrap. The result is `move`'s, with `wrapFollow`.
+  // `weeks` may be a function, read after `move`: To a date's "ends by" search (R6) adds weeks as it goes.
+  function shiftWithWrapFollow(weeks, held, move){
+    const before = wrapFollowBefore();
+    const res = move();
+    if(!res) return res;
+    const n = typeof weeks === 'function' ? weeks() : weeks;
+    const f = wrapFollowAfter(before, d=> stepOverHeld(n, held)(d));
+    if(f){ res.wrapFollow = f; res.productionWrap = f.wrap; }
+    return res;
+  }
   //   except   -- the hiatus ripple's (HIATUS-RIPPLE-PLAN.md §3.3): the hiatus being edited, {kind:'all', row} or
   //               {kind:'phase', key}. It is held where the user put it, as a locked row is: without this, the edited
   //               hiatus, which starts exactly on the cutoff, would be moved by its own ripple. For a phase's own hiatus
@@ -37280,14 +37390,19 @@ export function initLegacyApp() {
     return bits;
   }
   // The line under the edited hiatus, in the owner's Pushed / Pulled wording (never + or -).
-  function rippleReadout(moves, results, marks){
+  function rippleReadout(moves, results, marks, follow){
     const groups = {};
     moves.forEach(m=>{ (groups[m.weeks] = groups[m.weeks] || []).push(rippleName(m.key)); });
     const ks = Object.keys(groups).map(Number).sort((a, b)=> b - a);
     const bits = ks.map(k=> (k > 0 ? 'Pushed ' : 'Pulled ') + rippleWks(Math.abs(k)) + ': ' + groups[k].join(', '));
     // No phase starts after it: say so, since its later notes and unlocked hiatuses still moved.
     if(!bits.length) bits.push('No phase starts after it to push');
-    if(moves.some(m=> m.key === 'production')){ const w = productionWrapText(); if(w) bits.push('Wrap ' + w); }
+    if(moves.some(m=> m.key === 'production')){
+      const w = productionWrapText();
+      // The wrap follow (SHIFT-WRAP-FOLLOW-PLAN.md R5): the shoot landed on dates that changed its length, and the
+      // phases tied to the wrap went the difference further; the groups above already show their weeks.
+      if(w) bits.push('Wrap ' + w + (follow ? ' (' + follow.cause + ')' : ''));
+    }
     // ⚠️ No "N locked hiatuses held" (Shift All's readout has it): New's four winter breaks are locked and after almost
     // every cutoff, so it would show on every push and say nothing about this one.
     const last = results[results.length - 1];
@@ -37326,6 +37441,11 @@ export function initLegacyApp() {
     const pausesWas = pausesShoot ? rippleShootPauses(h, before) : null;
     const results = [];
     takeShootDayMoveNote();   // a stale note from an earlier move must not be read as this one's
+    // The wrap follow (SHIFT-WRAP-FOLLOW-PLAN.md §4b, owner's R5): the calendar before the steps, and the wrap the steps
+    // alone would give the shoot, worked out step by step exactly as shiftCalendarDates moves a date (its range, its
+    // obstacles: every held band but the edited one).
+    const wrapBefore = wrapFollowBefore();
+    let wrapExpected = wrapBefore ? wrapBefore.wrap : null, wrapFollow = null;
     // A pushed phase remembers no column (colKeepQuiet): the user edited a break, not the phase (audit AUD2-057).
     colKeepQuiet++;
     let prodMoved = false;
@@ -37337,6 +37457,10 @@ export function initLegacyApp() {
           steps.forEach(st=>{
             // ⭐ stepHeld (HIATUS-RIPPLE-PLAN.md §12, owner 6 Nov 2026, "Build it"): count only working weeks past a locked
             // break, as Shift does, so a phase pushed across one moves the break's length further and every gap holds.
+            if(wrapExpected){
+              const sc = shiftScope(isoOf(st.from), null);
+              if(sc.inRange(isoOf(wrapExpected))) wrapExpected = stepOverHeld(st.weeks, hiatusFatesFor(sc.inRange, h).obstacles)(wrapExpected);
+            }
             const r = shiftCalendarDates(st.weeks, isoOf(st.from), {except: h, keepView: true, stepHeld: true});
             if(r) results.push(r);
           });
@@ -37349,6 +37473,9 @@ export function initLegacyApp() {
       if(!prodMoved){ dayOverrides = marksWas; takeShootDayMoveNote(); }
       // shiftCalendarDates ran update() inside the bracket, before the day marks were re-derived from their pins.
       update();
+      // Only when the ripple moved Production (R5): a break inside the shoot changes its length itself, which is what
+      // the push already answers. wrapFollowAfter makes its own part move (marks bound, Production not in it).
+      if(prodMoved && wrapExpected){ const ex = wrapExpected; wrapFollow = wrapFollowAfter(wrapBefore, ()=> ex); }
     } finally { colKeepQuiet--; }
     const startsNow = phaseStartsNow(), moves = [];
     Object.keys(startsNow).forEach(k=>{
@@ -37368,7 +37495,7 @@ export function initLegacyApp() {
     }
     const changed = undoStateJSON() !== editJSON;
     // A mark the edit put under a hiatus is said even when nothing else moved (a break with nothing after it to push).
-    const text = (changed || (marks && marks.landed.length)) ? rippleReadout(moves, results, marks) : '';
+    const text = (changed || (marks && marks.landed.length)) ? rippleReadout(moves, results, marks, wrapFollow) : '';
     if(text) showRippleNote(h, text);
     if(changed && !opts.noUndo) bankRippleWithEdit(editJSON);
     return {changed, moves, text};
@@ -39637,7 +39764,8 @@ export function initLegacyApp() {
     function runShift(weeks){
       pushUndoSnapshot();          // close off whatever came before, so this click stands alone
       // The step-over (stepOverHeld): a phase next to a held break crosses it, so "1 wk" can move it 3.
-      const res = shiftCalendar(weeks, null, {stepHeld: true});
+      // The wrap follow (SHIFT-WRAP-FOLLOW-PLAN.md): the phases tied to the wrap keep their distance from it.
+      const res = shiftWithWrapFollow(weeks, shiftHeldWeeks(null), ()=> shiftCalendar(weeks, null, {stepHeld: true}));
       pushUndoSnapshot();          // ...and bank the shift itself immediately
       if(!res || !readout) return;
       // Say what happened. The wrap date is worth showing because holidays don't move with the
@@ -39649,6 +39777,7 @@ export function initLegacyApp() {
       const st = (res.stepped || []).map(x => rippleName(x.key) + (x.weeks > 0 ? ' pushed ' : ' pulled ') + rippleWks(Math.abs(x.weeks)));
       readout.textContent = n + (n === 1 ? ' wk ' : ' wks ') + dir + (st.length ? ' · ' + st.join(' · ') : '')
         + (res.productionWrap ? ' · wrap ' + res.productionWrap : '')
+        + (res.wrapFollow ? ' · ' + wrapFollowShort(res.wrapFollow) : '')
         + (ov ? ' · ' + ov : '');
       // The readout anchors under the button that acted (owner, round 6): CSS reads this.
       group.dataset.shiftDir = dir;
@@ -39760,7 +39889,9 @@ export function initLegacyApp() {
       if(res.lockedHiatuses) out += ' ' + res.lockedHiatuses + ' locked hiatus' + (res.lockedHiatuses === 1 ? '' : 'es') + ' held.';
       out += heldLeftText(res, before);
       out += steppedText(res);
-      if(res.productionWrap) out += ' Wrap ' + res.productionWrap + '.';
+      // With a wrap follow, the wrap says why it moved, and the phases that followed it are named.
+      if(res.wrapFollow) out += ' Wrap ' + res.productionWrap + ': ' + res.wrapFollow.cause + '. ' + wrapFollowText(res.wrapFollow);
+      else if(res.productionWrap) out += ' Wrap ' + res.productionWrap + '.';
       if(tail) out += tail;
       // A whole-calendar move into other years whose year blocks changed shape: the year-keyed stores stayed (AUD2-052).
       if(res.yearKeysStayed){
@@ -40543,10 +40674,10 @@ export function initLegacyApp() {
       // move, the unticked phases a carried hiatus changed (AUD2-069).
       const runsBefore = phaseRunsNow();
       // Every phase ticked: the old Shift All form -- the same call, the same result line.
-      if(!plan.part) return say(describeShift(asOneUndoStep(()=> shiftCalendar(sign * n, null, {stepHeld: true})), '', runsBefore));
+      if(!plan.part) return say(describeShift(asOneUndoStep(()=> shiftWithWrapFollow(sign * n, shiftHeldWeeks(null), ()=> shiftCalendar(sign * n, null, {stepHeld: true}))), '', runsBefore));
       // The bottom of the list from one phase is the old Shift From; the top down to one its mirror; any other set
       // the user's own.
-      const res = asOneUndoStep(()=> shiftCalendar(sign * n, null, {part: plan.part, stepHeld: true}));
+      const res = asOneUndoStep(()=> shiftWithWrapFollow(sign * n, shiftHeldWeeks(plan.part), ()=> shiftCalendar(sign * n, null, {part: plan.part, stepHeld: true})));
       if(!res) return say('Nothing to shift.', true);
       say(describeShift(res, moveTail(res, plan, runsBefore), runsBefore));
     }
@@ -40594,7 +40725,31 @@ export function initLegacyApp() {
       if(!plan) return say(label + ' has no start date to move.', true);
       anchorDateTyped = null;   // Go used it: the box follows the calendar again, as it always did after a run (AUD2-049)
       const runsBefore = phaseRunsNow();   // every move: the held breaks it leaves behind are named (AUD2-051)
-      const res = asOneUndoStep(()=> part ? shiftCalendar(delta, null, {part, stepHeld: true}) : shiftCalendar(delta, null, {stepHeld: true}));
+      const one = d=> part ? shiftCalendar(d, null, {part, stepHeld: true}) : shiftCalendar(d, null, {stepHeld: true});
+      // ⭐ PRODUCTION ENDS BY A DATE, AND LANDS ON OR BEFORE IT (SHIFT-WRAP-FOLLOW-PLAN.md §4a, owner's R6, 20 Nov 2026).
+      // `delta` is measured from the wrap as it is now, but on its new dates the shoot can grow over a holiday or an Off
+      // day and wrap past the date. So, as Build Around searches Production rather than inverting it: while the wrap is
+      // past the date, move the same set one more working week earlier and read the wrap again. A pull that does not
+      // bring the wrap earlier is put back and the search stops (a date the shoot cannot meet keeps the warning below).
+      let pulled = 0, pullCause = '';
+      const prodEndsBy = key === 'production' && edge === 'end';
+      const causeWas = prodEndsBy && currentSchedule && currentSchedule.productionInfo ? wrapCauseCounts(currentSchedule.productionInfo) : null;
+      const res = asOneUndoStep(()=> shiftWithWrapFollow(()=> delta + pulled, held, ()=>{
+        const r = one(delta);
+        if(!r || !prodEndsBy) return r;
+        let wrapNow = landmarkDate(key, edge);
+        if(wrapNow && wrapNow > target && causeWas){
+          pullCause = wrapCauseText(causeWas, wrapCauseCounts(currentSchedule.productionInfo), 1);
+        }
+        for(let i = 0; i < 4 && wrapNow && wrapNow > target; i++){
+          if(!one(-1)) break;
+          const w = landmarkDate(key, edge);
+          if(!w || w >= wrapNow){ one(1); break; }
+          pulled--; wrapNow = w;
+        }
+        if(pulled) r.weeks = delta + pulled;
+        return r;
+      }));
       // Report where the landmark actually landed rather than the date asked for: whole-week steps
       // land short of a deadline, and because holidays don't travel with the plan a shifted shoot
       // can even grow over one it now overlaps and finish past the date.
@@ -40602,6 +40757,9 @@ export function initLegacyApp() {
       const overshot = !!(landed && edge === 'end' && landed > target);
       const out = describeShift(res, (landed ? ' ' + label + (edge === 'end' ? ' ends ' : ' starts ') + fmtShort(landed) + '.' : '')
         + (inHeld && landed ? ' Your date is inside a held hiatus, so it starts the week after it.' : '')
+        // The cause is said once: with a wrap follow the Wrap sentence has already given it.
+        + (pulled && !overshot ? ' Production starts ' + rippleWks(-pulled) + ' earlier than the shift alone would put it'
+            + (pullCause && !res.wrapFollow ? ': ' + pullCause : ', so it still ends by your date') + '.' : '')
         + (overshot ? ' Still past your date — the shoot grew over a holiday it now overlaps.' : '')
         + moveTail(res, plan, runsBefore), runsBefore);
       say(out, overshot);

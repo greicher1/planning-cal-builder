@@ -2076,6 +2076,11 @@ done
 # the arrows (Production 3 wks over the break), a date inside the break (the week after), an Ends phase (its END is
 # mapped), All phases by weeks. Red on the old engine at L1 S1-S4 A1 H1 E1 W1 (the 2-week gap and the overlap).
 # On shiftheld.sptcal (synthetic, from anchorside.sptcal).
+# shiftwrapfollow (owner, 20 Nov 2026; SHIFT-WRAP-FOLLOW-PLAN.md, rulings R1-R7) is the phases tied to Production's
+# wrap keeping their distance from it when a move changes the shoot's length (Labor Day / July 3 on a 40-day shoot):
+# the arrows, the Shift form (Post or Production unticked), Production's own down arrow (no follow), a shoot that loses
+# a week (pulled), To a date "ends by" landing on or before the date, the hiatus ripple, one Undo each; the reference
+# calendar's own shift changes nothing. On T.buildFixture().
 # holidayrename (owner, 30 Oct 2026) is a holiday renamed rather than turned into a note: the month view's holiday
 # editor (its name alone, Enter saves, clear restores), one date only, its own month colour (frozen edit H1), no
 # waterfall note written, undo, the file's two new keys (holidayNames, holidayColors) and their repair, the written
@@ -2386,6 +2391,7 @@ for AFSPEC in pwagate:-:120 pwagatelogic:-:120 cfmove:-:180 whatsnew:-:240 setti
               mvdragcarry:mvdragcarry:400 \
               stalebandkey:stalebandkey:400 \
               shiftheld:shiftheld:300 \
+              shiftwrapfollow:-:400 \
               lastedited:lastedited:400 \
               viewclean:-:1500 \
               wfnotecolors:wfkeys:400 \

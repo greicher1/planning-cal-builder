@@ -4,6 +4,32 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### 📐 20 Nov 2026: SHIFT KEEPS EVERY PHASE'S DISTANCE FROM THE WRAP — BUILT on branch `shift-wrap-follow` (worktree `.claude/worktrees/shift-wrap-follow`, from `origin/main` `a85ca47c`), NOT merged, NOT pushed, waiting for the owner to try it. Plan and rulings: [`SHIFT-WRAP-FOLLOW-PLAN.md`](SHIFT-WRAP-FOLLOW-PLAN.md). Tracker card `shift-keeps-wrap-gap` (building).
+- **Owner:** Shift moves Production onto new holidays, the shoot gains or loses a week, and a 1-week gap or overlap opens before Post.
+  Rulings by chat and picker (plan §1): R1 every phase Production's length affects, not just Post; R2 any cause (holidays, Off days,
+  worked holidays, worked weekends); R3 a phase alongside the shoot follows only if it ended in the wrap week; R4 Production's own ▲ / ▼
+  stay one-phase-only and there is no switch; R5 the hiatus ripple follows too (only when it moved Production); R6 To a date with
+  Production landing by its END lands on or before the date (searched one week earlier at a time, at most 4); R7 a phase straddling the
+  wrap stays.
+- **Done** (`src/legacy/app.js`, beside `shiftCalendar`): `wrapFollowBefore()` reads the wrap and the tied phases before a move;
+  `wrapFollowAfter(before, expectedOf)` compares the wrap with where the move alone would have put it (working weeks over the follow
+  move's held breaks) and moves the tied phases the move moved by the difference, as a part move (`stepHeld`, one window per phase,
+  `colKeepQuiet`); `wrapCauseText()` names the cause from `productionInfo`'s `holidaysHit` / `offsHit` / `addedDays` + `holidaysWorked`;
+  `shiftWithWrapFollow(weeks, held, move)` wraps the arrows (`runShift`), `shiftBy` and To a date's Go; the ripple calls
+  `wrapFollowAfter` itself after its `update()`, its expected wrap worked out step by step with each step's own obstacles. Lines:
+  "Wrap 9/14/26: Labor Day falls in the shoot now. Post and Localization were also pushed 1 wk to keep their distance from the wrap."
+  The arrows: "· Post & 1 more pushed 1 wk". The ripple: "Wrap 9/14/26 (Labor Day falls in the shoot now)".
+- ⚠️ **Found while building:** on the reference calendar (`T.buildFixture()`, 80 days) NO weekly shift changes the shoot's length in
+  weeks: its wrap moves between Tuesday and Friday inside the same week. A follow needs a wrap at a week's edge (a Friday that gains a
+  holiday, a Monday that loses one). The leg uses 40 days from 7/13/26 (wraps Fri 9/4; a week later Labor Day makes it Mon 9/14).
+- ⚠️ The plan said the wrap could only be read after the move's bracket closed; wrong: `update()` re-derives the day marks from their pins
+  while `overrideMove` is set, so the schedule a move leaves already has them (plan §4 corrected).
+- **Verified:** new leg `shiftwrapfollow` 14/14 (in gate.sh after `shiftheld`); `npm run check` 46/46; 21 related legs on
+  `/dist/index.html`, all green: finishbefore 16, rebuildticks 20, buildaround 36, anchorside 39, buildalongside 8, buildcarry 17,
+  buildendsby 21, panelstale 16, builddates 9, shiftbandline 10, yearroll 11, paneldrag 12, phasearrows 26, phasearrowsripple 10,
+  rippleundo 29, mvdragcarry 15, stalebandkey 9, shiftheld 13, lastedited 22, ripplemarks 35, autonotefollow 8. Not tried in the browser pane: all five server slots are held by other chats and the
+  pane cannot open a local file. No full gate yet; no README / What's New entry yet (after the owner tries it).
+
 ### 🔤 19 Nov 2026: THE TEMPLATE EDITOR OPENS ON VARIABLES, NOT A MANUAL HEADER'S PLAIN TEXT — committed `5ee3a54e` on `scenario-version-offer`, cherry-picked onto `origin/main`, pushed on the owner's picker. README "Unreleased". Tracker card `template-editor-variables`.
 - **Owner:** *"by default when you open the template editor, all the labels of the default auto-header should be the
   dynamic variables as opposed to plain text"*; asked which plain text, picked **"Header was on Manual"**. (From Auto the
