@@ -29,6 +29,21 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — The note editor's Day list starts on "Default (Monday)" (19 Nov 2026)
+
+In the waterfall's note editor the Day list's empty choice read "No date" (since 17 Nov 2026). The owner pointed out that
+was true of the waterfall, where no date is added to the note, but wrong about the month view, where the note still sits
+on its week's Monday. It now reads **"Default (Monday)"**, and the "Mon 7/6/26" entry under it stays, because the two do
+different things: the default adds no date and the note moves with its week, while picking Monday adds "7/6/26" to the
+note and keeps it on that date when the calendar shifts. On a note that stays with a phase the default names the day the
+note is drawn on, the phase's first day that week, and follows the Stays with choice: in a week whose Monday is a
+holiday, a note staying with Production reads "Default (Tuesday)". That day comes from the same rule that places the note
+(`phaseWeekFirstDay()`, taken out of `placePhaseNotes()` unchanged), so the label and the month view cannot disagree.
+Words only: nothing saved, placed or exported changes. Verified against the build: `phaselink` 15/15 (R1 re-expected, new
+R1b for the holiday week), `notedates` 18/18 (N0 re-expected), `phasenotes` 21/21, `phasemonth` 21/21; `npm run check`
+46/46; tried in the browser (an empty cell opens on "Default (Monday)", Labor Day week on Production reads
+"Default (Tuesday)").
+
 ### Unreleased — Show info's boxes have no grey "e.g." examples (19 Nov 2026)
 
 The owner asked to remove the grey examples inside Show info's boxes ("e.g. Show Title", "e.g. 10", "e.g. 8", "e.g. 3",

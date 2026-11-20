@@ -4,6 +4,23 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### 🗓️ 19 Nov 2026: THE NOTE EDITOR'S DAY DEFAULT READS "Default (Monday)" — branch `note-day-default-label` (worktree `.claude/worktrees/note-day-default-label`, from `origin/main` `9a71d11`), owner tried it on localhost, then *"Finish it"*. README "Unreleased". Tracker card `note-day-default-rename`. Supersedes the 17 Nov "No date" label (entry below, `note-day-default-no-date`).
+- **Owner:** *"Putting "No Date" as default selection in waterfall might not make sense as even tho there is no typed
+  date, it still is on monday when you go to the month view"*; then, after weighing "Default - Mon xx/xx/xx" with the Mon
+  entry removed, *"What about "Default (Monday)" and then keep Mon xx/xx/xx"*.
+- **As built** (`src/legacy/app.js`, the waterfall note editor; no frozen code, nothing saved): the Day list's empty
+  choice is `dayDefaultLabel(link key)`: "Default (Monday)" on the week, and on a note that stays with a phase
+  "Default (<weekday>)" for the day it is drawn on, from `phaseNoteDefaultDay(key, currentSchedule)`. `reflectLinkRow`
+  relabels it when Stays with changes. `phaseWeekFirstDay(seg, week, hiatuses)` is `placePhaseNotes()`'s old inline
+  first-day loop, moved out unchanged so the label and the placement share one rule.
+- ⛔ **Keep the "Mon 7/6/26" entry.** It is NOT the default: picking it stamps the date into the note, holds the note on
+  that date when the calendar shifts (a pin), and on a linked note fixes `dow`. Removing it (the owner's first idea) would
+  have left Monday reachable only by typing the date.
+- **Proof:** `phaselink` 15/15 (R1 re-expected; new R1b: Labor Day week 9/7/26, Stays with Production reads
+  "Default (Tuesday)", the first shoot day), `notedates` 18/18 (N0 re-expected), `phasenotes` 21/21, `phasemonth` 21/21
+  (the refactor), `npm run check` 46/46. No full gate: no output reads the label, and the placement rule is moved, not
+  changed.
+
 ### 🧵 19 Nov 2026: THE WATERFALL HEADINGS' TOP LINE NO LONGER SPLITS AFTER A SCROLL — committed `5c31a38` on `scenario-version-offer` (its hunks only), cherry-picked onto `origin/main` (v1.23.0) in a temp worktree and pushed to `main` on the owner's picker *"Merge and push"*. The CSS is one `@media screen` block after the heading hover rule in `src/styles/legacy.css`. README "Unreleased". Tracker card `waterfall-header-double-line`.
 - **Owner:** *"when i first launch the app i see the solid black line but when i scroll down and then scroll back up, the
   line is now this double line"*; then *"Yes, fix it"* to a screen-only frozen-surface edit.
@@ -958,7 +975,7 @@
   `placePhaseNotes`). A date TYPED at the end of the note stayed in its text, so after a move the note sat in its new
   week reading the old date. Reproduced in the browser before any change ("Lens test 7/29/26" in the week of 8/3).
 - **As built** (`src/legacy/app.js`, all in the waterfall note editor; no frozen code, no save-format change):
-  - The Day list's empty choice is "No date" for every cell (`reflectLinkRow` no longer relabels it). Words only.
+  - The Day list's empty choice is "No date" for every cell (`reflectLinkRow` no longer relabels it). Words only. ⚠️ **SUPERSEDED 19 Nov 2026:** it reads "Default (Monday)", or the phase's first day on a linked note (entry at the top).
   - `typedDateInWeek(line, weekIso)` reads a date at the END of a line: a/b with "/" or "-", with or without a 2- or
     4-digit year, in the calendar's order (and month first on DD/MM when only that reading is in the week), and ONLY a
     day of that week, with no rollover. `{at, day, full}`.
