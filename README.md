@@ -29,6 +29,13 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — The wrap-date picker has no "only shoot days" line (19 Nov 2026)
+
+The owner asked to delete "The shoot wraps on a shoot day, so only shoot days can be picked." from under Production's
+Wraps date picker. The picker still offers only shoot days (weekends, holidays and Production's own hiatus greyed); only
+the sentence is gone (`src/chrome/DatePop.jsx`). The other pickers' hints (Mondays, Fridays, a hiatus's Monday) stay.
+Leg `prodends` E5 now expects no hint line; verified: `npm run check` 46/46, `prodends` 8/8 on the build.
+
 ### Unreleased — "Colour" reads "Color" everywhere a user sees it (19 Nov 2026)
 
 The owner asked for "Colour" to be "Color" in all places. Every user-facing spelling changed: the swatches' "Change

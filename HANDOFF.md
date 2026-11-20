@@ -4,6 +4,14 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### ✂️ 19 Nov 2026: THE WRAP-DATE PICKER'S "ONLY SHOOT DAYS" LINE IS GONE — uncommitted on `scenario-version-offer`, NOT pushed
+- **Owner:** *"delete: the shoot wraps on a shoot day, so only shoot days can be picked."*
+- **Done:** the `kind === 'wrap'` hint in `src/chrome/DatePop.jsx` is deleted; the picker still greys every non-shoot
+  day. The Monday / Friday / hiatus hints stay. Leg `prodends` E5 now expects no `.dp-hint`.
+- **Verified:** `npm run check` 46/46, `prodends` 8/8 on `/dist/index.html`. No full gate (chrome text only). No What's
+  New entry (a small UI change). Commit only `DatePop.jsx`, `prodends.js`, README and this entry: the tree holds other
+  sessions' uncommitted work.
+
 ### 🇺🇸 19 Nov 2026: "COLOUR" READS "COLOR" IN THE APP — uncommitted on `scenario-version-offer` (owner: *"Change "Colour" in all places to "Color""*). Every USER-VISIBLE spelling (tooltips, aria-labels, the note editors' Color row and hints, Reset Notes questions, Paste notes' hint and error, toolbar tooltips, the Holidays hint, the Help window) in `src/legacy/app.js`, `src/index.html`, `Sidebar.jsx`, `Header.jsx`, `PreviewToolbar.jsx`. ⛔ Code names, CSS classes (`note-colour-*`), comments, docs and saved keys keep "colour" on purpose: renaming them moves leg selectors and risks the save format for no user gain. New user-facing copy says "color". Legs `notelook`, `hiatuscolour`, `notesreset` updated. README "Unreleased". Tracker card `color-spelling`.
 
 ### 🗓️ 19 Nov 2026: THE NOTE EDITOR'S DAY DEFAULT READS "Default (Monday)" — branch `note-day-default-label` (worktree `.claude/worktrees/note-day-default-label`, from `origin/main` `9a71d11`), owner tried it on localhost, then *"Finish it"*, then the picker *"Push to main"*: LIVE, `a3b3da2` + `a881295` fast-forwarded onto `main`. Its own deploy run failed twice in GitHub's Pages step (no `github-pages` artifact, then two on the re-run: the same failure `1afc25b` and `22551d6` hit that evening); it went live with the next push's manual (`workflow_dispatch`) run from `22551d6`, live build `1bbc2e936e61`. ⚠️ A re-run of a failed push run does NOT fix that failure; a fresh `workflow_dispatch` run did. Then the Help overlay's "Leave it on “No date”" sentence (`src/index.html`), missed in the first push, fixed as `b78fad1`. README "Unreleased". Tracker card `note-day-default-rename`. Supersedes the 17 Nov "No date" label (entry below, `note-day-default-no-date`).

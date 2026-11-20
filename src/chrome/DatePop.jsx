@@ -392,9 +392,6 @@ export function DatePop() {
       {kind === 'friday' && (
         <div className="dp-hint">This phase ends on a Friday, so only Fridays can be picked.</div>
       )}
-      {kind === 'wrap' && (
-        <div className="dp-hint">The shoot wraps on a shoot day, so only shoot days can be picked.</div>
-      )}
     </div>
   )
 }
