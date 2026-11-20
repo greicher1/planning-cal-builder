@@ -17,6 +17,16 @@
 //     machine remembers as seen (localStorage 'sptcal.whatsNew'), so never change an id once it has shipped.
 export const WHATS_NEW = [
   {
+    id: '2026-11-19-4',
+    date: '19 Nov 2026',
+    items: [
+      {
+        title: '“Final Delivery” is on for new calendars',
+        text: 'A new calendar now shows the “Final Delivery” note on Post’s last day without ticking it. Calendars you already saved keep the setting they had.',
+      },
+    ],
+  },
+  {
     id: '2026-11-19-3',
     date: '19 Nov 2026',
     items: [

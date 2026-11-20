@@ -29,6 +29,20 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — Post's "Final Delivery" note starts on for new calendars (19 Nov 2026)
+
+The owner asked for the Final Delivery note to be enabled by default. A NEW calendar (the first launch, New, Reset All)
+now starts with Post's end note ticked in both views, so "Final Delivery 9/24/27" shows in Post's last week as soon as
+Post is dated (`newCalendarAutoNotesOn()`, read at the boot and by `resetAll()`, colReuse's pattern). It stays an opt-in
+kind: a calendar saved without it ticked, every file before today included, opens exactly as it did, with the note off,
+so no saved plan changes and no export of one moves. A new calendar's file now carries `autoNotesOn: {postEnd: true}`;
+no key or version changed. The test harness keeps it off for every leg but its own (localhost-only
+`sptcal.finalDeliveryTest`, set by `t/lib.js`), so the reference calendar and every baseline cut from it are untouched.
+New leg `finaldelivery` (boot on, Save writes the key, a file without it opens off, New turns it back on); verified:
+`finaldelivery` 4/4, `autonotephases` 27/27, `autonoteview` 18/18, `autonotekinds` 16/16, `autonoterename` 25/25,
+`autonote` 9/9, `loadsparse` 8/8, `firstrun` 22/22, `noresetall` 5/5 and `npm run check` 46/46 on the build. No full gate: nothing frozen, no saved key. What's New
+(`src/whats-new.js`, `2026-11-19-4`) tells users.
+
 ### Unreleased — Build Around's "ends by" picks a Friday, or any weekday for Production (19 Nov 2026)
 
 The owner: *"build around - end by a date - why can i only select mondays? that doesnt make sense. it should be only

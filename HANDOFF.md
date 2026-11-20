@@ -157,6 +157,26 @@
 - ⚠️ **Learned:** every automatic-note kind was one note per calendar, and its name, Delete, drag and
   `followLineId()` (`'k:' + kind`) all assume it. This kind is one per unit, so the plan gives each a per-unit answer.
 
+### ✅ 19 Nov 2026: "FINAL DELIVERY" STARTS ON FOR NEW CALENDARS — on `scenario-version-offer`, committed locally, NOT pushed. README "Unreleased". Tracker card `final-delivery-default-on`.
+- **Owner:** *"Final Delivery note should be enabled by default"*.
+- **As built:** `newCalendarAutoNotesOn()` (beside `AUTO_NOTE_OPT_IN`) returns `{postEnd: true}`; the boot sets
+  `autoNotesOn` from it just before `restoreSavedState()`, and `resetAll()` (New, Reset All) does the same. colReuse's
+  pattern: only a NEW calendar starts ticked.
+- ⛔ **Saved calendars do not change** (my call, not ruled): `postEnd` stays in the opt-in store, and an absent
+  `autoNotesOn` still restores as none, so every file saved before today (and any saved with it unticked) opens with the
+  note off and its exports unchanged. If the owner wants it on in OLD calendars too, that is a different change: those
+  files' Notes columns and exports would move on their next open, and gates 1-3 / 10 / 13 would need re-cutting only if
+  the reference calendar is changed to show it.
+- ⚠️ **Harness:** every leg builds on a new calendar, so `t/lib.js` sets localhost-only `sptcal.finalDeliveryTest = 'off'`
+  before the app boots (the hiatus ripple's pattern); the reference calendar and every baseline are untouched.
+  `t/finaldelivery.js` removes the key to test the users' default. An `.mjs` driver without lib.js that dates Post on a
+  NEW page would now see the note: none does today (hiatusdrag / hiatusripple load `?state=` fixtures, which reset it).
+- ⚠️ What's New: `main` has moved past this branch (its `whats-new.js` has `2026-11-19-2` / `-3`), so the user-facing line
+  is to be added on `main`'s file at push time, not here.
+- **Legs (build):** `finaldelivery` 4/4, `autonotephases` 27/27, `autonoteview` 18/18 and `autonoterename` 25/25
+  (`HARNESS_STATE=autonoterename`), `autonote` 9/9 (`HARNESS_STATE=v1.3.0-saved`), `autonotekinds` 16/16, `loadsparse`
+  8/8, `firstrun` 22/22, `noresetall` 5/5, `npm run check` 46/46. No full gate: nothing frozen, no saved key added.
+
 ### 🔨 19 Nov 2026: A NEW NOTE STAYS WITH ITS PHASE WEEK BY DEFAULT — BUILT; owner said "Finish it"; ✅ FULL GATE GREEN (every failure load, green alone); owner's pickers *"Commit on the branch"*, *"Merge into main and push"*: committed `df1a209`, `origin/main` (`2b77e98`) merged in as `ccce702`, PUSHED to `main`. Branch `notes-follow-phase` (worktree `.claude/worktrees/notes-follow-phase`, from `origin/main` `1b45340`; `node_modules` is a symlink, unlink it before `git worktree remove`). Uncommitted. Tracker card `notes-default-stay-with-phase`.
 - **Owner:** *"New default, notes should stay with their specifc phase week and not the specific actual week"*. Pickers:
   which phase in a shared week = **First in the list** (`wfLinkOptions[0]`, the row's left-most phase cell); saved notes

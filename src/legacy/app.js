@@ -22208,6 +22208,20 @@ export function initLegacyApp() {
     {kind:'localizationStart', phase:'localization'}, {kind:'localizationEnd', phase:'localization', end:true},
   ];
   const AUTO_NOTE_OPT_IN = new Set(AUTO_NOTE_PHASE_EDGES.map(e=> e.kind));
+  // ⭐ POST'S "FINAL DELIVERY" STARTS ON FOR NEW CALENDARS (owner, 19 Nov 2026: "Final Delivery note should be enabled
+  // by default"). It stays an opt-in kind, so a calendar saved without it ticked (every file before today, and every one
+  // whose owner unticked it) still opens with it off: only a NEW calendar starts ticked, colReuse's pattern. Two places
+  // use this: the boot, just before restoreSavedState(), and New / Reset All (resetAll()). ⛔ An absent autoNotesOn
+  // still restores as none: never flip that in applyStateSnapshot(). A new calendar's file therefore carries
+  // autoNotesOn: {postEnd: true}. ⚠️ localhost ONLY, localStorage 'sptcal.finalDeliveryTest' = 'off' (the
+  // 'sptcal.mvPdfTest' shape) starts a new calendar with it off: tests/harness/t/lib.js sets it for every leg, so the
+  // reference calendar and every baseline cut from it keep their Notes column; autonotephases clears it to test this.
+  function newCalendarAutoNotesOn(){
+    if(/^(localhost|127\.0\.0\.1)$/.test(location.hostname)){
+      try { if(window.localStorage.getItem('sptcal.finalDeliveryTest') === 'off') return {}; } catch(e){}
+    }
+    return {postEnd: true};
+  }
   // ⭐ A CUSTOM PHASE'S START AND END (owner, 2 Nov 2026: "Can we also add automatic notes for all custom phases too";
   // AUTO-NOTES-PER-VIEW-PLAN.md step 1, ruling R3: "Off"). Each custom phase adds "<its name> Begins" and "<its name>
   // Ends", dated as the built-ins' are, with the kind words `<custom key>Start` / `<custom key>End` (custom3Start), the
@@ -33524,7 +33538,8 @@ export function initLegacyApp() {
     document.querySelectorAll('.phiatus-name').forEach(el=>{ el.value = ''; });
     phaseHiatusNumbered = {};   // ...and their "Number weeks" (ruling 8); refreshPhaseHiatusUI() below unticks the boxes
     autoNotesOff = {};          // every automatic-note kind back on (ruling 9); the update() after New ticks the boxes
-    autoNotesOn = {};           // ...except the phase starts and ends, which start off (27 Oct 2026)
+    autoNotesOn = newCalendarAutoNotesOn();   // ...except the phase starts and ends, which start off (27 Oct 2026), all
+                                              // but Post's Final Delivery, which starts on (owner, 19 Nov 2026)
     autoNotesView = {};         // ...and every kind in both views or neither, none split (4 Nov 2026)
     document.querySelectorAll('.phase-snap-cb').forEach(cb=>{ cb.checked = true; });
     // ...and the built-ins' Length / End date (CUSTOM-PHASE-UNITS-PLAN §7a): back to Weeks, no end.
@@ -48501,6 +48516,8 @@ export function initLegacyApp() {
   // A new calendar reuses empty columns (owner, 2 Nov 2026). Before the restore, so a shareable copy or a
   // recovered backup replaces it with its own `colReuse`, and absent means OFF there.
   colReuse = true; reflectColReuse();
+  // ...and starts with Post's Final Delivery note ticked (owner, 19 Nov 2026), replaced the same way by a restore.
+  autoNotesOn = newCalendarAutoNotesOn();
   restoreSavedState();
   foldAllHiatuses();   // a calendar opening itself: its hiatus cards folded, as a Load's (AUD2-036)
   refreshAfterRestore();
