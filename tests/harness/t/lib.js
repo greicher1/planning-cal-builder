@@ -37,6 +37,13 @@
     }).observe(document.documentElement, {childList: true, subtree: true});
   } catch(e){}
 })();
+// ⭐ POST'S "FINAL DELIVERY" STARTS OFF IN EVERY LEG BUT ITS OWN. A NEW calendar starts with it ticked for users
+// (owner, 19 Nov 2026), and every leg builds on a new calendar: the reference calendar (buildFixture) and the baselines
+// cut from it were cut without that note in Post's last week. The app reads this localhost-only key at the boot and at
+// New (newCalendarAutoNotesOn); t/finaldelivery.js removes it at its top, before the app, so it tests the users' default.
+(function(){
+  try { localStorage.setItem('sptcal.finalDeliveryTest', 'off'); } catch(e){}
+})();
 window.__T = (function(){
   // ⚠️ NATIVE SETTER, not `e.value = v`.
   // React installs its own `value` setter on the input prototype and tracks the last value it

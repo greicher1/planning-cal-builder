@@ -44,6 +44,49 @@ one line from 1,430 px up, and every narrower window folds later than before
 Leg `toolbarfit` moved to the new fold widths (F0 also holds 1,470 and 1,440 unfolded; F6 reaches step 5 with a forced
 420 px sidebar, since no window does on its own now). Verified: see HANDOFF's 19 Nov entry.
 
+||||||| 2ef16d26
+
+### Unreleased — The template editor opens on variables, not a Manual header's plain text (19 Nov 2026)
+
+The owner asked that, when the template editor opens, the default auto header's lines be the variables rather than plain
+text. Taking the header over (Manual) bakes every auto line into words, and the editor used to open on those words, so
+"10 Episodes" stopped following the episode count. Now Manual -> Template (opening the editor, or the mode menu's
+Template) turns every line still in an auto line's form back into its variable (`hdrAutoLinesAsTokens()`, in both
+views): the text the default template prints now, or, for the lines that carry a date or a count, the auto line's shape
+("Principal Photography 6.29.26 / Wrap: 10.20.26" from before the shoot moved, a date frozen last week, "v2"), in any
+slot. A line the user wrote stays exactly as typed, an emptied line stays empty, and the title lines change only when they
+still read exactly what Auto would print. One undo step, as before; nothing saved changes shape and no output moves for a
+calendar that does not switch. Verified: `hdrtemplate` (new step 11, two new gate checks), `hdreditor`, `hdrpreset`,
+`hdrfile`, `hdrverload`, `hdrcontrols` 12/12, `mvhdroff` 9/9, `seasons` 15/15, `lastedited` 22/22, `npm run check`
+46/46, and in the browser in both views.
+
+### Unreleased — Post's "Final Delivery" note starts on for new calendars (19 Nov 2026)
+
+The owner asked for the Final Delivery note to be enabled by default. A NEW calendar (the first launch, New, Reset All)
+now starts with Post's end note ticked in both views, so "Final Delivery 9/24/27" shows in Post's last week as soon as
+Post is dated (`newCalendarAutoNotesOn()`, read at the boot and by `resetAll()`, colReuse's pattern). It stays an opt-in
+kind: a calendar saved without it ticked, every file before today included, opens exactly as it did, with the note off,
+so no saved plan changes and no export of one moves. A new calendar's file now carries `autoNotesOn: {postEnd: true}`;
+no key or version changed. The test harness keeps it off for every leg but its own (localhost-only
+`sptcal.finalDeliveryTest`, set by `t/lib.js`), so the reference calendar and every baseline cut from it are untouched.
+New leg `finaldelivery` (boot on, Save writes the key, a file without it opens off, New turns it back on); verified:
+`finaldelivery` 4/4, `autonotephases` 27/27, `autonoteview` 18/18, `autonotekinds` 16/16, `autonoterename` 25/25,
+`autonote` 9/9, `loadsparse` 8/8, `firstrun` 22/22, `noresetall` 5/5 and `npm run check` 46/46 on the build. No full gate: nothing frozen, no saved key. What's New
+(`src/whats-new.js`, `2026-11-19-4`) tells users.
+
+### Unreleased — Build Around's "ends by" picks a Friday, or any weekday for Production (19 Nov 2026)
+
+The owner: *"build around - end by a date - why can i only select mondays? that doesnt make sense. it should be only
+fridays except for production which should be any weekday"*. The pop-out date picker read Build Around's date by the
+START's rule on both edges, so with "ends by" a snapped phase's last day could only be set to a Monday.
+`fieldKind()` in `src/chrome/DatePop.jsx` now reads the edge: on "ends by", a phase that runs whole weeks (Snap to
+Monday on, or on Ends) offers Fridays only (the picker's existing `friday` kind, as an Ends phase's end), and
+Production, or a Days, Dates or unsnapped phase, offers any weekday (a new `weekday` kind: weekends greyed, its own
+hint). "starts on" is unchanged, and so is the engine: Build Around already read any date as a deadline. Shift's To a
+date "ends by" is unchanged (any day). Verified on the build: leg `datepick` 21/21 (new E1-E4: Fridays only on a
+snapped phase, weekdays on Production and on an unsnapped phase, a picked Wednesday is written), `buildendsby` 21/21,
+`buildaround` 36/36, `npm run check` 46/46.
+
 ### Unreleased — The wrap-date picker has no "only shoot days" line (19 Nov 2026)
 
 The owner asked to delete "The shoot wraps on a shoot day, so only shoot days can be picked." from under Production's

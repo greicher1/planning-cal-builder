@@ -420,6 +420,29 @@ window.addEventListener('load', function () { (async function () {
       out.oneUndoStep = out.afterAuto === 'Header: Auto' && out.afterUndo === 'Header: Manual';
     }
 
+    // ---- 11. ⭐ MANUAL -> TEMPLATE PUTS THE AUTO LINES BACK AS VARIABLES (owner, 19 Nov 2026) -----------
+    // Manual's lines are plain text here (the bake above). A line still in an auto line's form goes back to its
+    // variable, in whatever slot it sits (r3 holds the Writer's Room line, moved there by step 4); a line the user
+    // wrote stays as typed (c1 retyped by hand, c2's unknown tokens, c4's braces), and an emptied one stays empty (c3).
+    if (modeState().label === 'Header: Manual') {
+      await commit('c1', 'My Own Title Line');
+      await pick('Template');
+      var ed = Array.prototype.find.call(document.querySelectorAll('button'),
+        function (b) { return (b.textContent || '').trim() === 'Edit header template…'; });
+      if (ed) ed.click();
+      await T.until(function () { return document.querySelectorAll('.hde-tpl').length > 0; },
+                    'the template editor', 40, 100);
+      var raw = {};
+      document.querySelectorAll('.hde-tpl').forEach(function (i) { raw[i.dataset.hid] = i.value; });
+      var close = document.querySelector('.hde-close'); if (close) close.click();
+      await T.sleep(400);
+      out.reTokenRaw = raw;
+      out.autoLinesBackAsTokens = raw.left === '{lastEdited}' && raw.l2 === '{version}' &&
+        raw.r1 === '{production.summary}' && raw.r2 === '{production.dates}' && raw.r3 === '{writersRoom.line}';
+      out.typedLinesKept = raw.c1 === 'My Own Title Line' && raw.c2 === 'Draft {nope} {escaped}' &&
+        raw.c3 === '' && raw.c4 === 'Draft {today} - {version} - {episodes}';
+    }
+
     out.errors = (window.__ERR || []).slice(0, 6);
     out.clipped = T.clippedCells();
     out.PASS = out.h3bAutoInert && out.h3bManualInert &&
@@ -434,6 +457,7 @@ window.addEventListener('load', function () { (async function () {
                out.storesRaw && out.flagTravels && !out.ctxLeaked && !out.popInCopy &&
                out.warnsBeforeBaking && out.bakeFroze && out.noSwapInManual &&
                out.manualPrintsBraces && out.oneUndoStep &&
+               out.autoLinesBackAsTokens && out.typedLinesKept &&
                out.errors.length === 0 && !(out.clipped && out.clipped.h && out.clipped.h.length);
   } catch (e) {
     out.EX = e && (e.message || String(e));

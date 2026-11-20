@@ -22208,6 +22208,20 @@ export function initLegacyApp() {
     {kind:'localizationStart', phase:'localization'}, {kind:'localizationEnd', phase:'localization', end:true},
   ];
   const AUTO_NOTE_OPT_IN = new Set(AUTO_NOTE_PHASE_EDGES.map(e=> e.kind));
+  // ⭐ POST'S "FINAL DELIVERY" STARTS ON FOR NEW CALENDARS (owner, 19 Nov 2026: "Final Delivery note should be enabled
+  // by default"). It stays an opt-in kind, so a calendar saved without it ticked (every file before today, and every one
+  // whose owner unticked it) still opens with it off: only a NEW calendar starts ticked, colReuse's pattern. Two places
+  // use this: the boot, just before restoreSavedState(), and New / Reset All (resetAll()). ⛔ An absent autoNotesOn
+  // still restores as none: never flip that in applyStateSnapshot(). A new calendar's file therefore carries
+  // autoNotesOn: {postEnd: true}. ⚠️ localhost ONLY, localStorage 'sptcal.finalDeliveryTest' = 'off' (the
+  // 'sptcal.mvPdfTest' shape) starts a new calendar with it off: tests/harness/t/lib.js sets it for every leg, so the
+  // reference calendar and every baseline cut from it keep their Notes column; autonotephases clears it to test this.
+  function newCalendarAutoNotesOn(){
+    if(/^(localhost|127\.0\.0\.1)$/.test(location.hostname)){
+      try { if(window.localStorage.getItem('sptcal.finalDeliveryTest') === 'off') return {}; } catch(e){}
+    }
+    return {postEnd: true};
+  }
   // ⭐ A CUSTOM PHASE'S START AND END (owner, 2 Nov 2026: "Can we also add automatic notes for all custom phases too";
   // AUTO-NOTES-PER-VIEW-PLAN.md step 1, ruling R3: "Off"). Each custom phase adds "<its name> Begins" and "<its name>
   // Ends", dated as the built-ins' are, with the kind words `<custom key>Start` / `<custom key>End` (custom3Start), the
@@ -29530,6 +29544,43 @@ export function initLegacyApp() {
   // ⚠️ The OLD toggle never called markDirty() on Auto -> Manual -- a header takeover left the file
   // showing "Saved" and could not be undone. Same bug class as the one the notes-reset branch
   // carries a comment about. Fixed by construction here: one exit path, and it always marks.
+  // ⭐ MANUAL -> TEMPLATE PUTS THE AUTO LINES BACK AS VARIABLES (owner, 19 Nov 2026: "by default when you open the
+  // template editor, all the labels of the default auto-header should be the dynamic variables as opposed to plain
+  // text"; picker "Header was on Manual"). Taking the header over (Manual) bakes every auto line into plain text, and
+  // the editor used to open on those words, so "Test Show S2" no longer followed the title. A Manual line still in an
+  // auto line's form goes back to that line's default template; a line the user wrote stays exactly as typed.
+  // "In an auto line's form" is: (1) the text the default template prints NOW, or (2) for the lines that carry a date
+  // or a count, the SHAPE of the auto line (a stale "Principal Photography 6.29.26 / Wrap: …" from before the
+  // shoot moved, a date snapshotted last week, "v2"), because Manual froze them at the moment of the take-over and
+  // they stop matching the calendar on the first edit after it. The title lines (c1, the month title) are matched
+  // exactly only: an older show title there may be a deliberate choice, and the word is the user's.
+  const HDR_AUTO_SHAPES = {
+    left: /^\d{1,2}\.\d{1,2}\.\d{2}$/,
+    l2:   /^v\d+(\.\d+)*$/,
+    c3:   /^Writer's Room Opens: \d{1,2}\.\d{1,2}\.\d{2}$/,
+    r1:   /^(?:\d+-Week Production Span(?: \/ (?:\d+(?:\.\d+)?-Day Shooting Schedule|\d+ Shooting Blocks?))?|\d+(?:\.\d+)?-Day Shooting Schedule|\d+ Shooting Blocks?)$/,
+    r2:   /^Principal Photography \d{1,2}\.\d{1,2}\.\d{2} \/ Wrap: \d{1,2}\.\d{1,2}\.\d{2}$/,
+    r3:   /^\d+ Episodes$/,
+  };
+  const MV_HDR_AUTO_SHAPES = { today: /^\d{1,2}\.\d{1,2}\.\d{2}$/ };
+  function hdrAutoLinesAsTokens(lines, mv){
+    const defs = mv ? DEFAULT_MV_TEMPLATE : DEFAULT_HEADER_TEMPLATE;
+    const shapes = mv ? MV_HDR_AUTO_SHAPES : HDR_AUTO_SHAPES;
+    const ctx = buildHeaderCtx(currentSchedule);
+    const out = Object.assign({}, lines);
+    // An auto line is recognised in ANY slot, its own first: a Writer's Room line moved to the right column takes
+    // {writersRoom.line} there. An empty line stays empty (it may have been cleared on purpose).
+    const autoIds = Object.keys(defs).filter(k=>defs[k]);
+    Object.keys(out).forEach(id=>{
+      const text = String(out[id] == null ? '' : out[id]).trim();
+      if(!text) return;
+      const order = autoIds.indexOf(id) >= 0 ? [id].concat(autoIds.filter(k=>k !== id)) : autoIds;
+      const hit = order.find(k=> text === resolveHeaderTemplate(defs[k], ctx) || (shapes[k] && shapes[k].test(text)));
+      if(hit) out[id] = defs[hit];
+    });
+    return out;
+  }
+
   function setHeaderMode(next){
     // `shown` includes Off (headerModeKey); `from` is the mode underneath it, which is what the five
     // transitions below move between. Off -> the mode underneath only clears the flag, so the lines
@@ -29554,6 +29605,8 @@ export function initLegacyApp() {
         }
         // Manual -> Template keeps the literal strings as they are: text with no tokens is a valid
         // template, so nothing is lost and the user can add tokens to what is already there.
+        // ⭐ Except a line still in an auto line's form, which goes back to its variable (hdrAutoLinesAsTokens).
+        else headerManual = hdrAutoLinesAsTokens(headerManual, false);
         headerMode = 'manual'; headerTemplates = true;
       } else {
         // -> Manual. From Template this is a BAKE: every line becomes the text it currently
@@ -29611,6 +29664,8 @@ export function initLegacyApp() {
           mvHeaderManual = Object.assign({}, DEFAULT_MV_TEMPLATE);
         }
         // Manual -> Template keeps the literal strings: text with no tokens is a valid template.
+        // ⭐ Except a line still in an auto line's form, which goes back to its variable (hdrAutoLinesAsTokens).
+        else mvHeaderManual = hdrAutoLinesAsTokens(mvHeaderManual, true);
         mvHeaderMode = 'manual'; mvHeaderTemplates = true;
       } else {
         // -> Manual. From Template this is a BAKE: each line becomes the text it resolves to now
@@ -33524,7 +33579,8 @@ export function initLegacyApp() {
     document.querySelectorAll('.phiatus-name').forEach(el=>{ el.value = ''; });
     phaseHiatusNumbered = {};   // ...and their "Number weeks" (ruling 8); refreshPhaseHiatusUI() below unticks the boxes
     autoNotesOff = {};          // every automatic-note kind back on (ruling 9); the update() after New ticks the boxes
-    autoNotesOn = {};           // ...except the phase starts and ends, which start off (27 Oct 2026)
+    autoNotesOn = newCalendarAutoNotesOn();   // ...except the phase starts and ends, which start off (27 Oct 2026), all
+                                              // but Post's Final Delivery, which starts on (owner, 19 Nov 2026)
     autoNotesView = {};         // ...and every kind in both views or neither, none split (4 Nov 2026)
     document.querySelectorAll('.phase-snap-cb').forEach(cb=>{ cb.checked = true; });
     // ...and the built-ins' Length / End date (CUSTOM-PHASE-UNITS-PLAN §7a): back to Weeks, no end.
@@ -48501,6 +48557,8 @@ export function initLegacyApp() {
   // A new calendar reuses empty columns (owner, 2 Nov 2026). Before the restore, so a shareable copy or a
   // recovered backup replaces it with its own `colReuse`, and absent means OFF there.
   colReuse = true; reflectColReuse();
+  // ...and starts with Post's Final Delivery note ticked (owner, 19 Nov 2026), replaced the same way by a restore.
+  autoNotesOn = newCalendarAutoNotesOn();
   restoreSavedState();
   foldAllHiatuses();   // a calendar opening itself: its hiatus cards folded, as a Load's (AUD2-036)
   refreshAfterRestore();

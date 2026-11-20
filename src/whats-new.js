@@ -17,6 +17,26 @@
 //     machine remembers as seen (localStorage 'sptcal.whatsNew'), so never change an id once it has shipped.
 export const WHATS_NEW = [
   {
+    id: '2026-11-19-4',
+    date: '19 Nov 2026',
+    items: [
+      {
+        title: '“Final Delivery” is on for new calendars',
+        text: 'A new calendar now shows the “Final Delivery” note on Post’s last day without ticking it. Calendars you already saved keep the setting they had.',
+      },
+    ],
+  },
+  {
+    id: '2026-11-19-3',
+    date: '19 Nov 2026',
+    items: [
+      {
+        title: 'Build Around: pick the right end day',
+        text: 'When you build to an “ends by” date, the calendar now offers Fridays for a phase that runs whole weeks, and any weekday for Production and for phases that end mid-week. Before, it only let you pick Mondays.',
+      },
+    ],
+  },
+  {
     // v1.23.0. ⚠️ Replaced '2026-11-19', live for under an hour before this cut on a build with the same list less
     // the first item: the few machines that saw it see this one once more, with the item it was missing.
     id: '2026-11-19-2',
