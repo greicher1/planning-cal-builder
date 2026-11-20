@@ -4,6 +4,8 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### 📅 19 Nov 2026: BUILD AROUND'S "ENDS BY" PICKS A FRIDAY (PRODUCTION: ANY WEEKDAY) — branch `endsby-picker` (worktree `.claude/worktrees/endsby-picker`, from `origin/main`; `node_modules` is a symlink, unlink it before `git worktree remove`), BUILT, not committed, not pushed. Owner: *"why can i only select mondays? ... it should be only fridays except for production which should be any weekday"*. Chrome only: `fieldKind()` in `src/chrome/DatePop.jsx` read `#tool-solve-date` by the start's rule on both edges. Now on `tool-solve-edge` = end: `friday` for a phase whose `phaseSnapped()` is true (Snap on, or Ends), `weekday` (new kind, weekends greyed) for Production and Days / Dates / unsnapped phases. The engine is untouched (it already took any date as the deadline). ⚠️ Shift's To a date "ends by" is still `day` (any day, weekends too): the owner asked about Build Around only. Legs `datepick` 21/21 (E1-E4 new), `buildendsby`, `buildaround`; `npm run check` 46/46. What's New `2026-11-19-3`. README "Unreleased". Tracker card `build-around-endsby-picker`.
+
 ### ✂️ 19 Nov 2026: THE WRAP-DATE PICKER'S "ONLY SHOOT DAYS" LINE IS GONE — uncommitted on `scenario-version-offer`, NOT pushed
 - **Owner:** *"delete: the shoot wraps on a shoot day, so only shoot days can be picked."*
 - **Done:** the `kind === 'wrap'` hint in `src/chrome/DatePop.jsx` is deleted; the picker still greys every non-shoot

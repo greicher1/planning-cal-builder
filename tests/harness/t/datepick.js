@@ -10,6 +10,8 @@
 //   day    -- Snap off, a Days or Dates phase, a Dates end, a custom holiday, Anchor To's "ends by": any
 //             day, the picked day capped alone, no week band.
 //   week   -- the calendar range and Anchor To's start: any day picks its week, the band stays.
+//   friday / weekday -- Build Around's "ends by" (owner, 19 Nov 2026): Fridays only for a phase that runs whole weeks,
+//             any weekday for Production or a phase with Snap off (E1-E4).
 // The engine is untouched: picking never rewrites a field it did not pick into, and turning Snap on or off
 // leaves the typed date alone. (Leaving a snapped box after TYPING a non-Monday does write its Monday, since
 // 30 Oct 2026; the snapbox leg holds that. Nothing here leaves a box after typing, so P4 and P7 still hold.)
@@ -170,7 +172,34 @@ window.addEventListener('load', function () { (async function () {
     T.set('tool-solve-phase', 'prodPrep'); await T.sleep(300);
     r = await open('tool-solve-date');
     add('R2', 'Rebuild From on a phase with Snap off: any day, no band', isDay(r), {pick: r, snap: $('snap-prodPrep').checked}, 'no greyed day, no band, no hint');
+    // Build Around's "ends by" picks an END (owner, 19 Nov 2026: "it should be only fridays except for production which
+    // should be any weekday"). With Snap off Prod Prep runs part weeks, so it too can end on any weekday.
+    T.set('tool-solve-edge', 'end'); await T.sleep(300);
+    r = await open('tool-solve-date');
+    var openDays = r ? cells().filter(function (c) { return !c.b.classList.contains('dp-off'); }) : [];
+    add('E3', 'Build Around "ends by" on a phase with Snap off: any weekday, no weekend',
+      !!r && r.off === 12 && r.band === 0 && openDays.every(function (c) { var d = new Date(c.iso + 'T00:00:00Z').getUTCDay(); return d >= 1 && d <= 5; })
+        && r.hint === 'This phase can end on any weekday.', r, '12 greyed weekend days, the weekday hint');
     $('snap-prodPrep').click(); await T.sleep(300);
+    T.set('tool-solve-phase', 'prodPrep'); T.set('tool-solve-edge', 'end'); await T.sleep(300);
+    r = await open('tool-solve-date');
+    openDays = r ? cells().filter(function (c) { return !c.b.classList.contains('dp-off'); }) : [];
+    add('E1', 'Build Around "ends by" on a snapped phase: Fridays only, its last day capped on its Friday',
+      !!r && r.off === 36 && openDays.every(function (c) { return new Date(c.iso + 'T00:00:00Z').getUTCDay() === 5; })
+        && r.solo.length === 1 && new Date(r.solo[0] + 'T00:00:00Z').getUTCDay() === 5
+        && r.hint === 'This phase ends on a Friday, so only Fridays can be picked.', {pick: r, value: $('tool-solve-date').value}, '36 greyed, six Fridays, the Friday hint');
+    T.set('tool-solve-phase', 'production'); T.set('tool-solve-edge', 'end'); await T.sleep(300);
+    r = await open('tool-solve-date');
+    openDays = r ? cells().filter(function (c) { return !c.b.classList.contains('dp-off'); }) : [];
+    add('E2', 'Build Around "ends by" on Production: any weekday, no weekend, the Production hint',
+      !!r && r.off === 12 && r.band === 0 && openDays.every(function (c) { var d = new Date(c.iso + 'T00:00:00Z').getUTCDay(); return d >= 1 && d <= 5; })
+        && r.hint === 'Production ends on its last shoot day, so any weekday can be picked.', {pick: r, value: $('tool-solve-date').value}, '12 greyed weekend days, the Production hint');
+    // A Wednesday picked there writes it and Build Around reads it.
+    var wed = openDays.filter(function (c) { return new Date(c.iso + 'T00:00:00Z').getUTCDay() === 3; })[1];
+    if(wed){ await clickDay(wed.iso); }
+    add('E4', 'a weekday picked for Production\'s "ends by" is written to the box', !!wed && $('tool-solve-date').value === wed.iso,
+      {picked: wed && wed.iso, value: $('tool-solve-date').value}, 'the Wednesday');
+    T.set('tool-solve-edge', 'start'); await T.sleep(300);
   } catch (e) { cases.push({id: 'EX', title: 'harness', pass: null, observed: String(e && e.stack || e)}); }
   T.done({test: 'datepick', cases: cases, err: (window.__ERR || []).slice(0, 10)});
 })(); });

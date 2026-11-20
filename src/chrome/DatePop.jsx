@@ -113,6 +113,8 @@ function snapBoxOf(el) {
 //              lands on its week's Friday, so only Fridays;
 //   'wrap'   — Production's wrap (the engine's productionEnds; owner, 30 Oct 2026: "id say do exactly then"), the
 //              last shoot day, so only days the shoot can work (shootable below);
+//   'weekday' — Build Around's "ends by" for Production or a phase that does not run whole weeks: Monday to
+//              Friday, a single day and no band;
 //   'day'    — used to the day, so a single day and no band;
 //   'week'   — any day picks its week (the range is cut by whole weeks, and Anchor To's start
 //              moves the calendar by whole weeks: weeksBetweenMondays), so the band stays.
@@ -125,9 +127,16 @@ function fieldKind(el) {
   if (el.classList.contains('prod-wrapdate')) return 'wrap'         // Production's wrap (id-less)
   if (el.id.startsWith('end-')) return 'day'                       // a Dates phase's end
   if (el.id.startsWith('start-')) return phaseSnapped(el.id.slice(6)) ? 'monday' : 'day'
-  // Rebuild From pins the chosen phase's start by that phase's own Snap to Monday (audit M-11).
+  // Build Around pins the chosen phase's start by that phase's own Snap to Monday (audit M-11).
+  // ⭐ Its "ends by" picks an END, never a start (owner, 19 Nov 2026: "why can i only select mondays? ... it should be
+  // only fridays except for production which should be any weekday"). Until then both edges read the start's rule, so
+  // a snapped phase's last day could only be set to a Monday. A phase that runs whole weeks (snapped, or on Ends) ends
+  // on a Friday; Production's last shoot day, and a Days, Dates or unsnapped phase, can end on any weekday.
   if (el.id === 'tool-solve-date') {
     const key = (document.getElementById('tool-solve-phase') || {}).value
+    if ((document.getElementById('tool-solve-edge') || {}).value === 'end') {
+      return key && key !== 'production' && phaseSnapped(key) ? 'friday' : 'weekday'
+    }
     return key && !phaseSnapped(key) ? 'day' : 'monday'
   }
   // Anchor To's "ends by" is a deadline to the day (weeksToFinishBy floors on it).
@@ -316,6 +325,7 @@ export function DatePop() {
     // popover's mousedown preventDefault never ran and a click on a greyed day took focus out
     // of the field.
     const off = (kind === 'monday' && !isMon) || (kind === 'friday' && d.getUTCDay() !== 5)
+      || (kind === 'weekday' && (d.getUTCDay() === 0 || d.getUTCDay() === 6))
       || (kind === 'wrap' && !shootable(t, dayIso))
       || (win != null && (t < win.first || t > win.last))
     const cls = ['dp-day']
@@ -391,6 +401,11 @@ export function DatePop() {
       )}
       {kind === 'friday' && (
         <div className="dp-hint">This phase ends on a Friday, so only Fridays can be picked.</div>
+      )}
+      {kind === 'weekday' && (
+        <div className="dp-hint">{(document.getElementById('tool-solve-phase') || {}).value === 'production'
+          ? 'Production ends on its last shoot day, so any weekday can be picked.'
+          : 'This phase can end on any weekday.'}</div>
       )}
     </div>
   )

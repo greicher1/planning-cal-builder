@@ -29,6 +29,19 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — Build Around's "ends by" picks a Friday, or any weekday for Production (19 Nov 2026)
+
+The owner: *"build around - end by a date - why can i only select mondays? that doesnt make sense. it should be only
+fridays except for production which should be any weekday"*. The pop-out date picker read Build Around's date by the
+START's rule on both edges, so with "ends by" a snapped phase's last day could only be set to a Monday.
+`fieldKind()` in `src/chrome/DatePop.jsx` now reads the edge: on "ends by", a phase that runs whole weeks (Snap to
+Monday on, or on Ends) offers Fridays only (the picker's existing `friday` kind, as an Ends phase's end), and
+Production, or a Days, Dates or unsnapped phase, offers any weekday (a new `weekday` kind: weekends greyed, its own
+hint). "starts on" is unchanged, and so is the engine: Build Around already read any date as a deadline. Shift's To a
+date "ends by" is unchanged (any day). Verified on the build: leg `datepick` 21/21 (new E1-E4: Fridays only on a
+snapped phase, weekdays on Production and on an unsnapped phase, a picked Wednesday is written), `buildendsby` 21/21,
+`buildaround` 36/36, `npm run check` 46/46.
+
 ### Unreleased — The wrap-date picker has no "only shoot days" line (19 Nov 2026)
 
 The owner asked to delete "The shoot wraps on a shoot day, so only shoot days can be picked." from under Production's
