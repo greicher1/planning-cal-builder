@@ -4,6 +4,59 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### 📖 21 Nov 2026: THE NEW HELP — BUILDING on branch `help-center` (worktree `.claude/worktrees/help-center`, NOT pushed, NOT merged). Tracker card `help-center-redesign` (building). Plan page `mockups/help-docs-plan.html` (main checkout, untracked).
+- **What it is:** the one-page Guide (`#help-overlay`, ~10,700 words) is replaced by `src/help/`: a ~1,120 px Mantine window with a
+  sidebar of 14 sections / 64 articles, search, "On this page", Show me (rings the real control), `?` opening on the open
+  Shift box / Build Around box / note editor / day menu / Settings (else the last article read; else Month view's article or
+  the tour), an "I only use the Month view" switch (localStorage `sptcal.help`), What's New history, and "More in Help →"
+  on every ⓘ hint (`InfoHint`'s `help` prop → `chrome.openHelp(id)`). The engine's sweep skips `.help-dlg`.
+- **Owner's picks (21 Nov, from the plan page):** window A, design 1 (Docs), style B (picture first, details folded), crisp 2x
+  shots, every building block but clips; extras on: search, context-aware ?, ⓘ links, Month-only switch, What's New
+  history, reopen last; off: tour, guide PDF. Full / Brief / left-out per article are in `src/help/toc.js` (its header lists
+  the nine left out: don't add them back without asking).
+- **Owner, mid-build:** *"easily updated in the future without costing excess tokens or requiring significant new gates"*.
+  So: one file per article, `toc.js` the only structure file, `src/help/README.md` the cheat-sheet, `node
+  tools/check-help-jsx.mjs [ids]` parses articles in a second with no build, `node tools/help-shots.mjs [names]` retakes
+  pictures. A Help change is gated by `npm run check` + ONE `help` leg (to write), never the full gate.
+- **Owner, mid-build:** *"anything that uses screenshots/references to a calendar, ask/show me the calendar"* (memory
+  `show-calendars-for-realism`). They gave a reference waterfall; `tests/fixtures/help-demo.sptcal` now reproduces it row for
+  row (Harbor Lights S1, v1, 8 eps × 12 days, British Columbia so the wrap is 11/1/27, Location Vancouver, WR 1/4/27 20 wks,
+  Pre-Prep 3/15/27 3 wks, Prod Prep 4/5/27 10 wks, Sim Post alongside, Post 11/8/27 30 wks with Final Delivery 6/16/28,
+  Localization 6/19/28 10 wks, hiatuses 12/20/27 and 12/18/28). Owner's pickers: **made up, OK to ship**; **Vancouver BC**;
+  **add a few typed notes** (added: Tone meeting Ep 101 6/2/27, Table read Ep 101 6/9/27 in the Waterfall; Tech scout /
+  Production meeting Ep 101 on 6/8, 6/10/27 and Night shoot 7/14/27 in the Month view; SHOWN to the owner, approval not yet
+  given); extras **"show me each first"**.
+- **Commits:** `ba06e4e3` (window, kit, 19 articles), `69954eec` (all 64 articles, 18 more shots, ⓘ links), then this one.
+  `npm run check` 46/46 at `69954eec`.
+- **NEXT, in order:**
+  1. The owner's OK on the notes. Then the extras, EACH shown to the owner before its picture: a second scenario tab
+     "Shoot +2 wks", a color key side box, 1 tandem day per episode (12+1). Build them as UI steps in `tools/help-shots.mjs`
+     on top of `help-demo` (no more fixtures); today those four shots still come from test fixtures (`scenarios-3`,
+     `sideboxes`, `doubleups`): replace them.
+  2. Point the kit's calendar-specific steps at the new calendar: note-editor (week `2027-06-07`), mv-note-editor ("Tech
+     scout Ep 101"), mv-holiday-editor (a BC holiday, e.g. Canada Day 7/1/27), month-day-menu / app-month (2027-06 or 07),
+     wf-context (a 2027 week). Then `npm run build && node tools/help-shots.mjs > log 2>&1` (≈7 min; never pipe it
+     through `tail`, which hides progress; every group starts from cleared storage and "Leave site?" is answered).
+  3. Re-place the numbered dots in EVERY article that uses a picture, looking at each new picture (dots sit beside a
+     control's label, never on its words). `text-bar.webp` is dimmed (nothing picked); retake it with a cell picked.
+  4. Review all 64 articles in the app (on `localhost` via `tests/harness/srv.js` serving this worktree, `?state=help-demo`).
+     The writers flagged: `singlecol` (the Settings tooltip says Single Column Mode runs the whole calendar down ONE column,
+     no year blocks: check the article), `prefs` (mentions Hidden Notes columns: owner left that out, remove), `side`
+     (described from SIDE-BOXES-PLAN, not the app), `keys` (right-click menu items from the old Guide), `hdrmodes`
+     (which modes show the formatting bar), `presets` (Export… control not found), `mvpdf` ("one month: no window"),
+     `production` / `prep` (two inferred sentences), `holiday-list` dots in `regiontab` (guessed). No writer used ShowMe;
+     add ones whose selector is an id the app keeps.
+  5. The `help` leg (`tests/harness/t/help.js`, `HARNESS_PAGE=/dist/index.html HARNESS_STATE=help-demo ./run.sh help`):
+     opens, every article has its title and no "being written", every picture loads, every `data-showme` target exists,
+     search, Esc, context (Shift box → "Shift in detail"), Month-only switch, Help's controls add no undo step, an ⓘ link
+     opens its article, stale wording absent (Export App With Data, Background graphics, Reset All, "three modes", old
+     file-name shapes…), must-say phrases ("calendar weeks after Production begins" in `simpost`; the file-name example in
+     `names`). Then strip the old Guide's text checks from `filekeys` H1, `firstrun` (Help block), `noresetall` A4,
+     `simpostlabel` S2, `exportnames` X7 (moved into `help`); rewrite `oskeys` H1/H2 to read the Keyboard shortcuts article;
+     `dblclickdlg` D10–D12: `helpOpen` = `!!document.querySelector('.help-dlg')`. Add `help` to `gate.sh`.
+  6. README changelog, a What's New entry (src/whats-new.js: "A new Help"), this entry, the tracker card; then the
+     owner's commit/push picker. Merge into `main` only on their word.
+
 ### 🙈 21 Nov 2026: THE MONTH VIEW'S HOLIDAY EDITOR HAS "HIDE HOLIDAY" — committed `a3ed0a2e` on `scenario-version-offer`, cherry-picked onto `origin/main` and pushed on the owner's picker. README "Unreleased". Tracker card `month-hide-holiday`.
 - **Owner:** *"We need to add the same hide holiday button in the waterfall pop-up to the month view pop-up"*.
 - **Done:** `openMvNoteEditor`'s head gives a holiday (`isHol`) a `note-pop-delete mv-holiday-hide` button, "Hide
