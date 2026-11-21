@@ -10,6 +10,8 @@
 //   day    -- Snap off, a Days or Dates phase, a Dates end, a custom holiday, Anchor To's "ends by": any
 //             day, the picked day capped alone, no week band.
 //   week   -- the calendar range and Anchor To's start: any day picks its week, the band stays.
+//   friday / weekday -- Build Around's "ends by" (owner, 19 Nov 2026): Fridays only for a phase that runs whole weeks,
+//             any weekday for Production or a phase with Snap off (E1-E4).
 // The engine is untouched: picking never rewrites a field it did not pick into, and turning Snap on or off
 // leaves the typed date alone. (Leaving a snapped box after TYPING a non-Monday does write its Monday, since
 // 30 Oct 2026; the snapbox leg holds that. Nothing here leaves a box after typing, so P4 and P7 still hold.)
@@ -49,6 +51,9 @@ window.addEventListener('load', function () { (async function () {
       band: p.querySelectorAll('.dp-band').length,
       solo: cs.filter(function (c) { return c.b.classList.contains('dp-cap') && c.b.classList.contains('dp-solo'); }).map(function (c) { return c.iso; }),
       hint: hint,
+      // The Snap to Monday switch at the foot of a phase Starts picker (owner, 18 Nov 2026), in the hint's place:
+      // 'on' / 'off', or null where the picker has none.
+      snap: p.querySelector('.dp-snap input') ? (p.querySelector('.dp-snap input').checked ? 'on' : 'off') : null,
       ids: p.querySelectorAll('[id]').length
     };
   }
@@ -57,8 +62,11 @@ window.addEventListener('load', function () { (async function () {
     if(!c) throw new Error('no ' + dayIso + ' in the picker');
     c.b.click(); await T.sleep(150);
   }
+  // A phase's Starts picker no longer says this: since 18 Nov 2026 its foot is the Snap to Monday switch itself (no
+  // hint, r.snap 'on'). Build Around's date, which has no switch, still says it.
   var MON_HINT = 'Snap to Monday is on, so only Mondays can be picked.';
   var HIA_HINT = 'A hiatus always starts on a Monday.';
+  var PHIA_HINT = 'A hiatus always starts on a Monday, in a week this phase runs.';
   var WEEK_HINT = 'Any day picks its week — the calendar snaps to that Monday.';
   function isMondayOnly(r, hint){ return !!r && r.off === 36 && r.offExact && r.band === 0 && r.hint === hint && r.ids === 0; }
   function isDay(r){ return !!r && r.off === 0 && r.band === 0 && r.hint === '' && r.ids === 0; }
@@ -70,8 +78,8 @@ window.addEventListener('load', function () { (async function () {
 
     // ---- A phase start with Snap to Monday on (the fixture's Prod Prep, 5/18/26, a Monday).
     var r = await open('start-prodPrep');
-    add('P1', 'snapped phase start: only the six Mondays can be picked, the start capped alone, the snap hint',
-      isMondayOnly(r, MON_HINT) && r.solo.join() === '2026-05-18', r, '36 greyed non-Mondays, no band, solo 2026-05-18, "' + MON_HINT + '"');
+    add('P1', 'snapped phase start: only the six Mondays can be picked, the start capped alone, the Snap switch on at its foot',
+      isMondayOnly(r, '') && r.snap === 'on' && r.solo.join() === '2026-05-18', r, '36 greyed non-Mondays, no band, solo 2026-05-18, no hint, snap on');
 
     await clickDay('2026-05-20');
     var after = {value: $('start-prodPrep').value, open: !!document.querySelector('.date-pop')};
@@ -87,14 +95,14 @@ window.addEventListener('load', function () { (async function () {
     T.set('start-prodPrep', '2026-05-27'); await T.sleep(400);
     r = await open('start-prodPrep');
     add('P4', 'a typed Wednesday with Snap on: the picker caps its Monday, the field keeps the Wednesday',
-      isMondayOnly(r, MON_HINT) && r.solo.join() === '2026-05-25' && $('start-prodPrep').value === '2026-05-27',
+      isMondayOnly(r, '') && r.snap === 'on' && r.solo.join() === '2026-05-25' && $('start-prodPrep').value === '2026-05-27',
       {pick: r, value: $('start-prodPrep').value}, 'solo 2026-05-25, value 2026-05-27');
 
     // ---- Snap to Monday off: any day, the exact day, no band.
     $('snap-prodPrep').click(); await T.sleep(400);
     r = await open('start-prodPrep');
-    add('P5', 'Snap off: every day can be picked, the start (a Wednesday) capped alone, no band, no hint',
-      isDay(r) && r.solo.join() === '2026-05-27' && !$('snap-prodPrep').checked, r, 'no greyed day, no band, solo 2026-05-27');
+    add('P5', 'Snap off: every day can be picked, the start (a Wednesday) capped alone, no band, no hint, the switch off',
+      isDay(r) && r.snap === 'off' && r.solo.join() === '2026-05-27' && !$('snap-prodPrep').checked, r, 'no greyed day, no band, solo 2026-05-27');
     await clickDay('2026-05-28');
     add('P6', 'Snap off: a click on a Thursday writes the Thursday', $('start-prodPrep').value === '2026-05-28',
       $('start-prodPrep').value, '2026-05-28');
@@ -103,14 +111,14 @@ window.addEventListener('load', function () { (async function () {
     $('snap-prodPrep').click(); await T.sleep(400);
     r = await open('start-prodPrep');
     add('P7', 'Snap back on: Mondays only again, and the Thursday stays in the field',
-      isMondayOnly(r, MON_HINT) && r.solo.join() === '2026-05-25' && $('start-prodPrep').value === '2026-05-28' && $('snap-prodPrep').checked,
+      isMondayOnly(r, '') && r.snap === 'on' && r.solo.join() === '2026-05-25' && $('start-prodPrep').value === '2026-05-28' && $('snap-prodPrep').checked,
       {pick: r, value: $('start-prodPrep').value}, 'solo 2026-05-25, value 2026-05-28');
 
     // ---- A Dates phase (Post): its start and its end are both used to the day.
     T.set('unit-post', 'dates'); await T.sleep(500);
     var rs = await open('start-post'), re = await open('end-post');
     add('U1', 'a Dates phase: start and end are picked to the day, with no band (its hidden Snap switch is ignored)',
-      isDay(rs) && isDay(re) && $('snap-post').checked, {start: rs, end: re, snapChecked: $('snap-post').checked}, 'both: no greyed day, no band, no hint');
+      isDay(rs) && isDay(re) && rs.snap === null && $('snap-post').checked, {start: rs, end: re, snapChecked: $('snap-post').checked}, 'both: no greyed day, no band, no hint');
 
     // ---- A custom phase in Days.
     $('add-phase-btn').click(); await T.sleep(500);
@@ -123,8 +131,13 @@ window.addEventListener('load', function () { (async function () {
     // ---- Every hiatus start is snapped, so Mondays only.
     r = await open(document.querySelector('#hiatus-list .hiatus-start'));
     add('H1', 'an all-phase hiatus start: Mondays only, the hiatus hint', isMondayOnly(r, HIA_HINT), r, '36 greyed, "' + HIA_HINT + '"');
+    // A phase's own hiatus is also held to the weeks its phase runs (5 Nov 2026; the phiatuspick leg holds that in
+    // full). Prod Prep starts 5/25/26 here, so its empty hiatus opens on May with only 5/25 and 6/1 to pick.
     r = await open('phiatus-start-prodPrep');
-    add('H2', "a phase's own hiatus start: Mondays only, the hiatus hint", isMondayOnly(r, HIA_HINT), r, '36 greyed, "' + HIA_HINT + '"');
+    var pickable = r ? cells().filter(function (c) { return !c.b.classList.contains('dp-off'); }).map(function (c) { return c.iso; }) : [];
+    add('H2', "a phase's own hiatus start: Mondays only, and only those its phase runs, the hiatus hint",
+      !!r && r.off === 40 && pickable.join() === '2026-05-25,2026-06-01' && r.band === 0 && r.hint === PHIA_HINT && r.ids === 0,
+      {pick: r, pickable: pickable}, '40 greyed, 5/25 and 6/1 pickable, "' + PHIA_HINT + '"');
 
     // ---- A custom holiday is one day.
     r = await open('custom-hol-date');
@@ -138,7 +151,8 @@ window.addEventListener('load', function () { (async function () {
     T.set('cal-range-start', ''); await T.sleep(500);
 
     // ---- Anchor To: its start picks a week (whole-week shift), its "ends by" is a day.
-    $('pop-anchor-btn').click(); await T.sleep(300);
+    // (The Shift form's To a date since 4 Nov 2026, ANCHOR-TO-DIRECTION-PLAN.md §6.)
+    $('pop-shift-btn').click(); await T.sleep(300); document.querySelector('#pop-shift [data-far="date"]').click(); await T.sleep(150);
     T.set('tool-anchor-phase', 'prodPrep'); T.set('tool-anchor-edge', 'start'); await T.sleep(300);
     r = await open('tool-anchor-date');
     add('A1', "Anchor To's start: any day picks its week (unchanged)", !!r && r.off === 0 && r.band === 7 && r.hint === WEEK_HINT,
@@ -153,12 +167,39 @@ window.addEventListener('load', function () { (async function () {
     $('pop-solve-btn').click(); await T.sleep(300);
     T.set('tool-solve-phase', 'prodPrep'); await T.sleep(300);
     r = await open('tool-solve-date');
-    add('R1', 'Rebuild From on a snapped phase: Mondays only', isMondayOnly(r, MON_HINT), {pick: r, phase: $('tool-solve-phase').value}, '36 greyed, the snap hint');
+    add('R1', 'Rebuild From on a snapped phase: Mondays only', isMondayOnly(r, MON_HINT) && r.snap === null, {pick: r, phase: $('tool-solve-phase').value}, '36 greyed, the snap hint');
     $('snap-prodPrep').click(); await T.sleep(400);
     T.set('tool-solve-phase', 'prodPrep'); await T.sleep(300);
     r = await open('tool-solve-date');
     add('R2', 'Rebuild From on a phase with Snap off: any day, no band', isDay(r), {pick: r, snap: $('snap-prodPrep').checked}, 'no greyed day, no band, no hint');
+    // Build Around's "ends by" picks an END (owner, 19 Nov 2026: "it should be only fridays except for production which
+    // should be any weekday"). With Snap off Prod Prep runs part weeks, so it too can end on any weekday.
+    T.set('tool-solve-edge', 'end'); await T.sleep(300);
+    r = await open('tool-solve-date');
+    var openDays = r ? cells().filter(function (c) { return !c.b.classList.contains('dp-off'); }) : [];
+    add('E3', 'Build Around "ends by" on a phase with Snap off: any weekday, no weekend',
+      !!r && r.off === 12 && r.band === 0 && openDays.every(function (c) { var d = new Date(c.iso + 'T00:00:00Z').getUTCDay(); return d >= 1 && d <= 5; })
+        && r.hint === 'This phase can end on any weekday.', r, '12 greyed weekend days, the weekday hint');
     $('snap-prodPrep').click(); await T.sleep(300);
+    T.set('tool-solve-phase', 'prodPrep'); T.set('tool-solve-edge', 'end'); await T.sleep(300);
+    r = await open('tool-solve-date');
+    openDays = r ? cells().filter(function (c) { return !c.b.classList.contains('dp-off'); }) : [];
+    add('E1', 'Build Around "ends by" on a snapped phase: Fridays only, its last day capped on its Friday',
+      !!r && r.off === 36 && openDays.every(function (c) { return new Date(c.iso + 'T00:00:00Z').getUTCDay() === 5; })
+        && r.solo.length === 1 && new Date(r.solo[0] + 'T00:00:00Z').getUTCDay() === 5
+        && r.hint === 'This phase ends on a Friday, so only Fridays can be picked.', {pick: r, value: $('tool-solve-date').value}, '36 greyed, six Fridays, the Friday hint');
+    T.set('tool-solve-phase', 'production'); T.set('tool-solve-edge', 'end'); await T.sleep(300);
+    r = await open('tool-solve-date');
+    openDays = r ? cells().filter(function (c) { return !c.b.classList.contains('dp-off'); }) : [];
+    add('E2', 'Build Around "ends by" on Production: any weekday, no weekend, the Production hint',
+      !!r && r.off === 12 && r.band === 0 && openDays.every(function (c) { var d = new Date(c.iso + 'T00:00:00Z').getUTCDay(); return d >= 1 && d <= 5; })
+        && r.hint === 'Production ends on its last shoot day, so any weekday can be picked.', {pick: r, value: $('tool-solve-date').value}, '12 greyed weekend days, the Production hint');
+    // A Wednesday picked there writes it and Build Around reads it.
+    var wed = openDays.filter(function (c) { return new Date(c.iso + 'T00:00:00Z').getUTCDay() === 3; })[1];
+    if(wed){ await clickDay(wed.iso); }
+    add('E4', 'a weekday picked for Production\'s "ends by" is written to the box', !!wed && $('tool-solve-date').value === wed.iso,
+      {picked: wed && wed.iso, value: $('tool-solve-date').value}, 'the Wednesday');
+    T.set('tool-solve-edge', 'start'); await T.sleep(300);
   } catch (e) { cases.push({id: 'EX', title: 'harness', pass: null, observed: String(e && e.stack || e)}); }
   T.done({test: 'datepick', cases: cases, err: (window.__ERR || []).slice(0, 10)});
 })(); });

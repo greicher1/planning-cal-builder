@@ -48,6 +48,18 @@ http.createServer((q, r) => {
       let json;
       try { json = fs.readFileSync(sp, 'utf8'); }
       catch (err) { r.writeHead(500); r.end('state fixture not found: ' + sp); return; }
+      // ?barsize= / ?notesize= (t/lib.js applyBarSizeQuery / applyNoteSizeQuery): the calendar AT that month size, as
+      // one saved there opens. Until 18 Nov 2026 the hooks picked the size in its own dropdown after the load; since the
+      // owner made bars and notes ONE Size (Standard / Large / Extra Large), 11 and 13 px, or notes apart from bars, can
+      // only come from a saved file, so the keys are written into the fixture here. Absent both, the text is untouched.
+      const bq = u.searchParams.get('barsize'), nq = u.searchParams.get('notesize');
+      const BAR = { '11': '11', '12': 'large', large: 'large', '13': '13', '14': 'xl', xl: 'xl' };
+      if ((bq && BAR[bq]) || (nq && /^1[1-4]$/.test(nq))) {
+        const snap = JSON.parse(json);
+        if (bq && BAR[bq]) snap.mvBarSize = BAR[bq];
+        if (nq && /^1[1-4]$/.test(nq)) snap.mvNoteSize = nq;
+        json = JSON.stringify(snap);
+      }
       // `<` escaped exactly as buildSavedHtml does, so user text containing a closing script tag
       // cannot truncate the document.
       const safe = json.replace(/</g, '\\u003c');

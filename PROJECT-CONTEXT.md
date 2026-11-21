@@ -25,7 +25,9 @@ see §7a, which is the densest part of the app added since the original version 
 It is used by production and scheduling staff to plan TV seasons. The output is the sort of one-page
 planning calendar that gets circulated to a production team.
 
-**Live URL:** https://greicher1.github.io/planning-cal-builder/
+**Live URL:** https://sptcal.pages.dev/ since v1.21.0 (18 Nov 2026), behind a Cloudflare Access sign-in
+(`CLOUDFLARE-ACCESS-PLAN.md`). The old GitHub Pages address, https://greicher1.github.io/planning-cal-builder/,
+serves the same build with "SPTCal has moved" for the switch-over window, then goes away.
 **Repo:** https://github.com/greicher1/planning-cal-builder (public)
 **Owner:** the repository owner, `greicher1` on GitHub
 
@@ -68,7 +70,19 @@ is a global — see §11).
 **Google Fonts** (two `preconnect`s plus a `css2` stylesheet for Inter and IBM Plex Mono). ⚠️ The
 build has neither font dependency: IBM Plex Mono was dropped and Inter is embedded
 (`src/styles/inter.css`), so `dist/index.html` fetches nothing but ExcelJS. Everything else
-is inline. The app is otherwise fully offline-capable and makes no network requests.
+is inline, and apart from ExcelJS and the update check's `version.json` the build makes no network
+requests.
+
+⚠️ **That does NOT make the installed app work offline** (corrected 14 Nov 2026, November 2026 audit
+AUD2-063; it said "fully offline-capable" until then, which was true only of the old single file and
+of shareable copies opened from disk). The installed app is the hosted page with **no service worker**
+(deliberate since v1.2.0: an earlier one served a stale app), so it needs an internet connection to
+START; a launch with no connection gets the browser's offline page. The owner's decision D7 (a)
+(13 Nov 2026) keeps it that way and has the app say so (Help) rather than add an offline cache.
+Excel export needs the network too: ExcelJS is fetched at launch, and since the same audit (AUD2-064)
+a press of Export to Excel with it missing fetches it again and says plainly what happened
+(`loadExcelLib` / `ensureExcelLib` in `src/legacy/app.js`). A shareable copy opened from disk starts
+offline, but its Excel export still needs the network.
 
 **The DEPLOYED FILE has no build step.** ⚠️ The repo now has all four of the things this line used
 to deny: Vite + React 19 + Mantine 9.5.2 (`npm run dev` / `npm run build` → `dist/index.html`), a
@@ -562,39 +576,147 @@ else's file.
 ## 7a. The calendar adjustment tools (toolbar above the preview)
 
 ```
-[Waterfall | Month]  [← 1 wk  Shift All  1 wk → ▾] [Shift From ▾] [Anchor To ▾] [Rebuild From ▾]  [↶ ↷]
+[Waterfall | Month]  [← 1 wk | Shift ▾ | 1 wk →] [Build Around ▾]  [↶ ↷]
 ```
 
-One button per tool, each opening its own small popover. There is deliberately **no container
-menu** — an earlier "Adjustment Tools" menu hid all four behind one unlabelled click and grew to
-562 px tall. Shift All is a **split control**: the arrows act on one click, the caret opens the
-multi-week form.
+Two tools since 4 Nov 2026 (owner: *"Ok im going to vote we go with C, one master shift tool"*;
+`ANCHOR-TO-DIRECTION-PLAN.md` §6). Before that there were four buttons: Shift All, Shift From, Anchor To and
+Rebuild From. Shift All's form, Shift From and Anchor To all ended in the same `shiftCalendar()` call, so they became
+**one Shift form with two choices**, and the Shift From and Anchor To buttons went. There is still deliberately **no
+container menu**: an earlier "Adjustment Tools" menu hid all four behind one unlabelled click and grew to 562 px tall.
+Shift is a **split control**. The arrows act on one click (one week, all phases), and the caret opens the form.
 
-Only **two questions** distinguish these tools, and the popover descriptions are written to answer
-them. Anything true of all four (durations are never changed by any of them) must **not** appear in
-a description — it reads as a distinction while distinguishing nothing.
+**One difference tells the two tools apart: Shift keeps the gaps, Build Around (Rebuild From until 5 Nov 2026)
+closes them.** Anything true of both
+(durations are never changed by either) must **not** appear in a description. It reads as a distinction while
+distinguishing nothing.
 
-| | Everything moves | Part moves |
+The Shift form (`#pop-shift`, 340 px), top to bottom. **The list first since 9 Nov 2026** (owner's eight-point spec
+and three corrections the same day; ANCHOR-TO-DIRECTION-PLAN.md §7.6): the What moves buttons (`All phases | Phase &
+before | Phase & after`), the pivot select above the list, its mirror under How far, the fold and the pin are gone.
+1. **"Phases"**, then the list's box (`.shift-box`):
+   - **The header strip** (`.shift-all`): a select-all box (`[data-shift-all]`) in the ticks' own column and the
+     count (`[data-shift-count]`). Ticked, and drawn as a minus, once every phase is ticked: a click then clears
+     them all. Otherwise empty: a click ticks every phase. A sibling above the rows' scroller, never sticky.
+   - **The rows** (`[data-shift-list]`, Build Around's `solveRow`, drawn by `renderShiftList`): one per scheduled
+     phase, in START order: a tick (`data-key`, no id), the colour, the name, its date, and Moves / Stays by
+     weeks or the new date and Pushed / Pulled to a date. A click on a row CHOOSES it (`shiftMark`, the outline,
+     `is-mark`) and leaves its tick; its box ticks; a press-and-drag sets a run, the row pressed deciding on or
+     off, redone from the ticks at the press so dragging back un-does an overshoot. No row has a `title`.
+2. **`Prior to X` / `After X`** (`[data-shift-prior]`, `[data-shift-after]`): the outlined row and every row above
+   it, or below it. Each REPLACES the ticks. One line, cut with an ellipsis.
+3. **How far:** `By weeks | To a date`.
+4. By weeks: `[n] wks [Earlier] [Later]` (`tool-shift-*`). To a date: the phase that lands (`#tool-anchor-phase`,
+   the one phase select left), then `[starts on / ends by] [date] [Go]` (`tool-anchor-*`). The select shows the
+   outlined row's phase and offers ticked phases only, plus *Whole schedule* while every phase is ticked
+   (`fillShiftPhase`); a pick in it outlines that row, so there is one chosen phase. Its row wears `is-land` and
+   keeps its tick box; untick it and the select moves to another ticked phase. Whole schedule fixes the ticks.
+
+It opens with **every phase ticked, By weeks, every time** (ruling R2(a)), which is exactly the old Shift All form.
+Earlier/Later always shift by weeks and Go always goes to the date. All of it is session UI: nothing new carries an
+id, everything is inside `.tools-menu`, never saved.
+
+⭐ **The ticks decide the move** (`shiftPlan()`, worked out once for the list, the result line and the engine's
+`part`), however they were set:
+
+| The ticks | The move | Notes, unlocked hiatuses, the range |
 |---|---|---|
-| **Gaps preserved** | Shift All (by amount) · Anchor To (by date) | Shift From |
-| **Gaps rebuilt** | — | Rebuild From |
+| every phase | the whole calendar: the old Shift All form, the arrows, the old Anchor To; no `part` | all of them |
+| the top of the list, down to X (what *Prior to X* sets) | the old Phase & before | up to X's LAST week |
+| the bottom of the list, from X (what *After X* sets) | the old Phase & after and Shift From | from X's start week |
+| any other set | exactly those phases | one window per ticked phase (T2) |
 
-- **Shift All / Shift From** — `shiftCalendar(weeks, fromIso)`. `fromIso` limits the
-  move to weeks on or after a cutoff; that is Shift From. Earlier/Later is the direction of
-  **travel**, not which side moves — both directions move the same set.
-- **Anchor To** — measures the gap between a landmark and a target date, then calls
-  `shiftCalendar` with that delta. It moves **dates, not phases**: a phase with a week count but
-  no date is invisible to it. It never reads week counts to position anything.
-- **Rebuild From** — `workBackwardsFrom` / `workForwardsFrom`. Pins one date and
-  recomputes one side to run consecutively, **writing** start dates including into empty fields.
-  Since 30 Oct 2026 (owner, "Build A") the direction only chooses the side: the panel lists that
-  side's phases with the start each would get (`trialRebuild`, the real solver run and put back),
-  and moves only the **ticked** ones (`opts.leave`). Built-ins start ticked, custom phases not.
-- **Close all gaps** — `closeAllGaps()`, folded into the Rebuild From popover. It is
-  Rebuild-forwards from the *first* phase at its current date, so it **moves the shoot**; Rebuild
-  From backwards **holds the shoot** and moves the front end. Same goal, opposite anchor.
+- **Every phase ticked** (the old All phases) — `shiftCalendar(weeks)`, the old call. To a date measures the gap between a landmark and the date
+  (`weeksBetweenMondays` for a start, `weeksToFinishBy` for "ends by", which floors) and shifts by it. It moves
+  **dates, not phases**: a phase with a week count but no date is invisible to it.
+- **Any other set of ticks** (the top of the list = the old Phase & before, the bottom = the old Phase & after, or
+  the user's own) — `shiftCalendar(weeks, null, {part: {phases, windows}})`. The form works the move out once,
+  before anything moves (`shiftPlan`). Its list and the move both read it, so they cannot disagree:
+  - **Which phases move:** the ticked ones. *Prior to X* / *After X* tick X and every row above or below it, and
+    the rows run in START order, so that is X and every phase whose START is on that side. After X is exactly the
+    old Shift From's set; Prior to X is its mirror. **An overlap does not count.** ⛔ For one deploy
+    (`c52094f`, 5 Nov 2026) a phase sharing a working day with the picked one moved too (owner's picker, *"Overlaps
+    move too"*). The owner reverted it the same night on a real calendar: *"how would you move everything except for
+    writers room"*. A Writer's Room running three weeks into Pre-Prep made Phase & after Pre-Prep take every phase.
+  - **The week windows** for everything week-keyed (notes and what rides on them, unlocked all-phase hiatuses, the
+    calendar range); a key moves when any window holds its week. The bottom of the list from X passes one, from
+    X's start week; the top of the list down to X passes one, to X's **LAST** week (`phaseLastWorkday`, for
+    Production the wrap). So X takes its own notes and any hiatus inside it along. With one bound at its start, a
+    12-week shoot moved and left weeks 2–12 of its notes, and its Christmas hiatus, behind. **Any other set
+    passes one window per ticked phase**, its start week to its last week (owner's T2, 5 Nov 2026), so a note in
+    the gap between two ticked phases, or in an unticked phase between them, stays.
+  - **Notes go by week, not by phase.** A phase that stays but shares a week with a ticked one loses that week's
+    notes to it.
+  - `part` is also the "just this phase" mover: `{phases: [key]}` (PHASE-WEEK-ARROWS-PLAN.md's `{onlyPhase}`).
+  - Earlier/Later is the direction of **travel**, not which phases move.
+  - ⚠️ `shiftCalendarDates`' third argument is ONE options object. `HIATUS-RIPPLE-PLAN.md` (branch
+    `hiatus-ripple`) adds `except` and `keepView` to the same object.
+- The result line is the old one with every phase ticked, word for word. The top or the bottom of the list adds
+  *"Production and everything before it moved (4 phases). 2 stayed where they were."*; any other set, *"3 ticked
+  phases moved. Writer's Rm, Pre Prep and Localization stayed where they were."*
+- **The phase card's ▲ / ▼** (owner, 4 Nov 2026, layout C2; `PHASE-WEEK-ARROWS-PLAN.md`) are not on the toolbar: two
+  small buttons stacked inside each card's date box, in the waterfall only, each moving THAT phase one week (`nudgePhase`). It is
+  the `part` move above with one phase and an **empty** week window (`fromWeek` after `toWeek`; null bounds would be
+  open, and carry every note). So the phase's own hiatus and every `<week>|<key>` store travel; typed notes, all-phase
+  hiatuses, the range and (`opts.keepView`) the month view's cursor stay. A typed note's automatic lines follow the
+  calendar, as on every mover since 13 Nov 2026 (`followAutoNotes`, below; `autoNoteBaseline` is inert). The gaps either
+  side change.
+  - **A burst is one undo step**, ended by a 1.6 s pause or any other press or key (capture listeners), and its
+    label reads "Pushed 2 wks" / "Pulled 1 wk" / "Back where it was".
+  - **Production's day marks are bound for the whole burst** (`beginShootDayMove()` at the first click, ended by
+    `endNudgeBurst()`), as the month drag binds them press to release. Bound per click, ▼ ▲ lost a worked holiday.
+    `undo()` and `redo()` therefore end a running burst first.
+- **Build Around** (Rebuild From until 5 Nov 2026; `REBUILD-FROM-LENGTHS-PLAN.md`, layout B) —
+  `buildAround()`, which runs `workBackwardsFrom` then `workForwardsFrom` from one pin under one
+  `asShootDayMove` binding. Pins one phase by its start or its END (`ends by`, `pinStartEndingBy`: the
+  backward pass's own solvers) and builds the ticked phases on both sides end to end, **writing** start
+  dates including into empty fields. One list, every phase in run order, the pin in its place; the
+  preview is the real solvers run and put back (`trialBuild`, which also applies the typed lengths).
+  **Lengths are typed in the list** (`solveLens`, saved on Build through the phase's own field, one undo
+  step); Production's is read-only (Show info).
+  - **It carries each placed phase's own hiatus and its `<week>|<key>` stores** (13 Nov 2026, audit AUD2-009) by
+    the weeks the phase's start moved, as every other mover does: through the card arrows' mover (`shiftCalendar`,
+    `part` = the phases, an empty week window, `carryOnly`) inside the build's undo step (`placeBuilt` /
+    `carryBuilt`). The solvers place a phase with its hiatus where it will land (`startForWeeksEndingAtCarried`,
+    `customStartEndingByCarried`, Production's trials inside `searchCarried`). Typed notes still stay on their
+    weeks; the result line counts them ("6 typed notes stayed on their weeks."). "Ends by" on a SNAPPED Production
+    searches whole Mondays (`productionMondayEndingBy`, AUD2-010): the day search stalled two weeks short just
+    before the Christmas break.
+  - **Shift's look and feel since 10 Nov 2026** (`mockups/build-around-like-shift.html`): "Phases", the list
+    in `.shift-box` with the header strip (`[data-solve-all]`, the count "N of M build"), the line that says
+    why a phase was left unticked (`[data-solve-left]`), then "Pin to a date": `#tool-solve-phase` above
+    `starts on`. A click on a row pins it (`solvePin`, through the dropdown's `change`); its box ticks; a
+    drag sets a run; neither a tick nor a drag moves the pin. ⛔ **No side buttons** (owner, 10 Nov 2026: the
+    Prior to X / After X row, `tool-solve-back` / `-fwd`, was removed the day it shipped, as Both was before
+    it): the box always builds both sides of the pin and what is built is what is ticked. Shift keeps its pair.
+  - **The starting ticks** (`solveDefaultOn` → `solveAlongside`): every phase, on either side of the pin, that
+    has a length, except one that shares 5 or more days (`SOLVE_ALONGSIDE_DAYS`) with the phase it would be
+    built against, walking outward from the pin and judging each phase against the last one taken into the
+    chain; and except a custom phase with no date yet. `solveTicks` holds the
+    ticks changed by hand, which override them; the line lists the alongside phases with no override. A new
+    pin re-ticks from the rule only while the ticks are untouched (`solveIsDefault`).
+    Until 10 Nov 2026 Writer's Rm and custom phases were always left out.
+- **Close all gaps — REMOVED 5 Nov 2026.** `closeAllGaps()` chained every dated built-in after the one
+  before it, Pre-Prep after the Writer's Room included, so on every one of the owner's 15 real calendars
+  (which all overlap the room with the next phase) it **moved the shoot** 3 to 45 weeks while closing no
+  gap (plan §0). Its job is Build Around from the first phase at its own date, After.
 
 ### What a shift moves — and what deliberately doesn't
+
+**⭐ The step-over (owner, 5 Nov 2026, picker *"Step over it"*; `stepOverHeld`).** A held hiatus (locked, or outside
+a part move's windows) stays on its dates while the plan moves, so a shift by calendar weeks moves the break from one
+phase into another: the phase it left finishes early (a gap opens after it), the phase it entered runs long (it
+overlaps the next). That broke "Shift keeps the gaps" on the owner's own calendar (Christmas in Prod Prep's last weeks,
+Phase & after Pre-Prep 4 wks earlier: a 2-wk gap before Production and Post overlapping the shoot by 2 wks). So the
+Shift form and the toolbar arrows (`opts.stepHeld`) move every date by N **working** weeks, a working week being one no
+held band covers. A phase's length is working weeks already (`extendEndForHiatus`), so this is the plan slid in the
+same units it is measured in; the result equals Build Around from the same phase and date (After). A phase that
+crosses a held break moves that many extra calendar weeks and the line says so (`res.stepped`, *"Production was pulled
+6 wks to step over a held hiatus"*). To a date counts working weeks (`workingWeeksBetween`,
+`workingWeeksToFinishBy`); a start typed inside a held break lands the week after it. A Dates or an Ends phase's
+END is mapped too (`setPhaseStart`'s `endTo`), so a Dates phase keeps its working days and its gaps while its calendar
+span changes; a note under a held band stays with the band. The
+hiatus ripple, the phase card's ▲ / ▼ and the month drag do not opt in. Leg `shiftheld`.
 
 A shift that moved only the dates would leave every note behind on the old calendar date, silently
 detached from the phase it was written for. `shiftCalendar` therefore also re-keys the week-keyed
@@ -603,9 +725,9 @@ Since v1.3.1 (audit M-12) **`rowHeightsByWeek` travels with its week's note** �
 predicate as `noteFontSize` — so a row dragged tall for a long note is not left behind on the old week.
 
 **`dayOverrides` travel BY SHOOT-DAY NUMBER, on every mover** (v1.3.1, owner ruling R2, audit M-4):
-Shift All / Shift From / Anchor To (`shiftCalendar`), the month-view pill drag, Rebuild From
-(`workBackwardsFrom` / `workForwardsFrom`), Close all gaps and "Start after previous phase"
-(`autostartPhase`). Each runs inside `asShootDayMove()`, which pins every mark to Production's
+the Shift tool and its arrows (`shiftCalendar`), the month-view pill drag, Build Around
+(`buildAround`: `workBackwardsFrom` / `workForwardsFrom`) and "Start after previous phase"
+(`autostartPhase`). (Close all gaps was one until it was removed, 5 Nov 2026.) Each runs inside `asShootDayMove()`, which pins every mark to Production's
 **natural** shoot days (the simulation with no overrides — `naturalShootDays()`, extended one day per
 mark) and, while the move runs, re-derives the marks from those pins in `update()` and in
 `productionEndFor()`. A half/off lands on the same-numbered natural day; a worked weekend/holiday keeps
@@ -614,15 +736,19 @@ in the result line. ⚠️ Half/off round-trip exactly; a worked day off need no
 or holiday at the matching place). Typing a start date is not a mover. `'onhalf'` (a weekend or
 holiday worked as a half day, 29 Sep 2026) pins and travels exactly as a worked day does.
 
-**An edited auto-note is rewritten on a shift** (v1.3.1, owner ruling R5, audit M-10): a moving note
-that still opens with the auto text of the week it left has that text swapped for the new week's
-(`weekAutoTexts` → `rewriteMovedAutoNotes`), keeping the user's own lines. Only a shift re-keys notes
-at all; Rebuild From, Close all gaps and the month drag leave every note on its week, as before.
+**A typed note's automatic and holiday lines follow the calendar** (13 Nov 2026, the November audit's AUD2-001/002/003,
+owner's decision D1 (a); widens v1.3.1's R5 / audit M-10). After every `update()` and `markDirty()`, `followAutoNotes`
+rebuilds each typed note from the note as the user left it, against its week's automatic lines then and now, matched by
+kind or holiday id: re-dated in place, taken out when gone, added when arrived, a line the user took out stays out, the
+user's own lines kept on their week. This covers every mover (Shift, the arrows, the ripple, Build Around, the month
+drags, a typed date) and every switch (a holiday's boxes, the Automatic notes card, the Region). Only a shift re-keys
+notes at all, and the memory rides on the note object through it. `rewriteMovedAutoNotes` (R5's opens-with rule) still
+runs after a shift and now finds nothing left to do.
 
 | Stays put | Why |
 |---|---|
 | Union holidays | Real calendar dates. Because Production is a day-level sim, shifting by exactly 7 days can move its **wrap** by more or less than 7 — the tools report the resulting wrap for this reason. |
-| All-phase hiatuses with **Lock in place** checked (the default) | A winter break belongs to Christmas, not to the schedule around it. The four built-in defaults are all winter breaks. Uncheck to let one travel. |
+| All-phase hiatuses with **Lock in place** checked (the default) | A winter break belongs to Christmas, not to the schedule around it. The four built-in defaults are all winter breaks. Uncheck to let one travel. And since 5 Nov 2026 the Shift form and the arrows **step over** a held break (below): its weeks are not counted. |
 | Notes carrying a **date** | A dated note is *about* that day. Month-view day notes and `mvExtraLanes` stay for the same reason. |
 | Per-phase hiatuses | These **do** travel — they belong to their phase's work, and move with it as a unit. |
 | `rowHeightsByWeek` | These **do** travel (v1.3.1, audit M-12): a dragged row height follows its week's note, with the same stay-or-go test as `noteFontSize`, so a row made tall for a long note is not left behind. |
@@ -1206,6 +1332,11 @@ https.get('https://greicher1.github.io/planning-cal-builder/?t='+Date.now(),r=>{
 GitHub's CDN can serve a stale copy for a minute — cache-bust with a query string, and tell the
 user to hard-refresh (Cmd+Shift+R) or use Incognito.
 
+⚠️ **The new address cannot be checked this way:** `sptcal.pages.dev` answers every unsigned request with a 302 to
+`sptcal.cloudflareaccess.com` (that 302 is itself the check that the lock is on). To see the deployed file, read the
+"Publish to Cloudflare Pages" step of the deploy run (`gh run view <id> --log`: "Deployment complete"), or have the
+owner open it signed in. The GitHub Pages address can still be checked as above while it lives.
+
 ---
 
 ## 12. Bug history & traps (things already learned the hard way)
@@ -1354,9 +1485,9 @@ separate Calendar tab until the owner merged the two, the same night).
   between ~848 px and ~1018 px depending on the file name and save-status string. `HANDOFF.md` §6
   had attributed this note's wrap to the header toolbar; that has been corrected. Full table in
   `UI-CONVENTIONS.md` §2.
-- **`Close all gaps` is redundant** — it is Rebuild-forwards from the first phase at its current
-  date. Kept anyway as the zero-input, one-click case, the same justification as the toolbar arrows
-  next to Shift All.
+- ~~**`Close all gaps` is redundant**~~ — **removed 5 Nov 2026**. It was kept as the zero-input,
+  one-click case, but measured on the owner's real calendars it moved the shoot on every one of them
+  (`REBUILD-FROM-LENGTHS-PLAN.md` §0). Build Around from the first phase, After, does its job.
 - **Result-message verbosity is intentionally uneven.** The toolbar arrows show a terse chip
   (`1 wk later · wrap 05/01/26`); the popovers give the full sentence including the locked-hiatus
   count. The arrows are a quick nudge and that count is almost always "all of them".

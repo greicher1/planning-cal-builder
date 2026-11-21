@@ -1,19 +1,19 @@
 {
  "file": "base.pdf",
- "bytes": 77025,
+ "bytes": 77039,
  "mediaBox": [
   612,
   792
  ],
  "textOps": 204,
  "rectOps": 356,
- "contentLen": 32641,
+ "contentLen": 32700,
  "gridLeft": 19.08,
  "gridRight": 592.92,
  "gridDrawnW": 573.84,
  "gridTop": 738,
- "gridBottom": 165.6,
- "gridDrawnH": 572.4,
+ "gridBottom": 163.98,
+ "gridDrawnH": 574.02,
  "textXmin": 19.08,
  "textXmax": 564.333,
  "sampleTexts": [

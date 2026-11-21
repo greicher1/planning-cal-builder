@@ -146,7 +146,7 @@ window.addEventListener('load', function () { (async function () {
       cur.scenarios = { current: 's1', counter: 2, tabs: [{ id: 's1', name: 'Plan A' }, { id: 's2', name: 'Plan B', snapshot: parked }] };
       await load(JSON.stringify(cur));
       var a = { settings: region(), location: loc() };
-      var tabB = [].slice.call(document.querySelectorAll('.sc-tab')).filter(function (t) { return txt(t) === 'Plan B'; })[0];
+      var tabB = [].slice.call(document.querySelectorAll('.sc-tab')).filter(function (t) { return txt((t.querySelector('.sc-tab-name') || t)) === 'Plan B'; })[0];
       if (!tabB) throw new Error('no Plan B tab');
       tabB.click();
       await T.until(function () { return region() === 'us-general'; }, 'Plan B on screen', 60, 100);

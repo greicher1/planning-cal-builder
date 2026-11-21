@@ -15,14 +15,16 @@
 //   L-13  Anchor To "ends by" treated a phase as ending on Sunday, so a Friday deadline cost a week.
 //   L-15  Rebuild From said "Nothing to place" after it had already moved the pinned phase.
 //   L-14  A shift that lands an undated note on an all-phase hiatus week hides it; the result line
-//         now says so.
+//         now says so. ⭐ Since 5 Nov 2026 (the step-over, stepOverHeld) the Shift form and the arrows never land
+//         a note on a HELD band's week: the note steps over the break to the next working week and stays visible,
+//         so L14 now holds that, and that no warning is given. The warning still fires on the hiatus ripple.
 window.__T.memoryIDB();
 window.addEventListener('load', function () { (async function () {
   var T = window.__T, cases = [];
   function add(id, title, pass, observed, expected){ cases.push({id: id, title: title, pass: pass, observed: observed, expected: expected}); }
   function val(id){ return (document.getElementById(id) || {}).value; }
   function msg(pop){ return ((document.querySelector('#' + pop + ' [data-tools-msg]') || {}).textContent || '').trim(); }
-  function closePops(){ document.body.click(); }
+  function closePops(){ T.closePops(); }   // presses an open tool panel's ✕ (no click-away since 11 Nov 2026)
   async function openPop(btn){ closePops(); await T.sleep(150); document.getElementById(btn).click(); await T.sleep(250); }
   async function settle(){ await T.sleep(700); }
   async function undo(n){ for(var i = 0; i < (n || 1); i++){ document.getElementById('undo-btn').click(); await T.sleep(900); } }
@@ -82,7 +84,8 @@ window.addEventListener('load', function () { (async function () {
 
     // L-13 -- Anchor To, Prod Prep "ends by": it works through Fri 6/26 (it ends -- exclusive -- Mon
     // 6/29). The prefill shows the Friday, and a Friday 6/26 deadline is already met.
-    await openPop('pop-anchor-btn');
+    // (The Shift form's To a date since 4 Nov 2026, ANCHOR-TO-DIRECTION-PLAN.md §6.)
+    await openPop('pop-shift-btn'); document.querySelector('#pop-shift [data-far="date"]').click(); await T.sleep(100);
     T.set('tool-anchor-phase', 'prodPrep');
     T.set('tool-anchor-edge', 'end');
     await T.sleep(150);
@@ -91,7 +94,7 @@ window.addEventListener('load', function () { (async function () {
     T.set('tool-anchor-date', '2026-06-26');
     document.getElementById('tool-anchor-go').click();
     await settle();
-    add('L13b', 'a Friday deadline the phase already meets costs no week', val('start-prodPrep') === '2026-05-18', {prodPrep: val('start-prodPrep'), msg: msg('pop-anchor')}, 'unchanged 2026-05-18');
+    add('L13b', 'a Friday deadline the phase already meets costs no week', val('start-prodPrep') === '2026-05-18', {prodPrep: val('start-prodPrep'), msg: msg('pop-shift')}, 'unchanged 2026-05-18');
     closePops(); await T.sleep(150);
     if(val('start-prodPrep') !== '2026-05-18') await undo(1);
 
@@ -103,26 +106,35 @@ window.addEventListener('load', function () { (async function () {
     T.set('tool-solve-phase', 'post');
     await T.sleep(150);
     T.set('tool-solve-date', '2026-11-16');
-    document.getElementById('tool-solve-fwd').click();
+    T.solveKeepSide(1);   // the phases after Post alone (no After button since 10 Nov 2026)
     await T.sleep(250);
     var go15 = document.getElementById('tool-solve-go');
     var rows15 = Array.prototype.map.call(document.querySelectorAll('#pop-solve .solve-row'), function (r) { return (r.textContent || '').replace(/\s+/g, ' ').trim(); });
     go15.click();
     await settle();
-    add('L15', 'Rebuild with nothing to place can\'t be pressed, says why, and moves nothing',
-      val('start-post') === '2026-11-02' && go15.disabled && /nothing to rebuild/i.test(go15.textContent) && rows15.some(function (t) { return /No length/.test(t); }),
-      {post: val('start-post'), go: go15.textContent, disabled: go15.disabled, rows: rows15}, 'Post still 2026-11-02, button "Nothing to rebuild" disabled, a "No length" row');
+    // ⚠️ Build Around (5 Nov 2026): one list holds both sides, so with the later side alone the phases BEFORE Post could
+    // still be ticked, and the button says "Tick a phase to build" rather than "Nothing to rebuild". It still can't be
+    // pressed. (10 Nov 2026: the After button is gone; the earlier side is unticked by its boxes.)
+    add('L15', 'Build Around with nothing to place can\'t be pressed, says why, and moves nothing',
+      val('start-post') === '2026-11-02' && go15.disabled && /tick a phase to build/i.test(go15.textContent) && rows15.some(function (t) { return /No length/.test(t); }),
+      {post: val('start-post'), go: go15.textContent, disabled: go15.disabled, rows: rows15}, 'Post still 2026-11-02, button "Tick a phase to build" disabled, a "No length" row');
 
-    // L-14 -- a note on the week of 7/6, Shift All +1 wk: it lands on the Summer Break week.
+    // L-14 -- a note on the week of 7/6 (Production's 2nd week), Shift All +1 wk. Before the step-over it landed on the
+    // LOCKED Summer Break week (7/13), under the band, and the line warned. Now it steps over the break to 7/20, the
+    // shoot's 2nd week again, where it shows; no warning.
     closePops(); await T.sleep(150);
     if(!document.querySelector('#table-wrap td.sheet-note-cell')){ document.getElementById('view-sheet-btn').click(); await settle(); }
     await T.typeUserNote('2026-07-06', 'Stunt rehearsal');
     await openPop('pop-shift-btn');
     T.set('tool-shift-weeks', '1');
+    var prev14 = (T.latestBackup() || {}).at || 0, b14 = null;
     document.getElementById('tool-shift-later').click();
     await settle();
-    add('L14', 'a shift that lands a note on an all-phase hiatus week says so', /hiatus/i.test(msg('pop-shift')) && /note/i.test(msg('pop-shift')),
-      {msg: msg('pop-shift')}, '... note ... hiatus ...');
+    try { await T.until(function () { var b = T.latestBackup(); if(b && b.at > prev14){ b14 = b; return true; } return false; }, 'a backup after the shift', 150, 100); } catch(e) {}
+    var on14 = b14 ? Object.keys(b14.state.userNotes || {}).filter(function (k) { return /Stunt rehearsal/.test(JSON.stringify(b14.state.userNotes[k])); }) : null;
+    add('L14', 'Shift All +1 wk steps a 7/6 note over the locked Summer Break to 7/20 (the shoot\'s 2nd week), where it shows: no note under the band and no warning',
+      JSON.stringify(on14) === '["2026-07-20"]' && !/hiatus week/i.test(msg('pop-shift')),
+      {msg: msg('pop-shift'), noteOn: on14}, 'the note on 2026-07-20; no "hiatus week" warning');
   } catch (e) { cases.push({id: 'EX', title: 'harness', pass: null, observed: String(e && e.stack || e)}); }
   T.done({test: 'snaptools', cases: cases, err: (window.__ERR || []).slice(0, 10)});
 })(); });

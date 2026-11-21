@@ -130,6 +130,10 @@ try {
   const ctrlZ = async () => { await key('z', 'KeyZ', 90, 2); await sleep(900); };
 
   await send('Page.enable');
+  // ⭐ The hiatus ripple OFF (HIATUS-RIPPLE-PLAN.md §8): this script proves the drag as it was, where a hiatus only
+  // pauses. It is ON for users, and hiatusripple.mjs drives the drag with it on. Before any page script, every load.
+  await send('Page.addScriptToEvaluateOnNewDocument', { source: `try { const o = JSON.parse(localStorage.getItem('sptcal.prefs') || '{}') || {};
+    o.hiatusRipple = false; localStorage.setItem('sptcal.prefs', JSON.stringify(o)); } catch (e) {}` });
   // A fresh page per case, so no case inherits another's leftovers.
   const load = async month => {
     await send('Page.navigate', { url: `http://localhost:${PORT}${PAGE}?state=hiatusdrag` });

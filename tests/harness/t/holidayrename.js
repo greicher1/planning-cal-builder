@@ -135,19 +135,9 @@ window.addEventListener('load', function () { (async function () {
       byId('export-btn').click();
       await T.until(function () { return rec.files.some(function (f) { return f.closed; }); }, 'the month PDF write', 300, 100);
     } finally { rec.restore(); }
-    var u8 = rec.files.filter(function (f) { return f.closed; })[0].bytes, s = '', all = [];
-    for (var i = 0; i < u8.length; i += 8192) s += String.fromCharCode.apply(null, u8.subarray(i, i + 8192));
-    var re = /stream\r?\n/g, m;
-    while ((m = re.exec(s))) {
-      var st = m.index + m[0].length, en = s.indexOf('endstream', st);
-      if (en < 0) continue;
-      while (en > st && (u8[en - 1] === 10 || u8[en - 1] === 13)) en--;
-      try {
-        var ds = new Blob([u8.subarray(st, en)]).stream().pipeThrough(new DecompressionStream('deflate'));
-        all.push(await new Response(ds).text());
-      } catch (e) { /* not a Flate stream */ }
-    }
-    return all.join('\n');
+    var u8 = rec.files.filter(function (f) { return f.closed; })[0].bytes;
+    // Every Flate stream, inflated and cut at its own /Length (T.pdfInflated, lib.js: never by trimming the EOL).
+    return (await T.pdfInflated(u8)).join('\n');
   }
 
   var PURPLE = 'rgb(112, 48, 160)', RED = 'rgb(255, 0, 0)';
@@ -164,8 +154,10 @@ window.addEventListener('load', function () { (async function () {
       await toMonth('November 2026');
       var pop = await openMv('2026-11-27', /^Day After Thanksgiving/);
       var ta = q('textarea', pop), sel = q('.color-swatch.selected', pop);
-      kase('R1', 'Day After Thanksgiving opens the holiday editor: "11/27/26 · Holiday", its name alone, the original named in the placeholder, the week\'s purple selected',
-           txt(q('.mv-note-pop-day', pop)) === '11/27/26 · Holiday' && ta.value === 'Day After Thanksgiving'
+      // ⚠️ RE-EXPECTED for the editors' look A2 (owner, 4 Nov 2026; notelook): the heading is the name, then the day. It
+      // read "11/27/26 · Holiday".
+      kase('R1', 'Day After Thanksgiving opens the holiday editor: "Holiday Fri 11/27/26", its name alone, the original named in the placeholder, the week\'s purple selected',
+           txt(q('.mv-note-pop-day', pop)) === 'Holiday Fri 11/27/26' && ta.value === 'Day After Thanksgiving'
              && /Day After Thanksgiving/.test(ta.placeholder) && !!sel && sel.title === 'Purple',
            { heading: txt(q('.mv-note-pop-day', pop)), text: ta.value, placeholder: ta.placeholder, selected: sel && sel.title });
       await commitMv(pop, 'Thanksgiving Fri');
@@ -220,7 +212,9 @@ window.addEventListener('load', function () { (async function () {
     await step('F1', async function () {
       savedText = await save();
       var s = JSON.parse(savedText);
-      var added = Object.keys(s).filter(function (k) { return !(k in S0); }).sort();
+      // ⚠️ Date Last Edited (1507204, 9 Nov 2026) writes a top-level lastEdited once a calendar has been edited (or opened from a file with
+      // no stamp, which takes the file's time), so it is left out here, as noteviews does (11 Nov 2026).
+      var added = Object.keys(s).filter(function (k) { return !(k in S0) && k !== 'lastEdited'; }).sort();
       var idsSame = same(Object.keys(s.fields.byId).sort(), Object.keys(S0.fields.byId).sort());
       var w0 = repairWarnings();
       await load(JSON.stringify(S0));                     // the fixture opens in the waterfall: page back to the month

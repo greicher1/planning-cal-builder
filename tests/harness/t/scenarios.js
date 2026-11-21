@@ -14,8 +14,8 @@ window.addEventListener('load', function () { (async function () {
   var T = window.__T, cases = [], out = {};
   function add(id, title, pass, observed, expected){ cases.push({id: id, title: title, pass: !!pass, observed: observed, expected: expected}); }
   function tabs(){ return [].slice.call(document.querySelectorAll('.sc-tab')).map(function(t){
-    return (t.classList.contains('is-current') ? '*' : '') + (t.querySelector('input') ? '[editing]' : t.textContent.trim()); }).join(' | '); }
-  function tab(name){ return [].slice.call(document.querySelectorAll('.sc-tab')).filter(function(t){ return t.textContent.trim() === name; })[0]; }
+    return (t.classList.contains('is-current') ? '*' : '') + (t.querySelector('input') ? '[editing]' : (t.querySelector('.sc-tab-name') || t).textContent.trim()); }).join(' | '); }
+  function tab(name){ return [].slice.call(document.querySelectorAll('.sc-tab')).filter(function(t){ return (t.querySelector('.sc-tab-name') || t).textContent.trim() === name; })[0]; }
   function eps(){ return document.getElementById('num-episodes').value; }
   function header(){ return [].slice.call(document.querySelectorAll('#table-wrap .cal-header-bar .hdr-line, #table-wrap .mv-header .hdr-line'))
     .map(function(e){ return e.textContent.trim(); }).filter(Boolean).join(' / '); }
@@ -209,9 +209,18 @@ window.addEventListener('load', function () { (async function () {
       return T.until(function(){ return name; }, 'the ' + btnId + ' download', 150, 100).then(function(){
         URL.createObjectURL = realC; HTMLAnchorElement.prototype.click = realK; return name; });
     }
+    // Since audit 2026-11 AUD2-025 (D8 = c) the season, the Date Last Edited (today: this leg edits) and the Version
+    // ("3", as typed) come before the scenario; since 16 Nov 2026 (owner-approved frozen edit S1b) the season sits beside
+    // the title, before "Planning Calendar" (re-expected: "… Planning Calendar S2 <today> 3 – Toronto.xlsx" until then).
+    var nowD = new Date(), todayYmd = nowD.getFullYear() + '-' + String(nowD.getMonth() + 1).padStart(2, '0') + '-' + String(nowD.getDate()).padStart(2, '0');
     var xlName3 = await exportName('export-btn');
-    add('S16', 'with scenarios, the Excel export is named after the scenario on screen', /Planning Calendar \u2013 Toronto\.xlsx$/.test(xlName3 || ''),
-      {name: xlName3}, '"… Planning Calendar – Toronto.xlsx"');
+    // ⭐ RE-EXPECTED 18 Nov 2026 (owner: "scenario name should not be adding by default"; the default name "… S2 Planning
+    // Calendar v3 WRO 1.4.27 - a.o. 11.18.26"): with scenarios the name carries NO scenario until it is ticked in the
+    // Export PDF window (leg filenamelist ticks it). The Version box "3" prints v3.
+    var todayAo = (nowD.getMonth() + 1) + '.' + nowD.getDate() + '.' + String(nowD.getFullYear()).slice(2);
+    var wantTail = new RegExp('S2 Planning Calendar v3(?: WRO \\d+\\.\\d+\\.\\d{2})? - a\\.o\\. ' + todayAo.replace(/\./g, '\\.') + '\\.xlsx$');
+    add('S16', 'with scenarios, the Excel export names no scenario by default (18 Nov 2026)', wantTail.test(xlName3 || '') && (xlName3 || '').indexOf('Toronto') === -1,
+      {name: xlName3}, '"… S2 Planning Calendar v3 [WRO …] - a.o. ' + todayAo + '.xlsx"');
 
     // S14 -- Delete asks, then the tab goes; Keep only leaves one tab, and Save is a plain file again.
     document.dispatchEvent(new CustomEvent('sptcal-scenario', {detail: {op: 'delete', id: (sc.tabs[0] || {}).id}}));
@@ -229,10 +238,10 @@ window.addEventListener('load', function () { (async function () {
       {question: delQ.slice(0, 60), afterDelete: afterDel, tabsLeft: document.querySelectorAll('.sc-tab').length, version: last.version, scenarios: 'scenarios' in last},
       'asked; 8 eps | *Toronto; then one calendar, version 1');
 
-    // S17 -- one scenario again: the export's name is exactly what it always was.
+    // S17 -- one scenario again: the export's name names no scenario (and still has the season, date and Version).
     var xlName1 = await exportName('export-btn');
-    add('S17', 'with one scenario the Excel export keeps its old name', /Planning Calendar\.xlsx$/.test(xlName1 || '') && !/\u2013/.test(xlName1 || ''),
-      {name: xlName1}, '"… Planning Calendar.xlsx"');
+    add('S17', 'with one scenario the Excel export names no scenario', wantTail.test(xlName1 || '') && !/\u2013/.test(xlName1 || ''),
+      {name: xlName1}, '"… S2 Planning Calendar v3 [WRO …] - a.o. ' + todayAo + '.xlsx"');
 
     // S15 -- a damaged or too-new scenarios file is refused WHOLE and the calendar on screen stays.
     var base = JSON.parse(saved);

@@ -267,11 +267,13 @@ window.addEventListener('load', function () { (async function () {
     var b1 = {meta: meta(), readout: readout(), pp: ppLine(),
               warn: (function () { var w = document.getElementById('ep-panel-warn'); return w && w.style.display !== 'none' ? txt(w) : ''; })(),
               hint: txt(document.querySelector('#episode-rows .ep-hint')),
-              optional: (function () { var l = document.querySelector('label[for="num-episodes"]'); var s = l && l.querySelector('.show-mode-blocks'); return s ? getComputedStyle(s).display : null; })()};
+              label: (function () { var l = document.querySelector('label[for="num-episodes"]'); return l ? l.textContent.trim() : null; })()};
     add('B1', '⭐ blocks.sptcal with its episode count cleared: Production stays scheduled from its block days (the same meta line, readout and principal-photography line as with 10 episodes), with no "Complete Show Info" warning',
       !!b0.pp && b1.meta === b0.meta && b1.readout === b0.readout && b1.pp === b0.pp && b1.warn === '', {before: b0, after: b1}, 'unchanged dates');
-    add('B1u', 'The label reads "Number of Episodes (optional)" in Blocks mode, and the block list says where episode names come from',
-      b1.optional && b1.optional !== 'none' && /Number of Episodes in Show Info/.test(b1.hint), {optional: b1.optional, hint: b1.hint}, '(optional) shown; the no-episodes hint');
+    // Re-premised 19 Nov 2026 (owner: the count "can still be optional but remove that it says so"): the label is plain
+    // "Number of Episodes" in Blocks mode too; B1 above is what holds it optional.
+    add('B1u', 'The label reads "Number of Episodes" in Blocks mode (no "(optional)" since 19 Nov 2026), and the block list says where episode names come from',
+      b1.label === 'Number of Episodes' && /Number of Episodes in Show Info/.test(b1.hint), {label: b1.label, hint: b1.hint}, 'plain label; the no-episodes hint');
     await toMonth(new Date(startB + 'T00:00:00Z').toLocaleString('en-GB', {month: 'long', year: 'numeric', timeZone: 'UTC'}));
     var b2 = prodPills();
     add('B2', 'Its month bars still read "Block 1" …, and no grey text names an episode (the old list is kept for the count coming back, but not shown)',
@@ -291,29 +293,31 @@ window.addEventListener('load', function () { (async function () {
     await toSheet();
     var b4 = {meta: meta(), readout: readout(), pp: ppLine(), cells: document.querySelectorAll('#table-wrap td.sheet-phase-cell[data-pkey="production"]').length,
               warn: txt(document.getElementById('ep-panel-warn')), title: title(), modal: T.modalText()};
-    add('B4', '⭐ The v1.5.0 file (Blocks, no count) opens with its dates unmoved: Production unscheduled ("Enter a shooting day count…", "Set by Show Info", no Production cells), the warning still naming Number of Episodes',
-      /Enter a shooting day count/.test(b4.meta) && /Set by Show Info/.test(b4.readout) && b4.cells === 0 && /Number of Episodes/.test(b4.warn), b4, 'unscheduled, as in v1.5.0');
+    // ⚠️ Re-expected 13 Nov 2026 (audit 2026-11, AUD2-031): Production's card used to read frozen render()'s "Enter a
+    // shooting day count…" here (no such box exists); it now names what Show info is missing. Same meaning, unscheduled.
+    add('B4', '⭐ The v1.5.0 file (Blocks, no count) opens with its dates unmoved: Production unscheduled ("Fill in Number of Episodes in Show info…", "Set by Show Info", no Production cells), the warning still naming Number of Episodes',
+      /Number of Episodes in Show info to schedule Production/.test(b4.meta) && /Set by Show Info/.test(b4.readout) && b4.cells === 0 && /Number of Episodes/.test(b4.warn), b4, 'unscheduled, as in v1.5.0');
     T.set('show-title', 'Blocks No Count edited');
     await settle(); await T.sleep(400);
     var s4 = await saveNow();
     add('B5', 'An edit outside Show Info (the title) leaves it on the old rule, and its Save carries no blocksEpisodesOptional',
-      /Enter a shooting day count/.test(meta()) && !!s4 && !('blocksEpisodesOptional' in s4), {meta: meta(), key: s4 && ('blocksEpisodesOptional' in s4)}, 'unscheduled, no key');
+      /in Show info to schedule Production/.test(meta()) && !!s4 && !('blocksEpisodesOptional' in s4), {meta: meta(), key: s4 && ('blocksEpisodesOptional' in s4)}, 'unscheduled, no key');
     await T.sleep(700);
     T.set('days-per-block', '16');
     await settle(); await T.sleep(600);
     var b6 = {meta: meta(), readout: readout(), pp: ppLine()};
     add('B6', '⭐ Its next Show Info edit (Days per Block 15 → 16, the owner\'s "Next Show Info edit") puts it on the new rule: Production is scheduled from 3 × 16 = 48 block days',
-      /48/.test(b6.readout) && !!b6.pp && !/Enter a shooting day count/.test(b6.meta), b6, '48 days, scheduled');
+      /48/.test(b6.readout) && !!b6.pp && !/to schedule Production/.test(b6.meta), b6, '48 days, scheduled');
     await T.sleep(700);
     await undo();
     add('B6u', 'One undo puts back 15 days AND the old rule: Production unscheduled again',
-      /Enter a shooting day count/.test(meta()) && (document.getElementById('days-per-block') || {}).value === '15', {meta: meta(), dpb: (document.getElementById('days-per-block') || {}).value}, 'unscheduled, 15');
+      /in Show info to schedule Production/.test(meta()) && (document.getElementById('days-per-block') || {}).value === '15', {meta: meta(), dpb: (document.getElementById('days-per-block') || {}).value}, 'unscheduled, 15');
     // B7: Episodes mode is unchanged -- there the count still drives the total.
     var j7 = JSON.parse(blocksTxt); j7.fields.byId['show-title'] = {value: 'B7 Episodes'}; j7.fields.byId['show-mode'] = {value: 'episodes'};
     j7.fields.byId['num-episodes'] = {value: ''};
     await openText(JSON.stringify(j7), 'b7.sptcal', 'B7 Episodes');
     await toSheet();
-    add('B7', 'Episodes mode with no count is unchanged: Production waits for the count', /Set by Show Info/.test(readout()) && /Enter a shooting day count/.test(meta()), {readout: readout(), meta: meta()}, 'Set by Show Info');
+    add('B7', 'Episodes mode with no count is unchanged: Production waits for the count', /Set by Show Info/.test(readout()) && /Number of Episodes in Show info to schedule Production/.test(meta()), {readout: readout(), meta: meta()}, 'Set by Show Info');
 
     // ================================ L: item 5, the weekend just before ================================
     var jL = JSON.parse(halfdays); jL.fields.byId['show-title'] = {value: 'L Lead'};

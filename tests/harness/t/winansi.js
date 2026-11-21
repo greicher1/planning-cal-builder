@@ -40,19 +40,10 @@ window.addEventListener('load', function () { (async function () {
   }
   // The PDF's drawn strings, octal escapes decoded to their byte (so "?" is a real 0x3F).
   async function pdfRuns(blob) {
-    var bytes = new Uint8Array(await blob.arrayBuffer()), s = '';
-    for (var i = 0; i < bytes.length; i += 8192) s += String.fromCharCode.apply(null, bytes.subarray(i, i + 8192));
-    var re = /stream\r?\n/g, m, txt = '';
-    while ((m = re.exec(s))) {
-      var st = m.index + m[0].length, en = s.indexOf('endstream', st);
-      if (en < 0) continue;
-      while (en > st && (bytes[en - 1] === 10 || bytes[en - 1] === 13)) en--;   // DecompressionStream rejects trailing bytes
-      try {
-        var ds = new Blob([bytes.subarray(st, en)]).stream().pipeThrough(new DecompressionStream('deflate'));
-        var t = await new Response(ds).text();
-        if (t.indexOf(' Tj') >= 0) txt += t + '\n';
-      } catch (e) { /* not a Flate stream */ }
-    }
+    var bytes = new Uint8Array(await blob.arrayBuffer());
+    // The streams that set text, inflated and cut at their own /Length (T.pdfInflated, lib.js: never by trimming).
+    var txt = (await T.pdfInflated(bytes)).filter(function (t) { return t.indexOf(' Tj') >= 0; })
+                                          .map(function (t) { return t + '\n'; }).join('');
     var runs = [], rr = /\(((?:\\.|[^\\)])*)\) Tj/g, mm;
     while ((mm = rr.exec(txt))) {
       runs.push({ raw: mm[1], text: mm[1].replace(/\\([0-7]{3})/g, function (a, o) { return String.fromCharCode(parseInt(o, 8)); })

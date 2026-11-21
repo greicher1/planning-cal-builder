@@ -11,11 +11,18 @@
 //     measured height, and the frozen `.sheet-scroll{max-height:calc(100vh - var(--header-h) -
 //     140px)}` reads it. This component therefore renders INTO that element via a portal and never
 //     replaces or wraps it.
-import { useState, useLayoutEffect, useCallback } from 'react'
+import { useState, useLayoutEffect, useCallback, useEffect } from 'react'
 import { Button, Menu, Group, Text, Badge, CloseButton, Box } from '@mantine/core'
-import { installChrome } from './bridge.js'
-import { IconFolder, IconFilePlus, IconFloppy, IconCopyPlus, IconTable, IconDownload, IconRotateCcw } from './icons.jsx'
+import { installChrome, chrome } from './bridge.js'
+import { IconFolder, IconFilePlus, IconFloppy, IconCopyPlus, IconTable, IconDownload, IconRotateCcw, IconColumns, IconRows } from './icons.jsx'
 import { APP_ICON } from './appIcon.js'
+// The version under the brand name (owner, 18 Nov 2026: "in small grey text, add v1.19 or whatever the current
+// version of the app is right below the SPTCal header"; mockups/header-version-label.html, owner's picks "v1.19.0" and
+// "Hide with the name"). Read from package.json at BUILD time (a named JSON import, so only this one string is
+// bundled), never typed here: `npm run check` already holds package.json = version.json = the engine's APP_VERSION,
+// so this label cannot disagree with the update check or the PDFs' "Made with SPTCal" mark, and a version cut
+// updates it with no extra step.
+import { version as APP_VERSION } from '../../package.json'
 
 // The four sizes this toolbar uses, named once. Everything is size="xs" (30px) because the app's
 // current control measures 30.0px and the sidebar it shares a scale with already overflows its
@@ -31,9 +38,13 @@ export function Header() {
   const [status, setStatus] = useState({ text: '', tone: 'idle', title: '' })
   const [exp, setExp] = useState({ label: 'Export to Excel', primary: false, disabled: true, busy: false })
   const [expWf, setExpWf] = useState({ visible: true, disabled: true })
-  const [menu, setMenu] = useState({ visible: false, label: 'Untitled', items: [], open: false })
+  // `backups` (audit AUD2-056, 14 Nov 2026): the crash backups kept in this browser, [{key, name, when}], newest first,
+  // pushed by the engine's refreshKeptBackups(). Drawn as the menu's "Unsaved work" section only when there are any.
+  const [menu, setMenu] = useState({ visible: false, label: 'Untitled', items: [], backups: [], open: false })
   // The notes reset's view (owner ruling 4): its label and tooltip say which notes it clears.
   const [notesReset, setNotesReset] = useState({ view: 'sheet' })
+  // Reset Columns (owner, 6 Nov 2026): the Waterfall's only; `any` says whether a column choice exists to clear.
+  const [colsReset, setColsReset] = useState({ view: 'sheet', any: false, orderAny: false })
   // The recents filter. React-local on purpose: the engine pushes the full list through the
   // bridge and never needs to know a filter exists. The input carries NO id -- collectFieldValues
   // sweeps input[id] document-wide, and this box must never enter a saved file or the undo stack.
@@ -42,6 +53,23 @@ export function Header() {
   const [ctx, setCtx] = useState(null)
 
   const merge = useCallback((set) => (patch) => set((s) => ({ ...s, ...patch })), [])
+
+  // ⭐ THE FILE MENU CLOSES ON ESC AND UNDER A DIALOG (audit 2026-11, AUD2-033). Mantine closes a Menu on Escape only
+  // from a keydown INSIDE its dropdown, and a click leaves focus on the button (measured in the pane: Esc did nothing).
+  // So while it is open, Esc anywhere closes it. And it shuts when one of the app's dialogs opens over it (a key such
+  // as ⌘P or ⌘N can open one with the menu still up, and it stayed open behind the Export PDF window): the same set
+  // of dialogs the engine's appDialogOpen() names. Only while open, so nothing listens the rest of the time.
+  useEffect(() => {
+    if (!menu.open) return undefined
+    const close = () => { setMenu((s) => (s.open ? { ...s, open: false } : s)); setQ('') }
+    const onKey = (e) => { if (e.key === 'Escape') close() }
+    const dialogUp = () => !!document.querySelector('.mantine-Modal-content, .hde-overlay, .paste-notes-overlay')
+    const mo = new MutationObserver(() => { if (dialogUp()) close() })
+    document.addEventListener('keydown', onKey, true)
+    mo.observe(document.body, { childList: true, subtree: true })
+    if (dialogUp()) close()
+    return () => { document.removeEventListener('keydown', onKey, true); mo.disconnect() }
+  }, [menu.open])
 
   // useLayoutEffect, not useEffect: main.jsx wraps the first render in flushSync and then calls
   // initLegacyApp() on the next line. Layout effects run synchronously inside that commit, so the
@@ -56,6 +84,7 @@ export function Header() {
       exportWfBtn: merge(setExpWf),
       fileMenu: merge(setMenu),
       notesResetBtn: merge(setNotesReset),
+      colsResetBtn: merge(setColsReset),
     })
   }, [merge])
 
@@ -71,7 +100,13 @@ export function Header() {
             (owner, round 5). The drawn navy-chip glyph this replaced lives on in icons.jsx as
             IconCalendarPlain; the brand now carries the app's actual icon instead. */}
         <img className="app-brand-mark" src={APP_ICON} alt="" aria-hidden="true" />
-        <span className="app-brand-name">SPTCal</span>
+        {/* Name over version, both inside the mark's 30 px (legacy.css), so --header-h does not move. */}
+        <div className="app-brand-text">
+          <span className="app-brand-name">SPTCal</span>
+          {/* A button since 19 Nov 2026: it opens What's New again (WhatsNewDialog.jsx). Same box and type as the
+              label it was, so the header does not move. */}
+          <button type="button" className="app-brand-ver" title="What’s new" onClick={() => chrome.whatsNew()}>v{APP_VERSION}</button>
+        </div>
       </div>
       <div className="app-toolbar-div" aria-hidden="true" />
 
@@ -89,7 +124,13 @@ export function Header() {
           the existing control flow keeps deciding, exactly as it reads. */}
       <Menu
           opened={menu.open}
-          onChange={(open) => { setMenu((s) => ({ ...s, open })); if (!open) setQ('') }}
+          /* 'sptcal-file-menu-open' (the 14 Nov 2026 review of audit item 3.7): the engine redraws the menu's
+             "Unsaved work" on it (refreshKeptBackups). Told on EVERY opening, however it opens: it used to listen
+             for a pointerdown on the button, so a menu opened from the keyboard (Enter, Space) showed a stale list. */
+          onChange={(open) => {
+            setMenu((s) => ({ ...s, open })); if (!open) setQ('')
+            if (open) document.dispatchEvent(new CustomEvent('sptcal-file-menu-open'))
+          }}
           withinPortal={false}
           keepMounted
           closeOnItemClick={false}
@@ -114,6 +155,10 @@ export function Header() {
                 variant="default"
                 aria-haspopup="true"
                 aria-expanded={menu.open ? 'true' : 'false'}
+                /* It reads as the file's name, so say what it is (audit 2026-11, AUD2-030 / AUD2-033): a hover hint, and a
+                   name for screen readers. The chip itself is unchanged (no header restructure). */
+                aria-label={'File menu, ' + menu.label}
+                title="File menu: Load and recent calendars"
                 leftSection={<IconFolder className="btn-ic" />}
                 rightSection={<span className="caret" aria-hidden="true">▾</span>}
                 /* FIXED width, not max-width (owner, round 5): the chip must show much of a real
@@ -135,10 +180,17 @@ export function Header() {
                   delegated handler still decides everything -- Open… keeps data-action="open",
                   every recent keeps data-id/data-remove, and a click on the search box matches
                   neither branch and correctly does nothing. */}
+              {/* No New here (owner, 18 Nov 2026: "remove the new button from here"). It was added above Load… for audit
+                  WIN-2 (Chrome keeps Ctrl+N on Windows); the header's New button is that home now, and Help points there. */}
               <Menu.Item className="file-menu-item" data-action="open" role="menuitem">
                 {/* "Load", per the terminology rule (loading = opening a file into the PWA).
                     data-action="open" is the engine contract and deliberately does NOT rename. */}
                 <span className="fm-name">Load…</span>
+              </Menu.Item>
+              {/* What changed since the last Save or Load, in lines to copy into an email (audit 2026-11 AUD2-103). The
+                  engine's delegated handler opens it on data-action="changes", above its unsaved-work question. */}
+              <Menu.Item className="file-menu-item" data-action="changes" role="menuitem">
+                <span className="fm-name">Changes since last save…</span>
               </Menu.Item>
               <div className="fm-search-row">
                 {/* Plain <input>, deliberately not a Mantine TextInput: Mantine inputs mint a
@@ -196,6 +248,42 @@ export function Header() {
                     ))
                 )}
               </div>
+              {/* Unsaved work (audit AUD2-056, 14 Nov 2026): every crash backup this browser keeps that no open
+                  window owns, recoverable here after the launch question was declined, or never asked (a
+                  double-clicked file). Below the list and outside .fm-list, so it never scrolls away and the search
+                  box never filters it. The engine's ONE delegated listener decides: data-backup-discard before
+                  .file-menu-item, data-backup on the item, exactly as data-remove / data-id work for recents. No
+                  input here, so nothing mints an id collectFieldValues could sweep. */}
+              {(menu.backups || []).length > 0 && (
+                <>
+                  <Menu.Divider className="file-menu-sep" />
+                  <Menu.Label className="fm-backups-label">Unsaved work</Menu.Label>
+                  <div className="fm-backups">
+                  {menu.backups.map((b) => (
+                    <Menu.Item
+                      key={b.key}
+                      className="file-menu-item fm-backup"
+                      data-backup={b.key}
+                      role="menuitem"
+                      title={'Recover the unsaved work from ' + b.name + ' (' + b.when + ')'}
+                      rightSection={
+                        <CloseButton
+                          component="span"
+                          size="xs"
+                          className="fm-remove"
+                          data-backup-discard={b.key}
+                          title="Discard this unsaved work"
+                          aria-label="Discard"
+                        />
+                      }
+                    >
+                      <span className="fm-name">{b.name}</span>
+                      <span className="fm-when">{b.when}</span>
+                    </Menu.Item>
+                  ))}
+                  </div>
+                </>
+              )}
             </Menu.Dropdown>
           </Box>
       </Menu>
@@ -320,7 +408,10 @@ export function Header() {
       <Button
         {...BTN}
         id="export-btn"
-        className="btn-collapse"
+        /* Only the Excel face collapses: in the Month view this button IS Export PDF, and it must sit exactly where
+           #export-wf-pdf-btn sits in the Waterfall (owner, 11 Nov 2026: the header must not shift between views),
+           so it keeps its label at every width as that one does. */
+        className={exp.primary ? undefined : 'btn-collapse'}
         title={exp.label}
         ml="auto"
         variant={exp.primary ? 'filled' : 'default'}
@@ -373,12 +464,49 @@ export function Header() {
       {/* Title Case and an icon like its neighbours New / Save / Export (owner, 30 Sep 2026). The
           engine resolves the click with closest(), so a click on the icon still lands; the SVG has
           no text, so the hdrcontrols leg's textContent read still gets the bare label. */}
+      {/* ⭐ FIXED SLOTS (owner, 11 Nov 2026: "I also want this top menu not to shift around when you toggle between
+          waterfall/month view"). The group is right-aligned, so a slot stays put when every slot to its right keeps
+          its width. Each view-dependent button is sized to the WIDER of its two faces by a hidden ghost of the other
+          label (.tb-slot-label's ::after, content from data-ghost: pseudo content is not textContent, so the legs'
+          label reads are unchanged). The Export PDF slot holds #export-wf-pdf-btn in the Waterfall and #export-btn in
+          the Month view: the same label and icon, both filled, neither collapsing. */}
       <Button {...BTN} id="tb-notes-reset-btn" variant="default" fw={500}
         leftSection={<IconRotateCcw className="btn-ic" />}
         title={notesReset.view === 'month'
           ? 'Clear the notes added in the Month view. Waterfall notes stay — reset those from the Waterfall view.'
-          : 'Return every waterfall note to its automatic text, colour and size. The Month view shows these notes too, so they reset there as well. A deleted automatic note stays deleted: tick it in Settings › Automatic notes to bring it back.'}>
-        {notesReset.view === 'month' ? 'Reset Month Notes' : 'Reset Notes'}
+          : 'Return every waterfall note to its automatic text, color and size. The Month view shows these notes too, so they reset there as well. A deleted automatic note stays deleted: tick it in Settings › Automatic notes to bring it back.'}>
+        {/* "Reset Waterfall Notes" in the Waterfall (owner, 11 Nov 2026; "Reset Notes" until then). */}
+        <span className="tb-slot-label" data-ghost={notesReset.view === 'month' ? 'Reset Waterfall Notes' : 'Reset Month Notes'}>
+          {notesReset.view === 'month' ? 'Reset Month Notes' : 'Reset Waterfall Notes'}
+        </span>
+      </Button>
+      {/* Reset Columns (owner, 6 Nov 2026: "will there be a way to reset back to default algorithm?" -> "Add it").
+          Every column back on the automatic layout: fill and pull-back wishes, dragged widths, swapped and moved
+          columns, in one undo step (resetColumns() in the engine, delegated on this id). The Waterfall's only: the
+          month view has no columns, so it is hidden there by display -- ALWAYS RENDERED, as #export-wf-pdf-btn is.
+          data-disabled, never disabled, so its tooltip still says why it is grey. btn-collapse-early: icon-only at
+          1280 px and below, a rung before New and Save As (legacy.css, step 2a, has the measurements). */}
+      <Button {...BTN} id="tb-cols-reset-btn" className="btn-collapse btn-collapse-early" variant="default" fw={500}
+        leftSection={<IconColumns className="btn-ic" />}
+        data-disabled={!colsReset.any || undefined}
+        style={{ display: colsReset.view === 'month' ? 'none' : undefined }}
+        title={colsReset.any
+          ? 'Put every column back on the automatic layout: each phase’s fill or pull-back, every dragged width, every swapped or moved column. Dates, notes and row heights stay. Undo brings it all back.'
+          : 'Every column is already on the automatic layout.'}>
+        <span className="tb-slot-label" data-ghost="Reset Bar Order">Reset Columns</span>
+      </Button>
+      {/* Reset Bar Order (owner, 11 Nov 2026), Reset Columns' slot in the Month view: every bar back in date order,
+          the bar menu's "Back to date order" (resetMonthPhaseOrder() in the engine, delegated on this id). Always
+          rendered, display-toggled, greyed by data-disabled while the bars are already in date order. Same collapse
+          rung as Reset Columns, so the two stay one width at every window size. */}
+      <Button {...BTN} id="tb-order-reset-btn" className="btn-collapse btn-collapse-early" variant="default" fw={500}
+        leftSection={<IconRows className="btn-ic" />}
+        data-disabled={!colsReset.orderAny || undefined}
+        style={{ display: colsReset.view === 'month' ? undefined : 'none' }}
+        title={colsReset.orderAny
+          ? 'Put the month view’s bars back in date order, undoing every phase dragged up or down by its grip. Dates and notes stay. Undo brings the order back.'
+          : 'The bars are already in date order.'}>
+        <span className="tb-slot-label" data-ghost="Reset Columns">Reset Bar Order</span>
       </Button>
     </Group>
   )

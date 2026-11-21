@@ -36,9 +36,9 @@
 //       from inside closes it and puts focus back on the button; an Escape elsewhere does not close it
 //   W12 a file saved with the old Settings tab up (sidebarTab 'settings') opens on Show, the window closed
 //   W13 the merged Preferences tab, BY VIEW: in the waterfall it shows ONE Waterfall card holding the old Calendar
-//       tab's waterfall settings and Grid Lines, Automatic notes and App, no Month view card, and the opening line
+//       tab's waterfall settings and Grid Lines, Automatic notes, Hiatus (since 4 Nov 2026; App until 18 Nov 2026), no Month view card, and the opening line
 //       that names Grid Lines; in the month view ONE Month view card holding Label Production by, the grey-text
-//       switches, Pause prep and Number Production Days, Automatic notes and App, no Waterfall card, and the line
+//       switches, Pause prep and Number Production Days, Automatic notes and Hiatus, no Waterfall card, and the line
 //       that names the grey-text switches. Exactly one opening line shows in each view
 //   W14 the rail stays live while it is open (owner, 23 Oct 2026): no head of its own, its tabs straight under
 //       the rail; the Settings button takes the selected look and the sidebar tab gives it up; a hit-tested click
@@ -121,17 +121,21 @@ window.addEventListener('load', function () { (async function () {
     // removed and every heading made editable: HEADINGS-EDITABLE-PLAN.md. It was in .prefs-card, so the sweep's id
     // set, gate 5, does not move.)
     prefs: ['one-col-btn', 'mv-prod-label-week', 'mv-prod-label-episode', 'mv-prod-label-block', 'prep-pause-off', 'share-copy-btn',
-            'wf-date-format', 'col-reuse-btn', 'pref-mv-shootdays',
-            'pref-gridlines', 'pref-mv-week', 'pref-mv-blocks', 'pref-mv-episodes']
+            'wf-date-format', 'pref-mv-shootdays',
+            'pref-mv-week', 'pref-mv-blocks', 'pref-mv-episodes']
   };
+  // ⛔ pref-gridlines (Grid Lines in Exports) and wf-paper (Paper) left the Waterfall card on 11 Nov 2026 (owner: "remove
+  // these from preferences"). The Export PDF dialog is their only control now (t/pdfdialog.js); W13 holds them gone.
   // The merged cards, by view: what each one holds (W13).
-  var WF_CARD = ['one-col-btn', 'col-reuse-btn', 'wf-date-format', 'pref-gridlines'];
+  // col-reuse-btn (Reuse Empty Columns) left the card on 5 Nov 2026: the layout rules replaced the switch
+  // (LAYOUT-BUILD-PLAN.md §4), and `colReuse` is the file's layout stamp, offered by a strip, never by a control.
+  var WF_CARD = ['one-col-btn', 'wf-date-format'];
   var MV_CARD = ['mv-prod-label-week', 'pref-mv-week', 'pref-mv-blocks', 'pref-mv-episodes', 'prep-pause-off', 'pref-mv-shootdays'];
   var SWEPT = ['union-place', 'custom-hol-name', 'custom-hol-date'];
   var NEVER_IN_BYID = ['one-col-btn', 'mv-prod-label-week', 'mv-prod-label-episode', 'mv-prod-label-block', 'prep-pause-off',
-                       'col-reuse-btn', 'pref-mv-shootdays',
+                       'pref-mv-shootdays',
                        'wf-date-format',
-                       'pref-gridlines', 'pref-mv-week', 'pref-mv-blocks', 'pref-mv-episodes'];
+                       'pref-mv-week', 'pref-mv-blocks', 'pref-mv-episodes'];
 
   try {
     await T.appReady();
@@ -199,8 +203,9 @@ window.addEventListener('load', function () { (async function () {
     hitClick(el('custom-hol-add'), 'Add');
     await answer(/Recompute/, 'Continue');
     await settle();
-    // The first built-in holiday: off, and on in the Waterfall.
-    var row0 = [].find.call(document.querySelectorAll('#holiday-vis-list .hv-row'), function (r) { return !r.querySelector('.hv-del'); });
+    // The first built-in holiday with an Enable box (one it can move a date on, since 11 Nov 2026): off, and on in
+    // the Waterfall. Off, it keeps the box wherever it is, so W7 can read it back.
+    var row0 = [].find.call(document.querySelectorAll('#holiday-vis-list .hv-row'), function (r) { return !r.querySelector('.hv-del') && r.querySelector('.hv-en'); });
     // A row's name is .hv-name's FIRST text node: a custom or out-of-range tag follows it in the same span.
     function nameOf(r){ var n = r.querySelector('.hv-name'); return n && n.firstChild ? n.firstChild.textContent.trim() : ''; }
     var hName = row0 ? nameOf(row0) : '';
@@ -220,17 +225,16 @@ window.addEventListener('load', function () { (async function () {
     hitClick(track('prep-pause-off'), 'Pause prep');
     await settle();
     await T.openSettings('prefs');
-    T.set('pref-gridlines', 'dashed');
     hitClick(track('pref-mv-episodes'), 'Show Episodes');   // Week is the bar's text now, so its row is hidden
     await T.sleep(400);
     var set4 = {place: el('union-place').value, onecol: el('one-col-btn').checked, label: el('mv-prod-label-week').checked,
                 pause: el('prep-pause-off').checked, custom: !!rowNamed('Studio shutdown'), hName: hName,
                 hOff: !rowNamed(hName).querySelector('.hv-en').checked, hSheet: rowNamed(hName).querySelector('.hv-cb[data-view="sheet"]').checked,
-                grid: el('pref-gridlines').value, mvEps: el('pref-mv-episodes').checked};
+                mvEps: el('pref-mv-episodes').checked};
     out.w4 = set4;
-    add('W4', 'Through the window, by hit-tested clicks: Region New York, a custom holiday, a holiday off and in the Waterfall, Single Column Mode on, Label Production by Week, Pause prep on; and Grid lines Dashed, Show Episodes off',
+    add('W4', 'Through the window, by hit-tested clicks: Region New York, a custom holiday, a holiday off and in the Waterfall, Single Column Mode on, Label Production by Week, Pause prep on; and Show Episodes off',
       set4.place === 'us-new-york' && set4.onecol && set4.label && set4.pause && set4.custom && !!hName && set4.hOff && set4.hSheet
-        && set4.grid === 'dashed' && set4.mvEps === false, set4, 'all set');
+        && set4.mvEps === false, set4, 'all set');
     var sig4 = T.formSignature();
 
     // ---- W5: Save -----------------------------------------------------------------------------------------
@@ -255,9 +259,9 @@ window.addEventListener('load', function () { (async function () {
     await settle().catch(function () {});   // a blank calendar has no grid; the page still settles
     await T.sleep(500);
     out.w6 = {place: el('union-place').value, onecol: el('one-col-btn').checked, week: el('mv-prod-label-week').checked,
-              pause: el('prep-pause-off').checked, custom: !!rowNamed('Studio shutdown'), grid: el('pref-gridlines').value, mvEps: el('pref-mv-episodes').checked};
+              pause: el('prep-pause-off').checked, custom: !!rowNamed('Studio shutdown'), mvEps: el('pref-mv-episodes').checked};
     add('W6', 'New puts every calendar setting back (no Region, One column off, no label chosen, Pause prep off, no custom holiday) and leaves the preferences alone',
-      out.w6.place === '' && !out.w6.onecol && !out.w6.week && !out.w6.pause && !out.w6.custom && out.w6.grid === 'dashed' && out.w6.mvEps === false,
+      out.w6.place === '' && !out.w6.onecol && !out.w6.week && !out.w6.pause && !out.w6.custom && out.w6.mvEps === false,
       out.w6, 'defaults; prefs kept');
 
     // ---- W7: Load it back -----------------------------------------------------------------------------------
@@ -268,10 +272,10 @@ window.addEventListener('load', function () { (async function () {
               pause: el('prep-pause-off').checked, custom: !!rowNamed('Studio shutdown'),
               hOff: r7 ? !r7.querySelector('.hv-en').checked : null, hSheet: r7 ? r7.querySelector('.hv-cb[data-view="sheet"]').checked : null,
               swept: SWEPT.map(function (k) { return sig7[k] === sig4[k]; }), sameSig: eq(sig7, sig4),
-              grid: el('pref-gridlines').value, mvEps: el('pref-mv-episodes').checked};
+              mvEps: el('pref-mv-episodes').checked};
     add('W7', 'Load of the saved file brings every one back, control by control, with the same swept values; the preferences are this computer\'s, untouched',
       out.w7.place === 'us-new-york' && out.w7.onecol && out.w7.week && out.w7.pause && out.w7.custom && out.w7.hOff === true && out.w7.hSheet === true
-        && out.w7.sameSig && out.w7.grid === 'dashed' && out.w7.mvEps === false, out.w7, 'all back');
+        && out.w7.sameSig && out.w7.mvEps === false, out.w7, 'all back');
 
     // ---- W8: session UI ---------------------------------------------------------------------------------------
     await T.closeSettings();
@@ -384,7 +388,10 @@ window.addEventListener('load', function () { (async function () {
     }
     await view('sheet');
     await T.openSettings('prefs');
-    var l13s = prefsLooks(), gridShown = shown(el('pref-gridlines')), oneShown = shown(el('one-col-btn'));
+    var l13s = prefsLooks(), oneShown = shown(el('one-col-btn'));
+    // Paper and Grid Lines in Exports are gone from the card (owner, 11 Nov 2026), and Dates offers the four formats in the
+    // owner's order, named by pattern, with the saved values behind them.
+    var dateOpts = el('wf-date-format') ? [].map.call(el('wf-date-format').options, function (o) { return o.value + '=' + o.textContent.trim(); }) : null;
     await view('month');
     await T.openSettings('prefs');
     var l13m = prefsLooks();
@@ -395,17 +402,21 @@ window.addEventListener('load', function () { (async function () {
     // ...and no Custom Column Headings switch in it (removed 22 Oct 2026, HEADINGS-EDITABLE-PLAN.md): the only way it
     // could come back is a stray row, which would carry its old id or its label.
     var wfCards = [].filter.call(document.querySelectorAll('#settings-window section.card'), function (c) { return /Waterfall/.test((c.querySelector('h2') || c).textContent); });
-    out.w13 = {sheet: l13s, gridShown: gridShown, oneShown: oneShown, month: l13m, monthShown: l13mShown,
+    var wfText = wfCards.length === 1 ? wfCards[0].textContent : '';
+    var gridGone = !el('pref-gridlines') && !el('wf-paper') && !/Grid Lines in Exports|\bPaper\b/.test(wfText);
+    out.w13 = {sheet: l13s, gridGone: gridGone, dateOpts: dateOpts, oneShown: oneShown, month: l13m, monthShown: l13mShown,
                noHdrSwitch: !el('wf-hdr-custom') && wfCards.length === 1 && !/Custom Column Headings/i.test(wfCards[0].textContent)};
     // The tabs' opening lines ("Saved in this calendar's file, so they travel with it ...") were deleted by the owner,
     // 23 Oct 2026, in all three tabs. A tab opens on its first card.
     var scopeAll = document.querySelectorAll('#settings-window .sw-scope').length;
     var scopeText = /travel with it|stays? on this computer/.test(el('settings-window').textContent);
     out.w13.noScope = {nodes: scopeAll, text: scopeText};
-    add('W13', 'Preferences, by view: in the waterfall ONE Waterfall card (the old Calendar tab\'s waterfall settings and Grid Lines, and no Custom Column Headings switch), Automatic notes and App; in the month view ONE Month view card (Label Production by, the grey-text switches, Pause prep, Number Production Days), Automatic notes and App; and no tab opens on a "saved in this file / stays on this computer" line',
-      eq(l13s.heads, ['Waterfall', 'Automatic notes', 'App']) && l13s.wf && gridShown && oneShown && out.w13.noHdrSwitch
+    add('W13', 'Preferences, by view: in the waterfall ONE Waterfall card (Single Column Mode and Dates with its four formats; no Paper, no Grid Lines in Exports, no Custom Column Headings switch), Automatic notes and Hiatus; in the month view ONE Month view card (Label Production by, the grey-text switches, Pause prep, Number Production Days), Automatic notes and Hiatus (no App card since 18 Nov 2026: Export App With Data is gone, CLOUDFLARE-ACCESS-PLAN.md D7); and no tab opens on a "saved in this file / stays on this computer" line',
+      // Hiatus (HIATUS-RIPPLE-PLAN.md §5, 4 Nov 2026): "Ripple Hiatus Periods", a preference for both views, before App.
+      eq(l13s.heads, ['Waterfall', 'Automatic notes', 'Hiatus']) && l13s.wf && gridGone && oneShown
+        && eq(dateOpts, ['m/d/yyyy=MM/DD/YYYY', '=MM/DD/YY', 'd/m/yyyy=DD/MM/YYYY', 'd/m/yy=DD/MM/YY']) && out.w13.noHdrSwitch
         && l13s.scope.length === 0
-        && eq(l13m.heads, ['Month view', 'Automatic notes', 'App']) && l13m.mv
+        && eq(l13m.heads, ['Month view', 'Automatic notes', 'Hiatus']) && l13m.mv
         && l13m.scope.length === 0 && scopeAll === 0 && !scopeText
         && l13mShown.label && l13mShown.pause && l13mShown.days && mvRows.length >= 1,
       out.w13, 'one card per view, no scope line in any tab');

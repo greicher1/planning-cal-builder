@@ -288,6 +288,11 @@ Five things it needs to get right, all of them mechanical rather than contested:
   both chips are already clamped below the header's live bottom edge.
 - **Do not offer it where nothing can move.** A block with one phase column has nothing to swap with;
   the button should not appear at all rather than appear and refuse.
+  - ⭐ **As built since 11 Nov 2026 (owner: *"it shouldn't show up anywhere it doesnt make sense"*):** "one phase
+    column" was tested as "the year has no `s1` column", which missed two cases: Production beside Sim Post (the
+    lane IS `s1`) and a phase alone in its column for its whole run. The button now asks the knob's own evaluator
+    (`stintOffers` → `swapEvalDir` with the block selected) and shows only where its click leads to a knob. See
+    HANDOFF, 10-11 Nov 2026.
 
 **The chip still states the resolved mode before commit** — *"all 20 weeks of Production — swaps the
 whole column"* vs *"17 of 20 weeks — swaps those weeks only, and 16 weeks will re-flow"*. That was the

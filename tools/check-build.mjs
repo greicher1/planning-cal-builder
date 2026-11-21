@@ -26,7 +26,9 @@ const ALLOWED_EXTERNAL = ['cdn.jsdelivr.net/npm/exceljs'];
 // Outbound LINKS -- an <a href> the user can click, which is a navigation and fetches nothing. They
 // are allowed only inside an <a> tag, so the same URL anywhere else (a src=, a fetch) still fails.
 // The install gate's OTHER BROWSER screen: "Don't have Chrome? Get it free." (PWA-ONLY-PLAN.md).
-const ALLOWED_LINKS = ['www.google.com/chrome/'];
+// sptcal.pages.dev/: the install gate's "moved" screen on the old address links to the app's new home
+// (CLOUDFLARE-ACCESS-PLAN.md step 8). A link the user clicks, not a load.
+const ALLOWED_LINKS = ['www.google.com/chrome/', 'sptcal.pages.dev/'];
 
 const results = [];
 let failed = 0;
@@ -99,6 +101,19 @@ check('Mantine chrome built in', /mantine/i.test(src));
 check('.sptcal save format present', /sptcal/.test(src));
 check('ExcelJS loader present', /exceljs/i.test(src));
 
+// THE SHIFT BOX'S HINT OPENS UPWARD AND NEVER FLIPS (owner's spec, 9 Nov 2026, item 8: no panel, popover or floating
+// control may sit over the list's rows). The list is directly under the box's title, so the hint's default place
+// (right, flipping when there is no room) would lay its card over the first rows. A harness leg cannot hover a
+// Mantine HoverCard (it ignores dispatched events), so the setting itself is asserted here, in the built file:
+// the Shift hint's props, as the bundler writes them (quotes or backticks, false or !1).
+const Q = '[`"\']';
+// Build Around's list sits under its title too since 10 Nov 2026 (it took Shift's look and feel), so both hints.
+for (const [label, what] of [['Shift', 'the Shift box'], ['Build Around', 'Build Around']]) {
+  const hint = new RegExp('label:' + Q + label + Q + '[^{}]{0,80}position:' + Q + 'top-start' + Q + '[^{}]{0,40}middlewares:\\{[^{}]*flip:(?:!1|false)').test(src);
+  check(what + '\'s hint opens above its title and never flips (nothing may float over the phase list)', hint,
+    hint ? '' : 'PreviewToolbar.jsx: <InfoHint label="' + label + '" position="top-start" middlewares={{ flip: false }}>');
+}
+
 // --- 5. The update check and its marker agree ---------------------------------------------
 // The app polls version.json and compares it to its own baked-in version. If the two ever
 // disagree the banner is either permanently on (a phantom update) or permanently off (a real
@@ -129,12 +144,33 @@ check(
   engineVersion ? `literal ${engineVersion} in dist` : 'APP_VERSION not found in src/legacy/app.js'
 );
 
+// The build stamp (owner, 19 Nov 2026; tools/build-stamp.mjs): the update bar shows on every release whose built file
+// differs, by comparing this meta with dist/version.json's `build`. They must be written, and agree, or the bar is
+// permanently on (a phantom update) or shows only on a version cut again (deploy.yml no longer copies the root file).
+const stampMeta = (src.match(/<meta name="sptcal-build" content="([^"]*)">/) || [])[1];
+const distMarkerFile = path.join(ROOT, 'dist', 'version.json');
+const distMarker = fs.existsSync(distMarkerFile) ? JSON.parse(fs.readFileSync(distMarkerFile, 'utf8')) : null;
+check('the build is stamped (<meta name="sptcal-build"> holds a 12-digit hash, not "dev")',
+  /^[0-9a-f]{12}$/.test(stampMeta || ''), `meta=${stampMeta}`);
+check('dist/version.json carries this build\'s stamp and version',
+  !!distMarker && distMarker.build === stampMeta && distMarker.version === pkg.version,
+  `dist/version.json=${JSON.stringify(distMarker)} meta=${stampMeta}`);
+// What's New (src/whats-new.js): ids unique and newest first, or a machine shows an entry twice or never.
+const wnSrc = fs.readFileSync(path.join(ROOT, 'src', 'whats-new.js'), 'utf8');
+const wnIds = [...wnSrc.matchAll(/^\s*id:\s*'([^']+)'/gm)].map(m => m[1]);
+check("What's New entry ids are unique, look like YYYY-MM-DD[-n], and run newest first",
+  wnIds.every(id => /^\d{4}-\d{2}-\d{2}(-\d+)?$/.test(id)) && new Set(wnIds).size === wnIds.length
+    && wnIds.every((id, i) => i === 0 || wnIds[i - 1] > id),
+  `ids=${wnIds.join(', ')}`);
+
 // --- 6. The install gate (PWA-ONLY-PLAN.md) -----------------------------------------------
 // The hosted link runs the app only in the installed app window; a browser tab gets the gate.
 // A regression in either direction is serious and silent: a gate that stops matching shows every
 // browser tab the app again, and a manifest whose identity moves makes Chrome treat every existing
 // install as some other app -- and then no installed user is ever recognised.
-const PAGES_URL = 'https://greicher1.github.io/planning-cal-builder/';
+// The app's address and installed identity since 18 Nov 2026 (CLOUDFLARE-ACCESS-PLAN.md); it was
+// https://greicher1.github.io/planning-cal-builder/ until then.
+const PAGES_URL = 'https://sptcal.pages.dev/';
 const manHref = (src.match(/<link rel="manifest" href="data:application\/manifest\+json,([^"]+)"/) || [])[1];
 let man = null;
 try { man = JSON.parse(decodeURIComponent(manHref || '')); } catch (e) { /* reported below */ }
@@ -174,7 +210,10 @@ const moduleAt = src.indexOf('<script type="module"');
 check('gate script is in <head>, before the module',
   gateAt > 0 && gateAt < headEnd && (moduleAt < 0 || gateAt < moduleAt),
   `gate@${gateAt} module@${moduleAt} </head>@${headEnd}`);
-check("gate's GATE_HOSTS names the Pages host", /var GATE_HOSTS = \['greicher1\.github\.io'\]/.test(src));
+check("gate's GATE_HOSTS names the app's host (and the old one, for the switch-over window)",
+  /var GATE_HOSTS = \['greicher1\.github\.io', 'sptcal\.pages\.dev'\]/.test(src));
+check("gate shows the moved screen on the old host only", /var MOVED_FROM = \['greicher1\.github\.io'\]/.test(src)
+  && /data-for="moved"/.test(src));
 check('gate page markup present and hidden by default', /<div id="app-gate" hidden>/.test(src));
 // main.jsx's early return: the bundle must still ask for the attribute, or a gated tab boots the
 // engine underneath the gate (backup slot, autosave, beforeunload) while showing nothing of it.

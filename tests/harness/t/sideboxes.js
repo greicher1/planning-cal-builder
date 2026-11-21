@@ -219,7 +219,8 @@ window.addEventListener('load', function () { (async function () {
     // ---- M: the month view --------------------------------------------------------------------------------
     $('view-month-btn').click(); await settle();
     var colsShown = qa('.side-col').filter(function (c) { return getComputedStyle(c).display !== 'none'; }).length;
-    var btnShown = $('tb-side-boxes-btn') && getComputedStyle($('tb-side-boxes-btn')).display !== 'none';
+    // Since 11 Nov 2026 the button keeps its place in the month view (the month stepper takes it), hidden by visibility.
+    var btnShown = $('tb-side-boxes-btn') && getComputedStyle($('tb-side-boxes-btn')).display !== 'none' && getComputedStyle($('tb-side-boxes-btn')).visibility !== 'hidden';
     out.monthWrapW = $('table-wrap').getBoundingClientRect().width;
     check(colsShown === 0 && !btnShown, 'M1 the month view shows no side column and no Side boxes button');
     $('view-sheet-btn').click(); await settle();

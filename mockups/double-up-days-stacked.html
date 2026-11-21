@@ -1,0 +1,482 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Double-up Stacked Bars</title>
+<!-- MOCKUP, not the app. Double-up days as a real bar, stacked with Production's bar (tracker card `double-up-days`).
+     Owner, 17 Nov 2026, after six more looks: "is there anyway we could do one on top of each other so its two phase
+     bars that overlap one on top of another? And if we did this could they be movable?"
+     Yes to both: the month view already stacks two phases that share a day, and its bars already drag.
+     Then, the same day: "when it at the very end of an episode or block, i want the double up pill to come out of the
+     end of the shoot pill, on the same line, and clear that theyre connected".
+       - By default a double-up is AT THE END of its episode (or block): its pill comes straight out of the end of the
+         shoot pill, on the same line, joined to it. The next episode starts on the line below for the days they
+         overlap, and is back on the top line the week after (rows are worked out week by week, as the month view does).
+       - The last one comes out of its end too, so it runs past main-unit wrap until it is dragged somewhere else.
+       - Drag a double-up pill to other days and it lets go: it is then its own pill, in the first free row. Drop it
+         back on the end (or double-click it) and it joins up again. "The whole bar" keeps its days together; "One day"
+         moves the day you grab.
+       - The owner picked the FLUSH join (17 Nov 2026), so the arrow option is gone.
+       - A double-up can only be dropped on ANOTHER episode's (or block's) days, or back on its own end (owner, 17 Nov
+         2026: "it probably shouldn't let you drag a double up day for 102 onto another part of 102 ... it would only
+         make sense to drag it onto a part of another episode"). AFTER WRAP IS ALLOWED too (owner's picker, 17 Nov
+         2026: "Yes, allow after wrap"). Its own days, and the days before the shoot starts, are greyed while it is
+         dragged and refuse the drop.
+     Switches: the pill's colour, and what a drag moves. Each episode or block can have its own count.
+     Typed entry is a stand-in. Whole days only; no weekends worked, holidays or hiatus. Made-up show and dates
+     (starts on a Wednesday so the hand-over falls mid-week). -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --gray-0:#F8F9FA; --gray-1:#F1F3F5; --gray-2:#E9ECEF; --gray-3:#DEE2E6; --gray-4:#CED4DA; --gray-5:#ADB5BD;
+  --gray-6:#868E96; --gray-7:#495057; --gray-9:#1E1D1B;
+  --navy-6:#2C3E50; --page:#ECEBE6; --red:#E03131; --red-1:#FFE3E3;
+  --prod:#E2F0D9; --prod-ink:#375623; --prod-line:#A9C99A; --du-dk:#854F0B;
+  --dub:#B7D9A3; --dub-ink:#274016; --dub-line:#8DBB74;
+}
+*{ box-sizing:border-box; }
+body{ margin:0; font-family:'Inter',system-ui,sans-serif; color:var(--gray-9); background:var(--page); line-height:1.45; }
+button, input, select{ font:inherit; color:inherit; }
+.page{ max-width:1040px; margin:0 auto; padding:20px 14px 60px; }
+h1{ font-size:21px; margin:0 0 6px; letter-spacing:-.01em; }
+.lede{ margin:0 0 14px; color:var(--gray-7); font-size:13.5px; max-width:860px; }
+h2.sec{ font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:.07em; color:var(--gray-6); margin:18px 2px 8px; }
+
+.inputs{ background:#fff; border:1px solid var(--gray-4); border-radius:10px; box-shadow:0 1px 2px rgba(0,0,0,.06); padding:12px 14px; }
+.in-row{ display:flex; flex-wrap:wrap; gap:10px 16px; align-items:flex-end; }
+.fld{ min-width:0; }
+.fld label, .fld .lbl{ display:block; font-size:12.5px; font-weight:500; margin:0 0 4px; white-space:nowrap; }
+.inp{ width:130px; height:32px; border:1px solid var(--gray-4); border-radius:8px; padding:0 10px; font-size:14px; background:#fff; outline:none; }
+.inp:focus{ border-color:var(--navy-6); }
+.inp.err{ border-color:var(--red); box-shadow:0 0 0 2px var(--red-1); }
+.seg{ display:inline-flex; background:var(--gray-1); border-radius:8px; padding:3px; gap:2px; }
+.seg button{ border:0; background:none; padding:4px 12px; border-radius:6px; font-size:13px; cursor:pointer; color:var(--gray-7); font-weight:500; white-space:nowrap; }
+.seg button[aria-pressed="true"]{ background:#fff; color:var(--gray-9); box-shadow:0 1px 3px rgba(0,0,0,.12); }
+.read{ font-size:13px; color:var(--gray-7); padding-bottom:6px; }
+.read b{ color:var(--gray-9); font-weight:600; }
+.read.err{ color:var(--red); }
+details.own{ margin-top:10px; border-top:1px solid var(--gray-2); padding-top:8px; }
+details.own summary{ font-size:12.5px; font-weight:500; cursor:pointer; color:var(--gray-7); }
+.own-grid{ display:grid; grid-template-columns:repeat(auto-fill, minmax(150px, 1fr)); gap:6px 12px; margin-top:8px; }
+.own-row{ display:flex; align-items:center; gap:6px; }
+.own-row .nm{ flex:1; min-width:0; font-size:12.5px; font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.nsfx{ display:inline-flex; align-items:center; flex:none; height:26px; border:1px solid var(--gray-4); border-radius:8px; background:#fff; padding-right:8px; cursor:text; }
+.nsfx:focus-within{ border-color:var(--navy-6); }
+.nsfx.err{ border-color:var(--red); box-shadow:0 0 0 2px var(--red-1); }
+.nsfx input{ width:46px; height:24px; border:0; padding:0 4px 0 8px; background:transparent; font-size:13px; text-align:right; outline:none; }
+.nsfx span{ font-size:10.5px; color:var(--gray-6); }
+input.edited{ font-weight:700; }
+.own-foot{ font-size:11.5px; color:var(--gray-6); margin:8px 0 0; }
+
+.opts{ display:flex; flex-wrap:wrap; gap:10px 20px; align-items:flex-end; margin:0 0 10px; }
+.opts .seg{ background:#fff; border:1px solid var(--gray-3); }
+.opts .seg button[aria-pressed="true"]{ background:var(--navy-6); color:#fff; box-shadow:none; }
+.swatches{ display:inline-flex; gap:6px; height:32px; align-items:center; }
+.swatches button{ width:26px; height:20px; border-radius:6px; border:1px solid rgba(0,0,0,.25); cursor:pointer; padding:0; }
+.swatches button[aria-pressed="true"]{ outline:2px solid var(--navy-6); outline-offset:2px; }
+
+.status{ display:flex; flex-wrap:wrap; align-items:center; gap:4px 12px; font-size:12px; color:var(--gray-7); margin:0 0 8px; min-height:22px; }
+.status b{ font-weight:600; color:var(--gray-9); }
+.status .warn{ color:var(--du-dk); }
+.status button{ border:1px solid var(--gray-4); background:#fff; border-radius:6px; font-size:11.5px; padding:1px 8px; cursor:pointer; }
+
+/* A narrow pane must not squeeze the days: the calendar keeps a minimum width and scrolls sideways. */
+.scroll-x{ overflow-x:auto; }
+.cal{ background:#fff; border:1px solid var(--gray-4); border-radius:8px; overflow:hidden; user-select:none; -webkit-user-select:none; min-width:640px; }
+.dow, .days, .bars{ display:grid; grid-template-columns:.5fr repeat(5, minmax(0,1fr)) .5fr; }
+.dow{ background:var(--gray-0); border-bottom:1px solid var(--gray-3); }
+.dow span{ font-size:10px; font-weight:600; text-transform:uppercase; letter-spacing:.05em; color:var(--gray-6); padding:3px 5px; overflow:hidden; }
+.week{ position:relative; border-top:1px solid var(--gray-3); }
+.dow + .week{ border-top:0; }
+.days{ position:absolute; inset:0; }
+.day{ border-left:1px solid var(--gray-2); padding:2px 4px; font-size:10.5px; font-weight:600; color:#555; min-width:0; overflow:hidden; white-space:nowrap; }
+.day:first-child{ border-left:0; }
+.day.wkend{ background:#F6F5F2; color:#999; }
+.day .mo{ color:var(--navy-6); }
+.day.after{ background:#FBFAF6; }
+.day.drop{ box-shadow:inset 0 0 0 2px var(--navy-6); background:#EAEEF2; }
+/* While a double-up is dragged: the days it can't go on (its own episode's, and after wrap) grey out, and a drop
+   over one is outlined red and refused. */
+.day.nodrop{ background:#ECEBE7; color:#B5B3AC; }
+.day.drop.bad{ box-shadow:inset 0 0 0 2px var(--red); background:#FBEDED; }
+body.dragging.refuse, body.dragging.refuse .b{ cursor:not-allowed; }
+.status .refused{ color:var(--red); }
+.day .wrapm{ float:right; font-size:9px; font-weight:700; letter-spacing:.04em; text-transform:uppercase; color:var(--prod-ink); margin-left:4px; }
+.bars{ position:relative; grid-auto-rows:17px; row-gap:2px; padding:19px 0 6px; min-height:64px; pointer-events:none; }
+.b{ margin:0 2px; border-radius:9px; font-size:10.5px; font-weight:600; height:17px; line-height:17px; padding:0 7px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+    background:var(--prod); color:var(--prod-ink); box-shadow:inset 0 0 0 .5px var(--prod-line); pointer-events:auto; min-width:0; }
+.b.dub{ background:var(--dub); color:var(--dub-ink); box-shadow:inset 0 0 0 .5px var(--dub-line); cursor:grab; touch-action:none; }
+.b.dub.dragging{ opacity:.35; }
+/* The join: the shoot pill's end and the double-up pill's start meet with no gap, inside one outline. */
+.b.cr{ border-top-right-radius:0; border-bottom-right-radius:0; margin-right:0; }
+.b.cl{ border-top-left-radius:0; border-bottom-left-radius:0; margin-left:0; }
+
+body.dragging, body.dragging .b{ cursor:grabbing; }
+.legend{ display:flex; flex-wrap:wrap; gap:4px 14px; margin-top:7px; font-size:11px; color:var(--gray-6); }
+.legend i{ display:inline-block; width:22px; height:11px; border-radius:6px; vertical-align:-1px; margin-right:4px; }
+.whole-head{ display:flex; flex-wrap:wrap; align-items:center; gap:8px 14px; margin:0 0 8px; }
+.whole-head .seg{ background:#fff; border:1px solid var(--gray-3); }
+.whole-head .seg button[aria-pressed="true"]{ background:var(--navy-6); color:#fff; box-shadow:none; }
+</style>
+</head>
+<body>
+<div class="page">
+  <h1>Double-up days: joined to the end of the shoot pill</h1>
+  <p class="lede">A double-up comes straight out of the end of its episode’s pill, on the same line. The next episode
+    starts on the line below for the days they overlap. Drag a double-up onto another episode’s days and it lets go and
+    becomes its own pill; it can also go after wrap. Drop it back on the end, or double-click it, and it joins up again.
+    Its own episode’s days grey out while you drag, because a double-up there would just be the same episode twice. The
+    main unit’s dates never move.</p>
+
+  <div class="inputs">
+    <div class="in-row">
+      <div class="fld"><span class="lbl">Schedule by</span>
+        <div class="seg" id="mode-seg"><button type="button" data-mode="episodes" aria-pressed="true">Episodes</button><button type="button" data-mode="blocks" aria-pressed="false">Blocks</button></div></div>
+      <div class="fld"><label for="def" id="def-lbl">Shooting Days per Episode</label><input class="inp" id="def" autocomplete="off"></div>
+      <div class="fld"><label for="label">Double-up label</label><input class="inp" id="label" value="Double-up" autocomplete="off"></div>
+      <div class="read" id="read"></div>
+    </div>
+    <details class="own" id="own">
+      <summary id="own-sum"></summary>
+      <div class="own-grid" id="rows"></div>
+      <p class="own-foot">Type over one to give it its own days and double-ups (bold). Clear the box to follow the default again.</p>
+    </details>
+  </div>
+
+  <h2 class="sec">The look</h2>
+  <div class="opts">
+    <div class="fld"><span class="lbl">Its colour</span><div class="swatches" id="swatches"></div></div>
+    <div class="fld"><span class="lbl">A drag moves</span>
+      <div class="seg" id="drag-seg"><button type="button" data-drag="bar" aria-pressed="true">The whole bar</button><button type="button" data-drag="day" aria-pressed="false">One day</button></div></div>
+    <div class="fld"><span class="lbl">Weeks shown</span>
+      <div class="seg" id="weeks-seg"><button type="button" data-w="6" aria-pressed="true">First 6</button><button type="button" data-w="all" aria-pressed="false">All</button></div></div>
+  </div>
+
+  <div class="status" id="status"></div>
+  <div class="scroll-x"><div class="cal" id="cal"></div></div>
+  <div class="legend"><span><i style="background:var(--prod);box-shadow:inset 0 0 0 .5px var(--prod-line)"></i>Main unit</span>
+    <span><i id="leg-dub" style="background:var(--dub);box-shadow:inset 0 0 0 .5px var(--dub-line)"></i><span id="leg-label">Double-up</span> crew</span></div>
+</div>
+
+<script>
+'use strict';
+/* Made-up show: starts Wed 6 Jan 2027, Monday to Friday, no holidays or hiatus. */
+const MON0 = Date.UTC(2027, 0, 4);          // the Monday of the first week
+const OFF = 2;                               // the first shoot day is that week's Wednesday
+const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const DOW = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+const COLOURS = [
+  {name:'A darker Production green', bg:'#B7D9A3', ink:'#274016', line:'#8DBB74'},
+  {name:'Production’s own green',    bg:'#E2F0D9', ink:'#375623', line:'#A9C99A'},
+  {name:'Blue',                      bg:'#D6E6F5', ink:'#1F4E79', line:'#A3C4E3'},
+  {name:'Amber',                     bg:'#FBE5A8', ink:'#6B4500', line:'#E5C46A'},
+];
+
+const S = {
+  mode:'episodes', label:'Double-up', weeks:'6', colour:0, dragMode:'bar',
+  episodes:{ def:'10+2', rows:Array(8).fill(null), moved:{} },   // rows: its own typed value, or null
+  blocks:  { def:'20+2', rows:Array(4).fill(null), moved:{} },   // moved: "<unit>:<n>" -> weekday slot
+};
+const M = ()=> S[S.mode];
+const esc = s=> String(s).replace(/[&<>"]/g, c=> ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const slotOf = k=> k + OFF;                                       // shoot day k -> weekday slot (5 a week)
+const dateOfSlot = s=> new Date(MON0 + (Math.floor(s / 5) * 7 + (s % 5)) * 864e5);
+const fmtDate = d=> DOW[d.getUTCDay()] + ' ' + MONTHS[d.getUTCMonth()] + ' ' + d.getUTCDate();
+
+// "10", "10+2" -> {d, du}; '' -> null; anything else -> 'err'
+function parseTyped(s){
+  s = String(s || '').trim();
+  if(!s) return null;
+  const m = s.match(/^(\d{1,3})\s*(?:\+\s*(\d))?$/);
+  if(!m || !(+m[1] >= 1)) return 'err';
+  return {d:+m[1], du: m[2] ? +m[2] : 0};
+}
+function units(){
+  const m = M(), def = parseTyped(m.def), eps = S.mode === 'episodes';
+  let c = 0;
+  return m.rows.map((own, i)=>{
+    const p = own != null ? parseTyped(own) : null;
+    const v = (p && p !== 'err') ? p : ((def && def !== 'err') ? def : {d:0, du:0});
+    const u = {i, s:c, f:c + v.d, d:v.d, du:v.du,
+      name: eps ? 'Episode ' + (101 + i) : 'Block ' + (i + 1),
+      bar:  eps ? 'Shoot ' + (101 + i)   : 'Block ' + (i + 1),
+      tag:  eps ? String(101 + i)        : 'Blk ' + (i + 1)};
+    c += v.d;
+    return u;
+  });
+}
+// One entry per double-up day. Default: the days right after the unit's last main-unit day (the next unit's first
+// days; for the last unit, the days after wrap).
+function dups(us){
+  const out = [], mv = M().moved;
+  us.forEach((u, i)=>{
+    for(let j = 0; j < u.du; j++){
+      const def = slotOf(u.f + j);
+      const key = i + ':' + j, at = mv[key];
+      out.push({key, u, def, slot: at != null ? at : def, moved: at != null && at !== def});
+    }
+  });
+  return out;
+}
+// A unit's double-up days as bars: days next to each other make one bar. [{u, a, b, keys}] in slots, b exclusive.
+function duRuns(ds){
+  const by = new Map();
+  ds.forEach(p=>{ if(!by.has(p.u.i)) by.set(p.u.i, []); by.get(p.u.i).push(p); });
+  const runs = [];
+  by.forEach(list=>{
+    list.sort((x, y)=> x.slot - y.slot);
+    let cur = null;
+    list.forEach(p=>{
+      if(cur && p.slot === cur.b){ cur.b++; cur.keys.push(p.key); }
+      else { cur = {u:p.u, a:p.slot, b:p.slot + 1, keys:[p.key]}; runs.push(cur); }
+    });
+  });
+  return runs;
+}
+
+/* ---------- Drawing ---------- */
+function drawCal(){
+  const us = units(), total = us.length ? us[us.length - 1].f : 0, ds = dups(us), runs = duRuns(ds);
+  // Joined to its shoot pill: the run that starts on the day right after the unit's last main-unit day.
+  runs.forEach(r=>{ r.att = r.a === slotOf(r.u.f); });
+  const wrapSlot = slotOf(total) - 1;
+  let maxSlot = wrapSlot;
+  ds.forEach(p=> maxSlot = Math.max(maxSlot, p.slot));
+  const need = Math.max(1, Math.ceil((maxSlot + 1) / 5)) + 1;       // one more week, so there is a day after wrap to drop onto
+  const n = S.weeks === '6' ? Math.min(6, need) : need;
+  let html = '<div class="dow">' + DOW.map(d=> `<span>${d}</span>`).join('') + '</div>';
+  for(let w = 0; w < n; w++){
+    const lo = w * 5, hi = lo + 5, col = s=> s - lo + 2;
+    let days = '';
+    for(let c = 0; c < 7; c++){
+      const d = new Date(MON0 + (w * 7 + c - 1) * 864e5);
+      const wk = c === 0 || c === 6, slot = wk ? null : lo + (c - 1);
+      const first = d.getUTCDate() === 1 || (w === 0 && c === 0);
+      const cls = ['day'];
+      if(wk) cls.push('wkend');
+      if(slot != null && slot > wrapSlot) cls.push('after');
+      days += `<div class="${cls.join(' ')}"${slot != null ? ` data-slot="${slot}"` : ''}>${slot === wrapSlot ? '<span class="wrapm">Wrap</span>' : ''}${first ? `<span class="mo">${MONTHS[d.getUTCMonth()]}</span> ` : ''}${d.getUTCDate()}</div>`;
+    }
+    // This week's pills. A shoot pill and the double-up joined to its end are ONE item on one line; the next
+    // unit, which starts under that double-up, takes the next free line. Rows are worked out week by week.
+    const items = [];
+    us.forEach(u=>{
+      const a = Math.max(slotOf(u.s), lo), b = Math.min(slotOf(u.f), hi);
+      const r = runs.find(x=> x.u === u && x.att);
+      const da = r ? Math.max(r.a, lo) : 0, db = r ? Math.min(r.b, hi) : 0;
+      const main = a < b, du = !!r && da < db;
+      if(main || du) items.push({u, r, main: main ? [a, b] : null, du: du ? [da, db] : null, a: main ? a : da, b: du ? db : b, chain: true});
+    });
+    runs.filter(r=> !r.att).forEach(r=>{
+      const a = Math.max(r.a, lo), b = Math.min(r.b, hi);
+      if(a < b) items.push({u:r.u, r, main:null, du:[a, b], a, b, chain:false});
+    });
+    const byStart = (x, y)=> x.a - y.a || x.u.i - y.u.i;
+    const laneEnd = [];
+    items.filter(x=> x.chain).sort(byStart).concat(items.filter(x=> !x.chain).sort(byStart)).forEach(x=>{
+      let l = laneEnd.findIndex(e=> e <= x.a);
+      if(l < 0) l = laneEnd.length;
+      laneEnd[l] = x.b; x.lane = l + 1;
+    });
+    let bars = '';
+    items.forEach(x=>{
+      const u = x.u, joined = x.main && x.du;
+      if(x.main) bars += `<div class="b${joined ? ' cr' : ''}" style="grid-column:${col(x.main[0])} / ${col(x.main[1])};grid-row:${x.lane}" title="${u.name}: ${u.d} main-unit days${u.du ? ` + ${u.du} ${esc(S.label.toLowerCase())}` : ''}">${u.bar}</div>`;
+      if(x.du){
+        const n = x.r.b - x.r.a;
+        bars += `<div class="b dub${joined ? ' cl' : ''}" data-u="${u.i}" style="grid-column:${col(x.du[0])} / ${col(x.du[1])};grid-row:${x.lane}"
+          title="${esc(S.label)} for ${u.name}: ${n} day${n > 1 ? 's' : ''}${x.chain ? ', at the end of its shoot. Drag it to other days.' : ', placed by hand. Double-click to join it back to the end.'}">${esc(S.label)} ${u.tag}</div>`;
+      }
+    });
+    html += `<div class="week"><div class="days">${days}</div><div class="bars">${bars}</div></div>`;
+  }
+  document.getElementById('cal').innerHTML = html;
+  document.querySelector('#weeks-seg [data-w="all"]').textContent = `All ${need}`;
+
+  const dus = ds.length, moved = ds.filter(p=> p.moved).length, past = ds.filter(p=> p.slot > wrapSlot).length;
+  const joined = runs.filter(r=> r.att).reduce((n, r)=> n + (r.b - r.a), 0);
+  const lab = esc(S.label.toLowerCase()), wrap = total ? fmtDate(dateOfSlot(wrapSlot)) : '–';
+  document.getElementById('status').innerHTML = (dus
+    ? `<span><b>${dus}</b> ${lab} day${dus > 1 ? 's' : ''}: ${joined} joined to the end of ${S.mode === 'episodes' ? 'their episode' : 'their block'}, ${dus - joined} placed elsewhere</span>`
+    : '<span>No double-up days. Add +1 or +2 to the default, or to one row.</span>')
+    + `<span>Main unit wraps <b>${wrap}</b>${past ? `, <span class="warn">${past} after wrap</span>` : ''}</span>`
+    + (moved ? '<button type="button" id="reset">Put all back</button>' : '');
+}
+function drawRead(){
+  const us = units(), m = M(), eps = S.mode === 'episodes';
+  const total = us.reduce((a, u)=> a + u.d, 0), dus = us.reduce((a, u)=> a + u.du, 0);
+  const p = parseTyped(m.def), bad = p === 'err', r = document.getElementById('read');
+  document.getElementById('def').classList.toggle('err', bad);
+  r.classList.toggle('err', bad);
+  r.innerHTML = bad ? 'Type days, then + double-up days: 10+2'
+    : `<b>${total}</b> shooting days${dus ? ` + <b>${dus}</b> double-up${dus > 1 ? 's' : ''}` : ', no double-ups'}`;
+  const owns = m.rows.filter(x=> x != null).length;
+  document.getElementById('own-sum').textContent = `Each ${eps ? 'episode' : 'block'}’s own days` + (owns ? ` (${owns} changed)` : '');
+  document.getElementById('leg-label').textContent = S.label;
+}
+function drawRows(){
+  const m = M();
+  document.getElementById('rows').innerHTML = units().map((u, i)=>{
+    const own = m.rows[i] != null, bad = own && parseTyped(m.rows[i]) === 'err';
+    return `<div class="own-row"><span class="nm">${u.name}</span>
+      <label class="nsfx${bad ? ' err' : ''}"><input data-r="${i}" class="${own ? 'edited' : ''}" value="${esc(own ? m.rows[i] : m.def)}" placeholder="–" autocomplete="off" aria-label="${u.name} shooting days and double-up days"><span>days</span></label></div>`;
+  }).join('');
+}
+function drawInputs(){
+  const eps = S.mode === 'episodes';
+  document.querySelectorAll('#mode-seg button').forEach(b=> b.setAttribute('aria-pressed', String(b.dataset.mode === S.mode)));
+  document.getElementById('def-lbl').textContent = `Shooting Days per ${eps ? 'Episode' : 'Block'}`;
+  document.getElementById('def').value = M().def;
+  drawRows();
+}
+function drawColour(){
+  const c = COLOURS[S.colour], r = document.documentElement.style;
+  r.setProperty('--dub', c.bg); r.setProperty('--dub-ink', c.ink); r.setProperty('--dub-line', c.line);
+  document.getElementById('swatches').innerHTML = COLOURS.map((x, i)=>
+    `<button type="button" data-colour="${i}" aria-pressed="${i === S.colour}" title="${x.name}" aria-label="${x.name}" style="background:${x.bg}"></button>`).join('');
+}
+function drawAll(){ drawRead(); drawCal(); }
+
+/* ---------- Typing and the switches ---------- */
+document.addEventListener('input', e=>{
+  const t = e.target;
+  if(t.id === 'def'){
+    M().def = t.value;
+    document.querySelectorAll('#rows input').forEach(inp=>{ if(M().rows[+inp.dataset.r] == null) inp.value = t.value; });
+  } else if(t.id === 'label'){
+    S.label = t.value.trim() || 'Double-up';
+  } else if(t.dataset.r != null){
+    const i = +t.dataset.r;
+    M().rows[i] = t.value.trim() === '' ? null : t.value;
+    t.classList.toggle('edited', M().rows[i] != null);
+    t.closest('.nsfx').classList.toggle('err', M().rows[i] != null && parseTyped(M().rows[i]) === 'err');
+  } else return;
+  drawAll();
+});
+document.addEventListener('change', e=>{
+  const t = e.target;
+  if(t.dataset.r == null) return;
+  // A row typed back to the default follows the default again.
+  const i = +t.dataset.r, a = parseTyped(M().rows[i]), d = parseTyped(M().def);
+  if(a && a !== 'err' && d && d !== 'err' && a.d === d.d && a.du === d.du) M().rows[i] = null;
+  drawRows(); drawAll();
+});
+const press = (sel, b)=> document.querySelectorAll(sel + ' button').forEach(x=> x.setAttribute('aria-pressed', String(x === b)));
+document.addEventListener('click', e=>{
+  const b = e.target.closest('button');
+  if(!b) return;
+  if(b.dataset.mode){ S.mode = b.dataset.mode; drawInputs(); drawAll(); }
+  else if(b.dataset.w){ S.weeks = b.dataset.w; press('#weeks-seg', b); drawCal(); }
+  else if(b.dataset.drag){ S.dragMode = b.dataset.drag; press('#drag-seg', b); }
+  else if(b.dataset.colour){ S.colour = +b.dataset.colour; drawColour(); }
+  else if(b.id === 'reset'){ M().moved = {}; drawCal(); }
+});
+
+/* ---------- Dragging a double-up bar ---------- */
+let drag = null;
+const cal = document.getElementById('cal');
+// The day under a point, through whatever bar lies over it.
+const dayAt = (x, y)=> document.elementsFromPoint(x, y).find(el=> el.matches && el.matches('#cal .day[data-slot]')) || null;
+const clearDrop = ()=> cal.querySelectorAll('.day.drop').forEach(d=> d.classList.remove('drop', 'bad'));
+// The episode (or block) whose main unit shoots on a slot, or null (after wrap).
+function ownerOf(slot, us){
+  const u = us.find(x=> slot >= slotOf(x.s) && slot < slotOf(x.f));
+  return u ? u.i : null;
+}
+// Where a double-up of unit `ui` may go: another episode's days, or any day after wrap (owner, 17 Nov 2026). Never its
+// own episode's days, and never before the shoot starts.
+function canDrop(slot, ui, us){
+  const o = ownerOf(slot, us);
+  if(o === ui) return false;
+  if(o != null) return true;
+  const total = us.length ? us[us.length - 1].f : 0;
+  return slot >= slotOf(total);
+}
+// The days a drag carries: the day grabbed, or the run of neighbouring days it belongs to.
+function carried(ui, slot){
+  const ds = dups(units()).filter(p=> p.u.i === ui).sort((x, y)=> x.slot - y.slot);
+  const at = ds.find(p=> p.slot === slot);
+  if(!at) return [];
+  if(S.dragMode === 'day') return [at];
+  const run = [at];
+  for(let s = slot - 1; ; s--){ const p = ds.find(q=> q.slot === s && !run.includes(q)); if(!p) break; run.unshift(p); }
+  for(let s = slot + 1; ; s++){ const p = ds.find(q=> q.slot === s && !run.includes(q)); if(!p) break; run.push(p); }
+  return run;
+}
+cal.addEventListener('pointerdown', e=>{
+  const bar = e.target.closest('.b.dub');
+  if(!bar || e.button !== 0) return;
+  const d = dayAt(e.clientX, e.clientY);
+  if(!d) return;
+  const from = +d.dataset.slot, list = carried(+bar.dataset.u, from);
+  if(!list.length) return;
+  drag = {ui:+bar.dataset.u, from, list, x:e.clientX, y:e.clientY, live:false, to:null, ok:false};
+  e.preventDefault();
+});
+document.addEventListener('pointermove', e=>{
+  if(!drag) return;
+  if(!drag.live){
+    if(Math.abs(e.clientX - drag.x) + Math.abs(e.clientY - drag.y) < 4) return;
+    drag.live = true;
+    document.body.classList.add('dragging');
+    const us = units();
+    cal.querySelectorAll('.day[data-slot]').forEach(d=>{ if(!canDrop(+d.dataset.slot, drag.ui, us)) d.classList.add('nodrop'); });
+    setRefused('');
+    cal.querySelectorAll(`.b.dub[data-u="${drag.ui}"]`).forEach(b=>{
+      const a = +b.style.gridColumnStart, w = b.closest('.week'), lo = [...cal.querySelectorAll('.week')].indexOf(w) * 5;
+      if(drag.list.some(p=> p.slot - lo + 2 >= a && p.slot - lo + 2 < +b.style.gridColumnEnd)) b.classList.add('dragging');
+    });
+  }
+  const d = dayAt(e.clientX, e.clientY);
+  clearDrop();
+  drag.to = d ? +d.dataset.slot : null;
+  drag.ok = false;
+  document.body.classList.remove('refuse');
+  if(drag.to == null) return;
+  const delta = drag.to - drag.from, us = units();
+  const targets = drag.list.map(p=> Math.max(0, p.slot + delta));
+  drag.ok = targets.every(t=> canDrop(t, drag.ui, us));
+  document.body.classList.toggle('refuse', !drag.ok);
+  targets.forEach(t=>{ const c = cal.querySelector(`.day[data-slot="${t}"]`); if(c) c.classList.add('drop'); if(c && !drag.ok) c.classList.add('bad'); });
+});
+// A short line under the status saying why a drop was refused.
+function setRefused(msg){
+  let el = document.getElementById('refused');
+  if(!el){ el = document.createElement('span'); el.id = 'refused'; el.className = 'refused'; }
+  el.textContent = msg;
+  if(msg) document.getElementById('status').appendChild(el);
+}
+document.addEventListener('pointerup', ()=>{
+  if(!drag) return;
+  const was = drag; drag = null;
+  document.body.classList.remove('dragging', 'refuse');
+  clearDrop();
+  cal.querySelectorAll('.day.nodrop').forEach(d=> d.classList.remove('nodrop'));
+  if(!was.live){ return; }
+  if(was.to != null && was.to !== was.from && !was.ok){
+    const u = units()[was.ui];
+    drawCal();
+    setRefused(`${S.label} ${u.tag} can only go on another ${S.mode === 'episodes' ? 'episode' : 'block'}’s days, or after wrap.`);
+    return;
+  }
+  if(was.to != null && was.to !== was.from){
+    const delta = was.to - was.from, mv = M().moved;
+    was.list.forEach(p=>{ const s = Math.max(0, p.slot + delta); if(s === p.def) delete mv[p.key]; else mv[p.key] = s; });
+  }
+  drawCal();
+});
+cal.addEventListener('dblclick', e=>{
+  const bar = e.target.closest('.b.dub');
+  if(!bar) return;
+  const mv = M().moved, pre = bar.dataset.u + ':';
+  Object.keys(mv).forEach(k=>{ if(k.startsWith(pre)) delete mv[k]; });
+  drawCal();
+});
+
+drawColour(); drawInputs(); drawAll();
+</script>
+</body>
+</html>

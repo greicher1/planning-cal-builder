@@ -30,6 +30,15 @@ window.addEventListener('load', function () { (async function () {
     return el.map(function (e) { return (e.textContent || '').replace(/\s+/g, ' ').trim(); }).join(' || ');
   }
   function shown(el){ var l = el && el.closest('label'); return !!l && getComputedStyle(l).display !== 'none'; }
+  // Snap to Monday's switch moved from the card into the phase's Starts picker (owner, 18 Nov 2026): the card's row is
+  // always hidden, so "Snap applies here" is asked of the picker. Opens it on start-<key>, reads, closes it.
+  async function pickerSnap(key){
+    var el = $('start-' + key); if(!el) return null;
+    el.dispatchEvent(new FocusEvent('focusin', {bubbles: true})); await T.sleep(150);
+    var on = !!document.querySelector('.date-pop .dp-snap');
+    document.body.dispatchEvent(new MouseEvent('mousedown', {bubbles: true})); await T.sleep(100);
+    return on;
+  }
   async function settle(){ await T.sleep(700); }   // past the 500 ms undo debounce
   async function view(mode){ $(mode === 'month' ? 'view-month-btn' : 'view-sheet-btn').click(); await T.sleep(300); }
   async function gotoMonth(label){
@@ -92,8 +101,11 @@ window.addEventListener('load', function () { (async function () {
         weeks: [shown($('weeks-writersRoom')), shown($('end-writersRoom')), shown($('snap-writersRoom'))],
         dates: [shown($('weeks-prePrep')), shown($('end-prePrep')), shown($('snap-prePrep'))]
       };
-      check(out.boxes.weeks.join() === 'true,false,true', 'a built-in in Weeks shows Weeks and Snap to Mon');
+      out.pickerSnap = {weeks: await pickerSnap('writersRoom'), dates: await pickerSnap('prePrep')};
+      check(out.boxes.weeks.join() === 'true,false,false', 'a built-in in Weeks shows Weeks (its Snap to Monday row is hidden: the switch is in the Starts picker)');
+      check(out.pickerSnap.weeks === true, 'a built-in in Weeks: its Starts picker offers Snap to Monday');
       check(out.boxes.dates.join() === 'false,true,false', 'a built-in in Dates shows only the End date');
+      check(out.pickerSnap.dates === false, 'a built-in in Dates: its Starts picker offers no Snap to Monday');
       var tb = document.querySelector('.side-tab-btn[data-tab="phases"]'); if(tb) tb.click(); await T.sleep(150);
       var sel = $('unit-prePrep'); sel.scrollIntoView({block: 'center'}); await T.sleep(100);
       var r = sel.getBoundingClientRect();
@@ -177,34 +189,41 @@ window.addEventListener('load', function () { (async function () {
       $('pop-shift-btn').click(); await T.sleep(150);
       T.set('tool-shift-weeks', '1'); $('tool-shift-later').click(); await settle();
       out.movers.shift = dates();
-      check(out.movers.shift.pre === '2027-02-17' && out.movers.shift.preEnd === '2027-03-02'
+      // ⭐ Since 5 Nov 2026 Shift STEPS OVER a held hiatus (stepOverHeld): Pre Prep Wed 2/10 -> Wed 2/24 over the locked
+      // week of 2/15, and its END through the same step, Tue 2/23 -> Tue 3/2 (5 working days kept, the 3-day gap to Prod
+      // Prep's 3/8 kept). Before: 2/17-3/2 (a start inside the break). The first cut of the step-over kept the span and
+      // ended it 3/9, INTO Prod Prep.
+      check(out.movers.shift.pre === '2027-02-24' && out.movers.shift.preEnd === '2027-03-02' && out.movers.shift.pp === '2027-03-08'
             && out.movers.shift.post === '2027-04-08' && out.movers.shift.postEnd === '2027-05-19', 'Shift All +1 wk moves BOTH ends of each built-in Dates phase');
       await undo(); check(same(), 'one undo restores every date after Shift All');
 
-      $('pop-anchor-btn').click(); await T.sleep(150);
+      // Anchor To is the Shift form's To a date since 4 Nov 2026 (ANCHOR-TO-DIRECTION-PLAN.md §6), on All phases.
+      $('pop-shift-btn').click(); await T.sleep(150); document.querySelector('#pop-shift [data-far="date"]').click(); await T.sleep(100);
       T.set('tool-anchor-phase', 'post'); T.set('tool-anchor-edge', 'start'); T.set('tool-anchor-date', '2027-04-15');
       $('tool-anchor-go').click(); await settle();
       out.movers.anchor = dates();
       check(out.movers.anchor.post === '2027-04-15' && out.movers.anchor.postEnd === '2027-05-26', 'Anchor To moves BOTH ends of a built-in Dates phase');
       await undo(); check(same(), 'one undo restores every date after Anchor To');
 
-      // Rebuild BACKWARDS from Prod Prep pinned to Mon 3/1: Pre Prep (Dates, 13 days) ends Sun 2/28,
-      // so Mon 2/15 -> Sun 2/28; Writer's Room (snapped, 4 wk) ends by Mon 2/15 -> starts Mon 1/18.
+      // Rebuild BACKWARDS from Prod Prep pinned to Mon 3/1: Pre Prep (Dates, Wed 2/10 - Tue 2/23, 10 weekdays) ends on
+      // the last weekday before it, so Mon 2/15 -> Fri 2/26; Writer's Room (snapped, 4 wk) ends by Mon 2/15 -> starts
+      // Mon 1/18. (Until the audit's AUD2-068, 14 Nov 2026, it ended the day before, Sun 2/28, keeping 13 calendar days.)
       $('pop-solve-btn').click(); await T.sleep(150);
       T.set('tool-solve-phase', 'prodPrep'); T.set('tool-solve-date', '2027-03-01');
       T.rebuildAll(-1); await settle();
       out.movers.back = dates();
-      check(out.movers.back.pre === '2027-02-15' && out.movers.back.preEnd === '2027-02-28' && out.movers.back.wr === '2027-01-18',
-            'Rebuild backwards: a built-in Dates phase ends the day before the next, keeping its length');
+      check(out.movers.back.pre === '2027-02-15' && out.movers.back.preEnd === '2027-02-26' && out.movers.back.wr === '2027-01-18',
+            'Rebuild backwards: a built-in Dates phase ends on the last weekday before the next, keeping its weekdays');
       await undo(); check(same(), 'one undo restores every date after Rebuild backwards');
 
-      // Rebuild FORWARDS from Prod Prep: Production has no span (skipped), so Post (Dates, 41 days)
-      // follows Prod Prep's exclusive end Mon 3/29 -> Mon 3/29 to Sun 5/9.
+      // Rebuild FORWARDS from Prod Prep: Production has no span (skipped), so Post (Dates, Thu 4/1 - Wed 5/12, 30
+      // weekdays) follows Prod Prep's exclusive end Mon 3/29 -> Mon 3/29 to Fri 5/7, its 30 weekdays kept. (Until the
+      // audit's AUD2-068, 14 Nov 2026, it kept its 41 calendar days and ended Sun 5/9.)
       $('pop-solve-btn').click(); await T.sleep(150);
       T.set('tool-solve-phase', 'prodPrep'); T.set('tool-solve-date', '2027-03-01');
       T.rebuildAll(1); await settle();
       out.movers.fwd = dates();
-      check(out.movers.fwd.post === '2027-03-29' && out.movers.fwd.postEnd === '2027-05-09', 'Rebuild forwards chains a built-in Dates phase, keeping its length');
+      check(out.movers.fwd.post === '2027-03-29' && out.movers.fwd.postEnd === '2027-05-07', 'Rebuild forwards chains a built-in Dates phase, keeping its weekdays');
       await undo(); check(same(), 'one undo restores every date after Rebuild forwards');
 
       // The month-view drag: Pre Prep's first pill two day-columns right (synthetic events: this proves

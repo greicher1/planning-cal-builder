@@ -1,0 +1,676 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Phase-Linked Notes</title>
+<!-- MOCKUP, not the app. A typed waterfall note that moves with a phase, asked for by the owner on 4 Nov 2026 ("we do
+     need a way to link certain notes to certain weeks relative to a phase. So basically link a certain note you write
+     to a certain phase. Thoughts?"). Plan: PHASE-LINKED-NOTES-PLAN.md.
+     The note editor copies the live one (legacy.css .note-pop, 248 px; .note-day-select; the note palette; the
+     "Show in month view" switch row). The new row is "Stays with" (R1's recommended words; the switch at the top
+     shows the other two). The calendar is SYNTHETIC: 2033, generic note names, Region None (no holidays), every phase
+     starts on a Monday and Production is drawn as whole weeks, so the arithmetic is simpler than the app's. The rules
+     it acts out are the plan's: a linked note is stored as phase + phase week (production@2) and placed from the
+     schedule every time; an unlinked note keeps its week. The grey "mockup notes" column is not part of the app: the
+     plan puts no mark in the grid (D6). -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  /* src/theme.js */
+  --navy-0:#EAEEF2; --navy-1:#D3DAE1; --navy-2:#B4BFC9; --navy-6:#2C3E50; --navy-7:#1C2833;
+  --gray-0:#F7F6F3; --gray-1:#EEECE5; --gray-2:#E3E1DA; --gray-3:#D9D7CE; --gray-4:#C4C1B6; --gray-5:#A5A197;
+  --gray-6:#726F68; --gray-7:#5A5750; --gray-9:#1E1D1B;
+  --amber:#B9791A; --amber-0:#FBF1DF; --green-7:#2F7D4F; --red-7:#B23A3A;
+  --shadow-md:0 8px 24px rgba(0,0,0,.12); --shadow-xs:0 1px 2px rgba(0,0,0,.08);
+  --r-xs:3px; --r-sm:5px; --r-md:7px; --r-lg:10px;
+  --page:#ECEBE6;
+  --primary:#2C3E50;
+}
+*{ box-sizing:border-box; }
+body{ margin:0; font-family:'Inter',system-ui,sans-serif; color:var(--gray-9); background:var(--page); line-height:1.5; }
+button, input, select, textarea{ font:inherit; }
+
+/* ---------- The page around the mockup ---------- */
+.page{ max-width:1180px; margin:0 auto; padding:24px 16px 60px; }
+.page-head h1{ font-size:22px; margin:0 0 6px; letter-spacing:-.01em; }
+.page-head p{ margin:0 0 4px; color:var(--gray-6); font-size:13.5px; max-width:900px; }
+.tabs{ display:flex; flex-wrap:wrap; gap:6px; margin:16px 0 6px; align-items:center; }
+.tab{ border:1px solid var(--gray-4); background:#fff; border-radius:999px; padding:5px 14px 5px 6px;
+      font-size:13px; font-weight:600; cursor:pointer; color:var(--gray-9); display:inline-flex; align-items:center; }
+.tab .n{ display:inline-grid; place-items:center; width:22px; height:22px; border-radius:50%; background:var(--gray-0);
+         margin-right:7px; font-size:11px; }
+.tab[aria-selected="true"]{ background:var(--navy-6); color:#fff; border-color:var(--navy-6); }
+.tab[aria-selected="true"] .n{ background:rgba(255,255,255,.18); }
+.words{ margin-left:auto; display:flex; align-items:center; gap:8px; font-size:12px; color:var(--gray-6); }
+.reset{ border:0; background:none; color:var(--gray-6); font-size:12.5px; cursor:pointer; text-decoration:underline; }
+.seg{ display:inline-flex; background:var(--gray-1); border-radius:var(--r-md); padding:3px; }
+.seg button{ border:0; background:none; font-size:12px; font-weight:500; padding:3px 10px; border-radius:var(--r-sm);
+             color:var(--gray-7); cursor:pointer; white-space:nowrap; }
+.seg button[aria-pressed="true"]{ background:#fff; box-shadow:var(--shadow-xs); color:var(--gray-9); }
+.tabnote{ margin:0 0 12px; font-size:12.5px; color:var(--gray-7); max-width:900px; }
+.info{ display:grid; grid-template-columns:1fr 1.2fr 1fr; gap:18px; background:#fff; border:1px solid var(--gray-2);
+       border-radius:12px; padding:14px 18px; margin-bottom:14px; }
+.info h3{ font-size:10.5px; text-transform:uppercase; letter-spacing:.07em; color:var(--gray-6); margin:0 0 4px; }
+.info p, .info li{ font-size:13px; margin:0 0 4px; }
+.info ul{ margin:0; padding-left:18px; }
+.info b{ font-weight:600; }
+@media (max-width:900px){ .info{ grid-template-columns:1fr; } .words{ margin-left:0; width:100%; } }
+
+/* ---------- A stand-in for the app's preview panel ---------- */
+.frame{ background:var(--gray-0); border:1px solid var(--gray-4); border-radius:12px; overflow:hidden;
+        box-shadow:0 8px 30px rgba(0,0,0,.08); }
+.frame-scroll{ overflow-x:auto; }
+.frame-inner{ padding:12px 14px 18px; }
+.panel[hidden]{ display:none; }
+.grids{ display:flex; gap:28px; align-items:flex-start; min-width:max-content; }
+.gridbox h4{ margin:0 0 2px; font-size:12px; font-weight:600; color:var(--gray-9); }
+.gridbox .sub{ margin:0 0 8px; font-size:11.5px; color:var(--gray-6); }
+.controls{ display:flex; flex-wrap:wrap; align-items:center; gap:14px; margin:0 0 12px; padding:10px 12px; background:#fff;
+           border:1px solid var(--gray-3); border-radius:var(--r-lg); min-width:max-content; }
+.card-title{ font-size:10px; letter-spacing:.05em; text-transform:uppercase; font-weight:600; color:var(--gray-6); }
+.field{ display:inline-flex; align-items:center; gap:6px; font-size:12px; color:var(--gray-7); }
+.field output{ display:inline-block; min-width:62px; padding:3px 8px; border:1px solid var(--gray-4); border-radius:var(--r-sm);
+               background:#fff; color:var(--gray-9); font-variant-numeric:tabular-nums; text-align:center; }
+.step{ width:24px; height:24px; border:1px solid var(--gray-4); background:#fff; border-radius:var(--r-sm); cursor:pointer;
+       font-size:13px; line-height:1; color:var(--gray-7); }
+.step:hover{ background:var(--gray-0); }
+.result{ font-size:12px; color:var(--gray-7); }
+
+/* ---------- The waterfall (a stand-in: Carlito 11px, the app's fills; the real grid is frozen and unchanged) ---------- */
+table.wf{ border-collapse:collapse; font-family:Carlito, Calibri, 'Helvetica Neue', Arial, sans-serif; font-size:11px;
+          background:#fff; table-layout:fixed; }
+table.wf th{ background:#F2F2F2; font-weight:700; border:1px solid #BFBFBF; height:20px; padding:0 4px; color:#000; }
+table.wf td{ border:1px solid #D9D9D9; height:20px; padding:1px 4px; text-align:center; vertical-align:middle; color:#000;
+             line-height:1.25; }
+table.wf td.date{ text-align:right; color:#000; }
+table.wf td.note{ cursor:text; }
+table.wf td.note.empty:hover{ background:#faf5ff; }
+table.wf td.note.editing{ outline:2px solid var(--primary); outline-offset:-2px; }
+table.wf.readonly td.note{ cursor:default; }
+table.wf td.anno{ border:0; text-align:left; font-family:'Inter',system-ui,sans-serif; font-size:11px; background:var(--gray-0);
+         color:var(--gray-6); padding:0 0 0 10px; white-space:nowrap; }
+table.wf th.anno{ background:var(--gray-0) !important; border:0 !important; border-left:1px dashed var(--gray-4) !important; text-align:left;
+         font-family:'Inter',system-ui,sans-serif; font-size:9.5px; font-weight:600 !important; letter-spacing:.05em;
+         text-transform:uppercase; color:var(--gray-5) !important; padding-left:10px !important; }
+table.wf td.anno{ border-left:1px dashed var(--gray-4); }
+table.wf{ background:none; }
+table.wf td:not(.anno){ background-color:#fff; }
+.anno .linked{ color:var(--green-7); font-weight:600; }
+.anno .left{ color:var(--red-7); font-weight:600; }
+.anno .wait{ color:var(--amber); font-weight:600; }
+
+/* ---------- The note editor (legacy.css .note-pop, 248 px) ---------- */
+.note-pop{ position:absolute; z-index:60; width:248px; padding:16px; background:#fff; border:1px solid var(--gray-3);
+           border-radius:var(--r-lg); box-shadow:var(--shadow-md); }
+.note-pop-title{ font-size:10px; font-weight:600; letter-spacing:.04em; text-transform:uppercase; color:var(--gray-6);
+                 margin-bottom:8px; }
+.note-editor{ display:flex; flex-direction:column; gap:6px; }
+.note-editor textarea{ width:100%; font-size:13px; color:#000; background:#fff; border:1px solid var(--gray-4);
+                       border-radius:var(--r-md); padding:6px 9px; resize:vertical; line-height:1.4; max-height:140px;
+                       min-height:40px; overflow:auto; }
+.note-row{ display:flex; align-items:center; gap:8px; font-size:10.5px; color:var(--gray-6); }
+.note-row .lbl{ flex:none; }
+.note-select{ -webkit-appearance:none; appearance:none; font-size:10.5px; padding:2px 20px 2px 6px; min-width:0;
+              border:1px solid var(--gray-4); border-radius:var(--r-sm); background:#fff; color:#000;
+              background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 16 16' xmlns='http://www.w3.org/2000/svg' fill='none' stroke='%23726F68' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4.5 6.5 8 10l3.5-3.5'/%3E%3C/svg%3E");
+              background-repeat:no-repeat; background-position:right 5px center; background-size:11px 11px; }
+.note-row .note-select.link{ flex:1; font-weight:600; }
+.note-row.new{ position:relative; }
+.newtag{ position:absolute; left:-16px; top:50%; transform:translateY(-50%); width:6px; height:6px; border-radius:50%;
+         background:var(--amber); }
+.link-hint{ font-size:10.5px; line-height:1.4; color:var(--gray-7); margin:-2px 0 0; }
+.link-hint.wait{ color:var(--amber); }
+.link-also{ font-size:10.5px; line-height:1.4; color:var(--gray-7); background:var(--gray-0); border-radius:var(--r-sm);
+            padding:5px 7px; }
+.note-color-row{ display:flex; gap:5px; padding:4px 0 1px; flex-wrap:wrap; justify-content:center; }
+.note-color-row + .note-color-row{ padding-top:2px; }
+.swatch{ width:16px; height:16px; border-radius:var(--r-xs); cursor:pointer; display:inline-block;
+         border:1px solid rgba(255,255,255,.55); box-shadow:0 0 0 1px rgba(0,0,0,.2); transition:transform 80ms ease; }
+.swatch:hover{ transform:scale(1.15); }
+.swatch.sel{ box-shadow:0 0 0 1px #fff, 0 0 0 3px var(--primary); }
+.swatch.nofill{ background:linear-gradient(to top right, #fff calc(50% - 1px), #E03131 calc(50% - 1px) calc(50% + 1px), #fff calc(50% + 1px)) !important; }
+.note-view-row{ display:flex; align-items:center; justify-content:space-between; gap:10px; margin-top:6px; padding-top:8px;
+                border-top:1px solid var(--gray-2); font-size:13px; color:#000; cursor:pointer; user-select:none; }
+.note-view-row input{ -webkit-appearance:none; appearance:none; position:relative; width:32px; height:16px; flex:none; margin:0;
+                      cursor:pointer; border:0; border-radius:999px; background:var(--gray-3); transition:background-color 150ms; }
+.note-view-row input::before{ content:""; position:absolute; top:2px; left:2px; width:12px; height:12px; border-radius:50%;
+                              background:#fff; box-shadow:0 1px 2px rgba(0,0,0,.18); transition:transform 150ms; }
+.note-view-row input:checked{ background:var(--primary); }
+.note-view-row input:checked::before{ transform:translateX(16px); }
+.note-pop-hint{ font-size:10px; color:var(--gray-5); line-height:1.4; margin-top:8px; }
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="page-head">
+    <h1>Link a note to a phase</h1>
+    <p>A note you type stays on its week, as it does today, or stays with a phase's week and moves wherever that phase
+      goes. That covers typing a start date, the month drag, Rebuild From, Close all gaps, Shift, and a hiatus added before
+      it. One new row in the note editor; the week stays the default. Plan: <b>PHASE-LINKED-NOTES-PLAN.md</b>.</p>
+  </div>
+
+  <div class="tabs" role="tablist">
+    <button class="tab" role="tab" id="tab-editor" aria-selected="true" data-tab="editor"><span class="n">1</span>The note editor</button>
+    <button class="tab" role="tab" id="tab-move" aria-selected="false" data-tab="move"><span class="n">2</span>Before / after a move</button>
+    <div class="words">
+      <span>R1, the words:</span>
+      <span class="seg" id="words">
+        <button type="button" data-w="stays" aria-pressed="true">Stays with</button>
+        <button type="button" data-w="moves" aria-pressed="false">Moves with</button>
+        <button type="button" data-w="linked" aria-pressed="false">Linked to</button>
+      </span>
+      <button class="reset" type="button" id="reset">Reset</button>
+    </div>
+  </div>
+
+  <!-- Tab 1 -->
+  <div class="panel" id="panel-editor">
+    <p class="tabnote">The waterfall as it stands, Production starting 5/2/33. Click any Notes cell, an empty one too. The
+      <span style="color:var(--amber);font-weight:600">amber dot</span> marks the new row; everything else in the editor is
+      today's. Tab or Ctrl/Cmd-Enter saves, as does clicking away; Esc cancels.</p>
+    <div class="info">
+      <div>
+        <h3>What changes</h3>
+        <ul>
+          <li><b>One row</b>, under the text: the week (the default) or a phase drawn in that row, by the cell's own label.</li>
+          <li><b>A hint</b> under it says what will happen.</li>
+          <li><b>No row</b> in a week where no phase runs (try 6/27/33).</li>
+        </ul>
+      </div>
+      <div>
+        <h3>Try</h3>
+        <ul>
+          <li>5/9/33 opens on <b>Production wk 2</b>, a linked note. Set it to the week and save: it stops moving.</li>
+          <li>5/30/33 is a plain note. Pick <b>Production wk 5</b>: its Day (Wed) becomes "Wednesday of Production's week 5", and the date in its text is drawn fresh after every move.</li>
+          <li>On a Production week the Day list names the shoot day ("· Day 23", R4(b)).</li>
+          <li>Then open tab 2 to move Production.</li>
+        </ul>
+      </div>
+      <div>
+        <h3>Not in the app</h3>
+        <p>The grey "mockup notes" column says what each note is linked to. The app shows that only in the editor: a mark
+          in the cell would change the frozen grid (plan D6).</p>
+      </div>
+    </div>
+    <div class="frame"><div class="frame-scroll"><div class="frame-inner">
+      <div class="grids"><div class="gridbox" id="grid-editor"></div></div>
+    </div></div></div>
+  </div>
+
+  <!-- Tab 2 -->
+  <div class="panel" id="panel-move" hidden>
+    <p class="tabnote">Production's start is typed as a later date in the sidebar. Only Production moves; Prod Prep and Post
+      stay where they are. Today every note stays on its week. With links, a linked note goes with Production's week and an
+      unlinked note stays on its date.</p>
+    <div class="info">
+      <div>
+        <h3>Linked notes follow</h3>
+        <ul>
+          <li><b>Stunt rehearsal</b>: Production wk 2. 5/9 → 5/23.</li>
+          <li><b>Splinter unit</b>: Production wk 7, on its Wednesday, light blue. Its date reads 6/29/33 once moved. It keeps its colour (R7).</li>
+        </ul>
+      </div>
+      <div>
+        <h3>Unlinked notes stay</h3>
+        <ul>
+          <li><b>Network visit 6/1/33</b> and <b>Tech scout</b> are about dates, not the shoot, so they stay on their weeks.</li>
+          <li><b>6/27/33</b> now holds two notes (R2). Click it: the editor opens on the week and names the visitor. Leave the choice alone and the visitor keeps its link.</li>
+        </ul>
+      </div>
+      <div>
+        <h3>Try</h3>
+        <ul>
+          <li>Step Production's start. The linked notes follow week by week.</li>
+          <li>Step its weeks down to 6: Splinter unit (wk 7) waits on wk 6 and keeps its link (R3(a)). Step back up and it returns.</li>
+          <li>Switch After to <b>Today</b> to see what the app does now.</li>
+        </ul>
+      </div>
+    </div>
+    <div class="frame"><div class="frame-scroll"><div class="frame-inner">
+      <div class="controls">
+        <span class="card-title">Production</span>
+        <span class="field">Starts
+          <button class="step" type="button" data-step="start" data-d="-1" aria-label="A week earlier">−</button>
+          <output id="out-start"></output>
+          <button class="step" type="button" data-step="start" data-d="1" aria-label="A week later">+</button>
+        </span>
+        <span class="field">Weeks
+          <button class="step" type="button" data-step="weeks" data-d="-1" aria-label="One week fewer">−</button>
+          <output id="out-weeks"></output>
+          <button class="step" type="button" data-step="weeks" data-d="1" aria-label="One week more">+</button>
+        </span>
+        <span class="field">After:
+          <span class="seg" id="mode">
+            <button type="button" data-m="links" aria-pressed="true">With linked notes</button>
+            <button type="button" data-m="today" aria-pressed="false">Today</button>
+          </span>
+        </span>
+        <span class="result" id="move-result"></span>
+      </div>
+      <div class="grids">
+        <div class="gridbox" id="grid-before"></div>
+        <div class="gridbox" id="grid-after"></div>
+      </div>
+    </div></div></div>
+  </div>
+</div>
+
+<script>
+(function(){
+  'use strict';
+  // ---------- dates (UTC midnight, as the app does) ----------
+  const DAY = 86400000, WEEK = 7 * DAY;
+  const P = s => { const [y, m, d] = s.split('-').map(Number); return Date.UTC(y, m - 1, d); };
+  const iso = t => new Date(t).toISOString().slice(0, 10);
+  const add = (t, days) => t + days * DAY;
+  const fmt = t => { const d = new Date(t); return (d.getUTCMonth() + 1) + '/' + d.getUTCDate() + '/' + String(d.getUTCFullYear()).slice(2); };
+  const fmtMD = t => { const d = new Date(t); return (d.getUTCMonth() + 1) + '/' + d.getUTCDate(); };
+  const DOW = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+  const DATE_END = /\s*\d{1,2}\/\d{1,2}\/\d{2}\s*$/;
+  const esc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+
+  // ---------- the note palette (MV_NOTE_PALETTE) ----------
+  const PURPLE = '#7030A0', NOFILL = '#FFFFFF00';
+  const STD = ['#C00000', '#FF0000', '#FFC000', '#FFFF00', '#92D050', '#00B050', '#00B0F0', '#0070C0', '#002060', '#7030A0'];
+  const ROW2 = [NOFILL, '#F7C1D9', '#D5C8EC', '#FCCB9E', '#BBDCF7', '#D9D9D9', '#A6A6A6', '#595959'];
+  const ink = c => { if(c === NOFILL) return '#000'; const n = parseInt(c.slice(1, 7), 16);
+    const r = n >> 16, g = (n >> 8) & 255, b = n & 255; return (r * 299 + g * 587 + b * 114) / 1000 >= 128 ? '#000' : '#fff'; };
+
+  // ---------- the words (R1) ----------
+  const WORDS = {
+    stays:  { label: 'Stays with', week: t => 'Week of ' + fmt(t), verb: 'stays with' },
+    moves:  { label: 'Moves with', week: t => 'Nothing (stays on ' + fmt(t) + ')', verb: 'moves with' },
+    linked: { label: 'Linked to',  week: t => 'This week (' + fmt(t) + ')', verb: 'linked to' }
+  };
+
+  // ---------- state: the plan's two stores ----------
+  // own = userNotes (one per week, keyed by its Monday); linked = phaseNotes (keyed <phase>@<n>). `dow` is a picked day.
+  function initial(){
+    return {
+      own: {
+        '2033-04-18': { text: 'Tech scout' },
+        '2033-05-30': { text: 'Network visit', dow: 2 },
+        '2033-06-27': { text: 'Post house walkthrough' }
+      },
+      linked: {
+        'production@2': { text: 'Stunt rehearsal' },
+        'production@7': { text: 'Splinter unit', dow: 2, color: '#00B0F0' }
+      },
+      after: { start: P('2033-05-16'), weeks: 8, mode: 'links' }
+    };
+  }
+  let S = initial();
+  let words = 'stays', tab = 'editor';
+  const BEFORE = { start: P('2033-05-02'), weeks: 8 };
+
+  // ---------- the calendar ----------
+  function cal(which){
+    const prod = which === 'before' ? BEFORE : S.after;
+    const phases = [
+      { key: 'prodPrep',   label: 'Prod Prep',  fill: '#D6DCE5', ink: '#222A35', start: P('2033-03-07'), weeks: 8 },
+      { key: 'production', label: 'Production', fill: '#E2F0D9', ink: '#375623', start: prod.start, weeks: prod.weeks },
+      { key: 'post',       label: 'Post',       fill: '#FBE5D6', ink: '#8A4A1F', start: P('2033-07-11'), weeks: 8 }
+    ];
+    // Columns: computeSchedule's default placement (start order, reuse the lowest free column right of every running phase).
+    const free = [];
+    phases.map((p, i) => ({ p, i })).sort((a, b) => (a.p.start - b.p.start) || (a.i - b.i)).forEach(({ p }) => {
+      p.end = add(p.start, p.weeks * 7);
+      let min = 0; free.forEach((f, i) => { if(f > p.start) min = i + 1; });
+      let at = -1; for(let i = min; i < free.length; i++){ if(free[i] <= p.start){ at = i; break; } }
+      if(at < 0){ at = Math.max(min, free.length); while(free.length <= at) free.push(0); }
+      free[at] = p.end; p.col = at;
+    });
+    const weeks = []; for(let t = P('2033-04-04'); t <= P('2033-07-25'); t = add(t, 7)) weeks.push(t);
+    return { which, phases, ncols: free.length, weeks };
+  }
+  // The phases a row draws, in column order, with their week number (working weeks: no hiatus in this mockup).
+  function phasesIn(c, t){
+    return c.phases.filter(p => t >= p.start && t < p.end).sort((a, b) => a.col - b.col)
+      .map(p => ({ p, n: Math.round((t - p.start) / WEEK) + 1 }));
+  }
+  // Where a linked note lands: the plan's §4.1, with R3(a)'s park on the last week.
+  function place(c, k){
+    const [key, ns] = k.split('@'), n = +ns, p = c.phases.find(x => x.key === key);
+    if(!p) return null;
+    const m = Math.min(n, p.weeks);
+    return { t: add(p.start, (m - 1) * 7), parked: n > p.weeks, n, m, p };
+  }
+  const lineOf = (e, t) => e.text + (e.dow != null ? ' ' + fmt(add(t, e.dow)) : '');
+
+  // What a Notes cell holds. mode 'today': every linked note sits where it sat BEFORE (no links in the app today).
+  function cellOf(c, t, mode){
+    const W = iso(t), own = S.own[W] || null, visitors = [];
+    Object.keys(S.linked).forEach(k => {
+      const w = place(mode === 'today' ? cal('before') : c, k);
+      if(!w || w.t !== t) return;
+      visitors.push({ k, e: S.linked[k], w, line: lineOf(S.linked[k], t) });
+    });
+    visitors.sort((a, b) => (a.w.p.col - b.w.p.col) || (a.w.n - b.w.n));
+    const lines = [];
+    if(own) lineOf(own, t).split('\n').forEach(l => lines.push(l));
+    visitors.forEach(v => v.line.split('\n').forEach(l => lines.push(l)));
+    const color = own ? (own.color || PURPLE) : (visitors.length ? (visitors[0].e.color || PURPLE) : null);
+    return { W, t, own, visitors, lines, color };
+  }
+
+  // ---------- drawing a waterfall ----------
+  function drawGrid(host, c, opts){
+    const mode = opts.mode || 'links', editable = !!opts.editable;
+    const colW = 104;
+    let h = `<h4>${esc(opts.title)}</h4><p class="sub">${esc(opts.sub)}</p>`;
+    h += `<table class="wf${editable ? '' : ' readonly'}" data-cal="${c.which}"><colgroup><col style="width:50px">`;
+    for(let i = 0; i < c.ncols; i++) h += `<col style="width:${colW}px">`;
+    h += `<col style="width:156px"><col style="width:${opts.annoW || 190}px"></colgroup>`;
+    h += `<tr><th>Date</th><th colspan="${c.ncols}">2033</th><th>Notes</th><th class="anno">Mockup notes</th></tr>`;
+    c.weeks.forEach(t => {
+      h += `<tr><td class="date">${fmt(t)}</td>`;
+      const running = phasesIn(c, t);
+      for(let col = 0; col < c.ncols; col++){
+        const r = running.find(x => x.p.col === col);
+        h += r ? `<td style="background:${r.p.fill};color:${r.p.ink}">${esc(r.p.label)} wk ${r.n}</td>` : '<td></td>';
+      }
+      const cell = cellOf(c, t, mode);
+      if(cell.lines.length){
+        const bg = cell.color === NOFILL ? '#fff' : cell.color;
+        h += `<td class="note" data-week="${cell.W}" style="background:${bg};color:${ink(cell.color)}">${cell.lines.map(esc).join('<br>')}</td>`;
+      } else {
+        h += `<td class="note empty" data-week="${cell.W}"></td>`;
+      }
+      h += `<td class="anno">${annotate(c, cell, mode)}</td></tr>`;
+    });
+    h += '</table>';
+    host.innerHTML = h;
+  }
+  function annotate(c, cell, mode){
+    const v = WORDS[words].verb, bits = [];
+    if(cell.own) bits.push(`${esc(firstWord(cell.own.text))}: stays on its week`);
+    cell.visitors.forEach(x => {
+      const name = esc(firstWord(x.e.text));
+      if(mode === 'today' && c.which === 'after'){
+        // Where it should be, and what it sits beside now.
+        const should = place(c, x.k), here = phasesIn(c, cell.t).find(r => r.p.key === x.w.p.key);
+        if(should && should.t === cell.t) bits.push(`${name}: still right`);
+        else bits.push(`<span class="left">${name}: left behind</span> ${here ? '(beside ' + esc(here.p.label) + ' wk ' + here.n + ')' : '(in an empty week)'}`);
+      } else if(x.w.parked){
+        bits.push(`<span class="wait">${name}: waits on ${esc(x.w.p.label)}'s last week</span> (linked wk ${x.w.n})`);
+      } else {
+        bits.push(`<span class="linked">${name}: ${v} ${esc(x.w.p.label)} wk ${x.w.n}</span>`);
+      }
+    });
+    return bits.join(' · ');
+  }
+  const firstWord = s => String(s).split('\n')[0];
+
+  function drawAll(){
+    if(ED){ ED.pop.remove(); ED = null; }   // a redraw takes an open editor down with the cell it was anchored to
+    drawGrid(document.getElementById('grid-editor'), cal('before'),
+      { title: 'Waterfall', sub: 'Production starts 5/2/33', editable: true, annoW: 230 });
+    drawGrid(document.getElementById('grid-before'), cal('before'),
+      { title: 'Before', sub: 'Production starts 5/2/33, 8 weeks', editable: false, annoW: 200 });
+    const a = S.after, diff = Math.round((a.start - BEFORE.start) / WEEK);
+    drawGrid(document.getElementById('grid-after'), cal('after'),
+      { title: 'After' + (a.mode === 'today' ? ': today' : ': with linked notes'),
+        sub: `Production start typed as ${fmt(a.start)}, ${a.weeks} weeks`, editable: a.mode === 'links', mode: a.mode, annoW: 250 });
+    document.getElementById('out-start').textContent = fmt(a.start);
+    document.getElementById('out-weeks').textContent = a.weeks;
+    const moved = diff === 0 ? 'Production has not moved.' :
+      `Production ${diff > 0 ? 'pushed' : 'pulled'} ${Math.abs(diff)} wk${Math.abs(diff) === 1 ? '' : 's'}. Prod Prep and Post stay.`;
+    document.getElementById('move-result').textContent = moved;
+  }
+
+  // ---------- the note editor ----------
+  let ED = null;
+  function openEditor(td){
+    const table = td.closest('table'), which = table.dataset.cal;
+    if(table.classList.contains('readonly')) return;
+    const c = cal(which), t = P(td.dataset.week), cell = cellOf(c, t, 'links'), W = WORDS[words];
+    const running = phasesIn(c, t);
+    // The row opens on the cell's one note's home; on the week when the cell holds more than one note (R2(a)).
+    const single = (!cell.own && cell.visitors.length === 1) ? cell.visitors[0] : null;
+    const sel0 = single ? single.k : 'week';
+    const noteDow = single ? single.e.dow : (cell.own ? cell.own.dow : undefined);
+    const opts = [`<option value="week">${esc(W.week(t))}</option>`];
+    running.forEach(r => {
+      const k = r.p.key + '@' + r.n;
+      opts.push(`<option value="${k}">${esc(r.p.label)} wk ${r.n}</option>`);
+    });
+    if(single && !running.some(r => r.p.key + '@' + r.n === single.k)){
+      // A parked note (R3(a)): its own link, which the row no longer draws.
+      opts.push(`<option value="${single.k}">${esc(single.w.p.label)} wk ${single.w.n} (waits on wk ${single.w.m})</option>`);
+    }
+    const prodHere = running.find(r => r.p.key === 'production');
+    const dayOpts = DOW.map((nm, i) => {
+      const shoot = (prodHere && i < 5) ? ` · Day ${(prodHere.n - 1) * 5 + i + 1}` : '';
+      return `<option value="${i}"${noteDow === i ? ' selected' : ''}>${nm} ${fmtMD(add(t, i))}${shoot}</option>`;
+    }).join('');
+    const cur = cell.color || PURPLE;
+    const sw = c2 => `<span class="swatch${c2 === NOFILL ? ' nofill' : ''}${c2.toUpperCase() === cur.toUpperCase() ? ' sel' : ''}" data-color="${c2}" style="background:${c2}" title="${c2}"></span>`;
+    const pop = document.createElement('div');
+    pop.className = 'note-pop';
+    pop.innerHTML = `<div class="note-pop-title">Note · ${fmt(t)}</div>
+      <div class="note-editor">
+        <textarea rows="2" placeholder="Note text (multi-line OK)">${esc(cell.lines.join('\n'))}</textarea>
+        ${running.length ? `<div class="note-row new"><span class="newtag" title="New"></span><span class="lbl">${esc(W.label)}</span>
+          <select class="note-select link">${opts.join('')}</select></div>
+        <p class="link-hint"></p><div class="link-also" hidden></div>` : ''}
+        <div class="note-row"><span class="lbl">Day</span><select class="note-select day">
+          <option value=""${noteDow == null ? ' selected' : ''} class="dflt"></option>${dayOpts}</select></div>
+        <div class="note-color-row">${STD.map(sw).join('')}</div>
+        <div class="note-color-row">${ROW2.map(sw).join('')}</div>
+        <label class="note-view-row"><span>Show in month view</span><input type="checkbox" checked></label>
+      </div>
+      <div class="note-pop-hint">Tab or Ctrl/Cmd&#8209;Enter to save · Esc to cancel</div>`;
+    document.body.appendChild(pop);
+    td.classList.add('editing');
+    const ta = pop.querySelector('textarea'), linkSel = pop.querySelector('.link'), daySel = pop.querySelector('.day');
+    if(linkSel) linkSel.value = sel0;
+    ED = { pop, td, which, t, cell, sel0, beforeLines: cell.lines.slice(), pendingColor: null, ta, linkSel, daySel, running };
+    const resize = () => { ta.style.height = 'auto'; ta.style.height = ta.scrollHeight + 'px'; };
+    ta.addEventListener('input', resize); resize();
+    placeEditor();
+    ta.focus({ preventScroll: true }); ta.select();
+    if(linkSel) linkSel.addEventListener('change', reflectRow);
+    daySel.addEventListener('change', () => {
+      // Today's Day picker: stamps the date at the end of the text (a trailing date it stamped before is replaced).
+      const i = daySel.value, base = ta.value.replace(DATE_END, '');
+      ta.value = i === '' ? base : (base ? base + ' ' : '') + fmt(add(t, +i));
+      reflectRow(); ta.focus();
+    });
+    pop.querySelectorAll('.swatch').forEach(s => {
+      s.addEventListener('mousedown', e => e.preventDefault());
+      s.addEventListener('click', () => {
+        ED.pendingColor = s.dataset.color;
+        pop.querySelectorAll('.swatch').forEach(x => x.classList.toggle('sel', x === s));
+        const c2 = s.dataset.color;
+        td.style.background = c2 === NOFILL ? '#fff' : c2; td.style.color = ink(c2);
+      });
+    });
+    ta.addEventListener('keydown', e => {
+      if(e.key === 'Escape'){ e.preventDefault(); closeEditor(false); }
+      else if(e.key === 'Tab' || (e.key === 'Enter' && (e.ctrlKey || e.metaKey))){ e.preventDefault(); closeEditor(true); }
+    });
+    reflectRow();
+  }
+  // The hint under the row, the R2 "Also here" line, R3's wait message, and the Day list's default wording.
+  function reflectRow(){
+    if(!ED) return;
+    const W = WORDS[words], sel = ED.linkSel ? ED.linkSel.value : 'week', t = ED.t;
+    const dflt = ED.daySel.querySelector('.dflt');
+    dflt.textContent = sel === 'week' ? 'Mon (default)' : 'First day (default)';
+    if(!ED.linkSel) return;
+    const hint = ED.pop.querySelector('.link-hint'), also = ED.pop.querySelector('.link-also');
+    hint.classList.remove('wait');
+    if(sel === 'week'){
+      hint.textContent = `Stays on the week of ${fmt(t)}, whatever the phases do.`;
+    } else {
+      const [key, ns] = sel.split('@'), n = +ns;
+      const p = cal(ED.which).phases.find(x => x.key === key);
+      const d = ED.daySel.value;
+      const visitor = ED.cell.visitors.find(v => v.k === sel);
+      if(visitor && visitor.w.parked){
+        hint.textContent = `${p.label} has ${p.weeks} weeks now. This note waits on its last week, and goes back to wk ${n} if it grows.`;
+        hint.classList.add('wait');
+      } else if(key === 'production' && d !== '' && +d < 5){
+        hint.textContent = `Moves when Production moves. Stays on shoot day ${(n - 1) * 5 + (+d) + 1}.`;
+      } else {
+        hint.textContent = `Moves when ${p.label} moves. Stays on its week ${n}.`;
+      }
+    }
+    const others = ED.cell.visitors.filter(v => v.k !== sel);
+    const mixed = (ED.cell.own && ED.cell.visitors.length) || ED.cell.visitors.length > 1;
+    if(mixed && others.length){
+      also.hidden = false;
+      also.innerHTML = 'Also here: ' + others.map(v => `“${esc(v.line)}” ${W.verb} ${esc(v.w.p.label)} wk ${v.w.n}`).join('; ')
+        + (sel === ED.sel0 ? '. Leave the choice alone and it keeps its link.' : '. Saving with this choice gives it this one instead.');
+    } else also.hidden = true;
+  }
+
+  function setLook(e, color){
+    if(!color) return;
+    if(color.toUpperCase() === PURPLE) delete e.color; else e.color = color;
+  }
+  function writeOwn(W, text, dow, color){
+    if(!text){ delete S.own[W]; return; }
+    const e = { text: dow != null ? text.replace(DATE_END, '') : text };
+    if(dow != null) e.dow = dow;
+    setLook(e, color);
+    S.own[W] = e;
+  }
+  // The plan's §4.5, acted out on the mockup's two stores.
+  function saveEditor(){
+    const { t, cell, sel0, beforeLines, pendingColor, ta, linkSel, daySel } = ED;
+    const W = cell.W, sel = linkSel ? linkSel.value : 'week';
+    const dow = daySel.value === '' ? null : +daySel.value;
+    const lines = ta.value.split('\n').map(s => s.trim()).filter(Boolean);
+    const oldLook = cell.own ? cell.own.color : (cell.visitors[0] && cell.visitors[0].e.color);
+    if(sel === sel0 && sel !== 'week'){
+      // One linked note, its home unchanged: its text, day and look.
+      const e = S.linked[sel], text = lines.join('\n');
+      const clean = (dow != null || e.dow != null) ? text.replace(DATE_END, '') : text;
+      if(!clean){ delete S.linked[sel]; return; }
+      e.text = clean; if(dow != null) e.dow = dow; else delete e.dow;
+      setLook(e, pendingColor);
+    } else if(sel === sel0){
+      // The week, unchanged: a visiting linked line kept, renamed in place, or deleted (R2(a)); the rest is the week's own.
+      const used = new Set();
+      cell.visitors.forEach(v => {
+        const k = lines.findIndex((l, i) => !used.has(i) && l === v.line);
+        if(k >= 0){ used.add(k); return; }
+        const i = beforeLines.indexOf(v.line);
+        if(lines.length === beforeLines.length && i >= 0 && !used.has(i)){
+          const nt = v.e.dow != null ? lines[i].replace(DATE_END, '') : lines[i];
+          if(nt){ used.add(i); v.e.text = nt; return; }
+        }
+        delete S.linked[v.k];
+      });
+      const ownText = lines.filter((l, i) => !used.has(i)).join('\n');
+      writeOwn(W, ownText, ownText ? dow : null, pendingColor || (cell.own && cell.own.color));
+    } else if(sel === 'week'){
+      // Changed to the week: everything typed becomes the week's own note, dates as drawn (they no longer move).
+      cell.visitors.forEach(v => delete S.linked[v.k]);
+      writeOwn(W, lines.join('\n'), dow, pendingColor || oldLook);
+    } else {
+      // Changed to a phase: everything typed becomes ONE linked note there. A visitor's drawn date is taken out (D3).
+      const text = lines.map(l => { const v = cell.visitors.find(x => x.line === l); return v ? v.e.text : l; }).join('\n');
+      cell.visitors.forEach(v => delete S.linked[v.k]);
+      delete S.own[W];
+      if(!text) return;
+      const e = { text: dow != null ? text.replace(DATE_END, '') : text };
+      if(dow != null) e.dow = dow;
+      setLook(e, pendingColor || oldLook);
+      S.linked[sel] = e;
+    }
+  }
+  // Beside the cell and inside the window, and kept there (the app's `place`): the grid scrolls inside its own pane.
+  function placeEditor(){
+    if(!ED) return;
+    const r = ED.td.getBoundingClientRect(), pop = ED.pop;
+    pop.style.top = (window.scrollY + r.bottom + 4) + 'px';
+    pop.style.left = (window.scrollX + r.left) + 'px';
+    const pr = pop.getBoundingClientRect();
+    if(pr.right > window.innerWidth - 8) pop.style.left = (window.scrollX + window.innerWidth - pr.width - 8) + 'px';
+    if(pr.bottom > window.innerHeight - 8 && r.top - pr.height - 4 > 8) pop.style.top = (window.scrollY + r.top - pr.height - 4) + 'px';
+  }
+  window.addEventListener('resize', placeEditor);
+  window.addEventListener('scroll', placeEditor, true);
+
+  // Save (or, with save false, cancel) and redraw: a cancel puts the cell's previewed colour back.
+  function closeEditor(save){
+    if(!ED) return;
+    if(save) saveEditor();
+    ED.pop.remove();
+    ED = null;
+    drawAll();
+  }
+
+  document.addEventListener('mousedown', e => {
+    if(e.target.closest && e.target.closest('#words')) return;   // R1's switch re-opens the editor in the new words
+    const td = e.target.closest && e.target.closest('table.wf td.note');
+    if(ED){
+      if(ED.pop.contains(e.target)) return;
+      if(td === ED.td) return;
+      closeEditor(true);
+      if(td){
+        // The grid was redrawn: find the same cell again.
+        const table = document.querySelector(`#panel-${tab} table.wf[data-cal="${td.closest('table').dataset.cal}"]`);
+        const again = table && table.querySelector(`td.note[data-week="${td.dataset.week}"]`);
+        if(again){ e.preventDefault(); openEditor(again); }
+      }
+      return;
+    }
+    if(td){ e.preventDefault(); openEditor(td); }
+  });
+
+  // ---------- the page's own controls ----------
+  document.querySelectorAll('.tab').forEach(b => b.addEventListener('click', () => {
+    closeEditor(true);
+    tab = b.dataset.tab;
+    document.querySelectorAll('.tab').forEach(x => x.setAttribute('aria-selected', String(x === b)));
+    document.getElementById('panel-editor').hidden = tab !== 'editor';
+    document.getElementById('panel-move').hidden = tab !== 'move';
+  }));
+  document.querySelectorAll('#words button').forEach(b => b.addEventListener('click', () => {
+    words = b.dataset.w;
+    document.querySelectorAll('#words button').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
+    const reopen = ED && { cal: ED.which, week: ED.cell.W };
+    closeEditor(true);
+    drawAll();
+    if(reopen){
+      const td = document.querySelector(`#panel-${tab} table.wf[data-cal="${reopen.cal}"] td.note[data-week="${reopen.week}"]`);
+      if(td) openEditor(td);
+    }
+  }));
+  document.querySelectorAll('#mode button').forEach(b => b.addEventListener('click', () => {
+    S.after.mode = b.dataset.m;
+    document.querySelectorAll('#mode button').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
+    drawAll();
+  }));
+  document.querySelectorAll('[data-step]').forEach(b => b.addEventListener('click', () => {
+    const d = +b.dataset.d;
+    if(b.dataset.step === 'start') S.after.start = Math.max(P('2033-04-25'), Math.min(P('2033-06-06'), add(S.after.start, 7 * d)));
+    else S.after.weeks = Math.max(3, Math.min(10, S.after.weeks + d));
+    drawAll();
+  }));
+  document.getElementById('reset').addEventListener('click', () => {
+    if(ED){ ED.pop.remove(); ED = null; }
+    S = initial();
+    document.querySelectorAll('#mode button').forEach(x => x.setAttribute('aria-pressed', String(x.dataset.m === 'links')));
+    drawAll(); openFirst();
+  });
+
+  function openFirst(){
+    if(tab !== 'editor') return;
+    const td = document.querySelector('#grid-editor td.note[data-week="2033-05-09"]');
+    if(td) openEditor(td);
+  }
+  drawAll();
+  // After layout, fonts included, so the first editor opens beside its cell.
+  if(document.readyState === 'complete') setTimeout(openFirst, 120);
+  else window.addEventListener('load', () => setTimeout(openFirst, 120));
+})();
+</script>
+</body>
+</html>

@@ -37,6 +37,8 @@ window.addEventListener('load', function () { (async function () {
   function pct(){ var e = q('.cal-zoom .cal-zoom-pct'); return e ? e.textContent.trim() : null; }
   function view(){ return $('view-month-btn').classList.contains('active') ? 'month' : 'sheet'; }
   function prefs(){ try { return JSON.parse(localStorage.getItem('sptcal.prefs') || '{}'); } catch(e){ return {}; } }
+  // What is on #table-wrap's own style apart from the month page's fit (--mvp-f1..6 / --mvp-m1..6): the zoom's share.
+  function zoomLeft(){ return (document.getElementById('table-wrap').getAttribute('style') || '').replace(/--mvp-[fm]\d\s*:[^;]*;?/g, '').trim(); }
   // The control speaks through this event; the buttons are also pressed for real below.
   async function zoomTo(z){
     document.dispatchEvent(new CustomEvent('sptcal-zoom', {detail: {zoom: z}}));
@@ -96,8 +98,10 @@ window.addEventListener('load', function () { (async function () {
     // The month view scrolls in #table-wrap since 26 Oct 2026 (it was .preview-panel), so that is the box that
     // must end above them.
     check(clearOfStrip($('table-wrap')), 'Z5 the bottom strip: the month view\'s scroll box ends 8px above the control and the help button (' + out.strip + ')');
-    check(!$('table-wrap').hasAttribute('style') && !document.body.classList.contains('cal-zoomed') && !prefs().calZoom,
-          'Z4 at 100% nothing is written: no style on #table-wrap, no body class, no preference');
+    // ⚠️ Since 16 Nov 2026 the month view keeps its PAGE FIT on #table-wrap's own style (--mvp-f1..6 / --mvp-m1..6,
+    // fitMonthPage in app.js), so "no style at all" is no longer the rule there. What the ZOOM leaves is still nothing.
+    check(zoomLeft() === '' && !document.body.classList.contains('cal-zoomed') && !prefs().calZoom,
+          'Z4 at 100% the zoom writes nothing: no zoom on #table-wrap (only the month page\'s own fit), no body class, no preference (' + zoomLeft() + ')');
 
     // ---- M: the month view (the fixture opens in it) ----
     // The month is measured by .month-view, the frozen render's root: #table-wrap is the scroll box since 26 Oct 2026
@@ -147,8 +151,8 @@ window.addEventListener('load', function () { (async function () {
     check(out.mvRerender[1.5] && out.mvRerender[2] && out.mvRerender[0.5],
           'M4 paging a month while zoomed to 150%, 200% and 50% leaves every note lane as at 100% (' + JSON.stringify(out.mvRerender) + ')');
     await zoomTo(1);
-    check(lanes() === lanes0 && !$('table-wrap').hasAttribute('style'),
-          'M5 back at 100% the month is re-rendered: every note lane as it was, and nothing left on #table-wrap');
+    check(lanes() === lanes0 && zoomLeft() === '',
+          'M5 back at 100% the month is re-rendered: every note lane as it was, and nothing of the zoom left on #table-wrap (' + zoomLeft() + ')');
     await zoomTo(1.25);
 
     // ---- W: the waterfall ----
@@ -196,23 +200,49 @@ window.addEventListener('load', function () { (async function () {
     // The swap button, in grid px, where it is at 100%.
     // From the grid's top-left corner at both zooms, so the button's keep-below-the-header rule meets the
     // same run in the same place, and a cell near the top that is on screen at 150%.
+    // ⚠️ The cell must be in a block that HAS a swap: since 10 Nov 2026 the button shows only where its click leads
+    // to a knob (owner: "it shouldn't show up anywhere it doesnt make sense"). This used the 5th phase cell, which on
+    // this calendar is Writer's Rm alone in its column for its whole run, so no button now. At 100% it walks the
+    // phase cells until one draws the button, and 150% hovers that same cell. The swappable blocks here sit below
+    // wrapped notes, whose rows are not exactly 1.5 times as tall at 150% (text re-wraps), so the button is measured
+    // from its block's FIRST CELL, which it is anchored to, rather than from the grid's corner.
+    var stintAt = -1;
     async function stint(z){
       await zoomTo(z);
       var box = $('sheet-scroll-container'); box.scrollTop = 0; box.scrollLeft = 0; await T.sleep(150);
-      var c = qa('#table-wrap td.sheet-phase-cell').filter(function (t){ return t.dataset.own !== undefined; })[4];
-      var m = mid(c), e = topAt(m);
-      e.dispatchEvent(new PointerEvent('pointermove', {bubbles: true, clientX: m.x, clientY: m.y, pointerType: 'mouse', pointerId: 9}));
-      await T.sleep(250);
-      var b = q('.grid-stint-btn'), wr = q('.sheet-grid-wrap').getBoundingClientRect();
-      if(!b) return null;
-      var br = b.getBoundingClientRect();
-      return [(br.left - wr.left) / z, (br.top - wr.top) / z, br.width / z].map(function (v){ return Math.round(v * 10) / 10; });
+      var cells = qa('#table-wrap td.sheet-phase-cell').filter(function (t){ return t.dataset.own !== undefined; });
+      // Only cells still on screen at 150%: scaled from the scroll box's top-left corner, the middle stays inside it.
+      var br0 = box.getBoundingClientRect();
+      var tries = stintAt >= 0 ? [stintAt] : cells.map(function (_, i){ return i; }).filter(function (i){
+        var m0 = mid(cells[i]);
+        return (m0.x - br0.left) * 1.5 < br0.width - 40 && (m0.y - br0.top) * 1.5 < br0.height - 40;
+      }).slice(0, 60);
+      for(var j = 0; j < tries.length; j++){
+        var c = cells[tries[j]];
+        if(!c) continue;
+        // Clear the last hover FIRST, then ask what is on top: the button a hover at 100% drew stays until the pointer
+        // leaves, and at 150% it can sit over the very cell tried next (since 19 Nov 2026, when the laptop toolbar's
+        // narrower sidebar widened the grid box and this cell passed the on-screen filter), so the hover went to it.
+        document.body.dispatchEvent(new PointerEvent('pointermove', {bubbles: true, clientX: 1, clientY: 1, pointerType: 'mouse', pointerId: 9}));
+        await T.sleep(50);
+        var m = mid(c), e = topAt(m);
+        if(!e) continue;
+        e.dispatchEvent(new PointerEvent('pointermove', {bubbles: true, clientX: m.x, clientY: m.y, pointerType: 'mouse', pointerId: 9}));
+        await T.sleep(250);
+        var b = q('.grid-stint-btn');
+        if(!b) continue;
+        stintAt = tries[j];
+        var head = cells.filter(function (t){ return t.dataset.pkey === b.dataset.pkey && t.dataset.week.slice(0, 4) === b.dataset.year; })[0] || c;
+        var br = b.getBoundingClientRect(), hr = head.getBoundingClientRect();
+        return [(br.right - hr.right) / z, (br.top - hr.top) / z, br.width / z].map(function (v){ return Math.round(v * 10) / 10; });
+      }
+      return null;
     }
     document.body.dispatchEvent(new PointerEvent('pointerdown', {bubbles: true, clientX: 2, clientY: 2, button: 0, buttons: 1, pointerId: 9, pointerType: 'mouse'}));
-    out.stint1 = await stint(1); out.stint15 = await stint(1.5);
+    out.stint1 = await stint(1); out.stint15 = await stint(1.5); out.stintCell = stintAt;
     // Within a pixel: the button's own text is laid out at the zoomed size, so its width rounds.
     check(!!out.stint1 && !!out.stint15 && out.stint1.every(function (v, i){ return near(v, out.stint15[i], 1.5); }),
-          'W6 the Swap column button sits in the same grid place at 150% as at 100% (' + out.stint1 + ' / ' + out.stint15 + ')');
+          'W6 the Swap column button sits in the same place on its block at 150% as at 100% (' + out.stint1 + ' / ' + out.stint15 + ')');
     // The text style highlight, made at 100% and kept on its cell through 50% and 200% (22 Oct 2026). Chrome lays
     // the rows out at a different height in the grid's own px at each zoom (20 at 100%, 20.8 at 50%, 20.1 at 200%),
     // so a highlight drawn once drifted ~2 rows off a cell this far down until a render at 100% redrew it. A plain

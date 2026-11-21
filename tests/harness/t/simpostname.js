@@ -125,24 +125,8 @@ window.addEventListener('load', function () { (async function () {
     await settle();
   }
   function repairWarnings() { return (T.appHealth().errors || []).filter(function (e) { return /were not in a form the app writes/.test(String(e)); }).length; }
-  // Every Flate stream of a PDF, inflated, as one string. Cut at /Length (hiatuslabel.js says why), else trimmed.
-  async function pdfText(u8) {
-    var s = '', all = [];
-    for (var i = 0; i < u8.length; i += 8192) s += String.fromCharCode.apply(null, u8.subarray(i, i + 8192));
-    var re = /stream\r?\n/g, m;
-    while ((m = re.exec(s))) {
-      var st = m.index + m[0].length, en = s.indexOf('endstream', st);
-      if (en < 0) continue;
-      var dictAt = s.lastIndexOf('<<', m.index), lm = s.slice(dictAt, m.index).match(/\/Length (\d+)/);
-      if (lm) en = st + parseInt(lm[1], 10);
-      else while (en > st && (u8[en - 1] === 10 || u8[en - 1] === 13)) en--;
-      try {
-        var ds = new Blob([u8.subarray(st, en)]).stream().pipeThrough(new DecompressionStream('deflate'));
-        all.push(await new Response(ds).text());
-      } catch (e) { /* not a Flate stream */ }
-    }
-    return all.join('\n');
-  }
+  // Every Flate stream of a PDF, inflated, as one string, each cut at its own /Length (T.pdfInflated, lib.js).
+  async function pdfText(u8) { return (await T.pdfInflated(u8)).join('\n'); }
   // A string as the PDF writers set it: a literal string with \ ( ) escaped.
   function pdfLit(t) { return '(' + t.replace(/[\\()]/g, function (c) { return '\\' + c; }) + ')'; }
 

@@ -48,26 +48,11 @@ window.addEventListener('load', function () { (async function () {
   // The waterfall PDF's text runs that read exactly "Hiatus", from its inflated content streams.
   async function pdfHiatusRuns() {
     var blob = await T.captureExport('export-wf-pdf-btn', 'the waterfall PDF blob');
-    var bytes = new Uint8Array(await blob.arrayBuffer()), s = '', n = 0;
-    for (var i = 0; i < bytes.length; i += 8192) s += String.fromCharCode.apply(null, bytes.subarray(i, i + 8192));
-    var re = /stream\r?\n/g, m;
-    while ((m = re.exec(s))) {
-      var st = m.index + m[0].length, en = s.indexOf('endstream', st);
-      if (en < 0) continue;
-      // ⚠️ Drop the EOL before `endstream`. Python's zlib ignores bytes after the compressed data;
-      // Chrome's DecompressionStream REJECTS them, and a swallowed rejection read as "no Hiatus".
-      // ⚠️ Cut at the dictionary's /Length, never by trimming: a compressed stream can END in 0x0A or
-      // 0x0D itself (23 Oct 2026, header date 10.23.26: N1-2 read 0 on every build), and trimming that
-      // byte off truncates the data. Trimming stays only as the fallback, as in pdfdialog.js.
-      var dictAt = s.lastIndexOf('<<', m.index), lm = s.slice(dictAt, m.index).match(/\/Length (\d+)/);
-      if (lm) en = st + parseInt(lm[1], 10);
-      else while (en > st && (bytes[en - 1] === 10 || bytes[en - 1] === 13)) en--;
-      try {
-        var ds = new Blob([bytes.subarray(st, en)]).stream().pipeThrough(new DecompressionStream('deflate'));
-        var txt = await new Response(ds).text();
-        n += (txt.match(/\(Hiatus\)/g) || []).length;
-      } catch (e) { /* not a Flate stream */ }
-    }
+    var bytes = new Uint8Array(await blob.arrayBuffer()), n = 0;
+    // ⚠️ Each stream cut at its dictionary's /Length, never by trimming the EOL before `endstream`: a compressed
+    // stream can END in 0x0A or 0x0D itself (23 Oct 2026, header date 10.23.26: N1-2 read 0 on every build), and
+    // trimming that byte truncates the data. This leg found it first; T.pdfInflated (lib.js) is the one reader now.
+    (await T.pdfInflated(bytes)).forEach(function (txt) { n += (txt.match(/\(Hiatus\)/g) || []).length; });
     return n;
   }
   try {

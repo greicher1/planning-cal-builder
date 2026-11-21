@@ -27,6 +27,8 @@
 //       (no order) does not offer it
 //   O7  out and back in ONE gesture: date order, and Save writes no mvPhaseOrder key at all
 //   O8  Escape mid-drag: date order, no copy left
+//   O9  the header's Reset Bar Order (11 Nov 2026): grey with no order, live after a drag, a click restores date
+//       order, ONE Ctrl+Z brings the order back
 // The note places (ruling R2; frozen edit E2):
 //   N1  ⭐ "Network call" dragged above the bars: it is the top lane of Wed 3/4, and the week's bars each drop a line;
 //       Save writes `top: true` on that entry and nothing else about it
@@ -132,6 +134,16 @@ try {
     await send('Input.dispatchKeyEvent', { type: 'keyDown', key: k, code, windowsVirtualKeyCode: vk, modifiers });
     await send('Input.dispatchKeyEvent', { type: 'keyUp', key: k, code, windowsVirtualKeyCode: vk, modifiers });
   };
+  // ⭐ Since audit item 2.11 (AUD2-026, 13 Nov 2026) the month view's Export PDF first asks which months to print
+  // (MonthPdfDialog.jsx: All / This month / Range) whenever the calendar has two or more. The release gate went red here
+  // waiting for a PDF the open dialog held back. Answer it at its default, All, as cspproof.mjs and t/lib.js do, so the
+  // file is the all-months one this leg has always read. (A calendar with one month to print writes with no dialog.)
+  const exportMonthPdf = async () => {
+    await key('e', 'KeyE', 69, 4 | 8);
+    await until(`!!document.querySelector('.month-pdf-dlg [data-pdfdlg="export"]') || (window.__files || []).some(f => /\\.pdf$/i.test(f.name))`,
+      'the month Export PDF dialog', 10000).catch(() => {});
+    await ev(`(() => { const b = document.querySelector('.month-pdf-dlg [data-pdfdlg="export"]'); if (b) b.click(); return 1; })()`);
+  };
   const undo = () => key('z', 'KeyZ', 90, 4);
   const redo = () => key('z', 'KeyZ', 90, 4 | 8);
   await send('Page.enable');
@@ -229,7 +241,7 @@ try {
     Array.isArray(s4.mvPhaseOrder) && s4.mvPhaseOrder.slice(0, 3).join() === 'prodPrep,writersRoom,prePrep'
       && s4.mvPhaseOrder.length === 5 && ['production', 'post'].every(k => s4.mvPhaseOrder.includes(k)), { mvPhaseOrder: s4.mvPhaseOrder });
   // O5: the month PDF, through the real Export (Shift+Cmd+E) and the stub's Save.
-  await key('e', 'KeyE', 69, 4 | 8);
+  await exportMonthPdf();
   let pdfY = null;
   try {
     await until(`window.__files.some(f => /\\.pdf$/i.test(f.name))`, 'the month PDF', 30000);
@@ -265,6 +277,28 @@ try {
   await key('Escape', 'Escape', 27);
   kase('O6', 'the bar\'s menu offers Back to date order, which restores date order; with no order set it is not offered',
     items6.some(t => /Back to date order/.test(t)) && JSON.stringify(r6) === '[0,1,2]' && !items6b.some(t => /Back to date order/.test(t)), { items: items6, lanes: r6, freshItems: items6b });
+  // O9: the header's Reset Bar Order (owner, 11 Nov 2026), Reset Columns' slot in the Month view. Grey with no order
+  // set; after a grip drag it is live, a real click puts date order back, it greys again, and ONE Ctrl+Z brings the order back.
+  const ob = () => ev(`(() => { const e = document.getElementById('tb-order-reset-btn'), r = e.getBoundingClientRect();
+    return { shown: r.width > 0, grey: e.dataset.disabled === 'true', x: r.left + r.width / 2, y: r.top + r.height / 2,
+             cols: document.getElementById('tb-cols-reset-btn').getBoundingClientRect().width }; })()`);
+  await load('mvorder', 'March 2026');
+  const o9a = await ob();
+  const g9 = await gripOf(WK, 'prodPrep');
+  await gesture(g9.grip.x, g9.grip.y, 0, -(g9.bar.h + 2) * 2.2);
+  await sleep(500);
+  const o9b = await ob(), r9b = lanesOf(await row(WK), PH3);
+  await mouse('mouseMoved', o9b.x, o9b.y, 0);
+  await mouse('mousePressed', o9b.x, o9b.y, 1);
+  await mouse('mouseReleased', o9b.x, o9b.y, 0);
+  await sleep(600);
+  const o9c = await ob(), r9c = lanesOf(await row(WK), PH3);
+  await undo(); await sleep(700);
+  const r9u = lanesOf(await row(WK), PH3);
+  kase('O9', 'the header\'s Reset Bar Order: shown in place of Reset Columns, grey with no order, live after a drag; a click restores date order and greys it; ONE Ctrl+Z brings the order back',
+    o9a.shown && o9a.grey && o9a.cols === 0 && JSON.stringify(r9b) === '[1,2,0]' && o9b.shown && !o9b.grey
+      && JSON.stringify(r9c) === '[0,1,2]' && o9c.grey && JSON.stringify(r9u) === '[1,2,0]',
+    { fresh: o9a, dragged: o9b, lanesDragged: r9b, lanesReset: r9c, after: o9c, undone: r9u });
   // O7: out and back in one gesture.
   await load('mvorder', 'March 2026');
   const g7 = await gripOf(WK, 'prodPrep');
@@ -429,7 +463,7 @@ try {
   const r3 = await rowFull(1), s3d = await saved();
   const fri = (s3d.dayNotes['2026-03-13'] || []).find(e => e.text === 'Fri 13');
   const lbl = await ev(`(() => { const w = document.querySelectorAll('#table-wrap .mv-week')[1]; const t = k => { const p = w.querySelector('.mv-pill[data-ph="' + k + '"]'); return p ? p.childNodes[0].textContent : ''; }; return { wr: t('writersRoom'), pp: t('prePrep') }; })()`);
-  await key('e', 'KeyE', 69, 4 | 8);
+  await exportMonthPdf();
   let pdf3 = null;
   try {
     await until(`window.__files.some(f => /\\.pdf$/i.test(f.name))`, 'the month PDF', 30000);

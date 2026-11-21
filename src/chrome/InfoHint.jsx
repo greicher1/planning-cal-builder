@@ -31,14 +31,17 @@ import { HoverCard, Text } from '@mantine/core'
 // of which are near the TOP of the window, so opening upwards put the card over the header. Right
 // opens into the preview pane, which is the one direction with room. Mantine's floating middlewares
 // flip it automatically when there isn't — verified at 900px, where it goes left.
-export function InfoHint({ label, children, width = 260, position = 'right' }) {
+// `middlewares` is Popover's own prop, passed through for the ONE hint that must not flip: the Shift box's, whose
+// list of phases sits right under it (owner, 9 Nov 2026: nothing may float over those rows). Omitted, Mantine's
+// defaults apply, as before.
+export function InfoHint({ label, children, width = 260, position = 'right', middlewares }) {
   return (
     // zIndex 400, not Mantine's default 300: `.tools-menu` in legacy.css is ALSO 300, and four of
     // these hints live inside those popovers. Equal z-index leaves the winner to DOM order, which
     // happens to favour the portal today and would silently stop doing so the moment anything is
     // reordered — a hint that renders behind the thing it explains.
     <HoverCard width={width} shadow="md" radius="md" withinPortal position={position} withArrow
-               zIndex={400} openDelay={120} closeDelay={60}>
+               zIndex={400} openDelay={120} closeDelay={60} {...(middlewares ? { middlewares } : {})}>
       <HoverCard.Target>
         <button
           type="button"

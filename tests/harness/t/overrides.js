@@ -9,7 +9,8 @@
 //   7/7  'off'  -- shoot day 6
 //   7/11 'on'   -- a worked Saturday
 // a LOCKED one-week "Summer Break" hiatus from 7/13 (it does not move with a shift), and Pre Prep
-// snap-off on Wed 4/8 -- a gap after the Writers' Room, which Close all gaps closes.
+// snap-off on Wed 4/8 -- a gap after the Writers' Room, which Build Around from the room (After) closes. (Close all
+// gaps did that until 5 Nov 2026; it was removed, REBUILD-FROM-LENGTHS-PLAN.md D8, and O4 drives its replacement.)
 //
 // On v1.3.0: Shift All moved the marks by calendar days, so +1 wk put the half and the off INSIDE the
 // Summer Break, where the simulation cannot honour them (both marks vanish); Shift From on Post --
@@ -22,7 +23,8 @@
 //     its reference day (day 9, 7/23) -> 7/25   worked holiday: its weekday (Fri) in its reference
 //     day's week -> 7/10, an ordinary shoot day that already carries the half -- it no longer works a
 //     day off, and the result line says so.
-//   Close all gaps from there (Production 6/22; natural days 6/22-6/26, 6/29-7/2, 7/6...):
+//   Build Around from the Writers' Room, After, every phase ticked (Production 6/22; natural days 6/22-6/26, 6/29-7/2,
+//   7/6...):
 //     half: day 5 -> 6/26   off: day 6 -> 6/29   worked Saturday: reference day 10 (7/6) -> 7/11
 window.__T.memoryIDB();
 window.addEventListener('load', function () { (async function () {
@@ -58,7 +60,7 @@ window.addEventListener('load', function () { (async function () {
     return got.state;
   }
   async function settle(){ await T.sleep(600); }
-  function closePops(){ document.body.click(); }
+  function closePops(){ T.closePops(); }   // presses an open tool panel's ✕ (no click-away since 11 Nov 2026)
   async function openPop(btn){ closePops(); await T.sleep(150); document.getElementById(btn).click(); await T.sleep(200); }
   async function undo(n){ for(var i = 0; i < (n || 1); i++){ document.getElementById('undo-btn').click(); await T.sleep(900); } }
   var r0;
@@ -77,9 +79,11 @@ window.addEventListener('load', function () { (async function () {
       {dayOverrides: s0.dayOverrides, note: r0.note, meta: r0.meta}, ORIGINAL);
 
     // O1 -- Shift From Post +1 wk: Production does not move, so no mark may move.
-    await openPop('pop-ripple-btn');
-    T.set('tool-ripple-phase', 'post'); T.set('tool-ripple-weeks', '1');
-    document.getElementById('tool-ripple-later').click();
+    // Shift From is the Shift form's Phase & after since 4 Nov 2026 (ANCHOR-TO-DIRECTION-PLAN.md §6).
+    await openPop('pop-shift-btn');
+    await T.shiftSide('after', 'post');      // Post and every phase after it (the old Phase & after / Shift From)
+    T.set('tool-shift-weeks', '1');
+    document.getElementById('tool-shift-later').click();
     await settle();
     var s1 = await snap(), r1 = reading();
     add('O1', 'Shift From Post +1 wk leaves every mark, the Production row and the override note alone',
@@ -131,18 +135,21 @@ window.addEventListener('load', function () { (async function () {
     await undo(1);
     add('O3u', 'one undo of the drag restores the calendar and its marks', isOriginal(reading()), reading(), r0);
 
-    // O4 -- Shift From Production +1 wk, then Close all gaps (which also closes Pre Prep's gap).
-    await openPop('pop-ripple-btn');
-    T.set('tool-ripple-phase', 'production'); T.set('tool-ripple-weeks', '1');
-    document.getElementById('tool-ripple-later').click();
+    // O4 -- Shift From Production +1 wk, then Build Around from the Writers' Room at its own date, After, every phase
+    // ticked: what Close all gaps did before it was removed (it also closes Pre Prep's gap).
+    await openPop('pop-shift-btn');
+    await T.shiftSide('after', 'production');   // Production and every phase after it (the old Shift From)
+    T.set('tool-shift-weeks', '1');
+    document.getElementById('tool-shift-later').click();
     await settle();
     var s4a = await snap();
     add('O4a', 'Shift From Production +1 wk: the marks travel with the shoot', same(s4a.dayOverrides, PLUS_ONE), {dayOverrides: s4a.dayOverrides}, PLUS_ONE);
     await openPop('pop-solve-btn');
-    document.getElementById('tool-close-gaps').click();
+    T.set('tool-solve-phase', 'writersRoom'); await T.sleep(200);   // its own start, prefilled
+    T.rebuildAll(1);
     await settle();
     var s4 = await snap(), r4 = reading();
-    add('O4', 'then Close all gaps: Production on 6/22 with each mark on its shoot day (half 6/26, off 6/29, Saturday 7/11)',
+    add('O4', 'then Build Around from the room, After: Production on 6/22 with each mark on its shoot day (half 6/26, off 6/29, Saturday 7/11)',
       r4.start === '2026-06-22' && same(s4.dayOverrides, CLOSED), {start: r4.start, dayOverrides: s4.dayOverrides, note: r4.note}, CLOSED);
     await undo(2);
     add('O4u', 'two undos restore the calendar and its marks', isOriginal(reading()), reading(), r0);
@@ -155,9 +162,10 @@ window.addEventListener('load', function () { (async function () {
     // 7/25 once the shoot is back. No rule can do better: a worked day off must land on a real weekend
     // or holiday, and the moved shoot need not have one where the original did.
     var BACK = {'2026-07-06': 'half', '2026-07-07': 'off', '2026-07-25': 'on'};
-    await openPop('pop-ripple-btn');
-    T.set('tool-ripple-phase', 'production'); T.set('tool-ripple-weeks', '1');
-    document.getElementById('tool-ripple-later').click();
+    await openPop('pop-shift-btn');
+    await T.shiftSide('after', 'production');   // Production and every phase after it (the old Shift From)
+    T.set('tool-shift-weeks', '1');
+    document.getElementById('tool-shift-later').click();
     await settle();
     closePops(); await T.sleep(150);
     await snap();

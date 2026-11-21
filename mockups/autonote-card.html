@@ -1,0 +1,236 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Automatic Notes Card</title>
+<!-- MOCKUP, not the app. Three looks for Settings > Preferences > Automatic notes, asked for by the owner on 4 Nov 2026
+     ("make this menu less ugly", then "show me 3 differnt mockups"). Today's card is drawn first for reference.
+     The owner picked B ("go with b", 4 Nov 2026), which is built (buildAutoNoteCard, legacy.css). A was built first
+     and replaced; C was never built. The panels' texts are as they were when the owner chose.
+     Every panel is the card at its real width (the Settings sidebar: 303 px, or 247 px in a narrow window) with the
+     app's tokens (src/theme.js; legacy.css .side-block, section.card h2, .form-panel input[type=checkbox]). The phases
+     are the six built-ins with their own colours (PHASES' color / textColor). The ticks are live and shared: tick a
+     box in one panel and every panel follows. -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  /* src/theme.js */
+  --navy-0:#EAEEF2; --navy-1:#D3DAE1; --navy-6:#2C3E50; --navy-7:#1C2833;
+  --gray-0:#F7F6F3; --gray-1:#EEECE5; --gray-2:#E3E1DA; --gray-3:#D9D7CE; --gray-4:#C4C1B6; --gray-5:#A5A197;
+  --gray-6:#726F68; --gray-7:#5A5750; --gray-9:#1E1D1B;
+  --r-sm:5px; --r-lg:10px;
+  --page:#ECEBE6;
+  --cardw:303px;
+  --check:url("data:image/svg+xml,%3Csvg viewBox='0 0 10 7' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath fill='white' d='M4 4.586L1.707 2.293A1 1 0 1 0 .293 3.707l3 3a.997.997 0 0 0 1.414 0l5-5A1 1 0 1 0 8.293.293L4 4.586z'/%3E%3C/svg%3E");
+}
+body.narrow{ --cardw:247px; }
+*{ box-sizing:border-box; }
+body{ margin:0; font-family:'Inter',system-ui,sans-serif; color:var(--gray-9); background:var(--page); line-height:1.5; }
+button, input{ font:inherit; }
+
+/* ---------- The page around the mockups ---------- */
+.page{ max-width:1480px; margin:0 auto; padding:24px 16px 60px; }
+.page-head h1{ font-size:22px; margin:0 0 6px; letter-spacing:-.01em; }
+.page-head p{ margin:0 0 4px; color:var(--gray-6); font-size:13.5px; max-width:900px; }
+.widths{ display:inline-flex; gap:4px; margin:14px 0 18px; background:#fff; border:1px solid var(--gray-3);
+  border-radius:999px; padding:3px; }
+.widths button{ border:0; background:none; border-radius:999px; padding:4px 12px; font-size:12px; font-weight:500;
+  color:var(--gray-7); cursor:pointer; }
+.widths button[aria-pressed="true"]{ background:var(--navy-6); color:#fff; }
+.row{ display:flex; flex-wrap:wrap; gap:16px; align-items:flex-start; }
+.panel{ width:calc(var(--cardw) + 32px); }
+.panel-head{ margin:0 0 8px; }
+.panel-head .tag{ display:inline-grid; place-items:center; min-width:22px; height:22px; padding:0 6px; border-radius:999px;
+  background:var(--navy-6); color:#fff; font-size:12px; font-weight:600; margin-right:6px; }
+.panel-head .tag.ref{ background:var(--gray-5); }
+.panel-head b{ font-size:14px; }
+.panel-head p{ margin:4px 0 0; font-size:12.5px; color:var(--gray-6); line-height:1.45; }
+.panel-head .meta{ font-size:11.5px; color:var(--gray-5); margin-top:3px; }
+.sidebar{ background:#fff; border-radius:12px; padding:14px 16px 4px; box-shadow:0 1px 2px rgba(0,0,0,.06); }
+
+/* ---------- The app's card (section.card h2 + .side-block) ---------- */
+.card h2{ display:flex; align-items:center; gap:6px; font-size:11px; font-weight:600; text-transform:uppercase;
+  letter-spacing:.05em; color:var(--gray-6); margin:0 0 8px; }
+.card h2 svg{ width:15px; height:15px; flex:none; }
+.card h2 .info{ margin-left:auto; }
+.side-block{ width:var(--cardw); border:1px solid var(--gray-3); border-radius:var(--r-lg); padding:12px;
+  margin-bottom:8px; background:#fff; }
+
+/* The app's sidebar checkbox */
+.side-block input[type=checkbox]{ -webkit-appearance:none; appearance:none; width:16px; height:16px; margin:0;
+  border:1px solid var(--gray-4); border-radius:4px; background:#fff; cursor:pointer; flex:none;
+  transition:background-color 100ms ease, border-color 100ms ease; }
+.side-block input[type=checkbox]:hover{ border-color:var(--gray-5); }
+.side-block input[type=checkbox]:checked{ background:var(--navy-6) var(--check) center / 62% auto no-repeat;
+  border-color:var(--navy-6); }
+
+/* ---------- Today (live), copied from legacy.css before the restyle ---------- */
+.v0{ display:grid; grid-template-columns:minmax(0,1fr) 62px 62px; align-items:center; column-gap:4px; row-gap:6px; }
+.v0 .hd{ font-size:10px; text-transform:uppercase; color:var(--gray-6); text-align:center; line-height:1.3;
+  padding-bottom:4px; border-bottom:1px solid var(--gray-3); }
+.v0 .nm{ grid-column:1/-1; font-size:12px; font-weight:600; line-height:1.25; margin-top:4px; }
+.v0 .wd{ font-size:12px; padding-left:6px; }
+.v0 .cell{ display:flex; justify-content:center; }
+
+/* ---------- A: the table, restyled (built) ---------- */
+.vA{ display:grid; grid-template-columns:minmax(0,1fr) 62px 62px; align-items:center; column-gap:0; row-gap:0; }
+.vA .hd{ font-size:10px; text-transform:uppercase; color:var(--gray-6); text-align:center; line-height:1.3;
+  padding-bottom:4px; border-bottom:1px solid var(--gray-3); }
+.vA .nm{ grid-column:1/-1; position:relative; font-size:12px; font-weight:600; line-height:1.25; overflow-wrap:anywhere;
+  padding-left:20px; margin:17px 0 4px; }
+.vA .hd + .nm{ margin-top:12px; }
+.vA .nm::after{ content:''; position:absolute; left:0; right:0; top:-10px; border-top:1px solid var(--gray-2); }
+.vA .hd + .nm::after{ display:none; }
+.vA .wd{ font-size:12px; color:var(--gray-7); line-height:1.25; padding:4px 0 4px 20px;
+  border-radius:var(--r-sm) 0 0 var(--r-sm); }
+.vA .cell{ display:flex; justify-content:center; align-items:center; align-self:stretch; }
+.vA .cell + .cell{ border-radius:0 var(--r-sm) var(--r-sm) 0; }
+.vA .wd:hover, .vA .wd:hover + .cell, .vA .wd:hover + .cell + .cell, .vA .wd:has(+ .cell:hover),
+.vA .wd:has(+ .cell + .cell:hover), .vA .cell:hover, .vA .cell:hover + .cell, .vA .wd + .cell:has(+ .cell:hover){
+  background:var(--gray-0); }
+
+/* The phase chip, shared by A, B and C: the phase's fill, edged in its month-bar ink. */
+.chip{ display:inline-block; width:10px; height:10px; border-radius:3px; background:var(--f);
+  box-shadow:inset 0 0 0 1px color-mix(in srgb, var(--i) 60%, transparent); flex:none; }
+.vA .nm .chip{ position:absolute; left:2px; top:calc(.625em - 5px); }
+
+/* ---------- B: one row per phase ---------- */
+.vB{ display:grid; grid-template-columns:minmax(0,1fr) 30px 30px 14px 30px 30px; align-items:center; }
+.vB .grp{ grid-column:span 2; font-size:10px; text-transform:uppercase; color:var(--gray-6); text-align:center;
+  line-height:1.3; padding-bottom:3px; border-bottom:1px solid var(--gray-3); }
+.vB .sub{ font-size:10px; color:var(--gray-5); text-align:center; padding:3px 0 5px; line-height:1.2; }
+.vB .gap{ align-self:stretch; }
+.vB .nm{ display:flex; align-items:center; gap:8px; font-size:12px; font-weight:600; line-height:1.25; min-width:0;
+  padding:7px 0 7px 2px; border-top:1px solid var(--gray-2); overflow-wrap:anywhere; }
+.vB .cell, .vB .gap.r{ display:flex; justify-content:center; align-items:center; align-self:stretch;
+  border-top:1px solid var(--gray-2); }
+.vB .rowhov{ display:contents; }
+.vB .rowhov:hover > *{ background:var(--gray-0); }
+
+/* ---------- C: labelled toggle pills ---------- */
+.vC .ph + .ph{ border-top:1px solid var(--gray-2); margin-top:8px; padding-top:9px; }
+.vC .nm{ display:flex; align-items:center; gap:8px; font-size:12px; font-weight:600; line-height:1.25; margin:0 0 4px 2px;
+  overflow-wrap:anywhere; }
+.vC .nt{ display:flex; align-items:center; gap:6px; padding:3px 0 3px 20px; }
+.vC .wd{ flex:1; min-width:0; font-size:12px; color:var(--gray-7); }
+.vC label.pill{ display:inline-flex; align-items:center; gap:4px; height:22px; padding:0 9px 0 7px; border-radius:999px;
+  border:1px solid var(--gray-3); background:#fff; color:var(--gray-6); font-size:11px; font-weight:500; cursor:pointer;
+  user-select:none; transition:background-color 100ms ease, border-color 100ms ease, color 100ms ease; }
+.vC label.pill:hover{ border-color:var(--gray-5); }
+.vC label.pill input{ -webkit-appearance:none; appearance:none; width:10px; height:10px; margin:0; border-radius:50%;
+  border:1px solid var(--gray-4); background:#fff; pointer-events:none; }
+.vC label.pill:has(input:checked){ background:var(--navy-6); border-color:var(--navy-6); color:#fff; }
+.vC label.pill:has(input:checked) input{ border:0; background:var(--check) center / 10px auto no-repeat; width:10px; }
+.vC label.pill:has(input:focus-visible){ outline:2px solid var(--navy-6); outline-offset:2px; }
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="page-head">
+    <h1>Automatic notes card: three looks</h1>
+    <p>Settings › Preferences › Automatic notes, at its real width. Today's card is first for reference. Every option
+      keeps the same notes and the same saved data; only the look changes. Tick any box: all four panels follow.</p>
+  </div>
+  <div class="widths" role="group" aria-label="Card width">
+    <button type="button" data-w="wide" aria-pressed="true">Full sidebar (303 px)</button>
+    <button type="button" data-w="narrow" aria-pressed="false">Narrow window (247 px)</button>
+  </div>
+  <div class="row" id="row"></div>
+</div>
+
+<script>
+const PH = [
+  {name:'Writer’s Room', f:'#FFF2CC', i:'#7A6215', notes:['Opens','Closes']},
+  {name:'Pre-Prep',      f:'#DAE3F3', i:'#203864', notes:['Begins','Ends']},
+  {name:'Prod Prep',     f:'#D6DCE5', i:'#222A35', notes:['Begins','Ends']},
+  {name:'Production',    f:'#E2F0D9', i:'#375623', notes:['Starts','Wraps']},
+  {name:'Post',          f:'#FBE5D6', i:'#8A4A1F', notes:['Begins','Ends']},
+  {name:'Localization',  f:'#EDEDED', i:'#525252', notes:['Begins','Ends']},
+];
+// The default ticks: Writer's Room Opens and Production's Starts / Wraps in both views.
+const ON = new Set(['0.0.w','0.0.m','3.0.w','3.0.m','3.1.w','3.1.m']);
+const esc = s => s.replace(/&/g,'&amp;').replace(/</g,'&lt;');
+const box = (p, n, v) => {
+  const k = p + '.' + n + '.' + v, ph = PH[p];
+  const label = ph.name + ' ' + ph.notes[n] + ', ' + (v === 'w' ? 'Waterfall' : 'Month view');
+  return '<input type="checkbox" data-k="' + k + '"' + (ON.has(k) ? ' checked' : '') + ' aria-label="' + esc(label) + '" title="' + esc(label) + '">';
+};
+const chip = ph => '<span class="chip" style="--f:' + ph.f + ';--i:' + ph.i + '"></span>';
+const ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3v4a1 1 0 0 0 1 1h4"/><path d="M17 21H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7l5 5v11a2 2 0 0 1-2 2z"/><path d="M9 17h6"/><path d="M9 13h6"/></svg>';
+const INFO = '<svg class="info" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 8h.01"/><path d="M11 12h1v4h1"/></svg>';
+
+function today(){
+  let h = '<div class="v0"><span class="hd"></span><span class="hd">Waterfall</span><span class="hd">Month</span>';
+  PH.forEach((ph, p) => {
+    h += '<span class="nm">' + esc(ph.name) + '</span>';
+    ph.notes.forEach((w, n) => { h += '<span class="wd">' + w + '</span><span class="cell">' + box(p,n,'w') + '</span><span class="cell">' + box(p,n,'m') + '</span>'; });
+  });
+  return h + '</div>';
+}
+function optA(){
+  let h = '<div class="vA"><span class="hd"></span><span class="hd">Waterfall</span><span class="hd">Month</span>';
+  PH.forEach((ph, p) => {
+    h += '<span class="nm">' + chip(ph) + esc(ph.name) + '</span>';
+    ph.notes.forEach((w, n) => { h += '<span class="wd">' + w + '</span><span class="cell">' + box(p,n,'w') + '</span><span class="cell">' + box(p,n,'m') + '</span>'; });
+  });
+  return h + '</div>';
+}
+function optB(){
+  let h = '<div class="vB"><span></span><span class="grp">Waterfall</span><span class="gap"></span><span class="grp">Month</span>' +
+          '<span></span><span class="sub">Start</span><span class="sub">End</span><span class="gap"></span><span class="sub">Start</span><span class="sub">End</span>';
+  PH.forEach((ph, p) => {
+    h += '<div class="rowhov"><span class="nm">' + chip(ph) + '<span>' + esc(ph.name) + '</span></span>' +
+         '<span class="cell">' + box(p,0,'w') + '</span><span class="cell">' + box(p,1,'w') + '</span><span class="gap r"></span>' +
+         '<span class="cell">' + box(p,0,'m') + '</span><span class="cell">' + box(p,1,'m') + '</span></div>';
+  });
+  return h + '</div>';
+}
+function optC(){
+  let h = '<div class="vC">';
+  PH.forEach((ph, p) => {
+    h += '<div class="ph"><div class="nm">' + chip(ph) + '<span>' + esc(ph.name) + '</span></div>';
+    ph.notes.forEach((w, n) => {
+      h += '<div class="nt"><span class="wd">' + w + '</span>' +
+           '<label class="pill">' + box(p,n,'w') + 'Waterfall</label><label class="pill">' + box(p,n,'m') + 'Month</label></div>';
+    });
+    h += '</div>';
+  });
+  return h + '</div>';
+}
+
+const PANELS = [
+  {tag:'Now', ref:true, title:'Today, as it ships', body:'For reference. The heading’s underline is broken into three pieces, the first under nothing, and nothing separates one phase from the next.', fn:today},
+  {tag:'A', title:'The table, tidied (built, not committed)', body:'Same layout. One heading rule, a hairline between phases, each phase’s colour before its name, quieter note words, and the whole row shades on hover.', fn:optA},
+  {tag:'B', title:'One row per phase', body:'Each phase on one line with four boxes: Start and End under Waterfall, then under Month. About a third of the height. The note’s own word (Opens, Wraps…) moves to the box’s tooltip.', fn:optB},
+  {tag:'C', title:'Labelled toggles', body:'No column heading to match up: each note carries two pills that say what they do, and an on pill fills in. The clearest to read cold; about as tall as A.', fn:optC},
+];
+function render(){
+  document.getElementById('row').innerHTML = PANELS.map(pn =>
+    '<div class="panel"><div class="panel-head"><span class="tag' + (pn.ref ? ' ref' : '') + '">' + pn.tag + '</span><b>' + esc(pn.title) + '</b>' +
+    '<p>' + esc(pn.body) + '</p><div class="meta" data-h></div></div>' +
+    '<div class="sidebar"><section class="card"><h2>' + ICON + '<span>Automatic notes</span>' + INFO + '</h2>' +
+    '<div class="side-block">' + pn.fn() + '</div></section></div></div>').join('');
+  document.querySelectorAll('.panel').forEach(pl => {
+    pl.querySelector('[data-h]').textContent = 'Card height: ' + Math.round(pl.querySelector('.side-block').getBoundingClientRect().height) + ' px';
+  });
+}
+document.addEventListener('change', e => {
+  const k = e.target.getAttribute && e.target.getAttribute('data-k');
+  if(!k) return;
+  if(e.target.checked) ON.add(k); else ON.delete(k);
+  document.querySelectorAll('input[data-k="' + k + '"]').forEach(el => { el.checked = e.target.checked; });
+});
+document.querySelector('.widths').addEventListener('click', e => {
+  const b = e.target.closest('button[data-w]');
+  if(!b) return;
+  document.body.classList.toggle('narrow', b.dataset.w === 'narrow');
+  document.querySelectorAll('.widths button').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
+  render();
+});
+render();
+</script>
+</body>
+</html>

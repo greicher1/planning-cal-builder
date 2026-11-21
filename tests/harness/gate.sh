@@ -84,7 +84,13 @@ bad() { say "  FAIL  $1"; FAIL=1 }
 say "=== gate: $PAGE ==="
 
 # ---- base: grid geometry, clipping, both exports ---------------------------------------------
-HARNESS_PAGE="$PAGE" "$HERE/run.sh" base 45 >/dev/null 2>&1
+# ⛔ ON THE LEGACY LAYOUT PATH (LAYOUT-BUILD-PLAN.md §3.2, owner sign-off 5 Nov 2026). The reference calendar is a
+# NEW calendar, and a new calendar carries the layout stamp (`colReuse`) since 2 Nov 2026; under the layout rules
+# its Localization widens the week Post ends (rule 13), which is by design and would move gates 2 and 3. These two
+# gates exist to prove the FROZEN WRITERS have not moved, so the leg exports the calendar on the legacy path through
+# the localhost-only `?layout=legacy` hook (layoutStamped() false): the placement and the widths every unstamped
+# file gets, byte for byte. The stamped path is proven by the layoutrules legs below.
+HARNESS_PAGE="$PAGE" HARNESS_QUERY="layout=legacy" "$HERE/run.sh" base 45 >/dev/null 2>&1
 if [[ ! -f "$HERE/base.json" ]]; then bad "base test produced no result"; else
 python3 - "$HERE/base.json" "$BASE/base.json" <<'PY' || FAIL=1
 import json,sys
@@ -775,9 +781,10 @@ except Exception as e:
 if 'EX' in a:
     print('  FAIL  prefs threw: '+str(a['EX'])); sys.exit(1)
 chk(a.get('inertAtBoot'), f"prefs: inert with nothing stored -- no preference, no interior rules in the PDF ({a.get('pdfNoneInterior')})")
-chk(a.get('controlFound') and a.get('insideExcludedCard'),
-    "prefs: the control exists and sits inside .prefs-card (the collectFieldValues exclusion)")
-chk(a.get('optionValues')=='none,solid,dashed', f"prefs: exactly three options, None the default ({a.get('optionValues')})")
+chk(a.get('controlGone'),
+    "prefs: Grid Lines in Exports is gone from Preferences (owner, 11 Nov 2026); the Export PDF dialog sets it")
+chk(a.get('optionValues')=='none,solid,dashed' and a.get('valueAtBoot')=='none',
+    f"prefs: the dialog's Grid lines has exactly three options and opens on None ({a.get('optionValues')}, {a.get('valueAtBoot')})")
 chk(a.get('reachesPdf'), f"prefs: choosing Dashed puts interior rules INTO THE PDF ({a.get('pdfNoneInterior')} -> {a.get('pdfDashedInterior')})")
 chk(a.get('reallyDashed'),
     f"prefs: they are really DASHED, and the dash state is reset after every stroke ({a.get('dashOps')} set / {a.get('dashResets')} reset)")
@@ -866,9 +873,9 @@ chk(a.get('inertExcel'), f"hdrversion: ⭐ empty -> the workbook's &L is the bar
 chk(a.get('inertPdf'), f"hdrversion: ⭐ empty -> nothing under the date in the PDF's left column ({a.get('beforePdfLeftCol')})")
 chk(a.get('blankInert'),
     f"hdrversion: ⭐ a field of spaces is still no version: the line stays hidden ({a.get('blankL2')})")
-chk(a.get('screenShowsVersion'), f"hdrversion: typing 3 shows 3 on screen (no v added), and the slot becomes visible ({a.get('afterL2',{}).get('text')!r})")
-chk(a.get('asTyped'), f"hdrversion: V3 reads V3 and a bare v reads v -- exactly as typed ({a.get('upperVText')!r}, {a.get('bareVText')!r})")
-chk(a.get('excelHasVersion'), f"hdrversion: the workbook's &L is <date> then 3 ({a.get('afterExcelL')!r})")
+chk(a.get('screenShowsVersion'), f"hdrversion: typing 3 shows v3 on screen (the v added, 18 Nov 2026), and the slot becomes visible ({a.get('afterL2',{}).get('text')!r})")
+chk(a.get('asTyped'), f"hdrversion: the box takes a number: V3 keeps 3 and reads v3, a bare v is dropped ({a.get('upperVText')!r}, {a.get('bareVText')!r})")
+chk(a.get('excelHasVersion'), f"hdrversion: the workbook's &L is <date> then v3 ({a.get('afterExcelL')!r})")
 chk(a.get('excelNoFormatCodes'),
     f"hdrversion: no per-line format codes appear -- nothing was formatted ({a.get('excelFontCodes')} font code)")
 chk(a.get('pdfTwoLeftLines'),
@@ -876,11 +883,11 @@ chk(a.get('pdfTwoLeftLines'),
 chk(a.get('captured') and a.get('snapVersion')=='3',
     f"hdrversion: ⭐ the value is in a REAL saved calendar's fields.byId ({a.get('snapVersion')!r}, {a.get('fieldIdCount')} field ids)")
 chk(a.get('markerWritten'),
-    f"hdrversion: ⭐ a typed 3 is saved WITH versionAsTyped: true, so it reopens as 3 ({a.get('snapAsTyped')!r})")
+    f"hdrversion: ⭐ a typed 3 is saved WITHOUT versionAsTyped (a number prints v3 under every rule; 18 Nov 2026) ({a.get('snapAsTyped')!r})")
 chk(a.get('roundTrips'),
-    f"hdrversion: it survives captureSnapshot -> JSON -> applyStateSnapshot, driven through undo/redo, still WITHOUT a v ({a.get('afterUndoField')!r}/{a.get('afterUndoL2')!r} -> {a.get('afterRedoField')!r}/{a.get('afterRedoL2')!r})")
+    f"hdrversion: it survives captureSnapshot -> JSON -> applyStateSnapshot, driven through undo/redo: 3 / v3 and 4 / v4 ({a.get('afterUndoField')!r}/{a.get('afterUndoL2')!r} -> {a.get('afterRedoField')!r}/{a.get('afterRedoL2')!r})")
 chk(a.get('noMarkerWhenSame'),
-    f"hdrversion: ⭐ a typed v3 saves with NO versionAsTyped key -- byte for byte as before ({a.get('vSnapVersion')!r}, key {'present' if a.get('vSnapHasMarker') else 'absent'})")
+    f"hdrversion: ⭐ a typed v3 keeps 3 in the box and saves with NO versionAsTyped key ({a.get('vSnapVersion')!r}, key {'present' if a.get('vSnapHasMarker') else 'absent'})")
 chk(a.get('clearedScreen') and a.get('clearedExcel'),
     f"hdrversion: ⭐ clearing the field hides the line again and restores the bare &L ({a.get('clearedExcelL')!r})")
 chk(a.get('notInCompleteness'),
@@ -1004,6 +1011,8 @@ chk(a.get('bakeFroze') and a.get('noSwapInManual'),
 chk(a.get('manualPrintsBraces'), f"hdrtemplate: ⭐ MANUAL NEVER RESOLVES -- decision H4 ({a.get('manualBraces')!r})")
 chk(a.get('autoEmptiedStore'), "hdrtemplate: -> Auto discards headerManual, as 'Header: Auto' always has")
 chk(a.get('oneUndoStep'), f"hdrtemplate: each transition is ONE undo step ({a.get('afterAuto')!r} -> undo -> {a.get('afterUndo')!r})")
+chk(a.get('autoLinesBackAsTokens'), f"hdrtemplate: Manual -> Template puts auto lines back as variables, in any slot ({a.get('reTokenRaw')!r})")
+chk(a.get('typedLinesKept'), "hdrtemplate: Manual -> Template keeps typed lines as typed and emptied lines empty")
 chk(not a.get('errors'), f"hdrtemplate: 0 console errors {a.get('errors')}")
 hv=a.get('clipped') or {}
 chk(not hv.get('h'), f"hdrtemplate: 0 horizontally clipped cells {hv.get('h')}")
@@ -1310,19 +1319,15 @@ chk(on.get('clippedH')==0 and off.get('clippedH')==0,
 sys.exit(bad)
 PY
 
-# ---- colreuse: "Reuse empty columns" (COLUMN-REUSE-PLAN.md, owner rulings 20 Oct 2026) ----------
-# A phase takes over the column of one that has just finished. One box in Settings, the grid's own
-# drag to fix a pick, and a row note only when something was moved by hand.
-#
-# ⭐ NO FROZEN EDIT. Only computeSchedule's column assignment changes, and only with the box ticked;
-# frozen computeBlockLayout derives fewer columns from `col` as data. This leg proves the rules, on a
-# SYNTHETIC calendar (2030-2032) with one phase per rule of the plan's §3.
-# ⭐ Since 2 Nov 2026 a NEW calendar starts ticked (owner: "this can just be for calendars going forward
-# not old ones"), so the byte-compare above runs with it ON. Its calendar (buildFixture) has no handoff week
-# and lays out identically either way (checked when the default changed), which is why its baselines did
-# not move. Every ?state= fixture without the key still opens unticked.
-# Two runs: LIVE builds it through the DOM; RESTORE opens tests/fixtures/colreuse.sptcal, cut from
-# LIVE's own snapshot.
+# ---- colreuse: the layout stamp, the hand move, an unstamped file's "Update layout" strip ------------------
+# (COLUMN-REUSE-PLAN.md, owner rulings 20 Oct 2026; LAYOUT-RULES.md / LAYOUT-BUILD-PLAN.md §4, 5 Nov 2026.)
+# The "Reuse Empty Columns" box is gone: a NEW calendar carries the layout stamp (`colReuse: true`, the box's own
+# PERMANENT key) and lays out by the layout rules (placeSegmentsByRules, not frozen; the widths behind frozen edit
+# LR1); a file WITHOUT it keeps the placement and the widths it was saved with and is offered the rules once per
+# load by the strip above the calendar. The grid's drag still moves a phase by hand (colFollow), with a row note.
+# ⭐ The byte-compare above runs the reference calendar on the LEGACY path (`?layout=legacy`): see its comment.
+# Two runs: LIVE builds a SYNTHETIC calendar (2030-2032) through the DOM; RESTORE opens
+# tests/fixtures/colreuse.sptcal, cut from LIVE's own snapshot.
 for CRSTATE in "" colreuse; do
   rm -f "$HERE/colreuse.json"
   HARNESS_PAGE="$PAGE" HARNESS_STATE="$CRSTATE" "$HERE/run.sh" colreuse 240 >/dev/null 2>&1
@@ -1340,44 +1345,88 @@ except Exception as e:
 if a.get('EX'):
     print('  FAIL  '+label+' threw: '+str(a['EX'])); sys.exit(1)
 if a.get('mode') == 'live':
-    chk(a.get('boxExists') and a.get('boxStartsOn') and a.get('newSnapSaysOn') and a.get('freshWasOn'),
-        'a NEW calendar starts with the box ticked, lays out with reused columns, and saves colReuse: true (owner, 2 Nov 2026)')
-    chk(a.get('boxUnticks') and a.get('boxSkippedBySweep'),
-        'the box unticks, and sits inside .prefs-card so collectFieldValues() cannot sweep it')
-    chk(a.get('offSnapHasNoKeys') and a.get('offNoNotes'),
-        'OFF saves no colReuse/colFollow key and shows no row note: a calendar saved unticked is unchanged')
+    chk(not a.get('boxExists') and a.get('newSnapSaysOn') and a.get('noStripOnNew'),
+        'no Reuse Empty Columns box anywhere; a NEW calendar is stamped (colReuse: true) and shows no strip')
     oc=a.get('onCols') or {}
-    chk(a.get('fewerColumns'), f"ON: 2030 drops from {a.get('offCols2030')} columns to {oc.get('2030')} (2031: {oc.get('2031')}, 2032: {oc.get('2032')})")
-    chk(a.get('handoff'), 'a phase starting the week another ends takes its column, even with a phase to its right still running')
-    chk(a.get('chainTie'), 'a tie goes to the phase "Start after" names: Production follows Prep, not Build')
-    chk(a.get('lowestFree'), 'no handoff: the lowest free column')
-    chk(a.get('newColumn'), 'nothing free: a new column')
-    chk(a.get('prodLeft2031'), "Production's column is leftmost when two columns start a year together (ruled Q2)")
-    chk(a.get('customTieLeftmost'), 'a custom phase with a tie takes the leftmost (ruled Q1)')
-    chk(a.get('acrossHiatus'), 'a handoff counts across an all-phase hiatus (ruled Q5)')
-    chk(a.get('onNoNotes'), 'ON with nothing moved by hand: still no row note')
-    chk(a.get('widthsCleared2030') and a.get('widthsKept2032'),
-        'hand-dragged widths are cleared in the year whose columns changed and kept in the year that did not (ruled Q7)')
-    chk(a.get('undoBoxOff') and a.get('undoLayout') and a.get('undoWidthsBack') and a.get('redoBack'),
-        'the box is ONE undo step: undo restores the box, the columns and the widths; redo puts them back')
+    chk(oc.get('2030')==3 and oc.get('2031')==3 and oc.get('2032')==1, f"the rules: 2030 three columns, 2031 three, 2032 one {oc}")
+    chk(a.get('handoff'), 'a phase starting the week another ends takes its column, even with a phase to its right still running (rule 2)')
+    chk(a.get('prodLeft'), "two columns handed off: Production goes LEFT, into Writers' column, not Prep's (rule 3)")
+    chk(a.get('rightOfRunning'), 'no handoff: the leftmost free column right of the running Production (rule 4)')
+    chk(a.get('newColumn'), 'nothing free: a new column (rule 5)')
+    chk(a.get('acrossHiatus'), 'a handoff counts across an all-phase hiatus, at New Year and mid-year (ruled Q5)')
+    chk(a.get('prodLeft2031'), "Production's column is leftmost in 2031 (rule 9: its top phase started first)")
+    chk(a.get('tieByColumnOrder'), "two handoffs whose tops started the same week: the column made first is the left one (rules 3, 9)")
+    chk(a.get('onNoNotes'), 'nothing moved by hand: no row note')
     chk(a.get('selectedMix') and a.get('moved'),
         f"dragging a block into the free column beside it moves the phase there (column {a.get('mixSlotBefore')} -> {a.get('mixSlotAfter')})")
     chk(a.get('noteSaysMoved') and a.get('onlyOneNote'), f"...and only that phase's row gets a note: {(a.get('noteMoved') or {}).get('text')!r}")
-    chk(a.get('snapHasKeys') and a.get('notInFieldIds'), 'it saves as colReuse + colFollow, and the box is not also a swept field id')
+    chk(a.get('snapHasKeys') and a.get('notInFieldIds'), 'it saves as colReuse + colFollow, and nothing col-reuse is a swept field id')
     chk(a.get('xlsxAgrees'), f"Excel puts each phase in the column the screen does {a.get('xlsxCols')}")
     chk(a.get('pdfExported'), 'the waterfall PDF exports')
     chk(a.get('staleSaysWhy') and a.get('staleBackToAuto') and a.get('reapplies'),
         f"a move that can't apply falls back to automatic and says why ({(a.get('noteStale') or {}).get('text')!r}), then applies again once it fits")
     chk(a.get('resetExists') and a.get('resetBack') and a.get('undoReset'), "the note's Reset clears the move, as one undo step")
-    chk(a.get('oldFileOff') and a.get('oldFileLayout') and a.get('oldFileStillNoKey'),
-        'an OLD calendar (no colReuse key) Loads unticked, with its old columns, and still saves no key')
+    chk(a.get('oldFiveColumns') and a.get('oldNoNotes'), f"the same calendar saved WITHOUT the key Loads unstamped: the old start-order layout ({a.get('oldCols2030')} columns in 2030), no notes")
+    chk(a.get('oldStripUp') and (a.get('stripButtons') or [])[:2]==['Update layout','Keep as is'] and 'lay out automatically' in (a.get('stripText') or ''),
+        f"...and raises the strip: {a.get('stripText')!r} with Update layout / Keep as is")
+    chk(a.get('keepHides') and a.get('keepLayout') and a.get('keepStillNoKey'), 'Keep as is hides the strip, changes nothing and writes nothing')
+    chk(a.get('stripAgain'), 'the next load of the unstamped file offers again')
+    chk(a.get('updateHides') and a.get('updatedLayout') and a.get('updatedSaysOn'),
+        "Update layout stamps the calendar: the rules' columns, the strip gone, colReuse: true saved")
+    chk(a.get('widthsCleared2030') and a.get('widthsKept2032'),
+        'hand-dragged widths are cleared in the year whose columns changed and kept in the year that did not (ruled Q7)')
+    chk(a.get('undoLayout') and a.get('undoUnstamped') and a.get('redoBack'),
+        'Update layout is ONE undo step: undo restores the old columns, the widths and the absent key; redo stamps again')
 else:
-    chk(a.get('boxOn') and a.get('restoredRules'), 'a saved calendar opens with the box ticked and the same columns')
+    chk(not a.get('boxExists') and a.get('noStrip') and a.get('restoredRules'), "a stamped file opens with the rules' columns, no box, no strip")
     chk(a.get('restoredMove') and a.get('noteRestored'), 'the hand move and its note survive save and load')
-    chk(a.get('newTicks'), 'New starts a new calendar with the box ticked and no hand moves')
+    chk(a.get('newStamped'), 'New starts a new calendar stamped, with no hand moves and no strip')
 chk(not a.get('errors'), f"0 console errors {a.get('errors')}")
 sys.exit(bad)
 PYCR
+done
+
+# ---- layouthook: the layout study's `?layout=` hook (LAYOUT-STUDY-PLAN.md §6; owner ruling R6, 4 Nov 2026) ----
+# On localhost only, `?layout={"<phase>":<col>,…}` forces every waterfall phase's column, read in computeSchedule
+# where `col` is assigned (NOT frozen: the frozen layout takes `col` as data). Honoured only when EVERY waterfall
+# phase is named: a half map is ignored whole. Two runs on the colreuse fixture (Reuse on, four pairs sharing a
+# column, one hand move): a FULL map gives every phase its own slot and bypasses the reuse placement (no hand-move
+# note); a HALF map changes nothing, so the layout is the colreuse RESTORE run's (the layout rules' since 5 Nov 2026:
+# Production in Writers' column). The inertness with no `?layout=` at all is every other leg of this gate.
+LH_FULL='{"writersRoom":0,"prePrep":1,"prodPrep":2,"production":3,"post":4,"localization":5,"custom1":6,"custom2":7,"custom3":8,"custom4":9,"custom5":10,"custom6":11,"custom7":12,"custom8":13}'
+LH_HALF='{"writersRoom":0,"prePrep":1,"prodPrep":2,"production":3,"post":4,"localization":5,"custom1":6,"custom2":7,"custom3":8,"custom4":9,"custom5":10,"custom6":11,"custom7":12}'
+for LHRUN in full half; do
+  LHMAP="$LH_FULL"; [[ "$LHRUN" == half ]] && LHMAP="$LH_HALF"
+  rm -f "$HERE/layouthook.json"
+  HARNESS_PAGE="$PAGE" HARNESS_STATE=colreuse HARNESS_QUERY="hook=$LHRUN&layout=$LHMAP" "$HERE/run.sh" layouthook 120 >/dev/null 2>&1
+  python3 - "$HERE/layouthook.json" "layouthook ($LHRUN)" <<'PYLH' || FAIL=1
+import json,sys
+path, label = sys.argv[1:3]
+bad=0
+def chk(c,m):
+    global bad
+    print(('  PASS  ' if c else '  FAIL  ')+label+': '+m)
+    if not c: bad=1
+try: a=json.load(open(path))
+except Exception as e:
+    print('  FAIL  '+label+' produced no result: '+str(e)); sys.exit(1)
+if a.get('EX'):
+    print('  FAIL  '+label+' threw: '+str(a['EX'])); sys.exit(1)
+p=a.get('pairs') or {}
+if a.get('hook') == 'full':
+    chk(len(a.get('mapKeys') or [])==14 and a.get('phasesSeen')==a.get('mapKeys'), 'the full map names all 14 scheduled phases, and all 14 render')
+    chk(not a.get('sharedAnywhere') and not any(p.values()), 'with every phase in its own column, no two phases share a slot in any year')
+    chk(a.get('slotsPerYear')=={'2030':8,'2031':6,'2032':1}, f"slots per year follow the forced columns {a.get('slotsPerYear')}")
+    chk(a.get('noteText') is None, 'the reuse placement did not run: no hand-move note')
+else:
+    chk(len(a.get('mapKeys') or [])==13, 'the half map leaves one phase out')
+    chk(all(p.get(k) for k in ('c1wr','prodWr','c5loc','c7c6')) and a.get('prodSlot2031')==0,
+        'it is ignored whole: the four pairs share a column (Production in Writers\' column, rule 3) and Production is slot 0 in 2031, as the colreuse RESTORE run has it')
+    chk(a.get('slotsPerYear')=={'2030':3,'2031':3,'2032':1}, f"the saved column counts {a.get('slotsPerYear')}")
+    chk(bool(a.get('noteText')) and 'Moved by hand' in a.get('noteText'), 'the hand-move note is there')
+chk(not a.get('errors'), f"0 console errors {a.get('errors')}")
+sys.exit(bad)
+PYLH
 done
 
 # ---- rowmigrate: a REAL pre-10-Sep calendar's dragged row height still lands on its week --------
@@ -1650,6 +1699,8 @@ done
 # Since 15 Oct 2026 the 'half'/'onhalf' marks are WITHDRAWN as choices (a half day is an episode's .5,
 # the halfdays leg), so it loads dayoverrides-onhalf and guards the saved marks: honoured, shown,
 # moved with the calendar, clearable, and never offered again.
+# cfmove (CLOUDFLARE-ACCESS-PLAN.md, 18 Nov 2026): the old address's "SPTCal has moved" strip (localStorage hook), Save on an
+#   older .html calendar asks and writes .sptcal data (never the app), autosave pauses on one, Export App With Data gone.
 # pwagate + pwagatelogic guard the install gate (PWA-ONLY-PLAN.md, 30 Sep 2026): the hosted link's
 # browser tab shows only the gate and never starts the engine, with the owner's approved wording.
 # First in the list on purpose: the batch-4 session appends at the END, so the two never conflict.
@@ -1818,6 +1869,12 @@ done
 # Mondays (a greyed day writes nothing, a Wednesday already in the field shows its Monday and opening the picker does
 # not rewrite it); Snap off, a Dates or Days phase, a Dates end, a custom holiday and Anchor To's "ends by" pick the exact
 # day with no week band; the calendar range and Anchor To's start keep the band. Red on the old picker (P1, P2). Own line.
+# phiatuspick (owner, 5 Nov 2026: "the calendar popup for per phase hiatus periods should be limited to only
+# dates/months that fall in the range of the phase") holds a phase's own hiatus picker to its phase: an empty one opens
+# on the phase's first month; only the Mondays the phase runs WITHOUT that hiatus are pickable (the weeks the hiatus
+# adds are not); the arrows stop at the first and last months; Production to its wrap's week, an Ends phase from where
+# it starts without the hiatus; a phase with no dates and the all-phase hiatus are not limited. Red on the old picker
+# (K1-K5). Own line.
 # snapbox (owner, 30 Oct 2026, of a Wednesday left in a snapped Starts box: "It should also change the actual the date
 # shows in the box. Otherwise this is confusing.") holds the box's half: after TYPING a non-Monday, Enter or leaving the
 # box writes its Monday (built-in, Production, custom Weeks, both kinds of hiatus), the "Snapped to Mon" row goes and
@@ -1846,6 +1903,19 @@ done
 # Juneteenth), a typed Saturday or holiday wrapping on the shoot day before, the picker's shoot days only, Shift All
 # moving the shoot and the new wrap holding, Save / Load / a file with no key / a hostile key, back to Starts, and a
 # round trip saving byte for byte as before. Own line.
+# finishbefore (owner, 18 Nov 2026, from the executives' review: build a calendar backwards; rulings R1-R4 by picker,
+# HANDOFF "Finish before") holds the backwards twin of "Start after previous phase": shown IN PLACE of it on every card
+# before a phase on Ends and nowhere else (Writer's Rm gains one, Localization never has one, custom phases none, no
+# id), its label following a renamed phase, a click putting the card on Ends with its last working week before the
+# next phase (Production: its last shoot day), one undo step, the end holding while Production grows (no automatic
+# pull, R3), a Dates built-in moving whole, and both kinds stepping back over the 12/21/26 hiatus; R5 (19 Nov 2026):
+# an EMPTY card before a dated phase offers it with nothing on Ends, beside Start after between two dated phases. Own line.
+# noteplushover (owner, 19 Nov 2026: the waterfall's Notes "+" shows only while you point at its cell, as the
+# month view's does) holds the two added .note-add-hint rules: hidden at rest, the hover rule reaching every hint, the
+# frozen colour and size kept, every Notes cell's and hint's box unchanged without the rules (paint only), and print
+# still hiding it. Own line.
+# weekprompt (owner, 19 Nov 2026) holds "Enter a week count to include this phase" hidden until Enter in the card or a
+# click on its Start after / Finish before, lapsing when a length is typed, and written by an armed empty Ends card. Own line.
 # spancounts (owner, 2 Nov 2026: "three icons: one that says the number of production weeks, one that says the number
 # of holidays costing a shoot day, and something that says the number of Off Days"; version D, then "D replaces the
 # whole line") holds the counts under Production's span: weeks = the meta line's, the holidays and Off days that cost
@@ -1870,6 +1940,23 @@ done
 # PDF drawing it, Writer's Room's auto-note leaving the waterfall outputs only, the tick (no id) on every card but
 # Production's, the tag while folded, one undo step, Save/Load, the M-5 trap, a byte-identical file once nothing is
 # hidden, a hostile key, removal pruning the key, and Shift All.
+#   ⚠️ Since 18 Nov 2026 the tick's row is hidden and hidewf clicks the head's corner (see wfcorner).
+# snappicker (owner, 18 Nov 2026: "putting snap to monday slider inside the mini calendar pop up box", "Yes, build it")
+# holds Snap to Monday in the phase's Starts picker: no card shows its row (every snap-<key> still in the document), the
+# picker's foot is the switch (on, no hint, no id), a flip there is the box's and one undo step, Production's too, a
+# Wednesday picked with Snap off survives switching Snap on IN the picker and leaving the box (red without flipSnap's
+# focusout), no switch on a hiatus, a Dates start, a custom holiday or Build Around's date, and no new field id.
+# wfcorner (owner, 18 Nov 2026: option A of mockups/hide-in-waterfall-corner.html, "Build A", then "fix 1") holds Hide
+# in waterfall in the card head's top right corner: the eye on every hideable card, the tag (a 22 px icon button saying
+# "Month view only" in its text and title) in its place once hidden, Episodic Prep / Double-ups' tag as text, no corner on
+# Production, no id; the body's row and a built-in's whole switch block gone; eye and tag each one undo step, folded too;
+# a custom phase's x in the corner with the dates line at full width. Own lines.
+# stylebarplace (owner, 10 Nov 2026) is where the text style bar sits: its bare buttons on the toolbar's first line,
+# beside Shift with Build Around's gap before it (--tools-group-gap, one value), at Shift's 30 px, the Size box's own
+# arrow 8 px in; a header line's Highlight well growing it leftward with nothing else moving. ⚠️ Re-expected 16 Nov 2026
+# (UI scaling): a wide row keeps the laptop size packed left (gaps capped at 14 px, the spare after Redo), and a narrow one
+# FOLDS through levels 1-5, always one line, where the bar used to drop to its old line (`.style-own-line`, retired).
+# On fill-intent (Fill Space shows: the widest toolbar). Red on the build before it in every placement case.
 # phasesui (same plan §3) is the Phases tab redesigned to the A + D blend "without changing functionality": for 46
 # fixtures, the Phases card's id'd controls (in order), the saved fields.byId and hiatus rows are those of the build
 # BEFORE the redesign (tests/baselines/2026-10-23-phasesui/before.json); every id'd control still drives update(); the
@@ -1880,7 +1967,8 @@ done
 # and do nothing in the waterfall), part B the map MonthMap.jsx draws (its place above the text style bar, its months
 # and highlight against the frozen arrows on every page, a bar over every phase the month view draws, its own clicks,
 # the 36 px month minimum, its height, no ids, gone in the waterfall), and since 28 Oct 2026 part C the month stepper
-# on the style bar's line (§18: its label is always the month band's month, its ends, Today, no ids). On mvnotes,
+# (§18: its label is always the month band's month, its ends, Today, no ids), on the style bar's line until 10 Nov 2026
+# and alone on it since, when the bar moved up beside Shift (C0 and B7 hold both of the bar's places). On mvnotes,
 # colreuse (29 months, so it scrolls) and offweek (Production's first week off). softlines (same plan, step 4) is the month view's screen-only Soft Lines
 # look: on every page, measured with the @media screen block and with it deleted from the page's own stylesheet, every
 # box identical to 0.01 px, every day mark, bar, note and header line painted identically, the soft tints right, and
@@ -1890,7 +1978,116 @@ done
 # still draws "Pre Prep Wk N" (PHASES' `was`). buildFixture types the old name, which keeps every baseline cut from
 # it byte-identical, so this leg is the one place the new default is held.
 # rebuildticks (owner, 30 Oct 2026: "Build A") is Rebuild From's tick list: unticked phases keep their dates, the
-# list's dates are the ones Rebuild delivers, drawing it moves nothing, and no tick carries an id.
+# list's dates are the ones Rebuild delivers, drawing it moves nothing, and no tick carries an id. Updated 5 Nov 2026
+# for Build Around (one list for both sides, "Build N phases", opens on both sides) and 10 Nov 2026 for the overlap
+# rule (Casting, beside Prod Prep, left out and named on the line; Writer's Rm ticked; Localization left out while it
+# starts in Post's last week, ticked once it starts after it).
+# buildaround (owner, 5 Nov 2026; REBUILD-FROM-LENGTHS-PLAN.md, layout B) is Rebuild From renamed Build Around: a new
+# calendar built in one run from lengths typed in the box (staged, saved on Build, one undo with the dates); both sides
+# in one run; "ends by"; Production's length read-only ("Not set" + the Show info line); "Save 1 length"; closing
+# forgets; no Close all gaps; no id in the list. Since 10 Nov 2026 (plan §7) it wears Shift's look and feel: the order
+# of parts and no column header, Both button or row title (O1); the header box (H1); a click on a row pins it, its box
+# ticks (K1); a drag sets a run and never moves the pin (D1). ⛔ NO Prior to X / After X since the same day (owner: "i
+# dont think we need the before and after buttons"): O1 holds that they are gone and that Shift keeps its two, and one
+# side is reached by the ticks alone (S1-S3; T.solveKeepSide in lib.js for the other legs). Red on a build that still
+# has the buttons: buildaround O1, rebuildticks L2 and D1, buildalongside A6.
+# buildalongside (10 Nov 2026) is the rule's threshold on anchorside.sptcal: a phase is left unticked only when it
+# shares FIVE days or more with the phase it would be built against, so Pre Prep (two days into Prod Prep's first
+# week) and Post (it starts the day before the wrap) stay ticked, and Localization (Post's whole last week) does not.
+# buildaroundfresh (owner's report, 11 Nov 2026) is Build Around's FIRST run on a brand-new calendar: nothing dated,
+# so computeSchedule returns no `hiatuses`, and the backward pass must still count the default winter break
+# (hiatusRangesForSolve reads the rows). Writer's Rm 20 wks before Pre Prep 4/26/27 = 11/23/26; red (F1-F3) on the old
+# build, which gave 12/7/26 and ran the room two weeks into Pre Prep until a second Build.
+# buildcarry (audit AUD2-009, the Nov 2026 audit's item 2.2, 13 Nov 2026) is Build Around carrying each placed phase's
+# OWN hiatus and its "<week>|<key>" stores (band label, colour, phase-cell styles, hand-widened cells) by the weeks its
+# start moved, as Shift and the card arrows do, in the same undo step: Post keeps its break and its end (A1-A4),
+# Localization chains off Post's real end and the preview agrees (B1, B2), Post placed BACK from Localization is solved
+# with its break where it will land (C1, C2), and Production's own break holds through "ends by" and a backward
+# placement (D1, D2), and a custom Days phase with its own break is placed back the same way (F1). Typed notes stay on
+# their weeks and the line counts them (A5, the owner-approved default). Red on 2089aa5 at A1-A5 B1 C1 C2 D1 D2 F1. On
+# buildcarry.sptcal (the audit's audit-b2-mov.sptcal + three Post-keyed stores).
+# buildendsby (audit AUD2-010, same item) is Build Around's "Production ends by" with Snap to Mon on: the LATEST MONDAY
+# whose wrap is on or before the date. Red on 2089aa5 at B0 (12/18/26: 8/10/26 wrapping 12/2/26 for 8/24/26 wrapping
+# 12/16/26) and B1 (12/17/27), the two targets just before the Christmas break; snap off stays to the day (S0, S1).
+# panelstale (audit AUD2-049, the Nov 2026 audit's item 3.2, 14 Nov 2026) is a tool panel left open while the calendar
+# changes under it: a date typed into Build Around or Shift's To a date stays through edits underneath and is the date
+# built / landed on (A1-A4, D1, D2); a new pin, the other edge and reopening refill it as before (A5-A7); a phase dated
+# while Shift is open with every phase ticked comes in ticked, so 1 wk later is still the whole-calendar move (B1-B3),
+# and a hand-picked set keeps it out (B4). Red on audit-2-2's build (894ae9f1) at A1-A4 D1 D2 B1-B3.
+# builddates (audit AUD2-068, same item) is Build Around placing a custom phase given by DATES: it keeps its number of
+# weekdays, so a Mon-Fri phase built before the pin is Mon-Fri ending the weekday before the next phase (B2), built after
+# it ends on a weekday (F2), and pinned itself "starts on" a Wednesday ends on a Tuesday and "ends by" lands on its date
+# (P1, P2). Red on 894ae9f1 at B2 (Wed-Sun), F2 (Tue-Sat), P1 (Wed-Sun), P2 (a Saturday start).
+# shiftbandline (audit AUD2-069, same item) is the Shift result line after a part move that carried an unlocked
+# all-phase hiatus (rule T2, kept): it says the hiatus moved and names each unticked phase whose dates it changed, in
+# the owner's pushed / pulled words, and the "stayed" list keeps only the rest (L1-L4; To a date's Go line G1; After X
+# P1); a part move that carries no hiatus reads word for word as before (N1). Red on 894ae9f1 at L1-L4, G1 and P1.
+# seasonroll (audit AUD2-050, AUD2-051, the Nov 2026 audit's item 3.3, 14 Nov 2026) is a season rolled forward a year
+# (Shift, To a date Writer's Rm 1/4/27, and By weeks 52) with a locked summer break the user added: with every holiday
+# shown in the waterfall the new year's holidays come in shown (H1-H3, the Holidays list ticked, one Undo exact, Redo),
+# and so do a longer plan's (H4, U4); with one unticked, or none shown, nothing is written (N1, N2). The line says
+# "working weeks" (L1, L3; "weeks" when nothing stepped, L4) and names the held breaks the moved phases left (L2).
+# Red on audit-3-2's build (ef873c6d) at H1-H4, R1, L1-L3. On v1.13.0-saved.sptcal.
+# yearroll (audit AUD2-052, same item) is typed headings, a heading style, a dragged width and a hidden Notes column
+# against a whole-calendar move: By weeks 52 moves all of them a year with their columns (K1, K2) and back (K4); By
+# weeks 40, which changes the years and the blocks' shape, leaves them and the line says so (K5). Red on ef873c6d
+# at K1, K2, K5. A1-A2 (review repair) are Single Column ON with only the year-blocked layout's widths (colWidthsAlt):
+# By weeks 52 moves them a year (A1, already green), By weeks 40 leaves them and the line counts them as "column widths"
+# (A2, red on d021506: it said nothing).
+# anchorside (owner, 4 Nov 2026: "one master shift tool"; ANCHOR-TO-DIRECTION-PLAN.md §6, §7, §7.6) is the ONE Shift
+# tool that replaced Shift From and Anchor To. Since 9 Nov 2026 it is THE LIST FIRST (the owner's eight-point spec and
+# three corrections): no What moves buttons; a header strip with a select-all box (a minus when every phase is ticked)
+# and the count (O3, HD); a click on a row chooses it and leaves its tick, its box ticks, a drag sets a run and
+# dragging back un-does it (M1, D1-D4, K1); "Prior to X" / "After X" replace the ticks (P1); nothing covers the rows
+# (N1); To a date's box shows the outlined phase and offers ticked phases only (W1, J1). The ticks decide the move:
+# every phase is the old call (E1: the arrow, by weeks and to a date give one snapshot); the bottom of the list is the
+# old Shift From (F1); a phase goes by its START, so one that started earlier and runs into the picked one stays (X2,
+# the owner's "everything except for writers room"); notes, unlocked hiatuses and the range go up to the picked
+# phase's LAST week on Prior to (red on a one-bound build: B2, B3); any other set takes one window per ticked phase
+# (C2 the shared week, C4 across a gap: red on a one-span build); by weeks = to a date; one undo; the reset on
+# reopening; no id on anything new; no new key in fields.byId. On anchorside.sptcal.
+# phasearrows (owner, 4 Nov 2026, layout C2; PHASE-WEEK-ARROWS-PLAN.md) is the phase card's ▲ / ▼: one phase a
+# week, in the waterfall only. Its own hiatus and every "<week>|<key>" store travel; typed notes, all-phase hiatuses,
+# the range and the month view's place stay; an edited automatic note sheds its standard line; Production's marks land
+# where ← 1 wk puts them, bound for the whole burst (▼ ▲ is exact); snap-off, Ends and Dates phases; a burst is one
+# undo, ended by a pause or any other press; Alt+Up / Alt+Down; no id, no new key. On phasearrows.sptcal (anchorside +
+# Post's own hiatus, four Post-keyed stores, an edited "Start Principal Photography" note).
+# phasearrowsripple (owner, 11 Nov 2026) is the same arrows with Ripple Hiatus ON (the users' default): one click is one
+# WORKING week, so ▼ from the week before an all-phase hiatus lands the week after it and ▲ comes back (the locked
+# Summer Break, the two-week Christmas break, the unlocked Fall Break), the label counts calendar weeks ("Pushed 3
+# wks"), and no band moves. Red on the build before (R1, R4, R6 land inside the break). On phasearrows.sptcal.
+# rippleundo (audit AUD2-038, owner decision D2 = b, Nov 2026: "the edit and its push are one Undo") is Ripple Hiatus ON
+# (the users' default) and a hiatus edit with its push as ONE undo step, wherever the edit is made: the month view's band
+# drag answered Keep, the month day menu's Add hiatus (all phases, one phase) and Remove hiatus…, the waterfall's Add
+# hiatus, and the sidebar's Weeks (pushed inside the undo debounce), Starts (typed, banked by a pause, then Enter), × and
+# a phase's Hiatus switch. Each: one Cmd+Z = the calendar as saved before, byte for byte; Shift+Cmd+Z = the edit AND its
+# push; Cmd+Z again. All 18 undo / redo cases red on the build before (each needed a second Cmd+Z). On rippleundo.sptcal (the audit's synthetic
+# audit-gap-hiatus: Production 6/29/26, the unlocked Summer break 7/13/26).
+# mvdragcarry (owner, 4 Nov 2026, by picker; PHASE-WEEK-ARROWS-PLAN.md §5) is the month view's body drag on the arrows'
+# mover: a dragged phase carries its own hiatus and its "<week>|<key>" stores by the whole weeks its run moved, always
+# from the press (out and back is exact, a stale band label included), live while the button is down, as ONE undo step;
+# a row's drag = one ▼, snapshot for snapshot, for Post, Production (marks by shoot day) and an Ends phase. Red on
+# origin/main on every carry case, and on two mutants (carried step to step: O2/O3; by days, not the run's weeks: K1).
+# On mvdragcarry.sptcal (phasearrows.sptcal + one stale band label, 7/6/26).
+# stalebandkey (5 Nov 2026; PHASE-WEEK-ARROWS-PLAN.md §5b) is a plain-keyed band override on NO band (a label typed on a
+# band whose hiatus was later retyped): it stays on a one-phase move (Post ▼, Production ▲) and outside a part move's
+# windows (Shift From's cutoff, a ticked phase's run), moves on a whole-calendar shift and inside a window, and a
+# moving band's labels go with it every week, even one outside the window (a Dates phase's band). Red on origin/main
+# (N1 N2 F1 P1: the label yielded on Summer Break's week, its colour, size and styles landed on that band) and on the
+# "plain key stays outside the window" one-liner (P1). On stalebandkey.sptcal (phasearrows.sptcal + the stale stores,
+# a Dates phase and an unlocked two-week band).
+# shiftheld (owner, 5 Nov 2026, picker "Step over it"; stepOverHeld) is the Shift tool counting only the weeks a HELD
+# hiatus does not cover: Phase & after Pre Prep 4 wks earlier across a locked Christmas break that sat in Prod Prep
+# lands every phase where Build Around from the same date puts it (Production 6 wks, both handoffs back to back), notes
+# ride with their phase's week and one under the break stays, the line says "pulled 6 wks to step over a held hiatus",
+# the arrows (Production 3 wks over the break), a date inside the break (the week after), an Ends phase (its END is
+# mapped), All phases by weeks. Red on the old engine at L1 S1-S4 A1 H1 E1 W1 (the 2-week gap and the overlap).
+# On shiftheld.sptcal (synthetic, from anchorside.sptcal).
+# shiftwrapfollow (owner, 20 Nov 2026; SHIFT-WRAP-FOLLOW-PLAN.md, rulings R1-R7) is the phases tied to Production's
+# wrap keeping their distance from it when a move changes the shoot's length (Labor Day / July 3 on a 40-day shoot):
+# the arrows, the Shift form (Post or Production unticked), Production's own down arrow (no follow), a shoot that loses
+# a week (pulled), To a date "ends by" landing on or before the date, the hiatus ripple, one Undo each; the reference
+# calendar's own shift changes nothing. On T.buildFixture().
 # holidayrename (owner, 30 Oct 2026) is a holiday renamed rather than turned into a note: the month view's holiday
 # editor (its name alone, Enter saves, clear restores), one date only, its own month colour (frozen edit H1), no
 # waterfall note written, undo, the file's two new keys (holidayNames, holidayColors) and their repair, the written
@@ -1899,7 +2096,20 @@ done
 # autonoterename (owner, 30 Oct - 2 Nov 2026; AUTO-NOTE-RENAME-PLAN.md) is an automatic note renamed and kept automatic:
 # the month view's Auto Note editor, the rename reaching the waterfall, the workbook and the month PDF and following a
 # moved Production, its own month colour, a typed note carrying the line, the waterfall editor's rename and removal,
-# Delete Auto-Note, and the Delete key / paste on a cell holding a note and a holiday leaving no week blank.
+# Delete Auto-Note, and the Delete key / paste on a cell holding a note and a holiday leaving no week blank. Since
+# 4 Nov 2026 its deletes HIDE a note from the view they were made in (AUTO-NOTES-PER-VIEW-PLAN.md R4), and the button
+# reads Hide Auto-Note (owner).
+# autonoteview (owner, 2 Nov 2026; AUTO-NOTES-PER-VIEW-PLAN.md steps 2-4) is an automatic note shown in one view only,
+# on the same fixture: the card's Waterfall and Month boxes, each split reaching its own view's screen and exports only
+# (the Notes column narrowing with it), the save key autoNotesView (absent unsplit, byte-identical when ticked back,
+# hostile entries dropped, restored unconditionally), undo per tick, an opt-in kind, frozen edits N1 and N2 under a
+# typed waterfall note (red on a build without either), a shift over two typed weeks, the month editor's write-back,
+# and a delete in one view switching a note off when the other view already hides it.
+# wfnoteeditor (owner, 30 Oct + 4 Nov 2026; WATERFALL-NOTE-EDITOR-PLAN.md) is the waterfall's note editor naming what a
+# cell holds and hiding it: the headings (Auto Note / Holiday / Note), the Hide Auto-Note and Hide Holiday buttons and the
+# "In this cell" list, the Day picker and Show in month view shown only for typed lines, Hide acting at once with one undo
+# step (a typed line saved with it), Hide on a note the month view already hides switching it off, and a rename or a
+# removal sharing a save with an added line (D2; red on a build with the old count-based wfLineEdits).
 # simpostname (owner, 2 Nov 2026) is Simultaneous Post's own name: the id-less box in its settings, the name in the
 # waterfall, the month view (frozen edit S1 escapes it there: & < > " in the name broke the bar and the month PDF
 # writer), the month map, numbered weeks, the workbook and both PDFs; the file's new key simPostName (absent while
@@ -1920,19 +2130,205 @@ done
 # It runs twice: colswap-widened-reuse is the same calendar with Reuse Empty Columns ticked, as every new calendar
 # starts since 2 Nov 2026. There a refused "move into the free column" used to return before the per-week fallback,
 # so no knob came up to swap BACK (P3, and P4 after it).
+# Since 4 Nov 2026 it also holds the MARK on that fallback: when it would leave a phase in two columns (here Prod
+# Prep), the knob is amber (.is-partial), a dashed box covers exactly the cells that move, and the label says who
+# ends up split and why the whole column can't move (P1, P4); swapping back re-joins it and is not marked (P3); a
+# per-week selection made by hand never is (P5).
+# swapsplitreuse (owner, 4 Nov 2026, "Fix both") is the report behind that mark: with Reuse Empty Columns ticked, a
+# phase starting after every column is free took a column last used in an EARLIER year, gave its year an extra
+# column, and that column blocked Swap Column, so the fallback split Writers. Reuse's rule 3 now prefers a free
+# column already used in the phase's years. Red on the build before it on S1, S2 and S3.
 # simpostbeside (owner, 2 Nov 2026) holds frozen edit SP1: Simultaneous Post's column directly right of Production, reuse
 # on or off (the owner's two screenshots rebuilt), the workbook agreeing, Swap Column carrying Sim Post with Production,
 # an old file's dragged widths and typed heading moving with their columns on Load (`simPostBeside`), and the Sim Post
 # switch moving them too. Red on a build without SP1 (L1-L4, S2-S4, S6, W1, W2, T2).
+# layoutrules (LAYOUT-RULES.md §0, LAYOUT-BUILD-PLAN.md; owner's rulings 5 Nov 2026) holds the waterfall layout rules on
+# six STAMPED synthetic fixtures (tools/layout-study/fixtures.mjs): r3 Production goes left and the Sim Post lane takes
+# the freed column beside it; r6 the same-week competition for one free column (the shorter takes it, Post continues the
+# lane); r9 the same two columns on opposite sides in consecutive years (rule 9 through stintOrderFor); r7 a handoff left
+# of a running phase, a phase not following on placed right of everything running, a paused phase keeping its column,
+# Post -> Localization stacked; r13 and r17 the widths (rules 11-19, the frozen edit of piece 2); r20 and r20b rule 20
+# (owner, 5 Nov 2026: a column must earn its place; the give-way withdrawn 6 Nov 2026): Post starting in Production's
+# last week gets a third column beside the lane and Sim Post stays on every shoot week; a one-week phase's column does
+# not count toward the even share (frozen edit LR2); r13b rules 12, 13 and 15 as ruled on 6 Nov 2026 (frozen edit LR4:
+# the right spread uncapped, the lane reserved until the shoot ends); r3b rule 3 since 6 Nov 2026 (Production takes the
+# leftmost free column even with a phase running to its right); r21 rule 21 (owner, 6 Nov 2026: a run never shrinks): Post keeps its
+# two columns for the two weeks Localization runs beside it (frozen edit LR3). Each red on the build before the rules where its rule differs.
+# An UNSTAMPED calendar is every other leg of this gate: its placement and its widths are byte for byte what they were.
+# centrepullback (owner, 5 Nov 2026: "drag and select collumns and double click to unexpand them") holds the double-click
+# on the MIDDLE of an expanded cell, where the boundary between its columns runs and that boundary's column handle used
+# to take the double-click (the frozen autofit, a no-op), so pull-back worked only off the centre. Real pointer events
+# at real coordinates, on layout-r13's automatically widened cells: a marquee batch, one cell with nothing selected,
+# a three-column cell, one undo step each, a 1.4px drift that saved a width being put back, and the autofit kept on a
+# boundary that is a real cell edge. Red on the build before it at P2. P9 + P10 (owner, the same night: "it only pulled
+# back the cell my cursor was on"): a drag over only the expanded part of cells (no own column touched) selects them,
+# and a drag that does touch own columns keeps the 1 Sep own-column rule. P9 red on the live 854dbbe build.
+# phasefill (owner, 6 Nov 2026, "so theres no way to automate the fix in the background?"; FILL-INTENT-PLAN.md) holds the
+# double-click's new meaning on a stamped calendar: the WISH on the phase ("fills its free space", frozen edit LR5),
+# re-applied on every redraw -- two wide for five weeks and one beside Production in the sixth, narrowing on its own
+# when Production moves earlier, off again on the next double-click, one undo step each, saved as phaseFill (absent
+# when none) with no new field id, restored on Load and cleared by New; the unstamped double-click keeps its per-cell
+# meaning. Red on the build before it at F2.
+# colsreset (owner, 6 Nov 2026, "will there be a way to reset back to default algorithm?" -> "Add it") holds the header's
+# Reset Columns: one click empties every column store (wishes, cell and column widths in both layouts, both swaps, hand
+# moves) and keeps notes, row heights and the stamp; Pre-Prep is automatic again; the button greys; a grey click adds no
+# undo step; the Month view hides it. Red on the build before it at R1.
+# swapholds (owner, 6 Nov 2026, "if you swap a column then move one of those column up, it should maintain the position
+# its in") holds the block swap as an ORDER: an old side-less swap opens as it did and is written down with its sides, the
+# moved phase keeps its side through five ▲ clicks (the old exchange flipped back the week it started first) and a typed
+# date, a fresh knob swap records its sides and holds through ▼, undo is one step. Red on the build before at H2/H3.
+# stickycols (owner, 6 Nov 2026, "its not just about production i dont like how it does this for any phase"; STICKY-COLUMNS-PLAN.md,
+# rulings K1-K4) holds the moved phase's kept column: Test nudged through the week it and Production start together
+# stays right (the rules alone put it left), Production nudged into Test's week stays left (the reservation), a move
+# into an overlap goes where the rules say and comes home when nudged back, undo / redo carry the memory, Reset Columns
+# and New clear it, Load restores it and remembers nothing on the way in, and a date typed through invalid years still
+# reads as a move. Red on the build before it at K1, K3, K6 and K8.
+# keepcols (audit AUD2-057, the Nov 2026 audit's item 3.8, 14 Nov 2026) holds what "a phase you move" means and the give-way:
+# on keepcols-heavy (the audit's ten-phase calendar, typed into the app, so the file remembers a column for eight phases)
+# the columns after a typed length, a whole-calendar Shift and one phase's arrow are the ones Reset Columns gives for the
+# same dates (every remembered column, a predecessor's too, gives way when it costs one); a length, a Shift of every
+# phase and a calendar typed in from New remember nothing; one phase's arrow or re-typed start remembers that phase; a
+# break that Ripple Hiatus pushes one phase across remembers nothing (the leg runs with Ripple Hiatus on). Red on
+# 2089aa5 at KC0-KC7; KC7 alone red without the ripple guard.
+# headingsfollow (audit AUD2-077, same item) holds typed column headings following their phase when the APP rearranges a
+# year's columns: Update layout on keepcols-heavy unstamped (2026 five columns to four, 2027 seven to five) and Reset
+# Columns on swap-holds. Every heading still drawn is over its own phase, one that had to go (its phase now shares a
+# column under another heading) is named in the one-line #heading-notice, one Undo restores all, and the saved file
+# holds no heading on a position that no longer exists. Red on 2089aa5 at H1, H2, H4 (A) and H1 (B). Review repair (same
+# day): only two TYPED headings landing on one column remove one (H5a: a heading over custom3 alone moves with no strip;
+# H5b: over custom3 and custom4, one is named), and a shareable copy exported with the strip up carries it hidden and
+# empty (H6). H5a, H5b, H6 red on 0afa1ca.
 # showfolder (owner, 4 Nov 2026, "I want to see where the file is saved") guards the file menu's right-click "Show in
 # folder…": the app's own menu opens on a loaded file, the Mac's file window is asked for with startIn = THAT file's
 # handle and Load…'s types, Cancel changes nothing, unsaved work is asked about only AFTER a pick, a pick loads, and a
 # shareable copy exported with the menu open does not carry it. Red without startIn (P) or without .fm-ctx in
 # buildSavedHtml's strip list (S). The real window cannot be driven headless; its user-activation rule was checked once
 # by hand with a real click (HANDOFF).
-for AFSPEC in pwagate:-:120 pwagatelogic:-:120 settingswin:-:240 \
+# backuplink + backuplinkstale (owner, 4 Nov 2026: reopening "loads the last calendar we were on but as an unsaved,
+# untitled duplicate") guard the crash recovery. Recovered work on a saved file goes back INTO that file (the file menu
+# names it, Save writes it with no picker), and a Save inside the backup's 3 s leaves no slot to offer (L4). The stale
+# leg: the file was saved elsewhere since the crash and the new window may not write it yet, so Save asks permission,
+# then asks before overwriting (the backup's stamp, not a fresh read). Both red on v1.10.0 except L1; L4 is red on
+# the fixed build with writeBackup()'s isDirty guard deleted.
+# savegone + launchtemp (audit AUD2-039 / AUD2-017, the Nov 2026 audit's item 2.6, 13 Nov 2026). savegone: the linked
+# file vanishes (NotFoundError) or loses its write permission (NotAllowedError), and the user clicks Save as the status
+# line says: Save explains in plain words and offers Save As with the file's own name, never the raw browser error (G1,
+# P2); a gone file leaves Recents and is unlinked (G2-G4); permission is asked once on the Save click (P1); a gone
+# recent is taken off the list, a locked one is not (R1-R3). One 10-minute autosave tick, fast-forwarded. launchtemp: a
+# double-clicked (launchQueue) calendar raises the "opened from another app" strip once per load, the first Save still
+# writes back with no dialog, the strip goes on x / Load / New / Save As and travels hidden in a shareable copy, and a
+# purged attachment gets Save's Save As. Red on 2089aa5 at savegone G1 G2 and launchtemp L1. The review (14 Nov 2026)
+# added launchtemp L5b (the copy's strip text is emptied, so it never names the sender's file) and L9 (the strip's Save
+# As does nothing while a Save is in flight), both red on the reviewed build.
+# hoverexpand (owner, 6-10 Nov 2026: "draw a square around them on hover and ask Expand?", "It also needs the reverse to
+# unexpand"; FILL-INTENT-PLAN.md §11) rests a real pointermove on hover-expand.sptcal's blanks: one dashed box over the
+# run, "Expand?" in its centre, the click widening THOSE weeks only (the owner's "it also expanded test wk 1": Test wk 1
+# stays one wide), "Pull back?" clearing a run of per-cell widths or turning a fill wish off, one undo step each, and the
+# chip keeping 4px clear of the Swap Column button on a column's top cell ("ok except when these buttons collide").
+# Never with cells highlighted, in the Month view or on an unstamped calendar. H4 red on the build before the step-aside.
+# swapbtnwhere (owner, 10 Nov 2026, a screenshot of Swap Column on Production beside Sim Post: "it shouldn't show up
+# anywhere it doesnt make sense", e.g. "only one collumn for a phase's entire span") hovers every kind of block on
+# swapbtn-simpost-shared.sptcal: Writer's Rm alone in its column, Production beside Sim Post with only Notes beyond, 2027's
+# lone Post (no button on any), Prep sharing two weeks with Design (button, and its click draws a knob), then Production's
+# block selected by hand (no knob: the old "Move Production into the free column" swapped Design and Prep instead).
+# W1, W2 and W5 red on the build before (stintOffers, followRunFor's Production step-over and follow-stays).
+# hoverhiatus (owner, 10 Nov 2026: "an entire phase, including its per phase hiatus should operate as one single block
+# where the expand box would span the length of the entire phase including the hiatus"; frozen edit LR8 by picker;
+# FILL-INTENT-PLAN.md §12) on hover-hiatus.sptcal (Test wk 8, Test Hiatus x2, Test wk 9, a blank on the left of each):
+# one box over all four weeks from beside the band or the week, Expand? widening the band weeks too, Pull back? from a
+# widened band, the double-click fill widening the bands (LR8) and the workbook merging them two wide, and the band
+# with its blank on the RIGHT. B4 red without LR8; B1-B5 red on the build before the hover change. B6 (11 Nov 2026:
+# "once i expand one side, the box no longer pops up on the other side empty space"): a blank each side, Expand? on the
+# left, then still offered on the right and the left kept; red on the build before (no chip).
+# newtab (owner, 5 Nov 2026: "when you click New the left bar should always be on the Show Info tab") clicks New from
+# the Phases tab three ways -- nothing unsaved, unsaved work ("Start new"), the Settings window open -- and expects Show
+# info each time, the window closed, and an undo history whose baseline holds Show. All four red without the fix.
+# lastedited (owner, 9 Nov 2026: the auto header's date is "the last time the calendar was edited ... anything that would
+# change if it was exported to pdf or excel", and a "Date Last Edited" token in the template builder). The fixture is
+# stamped 1 Oct 2026: both headers and Excel's &L read it; a view switch, a sidebar tab and the add-a-holiday box do not
+# count; an edit reads today and Undo / Redo / the title typed back bring their own dates; Save As writes the stamp; a file
+# with no stamp reads its file time (openViaFakePicker's opts.mtime); the builder's group and live values; Template
+# mode's Default; scenario tabs; New. Red on any build before it (L1 reads today).
+# N2 (10 Nov 2026): New, one edit, Undo logs no "value ignored" warning and leaves the saved file with no stamp. Red on a
+# build without the guard in lastEditedForStep() (3e09ce9), where the undo step carried `lastEdited: null`.
+# viewclean (audit AUD2-022, the Nov 2026 audit's item 2.9, 13 Nov 2026; its default, owner-approved): switching
+# between the Waterfall and the Month view is not an unsaved change. A file just Loaded through the real picker stays
+# clean through a switch each way (no "Unsaved changes", no leave warning, no crash backup, Undo off: V1, V2) and a whole
+# 10-minute autosave tick after a switch writes nothing (A1); the view is still written by the next Save (S1) and, with
+# unsaved work, by the next autosave (D1, the control that autosave runs at all). Red on 2089aa5 at V1, V2, A1. 1500
+# virtual seconds: two autosave ticks.
+# holidayenable (11 Nov 2026, owner): the Holidays list shows Enable only where switching a holiday off moves a date
+# (Production, a Days phase, episode prep; or the holiday is already off), is one list in date order, and marks the
+# holidays inside a phase that counts days with a strip in its colours ("Prod" when one row tall); a Production holiday
+# marked Work this day reads "Marked Working Day". Two runs: anchorside (Production) and customunits (Days phases).
+# epcount (audit item 2.1, AUD2-008, 13 Nov 2026): Number of Episodes and Number of Blocks apply when the box is left or
+# Enter is pressed, never per keystroke. Typed one key at a time into the focused box on blocks.sptcal: 12 over 10 keeps
+# every block's episodes (B), 10 blocks over 5 keeps Block 3's typed 13 days (B4), and in Episodes mode (reloaded with a
+# renamed Pilot, a 7.5-day episode, prep days and a re-ordered shoot) every edit, id and the order survive with 96.5 days
+# (E2); a real lowering still warns and Undo / Redo take the line down (E4-E6); a Save mid-typing writes the calendar on
+# screen (E7); arrow keys apply on leave (E8). Red on the build before it (B1, B2, B4, E1, E2, E4, E7, E8).
+# notesreset (audit item 3.5, AUD2-054 + AUD2-070, 14 Nov 2026): Reset Waterfall Notes and Reset Month Notes ask first
+# (one danger question naming how many notes go; ⌘Z inert under it; Cancel changes nothing; Reset then one Undo), ask
+# nothing and change nothing when there is nothing to clear (Q0, W6, M5), and each clears the linked notes its own view
+# shows: a month-only linked note ("Crew BBQ", sheetHidden) survives the waterfall's reset (W4) and goes with the
+# month's (M2). On the reference calendar (T.buildFixture, live). Red on 2089aa5 at Q0 W1 W2 W3 W4 M1 M2 M4.
+# hostile runs twice (13 Nov 2026, audit item 1.3): from xss-mixed, and from xss-proto, whose start is the shareable-copy
+# path for the xss-proto* files (S0). Both runs load every xss-* file through File > Load.
+# prefsguard (audit item 3.13, AUD2-078, 14 Nov 2026): one bad saved preference never leaves the app a blank window. Three
+# loads of one page: a store holding one good header preset among damaged ones (an object name, a number name, a number
+# id, a string, null, an impostor of Default, a duplicate id, a preset with no usable header) and four wrong-typed values
+# boots with its chrome (G1), lists Default, "Unnamed preset", "12345" and the good one (G2), still applies the good one
+# (G3), and repairs the store at the next preference written, keeping a key this build does not know (G4); then a chrome
+# that fails while drawing (a test trap on React's own <option>) shows "SPTCal could not start" and an id-less Reset
+# preferences button (F1), which clears the preferences and boots the full chrome (F2). All seven red on the build
+# before (a blank window, 101 characters, React error #31).
+# sharecopyguard (audit item 3.13, a shareable-copy hardening fix, 14 Nov 2026), on show-a opened through its inline
+# saved-state block as a shareable copy opens itself: a page keeps a backup of unsaved work only while it has some. Load
+# another calendar over unsaved work (answered Load) leaves no slot (C1), and a page with nothing unsaved that closes
+# (pagehide) leaves none (C2); unsaved work is still backed up and kept through a close (K1, K2), and Save still drops it
+# (C3). C1 and C2 red on the build before.
+# ⭐ ADDED 16 Nov 2026 for v1.15.0, the November audit's items built as "try first" and wired at the release (each leg's
+# own header has its cases; README's entry for the item has the rest). One page load each, no query:
+# notelook (layout A2 of the note editors, on autonoterename): heading, one list, Save button, 18 swatches, no id; 10 of 12
+#   red before. monthpick (2.11, AUD2-026): the month Export PDF's All / This month / Range dialog; All byte-identical to
+#   gate 13's reference; red before (no dialog, 16 pages with July on screen).
+# backupdecline, backuplive, launchrecover, backupblocked, backupswept (3.7, AUD2-056/074/075/076): the recovery
+#   question names its day and stops after two No's, a live window's backup is never offered, a double-clicked file's
+#   backup is asked about, a blocked store raises #storage-notice, a question swept away by another dialog is not a No;
+#   each red on the unfixed build (backupblocked's K3 was green on both).
+# dayfirst, dayfirstin (2.4, AUD2-012/066, D3 (a)): on DD/MM every date the app writes reads day first, and typed and
+#   pasted dates are read day first; 10 of 14 and 8 of 13 red before.
+# dayfirstwf (⭐ ADDED 16 Nov 2026, frozen edit D3, owner-approved by picker "Work on it now"): on DD/MM a typed waterfall
+#   line is placed by its day-first date by frozen notesForWaterfallDate itself (slashDateInWeek), where v1.15.0 had a
+#   stand-in (wfLinesOnDay): one line, three in a note, a month-first line beside a day-first one, a typed holiday line
+#   and its tint, re-dated by Production's start, by the month drag inside and across weeks (one Undo), and the
+#   month-first control. Green on v1.15.0 too (the stand-in); a mutant without the stand-in or D3 is red at T1-T3, H1,
+#   H2, R1-R4, M1.
+# swapnoop, swapwords, swapplain, weekswapholds, swapsharenotice (2.12, AUD2-027/028/041/042, D5 (b)): no move that
+#   changes nothing, plain refusals, a plain click + Alt+arrow, a part-column swap that holds when a phase moves, and a
+#   shareable copy without the purple strip; each red on 2089aa5's build at its new cases.
+# swapsingleshift, swapsingleyears, swapnewphase, swapsingleorders (3.9, AUD2-058/059): Single Column Mode keeps every
+#   year's swaps (screen, workbook, PDF) and a paused swap says so; red before at S1-S3 S5-S7, Y1 Y2 Y4 Y5, N1-N4 N7 N8,
+#   O2. (S6-S8 reach their first year by <- 1 wk: under v1.14.0's sticky columns a typed start is a remembered move.)
+# comparebreaks, exportnames (2.10, AUD2-023/024/025, on compare-send): Compare's All-phase hiatus row and "Baseline:"
+#   heading, and every export's name carrying the season, the Date Last Edited and the Version; red before at B1-B4 N1
+#   N2 N4 N5 and X1-X7. ⭐ exportnames RE-EXPECTED 16 Nov 2026 for the season beside the title (owner-approved frozen
+#   edits S1b / S2b, exportFileName: "Harbor Test S3 Planning Calendar 2026-10-01 v2 – Scenario A.pdf"), with X8 new
+#   (two seasons, "S3 & S4", ticked in the Season dropdown); 7 of 8 red on the v1.15.0 build (X6 has no season).
+#   ⭐ X9 / X10 ADDED 16 Nov 2026 (WIN-5, owner's picker "Cut long titles"): a 200-character title is cut to 150 at a
+#   word in the workbook's and the waterfall PDF's names (exportFileName cuts what frozen S1b / S2b hand it; X9 red
+#   without), and a 150-character title is kept whole.
+# whatsnew (owner, 19 Nov 2026): the update bar on a new build stamp (not only a new version; never on a rollback), and
+#   the What's New window: once per entry, quiet on a first-ever launch, the newest entry after the bar's Reload, BEFORE
+#   the "Recover unsaved work" question; the version label reopens it. 9 of 12 red on releases/v1.22.1.html.
+# firstrun (2.13, AUD2-030 to -033, WIN-2): recents on an empty start, Production's Season message, the File menu's
+#   keys and New, Help with nothing stale; 21 of 22 red before (H1 also caught a lost Help correction at the merge).
+# startrecents (owner, 16 Nov 2026, version 7 of mockups/start-recents.html): the recents on an empty start as two cards,
+#   the last calendar's own card and "Other recent calendars" with Load…, one file and none, names without .sptcal, the
+#   when-lines, a row's click loading it; 7 of 10 red on releases/v1.15.0.html (C1-C4, L2, O1, O0).
+for AFSPEC in pwagate:-:120 pwagatelogic:-:120 cfmove:-:180 whatsnew:-:240 settingswin:-:240 newtab:-:120 \
               interfonts:-:60 monthlayout:-:150 monthlayout:colswap-simpost-refuse:150 \
-              loadcarry:-:90 hiatusblank:hiatus-blank:90 hostile:xss-mixed:240 sharecopy2:-:90 loadfail:-:1500 \
+              loadcarry:-:90 hiatusblank:hiatus-blank:90 hostile:xss-mixed:240 hostile:xss-proto:240 sharecopy2:-:90 loadfail:-:1500 \
               snapoff:snapoff-sheet:60 snapoff:snapoff-onecol:60 snapoff:snapoff-friday:60 \
               rowheight:shift-stores:90 yearblock:-:90 caps:-:120 overrides:dayoverrides:150 \
               autonote:v1.3.0-saved:150 snaptools:dayoverrides:150 holidays2031:-:150 \
@@ -1945,24 +2341,32 @@ for AFSPEC in pwagate:-:120 pwagatelogic:-:120 settingswin:-:240 \
               numclamp:v1.4.0-saved:150 cmdprint:v1.4.0-saved:150 \
               noresetall:-:120 hdrcontrols:carry-rich:170 noswapbtns:colswap-gesture:60 \
               colswappartial:colswap-widened:120 colswappartial:colswap-widened-reuse:120 \
+              swapsplitreuse:swapsplit-reuse:120 \
               hdrrow:-:400 \
               regionmirror:-:150 \
               datepick:-:150 \
+              phiatuspick:-:200 \
               snapbox:-:300 \
               twodigityear:-:300 \
               endsdate:-:400 \
               prodends:-:400 \
+              finishbefore:-:300 \
+              noteplushover:-:120 \
+              weekprompt:-:200 \
               spancounts:-:300 \
               retiredplaces:-:300 \
               caholidays:-:400 \
               mxholidays:-:300 \
-              papersize:-:500 \
+              holidayenable:anchorside:200 holidayenable:customunits:200 \
+              papersize:-:1000 \
               pdfdialog:-:500 \
               phasefold:-:300 \
               hiatusfold:-:300 \
               hiatuscolour:-:300 \
               hiatussidebar:-:300 \
               mvbarcard:-:300 \
+              backuplink:-:120 backuplinkstale:-:120 \
+              savegone:-:900 launchtemp:-:240 \
               filekeys:v1.4.2-saved:150 dlgkeys:-:240 undokeys:-:240 \
               launchopen:-:240 halfdays:-:150 halfmarks:dayoverrides-onhalf:150 \
               monthlayout:halfdays:150 monthlayout:halfmarks:150 \
@@ -1974,11 +2378,43 @@ for AFSPEC in pwagate:-:120 pwagatelogic:-:120 settingswin:-:240 \
               mvbarsize:mvnotes:900 mvbarsize:hiatus-blanklabel:900 \
               mvnotesize:mvnotes:900 mvnotesize:month-dense60:900 \
               hidewf:hidewf:400 \
+              snappicker:-:200 \
+              wfcorner:-:200 \
               rebuildticks:-:300 \
+              buildaround:-:600 \
+              anchorside:anchorside:400 \
+              buildalongside:anchorside:200 \
+              buildaroundfresh:-:120 \
+              buildcarry:buildcarry:600 \
+              buildendsby:-:900 \
+              panelstale:-:400 \
+              builddates:-:600 \
+              shiftbandline:-:400 \
+              seasonroll:v1.13.0-saved:400 \
+              yearroll:-:400 \
+              paneldrag:anchorside:300 \
+              phasearrows:phasearrows:400 \
+              phasearrowsripple:phasearrows:300 \
+              rippleundo:rippleundo:400 \
+              mvdragcarry:mvdragcarry:400 \
+              stalebandkey:stalebandkey:400 \
+              shiftheld:shiftheld:300 \
+              shiftwrapfollow:-:400 \
+              lastedited:lastedited:400 \
+              viewclean:-:1500 \
               wfnotecolors:wfkeys:400 \
               noteviews:wfkeys:500 \
+              phasenotes:phasenotes:900 \
+              phaselink:phasenotes:900 \
+              phaselook:phasenotes:600 \
+              phasekeys:phasenotes:900 \
+              phasemonth:phasenotes:900 \
+              notedates:phasenotes:900 \
+              notephase:phasenotes:900 \
               holidayrename:holidayrename:400 \
               autonoterename:autonoterename:500 \
+              autonoteview:autonoterename:500 \
+              wfnoteeditor:autonoterename:500 \
               simpostname:-:400 \
               simpostdays:-:300 \
               colswapcache:colswap-simpost-refuse:400 \
@@ -1987,7 +2423,35 @@ for AFSPEC in pwagate:-:120 pwagatelogic:-:120 settingswin:-:240 \
               monthmap:mvnotes:180 monthmap:colreuse:180 monthmap:offweek:180 \
               softlines:dayoverrides:300 softlines:halfmarks:300 \
               showfolder:-:300 \
-              phasesui:hidewf:1500; do
+              layoutrules:layout-r3:240 layoutrules:layout-r6:300 layoutrules:layout-r9:240 layoutrules:layout-r7:240 \
+              layoutrules:layout-r13:240 layoutrules:layout-r17:240 layoutrules:layout-r20:240 layoutrules:layout-r20b:240 layoutrules:layout-r21:240 layoutrules:layout-r13b:240 layoutrules:layout-r3b:240 layoutrules:layout-r2g:240 layoutrules:layout-r2h:300 layoutrules:layout-r22:240 layoutrules:layout-r22b:240 layoutrules:layout-r22c:240 \
+              layoutrules:layout-r23:300 layoutrules:layout-r23b:300 layoutrules:layout-r21b:240 layoutrules:layout-r3c:240 \
+              phasefill:fill-intent:400 \
+              colsreset:fill-intent:300 \
+              fillspace:layout-r13:300 lanefill:layout-r9:240 \
+              swapholds:swap-holds:400 \
+              stickycols:sticky-cols:400 \
+              keepcols:keepcols-heavy:600 headingsfollow:keepcols-heavy:600 headingsfollow:swap-holds:600 \
+              centrepullback:layout-r13:240 \
+              hoverexpand:hover-expand:300 \
+              swapbtnwhere:swapbtn-simpost-shared:120 \
+              hoverhiatus:hover-hiatus:400 \
+              comparehiatus:compare-hiatus:240 \
+              phasesui:hidewf:1500 \
+              epcount:blocks:300 \
+              notesreset:-:400 \
+              stylebarplace:fill-intent:300 \
+              prefsguard:-:200 sharecopyguard:show-a:200 \
+              notelook:autonoterename:300 monthpick:-:300 \
+              backupdecline:-:150 backuplive:-:120 launchrecover:-:180 backupblocked:-:150 backupswept:-:120 \
+              dayfirst:-:300 dayfirstin:-:300 dayfirstwf:-:300 \
+              swapnoop:swapnoop-three:200 swapnoop:swapnoop-alone:200 swapwords:swapnoop-three:200 swapwords:-:200 \
+              swapplain:colswap-gesture:200 weekswapholds:colswap-widened:400 weekswapholds:weekswap-apart:200 \
+              swapsharenotice:colswap-simpost-refuse:200 \
+              swapsingleshift:swap-holds:200 swapsingleyears:stintswap-chained:200 swapnewphase:swap-holds:300 \
+              swapsingleorders:swapsingle-orders:200 \
+              comparebreaks:compare-send:300 exportnames:compare-send:300 filenamelist:compare-send:300 \
+              firstrun:-:240 startrecents:-:240; do
   AFLEG="${AFSPEC%%:*}"; AFREST="${AFSPEC#*:}"; AFSTATE="${AFREST%%:*}"; AFSECS="${AFREST#*:}"
   [[ $AFSTATE == - ]] && AFSTATE=""
   HARNESS_PAGE="$PAGE" HARNESS_STATE="$AFSTATE" "$HERE/run.sh" "$AFLEG" "$AFSECS" >/dev/null 2>&1
@@ -2007,6 +2471,326 @@ if a.get('pass') is True:
     print('  PASS  '+label+': pass'); sys.exit(0)
 print('  FAIL  '+label+': '+json.dumps(a)[:300]); sys.exit(1)
 PYAF
+done
+
+# ---- recoverfail + loadsparse: a backup that cannot be applied, and a file that leaves fields out ---------------------
+# ⭐ ADDED 13 Nov 2026 (the second audit's AUD2-004 and AUD2-005, both data loss, both rare). Each run is one page load,
+# picked by HARNESS_QUERY, because each needs a FRESH window: recovery is offered once, at launch, and "loaded fresh"
+# means the first file a window loads.
+# recoverfail: Recover on a crash backup that cannot be applied -- one snapshot version ahead (newer), a parked scenario
+# tab holding no calendar (damaged), a good backup whose apply throws partway (throws) -- says so, KEEPS the backup, leaves
+# the file it names unlinked and untouched through an autosave tick (11 virtual minutes) and a Save click. `scen` is the
+# control: a good two-tab backup recovers into its file as before. On the build before the fix F1-F4 and F6 were red in
+# all three failing modes: no message, the slot deleted, and a blank 5,170-byte calendar written over the saved file.
+# loadsparse: one file B loaded fresh, then again after carry-heavy.sptcal with EVERY saved field on the page changed in
+# between; its fields, hiatus rows, phase lines and Save text must match to the byte. B is v1.13.0-saved without its
+# hiatus list (nohiatus), with a null one (badhiatus), without the six keys the load path used to restore only when
+# present (sixkeys), sparse-generated.sptcal's six field ids (sixids), a file naming no field at all (bare, which must
+# open as a new calendar's fields: the guard for a field added later with no default), and a two-tab file whose parked
+# tab is the six-id snapshot (scen). On the build before the fix B2 and B3 were red in every run (the first calendar's
+# CARRY-BREAK hiatus stayed and Production wrapped 11/3/26 for 10/20/26), and B1 wherever B names fewer ids than the page.
+# autonotefollow (⭐ ADDED 13 Nov 2026, the second audit's AUD2-001, -002 and -003, the owner's decision D1 (a)): the
+# automatic and holiday lines inside a Notes cell the user has typed in follow the calendar (followAutoNotes). One group
+# per page, so no group's typed notes reach another's weeks: g=a a start moved onto a typed week by the card arrow (the
+# line arrives; one Undo) and Labor Day ticked into the waterfall beside "Camera test" (arrives, and the month view keeps
+# it; unticked, it leaves); g=c the start typed later (it leaves "Cast arrives" on 6/29), away and back (exactly as
+# typed: never chained) and a holiday ticked in and out of an edited week; g=e the user's line ABOVE the start and wrap,
+# then the card arrow and Shift +1 wk (re-dated in place, no old date anywhere; one Undo); g=g the guards (a copy of a
+# milestone line in another week, and a plain note, are left alone). On the build before the fix A1, A2, B1, B2, C1, C2,
+# D0, E1, E2, E4, E5 and E6 were red. (g=m mints tests/fixtures/autonotefollow.sptcal; it is not a gate run.)
+# wfnotelines (⭐ ADDED 13 Nov 2026, the second audit's Batch 2 item 2.3: AUD2-011, AUD2-014, AUD2-015, their approved
+# defaults): in a Notes cell the lines that are not the user's own -- an automatic note's, a holiday's, a month note shown
+# in the waterfall, a note linked to a phase -- keep their own day. g=day the Day picker stamps the user's line, never
+# theirs (D1 the start, D2 a month note, D4 a cell of their lines only; D3 the typed-only control); g=link a linked line
+# renamed with a line added below it keeps its link (L1), and the Day beside it goes on the user's line (L2); g=link2 the
+# line added ABOVE (L3) and the control, unrelated lines typed in its place (L4); g=month a month line re-dated inside its
+# week moves its note (M1, one Undo M2), renamed with a line added renames it (M3), the plain rename control (M4); g=cut
+# Cut and Paste leaves month, automatic and holiday lines out of what lands (C1, C2, C4; C3 the typed-only control);
+# g=drag the drag moves a month note itself (R1, one Undo R2), re-dates the start's line into its new week (R3), and
+# leaves a holiday where it is (R4, R5). On the build before the fix D1, D2, D4, L1, L2, L3, M1, M3, C1, C2, C4, R1, R3,
+# R4 and R5 were red; the controls (D3, L0, L4, M2, M4, C3, R2) green on both. The review (14 Nov 2026) added g=drag R6
+# (a block dragged over itself lands its note BESIDE a holiday that stays, which stays shown), R6b and R7 (a holiday-only
+# cell in the block: no question); R6 and R7 red on the reviewed build.
+# mvkeys (⭐ ADDED 13 Nov 2026, the second audit's Batch 2 item 2.8: AUD2-021, AUD2-040, the owner's decision D6 (a)):
+# the Excel and Outlook keys on notes. g=pick a picked month note takes Delete and Backspace (one Undo), ⌘C (its colour
+# and month style travel as SPTCal's own data), ⌘X and ⌘V onto the day last clicked (a date naming its old day moves
+# with it); Delete deletes a Waterfall line and a note that stays with a phase as their editor's Delete Note does, and
+# leaves a holiday and a bar; the browser keeps ⌘C / ⌘V with no note picked, with the editor open, with the day off
+# screen and with a field focused. g=enter both note editors: Enter saves, Shift+Enter and Alt+Enter add a line (a day
+# note holds 3), Esc keeps changed text and only closes an unchanged or emptied note, an input method's Enter and the
+# opening Enter save nothing, Tab and Ctrl/Cmd+Enter still save, and a stray key that opened an editor then Esc leaves
+# the note as it was (M9, W6). On the build before the fix P1, P3-P6, P8-P10, P12, P13 (its ⌘C half) and P15, and M1,
+# M3, M4, M5, M9, W1, W2, W3, W5 (its save) and W6 were red; the controls (P0, P11, P14, M6, M7, M8, W4) green on both.
+# The review (14 Nov 2026) added P16-P18: a holiday or automatic note among the picks stays out of ⌘C / ⌘X (only typed
+# notes travel; a pick of only those copies nothing and says so); P16, P17, P18 red on the reviewed build.
+# The second review (14 Nov 2026) added P19 (a shareable copy exported while the grid's message chip shows carries no
+# .month-sel-chip) and P20 (leaving the month view and coming back inside the chip's 4.2 s does not redraw it); both red
+# on the reviewed build.
+# mvkeysreal.mjs, after this loop, is the same with TRUSTED keys.
+# ⭐ ADDED 14 Nov 2026, the second audit's item 3.6 (rare set-ups that printed a wrong or missing line), no query, on
+# T.buildFixture: rangeheld (AUD2-055) a calendar-year range whose end sits in the locked Christmas break comes back
+# exactly after the toolbar's +1 / -1 (the whole range stays where it is; R1, R2, C2 red before: 54 rows ending 1/4/27),
+# and never narrows or turns invalid however far it is pressed, by the arrows or the Shift form (W1, F1, W2: red on the
+# first fix, which held only the date in the break: 11/2/26 - 12/31/26 read 1/18/27 - 12/31/26 after nine presses);
+# snapoffbreak (AUD2-071) a Weeks phase with Snap to Mon off beside the break delivers its whole weeks, counted in days
+# (S1-S5 and X1 red before: Post 12/23 x 2 drew three cells in the grid and Excel), and a start inside the break moves
+# from its Monday under the step-over (R1); wropensbreak (AUD2-072) a Writer's Room typed into the break opens 1/4/27 in
+# the waterfall, Excel, the waterfall PDF, the month view and the header (W1-W6 red before: the note was lost and the
+# header read 12.21.26), while a snap-off room typed on a Saturday outside a break keeps its note beside its wk 1 (C2);
+# unlinkrange (AUD2-073) removing a custom phase whose linked note sits in a week a calendar range cuts away keeps that
+# week's "Start Principal Photography" (C2 red before).
+for RSSPEC in "recoverfail:mode=newer:900" "recoverfail:mode=damaged:900" "recoverfail:mode=throws:900" "recoverfail:mode=scen:120" \
+              "loadsparse:v=nohiatus:240" "loadsparse:v=badhiatus:240" "loadsparse:v=sixkeys:240" \
+              "loadsparse:v=sixids:240" "loadsparse:v=bare:240" "loadsparse:v=scen:240" \
+              "autonotefollow:g=a:240" "autonotefollow:g=c:240" "autonotefollow:g=e:240" "autonotefollow:g=g:240" \
+              "wfnotelines:g=day:300" "wfnotelines:g=link:300" "wfnotelines:g=link2:300" "wfnotelines:g=month:300" \
+              "wfnotelines:g=cut:300" "wfnotelines:g=drag:300" \
+              "mvkeys:g=pick:300" "mvkeys:g=enter:300" \
+              "rangeheld::400" "snapoffbreak::300" "wropensbreak::300" "unlinkrange::400"; do
+  RSLEG="${RSSPEC%%:*}"; RSREST="${RSSPEC#*:}"; RSQ="${RSREST%%:*}"; RSSECS="${RSREST#*:}"
+  rm -f "$HERE/$RSLEG.json"
+  HARNESS_PAGE="$PAGE" HARNESS_QUERY="$RSQ" "$HERE/run.sh" "$RSLEG" "$RSSECS" >/dev/null 2>&1
+  python3 - "$HERE/$RSLEG.json" "$RSLEG ($RSQ)" <<'PYRS' || FAIL=1
+import json,sys
+path, label = sys.argv[1], sys.argv[2]
+try: a=json.load(open(path))
+except Exception as e:
+    print('  FAIL  '+label+' produced no result: '+str(e)); sys.exit(1)
+cases = a.get('cases') or []
+bad = [c for c in cases if c.get('pass') is not True]
+for c in cases:
+    print(('  PASS  ' if c.get('pass') is True else '  FAIL  ')+label+' '+str(c.get('id'))+': '+str(c.get('title',''))[:110])
+if not cases: print('  FAIL  '+label+': no cases'); sys.exit(1)
+sys.exit(1 if bad else 0)
+PYRS
+done
+
+# ---- datetoday: the date picker's "today" is the user's LOCAL day, in four time zones ------------------------------
+# ⭐ ADDED 13 Nov 2026 (the second audit's AUD2-007, Batch 1 item 1.5). DatePop.jsx took today as the UTC date of the
+# instant, so from 16:00 Pacific (19:00 Eastern) it rang TOMORROW, a click on the ring entered it, and on a month's last
+# afternoon an empty date field opened on next month; Tokyo and Auckland mornings saw yesterday. Each run is its own page
+# load under its own TZ (a page cannot set its zone; Chrome inherits it), with the LOCAL wall clock faked by the leg from
+# the query. `tz=` names the zone the run expects, so a run whose TZ did not reach Chrome fails Z0 rather than testing
+# this machine's zone. la: Los Angeles 17:30 on Mon 30 Nov 2026 (a month's last afternoon); tokyo: Tokyo 08:00 on
+# Tue 1 Dec; ny: New York 20:30 on Thu 31 Dec (the year's last evening); noon: Los Angeles at 12:00, the control, where
+# the UTC and local dates agree. On the build before the fix T1-T3 were red in la, tokyo and ny, and noon was green.
+for DTSPEC in "la:America/Los_Angeles:2026-11-30T17:30" "tokyo:Asia/Tokyo:2026-12-01T08:00" \
+              "ny:America/New_York:2026-12-31T20:30" "noon:America/Los_Angeles:2026-11-30T12:00"; do
+  DTRUN="${DTSPEC%%:*}"; DTREST="${DTSPEC#*:}"; DTTZ="${DTREST%%:*}"; DTCLOCK="${DTREST#*:}"
+  rm -f "$HERE/datetoday.json"
+  ( export TZ="$DTTZ"
+    HARNESS_PAGE="$PAGE" HARNESS_QUERY="tz=$DTTZ&clock=$DTCLOCK" "$HERE/run.sh" datetoday 150 >/dev/null 2>&1 )
+  python3 - "$HERE/datetoday.json" "datetoday ($DTRUN)" <<'PYDT' || FAIL=1
+import json,sys
+path, label = sys.argv[1], sys.argv[2]
+try: a=json.load(open(path))
+except Exception as e:
+    print('  FAIL  '+label+' produced no result: '+str(e)); sys.exit(1)
+cases = a.get('cases') or []
+bad = [c for c in cases if c.get('pass') is not True]
+for c in cases:
+    print(('  PASS  ' if c.get('pass') is True else '  FAIL  ')+label+' '+str(c.get('id'))+': '+str(c.get('title',''))[:110])
+if not cases: print('  FAIL  '+label+': no cases'); sys.exit(1)
+sys.exit(1 if bad else 0)
+PYDT
+done
+
+
+# ---- mvkeysreal: the keys of item 2.8 above (mvkeys), with TRUSTED input -----------------------------------------------
+# ⭐ ADDED 13 Nov 2026 (AUD2-021, AUD2-040, D6 (a)). wfkeysreal.mjs's month twin: CDP's Input domain, the editing commands
+# sent with ⌘C / ⌘V as a key binding sends them, and Enter sent CARRYING its text, so a key the app did not cancel
+# leaves its line break in the box. On mvkeys.sptcal: R1 a real click picks a month note, real Delete, one real ⌘Z;
+# R2 real Backspace; R3 real ⌘C, a click on another day's note, real ⌘V (amber, bold, italic arrive); R4 the same after
+# a reload, through Chrome's clipboard; R5 a click on a day's number (its day menu takes focus), real ⌘V lands there and
+# closes the menu; R6 the month editor's real Shift+Enter, Alt+Enter and Enter (one line break each, saved); R7 its real
+# Esc keeps a new note; R8 the waterfall editor's. All eight red on the build before the fix (R6 also showed Alt+Enter
+# inserting nothing natively).
+node "$HERE/mvkeysreal.mjs" --page "$PAGE" >/dev/null 2>&1
+python3 - "$HERE/mvkeysreal.json" "mvkeysreal (mvkeys)" <<'PYMR' || FAIL=1
+import json,sys
+path, label = sys.argv[1], sys.argv[2]
+try: a=json.load(open(path))
+except Exception as e:
+    print('  FAIL  '+label+' produced no result: '+str(e)); sys.exit(1)
+if a.get('EX'):
+    print('  FAIL  '+label+' threw: '+str(a['EX'])[:200]); sys.exit(1)
+cases = a.get('cases') or []
+for c in cases:
+    print(('  PASS  ' if c.get('pass') is True else '  FAIL  ')+label+' '+str(c.get('id'))+': '+str(c.get('title',''))[:110])
+sys.exit(0 if len(cases) >= 8 and all(c.get('pass') is True for c in cases) else 1)
+PYMR
+
+# ---- v1.15.0 audit items: legs that need a query or a window size, and three trusted-input drivers --------------------
+# ⭐ ADDED 16 Nov 2026 (the November audit's items 3.1, 2.14, 3.7 and 3.10, wired at the v1.15.0 release). A spec is
+# leg:state:query:window:secs, an empty field meaning none (a new calendar, no query, run.sh's 1600,1200 window).
+# textfit (3.1, AUD2-043 to -046, D4 (a), on the audit's synthetic textfit-shared / -dense / -heavy): g=small the month
+#   PDF names the months it prints below 6 pt before any Save dialog (S1-S4); g=date a waterfall line ending in a date
+#   prints its date at note sizes 12 and 14 (D1, D2); g=lines a fourth pasted line joins the third (L1-L3); g=screen
+#   frozen edit D1's acceptance check, every dated line whole on screen at 14 px (1600 and 1280 px windows) and 12 px
+#   (1100 px); g=wf frozen edit R4's, both Thanksgiving weeks' two holiday lines whole in a 23 px row; g=tick R4 on a
+#   new calendar with the two holidays ticked in, at once on screen, in the workbook and the waterfall PDF, and the PDF
+#   the same as after a fresh schedule (K1-K5). Red before: S1 S2, D1 at 12 and 14, L1 L2, V1, W1; g=tick 1/6 before
+#   the 16 Nov memo fix.
+# laptopfit (2.14, AUD2-034/035, WIN-4, on laptopstrips) at the three windows it is about (1280,800 = a 1080p laptop at
+#   150%; 1366,768; 1280,943 = the audit's 1280 x 800 page): the toolbar holds still between the views, one notice strip
+#   at a time on one line (T9, T10: all eleven strips, in priority order), the open tool panels fit; red before at
+#   T1-T8 (1280,800) and T4-T8 (1366,768), T9-T10 before the 16 Nov change. phasesmore (2.14, AUD2-036): hiatus cards
+#   open folded; and, since the owner removed 2.14's More options on 16 Nov 2026 ("get rid of the entire hiding menu"),
+#   every phase card shows every switch, on or off, with no More options line (M1, M5, M8; red on v1.15.0 at those).
+# ⭐ v1.16.0 (wave 4, wired at the release, 16 Nov 2026), the last six specs:
+# ripplemarks (audit 2.5's AUD2-016 + AUD2-037, the owner's D2 = b, on the synthetic ripplemarks.sptcal): with Ripple
+#   Hiatus on (the leg puts the users' default back over lib.js's off), editing a break leaves Production's day marks on
+#   their dates, the line under the hiatus says so and names each mark the edit puts under a break, a note typed inside
+#   the break stays on its date, and ONE Cmd+Z restores; a break before the shoot still carries the marks with their
+#   shoot days (C1, ruling R2). Red on 7e1d8b4 at 14 of 35 (every inside-the-break note case and every line case).
+# changessince (AUD2-103, idea I.3): File > "Changes since last save..." on changessince.sptcal loaded through the real
+#   Load (so no HARNESS_STATE: N0 is the window before anything is loaded): three edits listed in Compare's values and
+#   the owner's Pushed / Pulled words, Copy, Save moves the baseline, a value typed back lists nothing, a settings-only
+#   edit is one line, two scenarios each against their own saved values, and the file gains no key. Red before: no item.
+# oskeys (W.2: WIN-3, WIN-5, on halfdays), once per platform, faked before boot by os=: Help, the Undo / Redo hints, the
+#   Ripple Hiatus hint, Paste notes and the refused paste name Ctrl on Windows and Linux and the Mac glyphs on a Mac; New
+#   offers no key off a Mac (WIN-2); Load's first type takes .sptcal and .html; a 420-character title gives names under
+#   255. Red on 7e1d8b4: os=win at H1 H2 T1 T2 N1 O1 L1, os=mac at H1 H2 T1 N1 O1 L1.
+# autonoterename at 1584,1200 (W.1, WIN-1): Windows' page width, where S2 reproduced the Windows cut on this Mac before
+#   the fix; S5 holds the Windows column widths at either window. (The 1600 run is in the AFSPEC loop.)
+for V15SPEC in "textfit:textfit-shared:g=small::300" "textfit:textfit-dense:g=date&notesize=12::300" \
+               "textfit:textfit-dense:g=date&notesize=14::300" "textfit:textfit-shared:g=lines::120" \
+               "textfit:textfit-heavy:g=wf::60" "textfit:textfit-dense:g=screen&notesize=14::300" \
+               "textfit:textfit-dense:g=screen&notesize=14:1280,800:300" \
+               "textfit:textfit-dense:g=screen&notesize=12:1100,800:300" "textfit::g=tick::120" \
+               "laptopfit:laptopstrips::1280,800:300" "laptopfit:laptopstrips::1366,768:300" \
+               "laptopfit:laptopstrips::1280,943:300" "phasesmore::::300" "phasesmore:::1280,943:300" \
+               "ripplemarks:ripplemarks:::500" "changessince::::400" \
+               "oskeys:halfdays:os=win::240" "oskeys:halfdays:os=mac::240" "oskeys:halfdays:os=linux::240" \
+               "autonoterename:autonoterename::1584,1200:500"; do
+  V15LEG="${V15SPEC%%:*}"; V15R="${V15SPEC#*:}"
+  V15STATE="${V15R%%:*}"; V15R="${V15R#*:}"
+  V15Q="${V15R%%:*}"; V15R="${V15R#*:}"
+  V15WIN="${V15R%%:*}"; V15SECS="${V15R#*:}"
+  rm -f "$HERE/$V15LEG.json"
+  ( [[ -n $V15WIN ]] && export HARNESS_WINDOW="$V15WIN"
+    HARNESS_PAGE="$PAGE" HARNESS_STATE="$V15STATE" HARNESS_QUERY="$V15Q" "$HERE/run.sh" "$V15LEG" "$V15SECS" >/dev/null 2>&1 )
+  python3 - "$HERE/$V15LEG.json" "$V15LEG (${V15STATE:-new}${V15Q:+; $V15Q}${V15WIN:+; $V15WIN})" <<'PYV15' || FAIL=1
+import json,sys
+path, label = sys.argv[1], sys.argv[2]
+try: a=json.load(open(path))
+except Exception as e:
+    print('  FAIL  '+label+' produced no result: '+str(e)); sys.exit(1)
+cases = a.get('cases') or []
+bad = [c for c in cases if c.get('pass') is not True]
+for c in cases:
+    print(('  PASS  ' if c.get('pass') is True else '  FAIL  ')+label+' '+str(c.get('id'))+': '+str(c.get('title',''))[:110])
+if not cases: print('  FAIL  '+label+': no cases'); sys.exit(1)
+sys.exit(1 if bad else 0)
+PYV15
+done
+
+# ---- monthpage: the month view on screen is the month PDF's page (owner, 16 Nov 2026) --------------------------
+# The owner: the month view "needs to work like the waterfall calendar where it maintains consistent proportions despite
+# the window width or height ... as close as how it will appear when exported to pdf", then "phase bar size and note
+# size should also reflect the export exactly". On screen the month is one fixed card, the writer's page
+# (MVL_GEOMETRY: 1027.53 px wide, at least 788.03 px tall, a day column 141.07 px), its weeks sharing the page by the
+# writer's own rule (legacy.css "THE MONTH PAGE"; app.js fitMonthPage), bars and notes at their printed heights.
+# t/monthpage.js: G0 the card is the page in every month; P every week's height is the WRITTEN PDF's row within 0.1 px
+# on every month the PDF prints, a shrunk one too; T the factor on screen is the PDF's in every month (a shrunk month's
+# card one page); N a shrunk month's notes are in the PDF's boxes (lanes = the PDF's lines); K "Stay one page", a line
+# added to a shrunk month's week leaves the card one page. ⚠️ RE-PREMISED 17 Nov 2026 ("Shrink like the PDF",
+# MONTH-SHRINK-PLAN.md): until then T held a shrunk month full size in a taller card. The three shrink fixtures each
+# run with shrunk=1 (T, N and K must find their month); mutants red: SK1 off (N), the shrink CSS off (P, N, B), no
+# factor (T, P, G0), "Stay one page" off (K).
+# B printed bar and note heights; S no note symbol; Z the zoom scales the page only; X a line added to a week stays
+# inside it; V the fit's numbers are on #table-wrap in the month view only; E the empty state keeps the panel's width.
+# The second mvnotes run is a small window (1100 x 760): the same numbers. Red on the build before it at G0, P, B, S,
+# Z, X and V. Screen only: gate 13 (the written month PDF, byte for byte) is what holds the PDF itself still.
+for MPSPEC in "mvnotes:::300" "mvnotes::1100,760:300" "notewrap:::300" "monthscale:shrunk=1::300" \
+              "monthscale:shrunk=1:1100,760:300" "month-dense60:shrunk=1::300" "month-lanecap:shrunk=1::300" \
+              "mvbarsize-large:::300" "mvnotesize-mixed:::300" ":::90"; do
+  MPSTATE="${MPSPEC%%:*}"; MPR="${MPSPEC#*:}"
+  MPQ="${MPR%%:*}"; MPR="${MPR#*:}"
+  MPWIN="${MPR%%:*}"; MPSECS="${MPR#*:}"
+  rm -f "$HERE/monthpage.json"
+  ( [[ -n $MPWIN ]] && export HARNESS_WINDOW="$MPWIN"
+    HARNESS_PAGE="$PAGE" HARNESS_STATE="$MPSTATE" HARNESS_QUERY="$MPQ" "$HERE/run.sh" monthpage "$MPSECS" >/dev/null 2>&1 )
+  python3 - "$HERE/monthpage.json" "monthpage (${MPSTATE:-no calendar}${MPQ:+; $MPQ}${MPWIN:+; $MPWIN})" <<'PYMP' || FAIL=1
+import json,sys
+path, label = sys.argv[1], sys.argv[2]
+try: a=json.load(open(path))
+except Exception as e:
+    print('  FAIL  '+label+' produced no result: '+str(e)); sys.exit(1)
+cases = a.get('cases') or []
+bad = [c for c in cases if c.get('pass') is not True]
+for c in cases:
+    print(('  PASS  ' if c.get('pass') is True else '  FAIL  ')+label+' '+str(c.get('id'))+': '+str(c.get('title',''))[:110])
+if not cases: print('  FAIL  '+label+': no cases'); sys.exit(1)
+sys.exit(1 if bad else 0)
+PYMP
+done
+
+# ---- monthrowlimit: a day in the Month view holds 10 lines (owner, 17 Nov 2026; MONTH-ROW-LIMIT-PLAN.md) ---------
+# The owner, at a month where one week took most of the page: "there reall should be a max limit on how tall a calendar
+# row can be"; by picker, "Stop adding notes", "10 lines in a week", "No new notes until under", "Never refused",
+# "Short message by the day". A day that already reaches its 10th line (bars count) takes no new note added by hand in
+# the Month view; everything that arrives on its own still shows, and an edit is never refused.
+# t/monthrowlimit.js, three runs:
+#   g=doors   the standard calendar loaded as a file: L1 the "+", L2 a paste (none, then 1 of 3), L3 Paste notes… (a
+#             full day's row is an error; a day fills as the rows above land), L4 the note drag, L5 what is never
+#             refused (an edit that grows a note, a Waterfall note, a holiday), each with its controls; L2d a paste
+#             onto a full day scrolled out of view (200% zoom) still says so, at the top of the calendar, by date;
+#   g=over    month-lanecap (25 notes, 51 lines on one day): L6 it opens and draws them all, L6b that day refuses a note;
+#   g=shrunk  L7 the count is the FULL-SIZE one: a day showing 5 lines in a month shrunk to 26/64, 13 at full size, is full.
+# Red on the build before it (01dac2f) at L1 L2 L2b L3 L3b L4, L6b and L7 (and at L3c and L5, which only count what
+# the paste let onto the full day). Nine mutants, each red where it should be and green elsewhere: the limit at 99 (the
+# same cases as the build before); the check gone from the "+" (L1, L6b, L7), from the paste (L2 L2b), from Paste
+# notes… (L3 L3b), from the drag (L4); the count taken as the screen draws it (L7 alone: g=doors stays 16/16); an edit
+# refused (L5); Waterfall lines dropped from a full day (L5b L5c); notes past the 10th dropped on load (L6). A tenth,
+# the out-of-view message taken out again, is red at L2d alone (it says nothing).
+# Screen and stores only: the limit keeps a note out and changes no output, so gates 2, 3, 10 and 13 are what hold
+# the files still.
+for RLSPEC in "g=doors::400" "g=shrunk::400" "g=over:month-lanecap:300"; do
+  RLQ="${RLSPEC%%:*}"; RLR="${RLSPEC#*:}"; RLSTATE="${RLR%%:*}"; RLSECS="${RLR#*:}"
+  rm -f "$HERE/monthrowlimit.json"
+  HARNESS_PAGE="$PAGE" HARNESS_STATE="$RLSTATE" HARNESS_QUERY="$RLQ" "$HERE/run.sh" monthrowlimit "$RLSECS" >/dev/null 2>&1
+  python3 - "$HERE/monthrowlimit.json" "monthrowlimit (${RLSTATE:-new}; $RLQ)" <<'PYRL' || FAIL=1
+import json,sys
+path, label = sys.argv[1], sys.argv[2]
+try: a=json.load(open(path))
+except Exception as e:
+    print('  FAIL  '+label+' produced no result: '+str(e)); sys.exit(1)
+cases = a.get('cases') or []
+bad = [c for c in cases if c.get('pass') is not True]
+for c in cases:
+    print(('  PASS  ' if c.get('pass') is True else '  FAIL  ')+label+' '+str(c.get('id'))+': '+str(c.get('title',''))[:110])
+if not cases: print('  FAIL  '+label+': no cases'); sys.exit(1)
+sys.exit(1 if bad else 0)
+PYRL
+done
+
+# The three trusted-input drivers (real Chrome over CDP, as mvkeysreal.mjs above), each judged on its own minimum count:
+# backuptwowin.mjs (3.7, AUD2-074): TWO real windows of one profile with real IndexedDB and Web Locks: window B is never
+#   offered window A's live work, nor lists it (W1, W2); once A closes, B's file menu opened with a real Enter lists it
+#   (W3), a window C opened later is offered it (W4), and it survives (W5). Red before at W1, and W3, W5 before the review
+#   repair. dblclickdlg.mjs (3.10, AUD2-061): a real double-click on Export PDF, Compare and New leaves the window open
+#   (a click outside is ignored for 500 ms after a dialog or Help opens); red before at D2, D3, D5, D8, D11.
+#   hoverchipreal.mjs (3.10, AUD2-062): a real click at the centre of "Expand?" / "Pull back?" over a two-column blank
+#   reaches the chip, not the column handle under it, and the chip still goes under the sticky heading row; red before
+#   at C2, C3, C5, C6 (C7 red with the heading clip removed).
+for V15MJS in backuptwowin:5 dblclickdlg:14 hoverchipreal:8; do
+  V15M="${V15MJS%%:*}"; V15MIN="${V15MJS#*:}"
+  rm -f "$HERE/$V15M.json"
+  node "$HERE/$V15M.mjs" --page "$PAGE" >/dev/null 2>&1
+  python3 - "$HERE/$V15M.json" "$V15M" "$V15MIN" <<'PYV15M' || FAIL=1
+import json,sys
+path, label, need = sys.argv[1], sys.argv[2], int(sys.argv[3])
+try: a=json.load(open(path))
+except Exception as e:
+    print('  FAIL  '+label+' produced no result: '+str(e)); sys.exit(1)
+if a.get('EX'):
+    print('  FAIL  '+label+' threw: '+str(a['EX'])[:200]); sys.exit(1)
+cases = a.get('cases') or []
+for c in cases:
+    print(('  PASS  ' if c.get('pass') is True else '  FAIL  ')+label+' '+str(c.get('id'))+': '+str(c.get('title',''))[:110])
+sys.exit(0 if len(cases) >= need and all(c.get('pass') is True for c in cases) else 1)
+PYV15M
 done
 
 # ---- mvnotes' WRITTEN month PDF: the one-day custom pills wrap in the file users get (MONTH-NOTES-PLAN.md §6) ---------
@@ -2173,7 +2957,7 @@ PYMF
 # writer: monthemit, every box and text it draws to Chrome's print layout of the same calendar (E3 is what prints it);
 # monthwriter, its fit, a month that shrinks included; monthexport, the built app's file to the slice's. The calendar is
 # the sized fixture mvbarsize-large (minted from the mvbarsize leg's real Save, Large), or an existing one at a size by
-# ?barsize= (t/lib.js applyBarSizeQuery: the control's own radio). Mutants, each red (27 Oct 2026): the writer ignoring
+# ?barsize= (written into the fixture by srv.js since 18 Nov 2026). Mutants, each red (27 Oct 2026): the writer ignoring
 # the size (monthemit B0/T0/K0, monthexport X2); E3 removed (monthemit B0/T0/K0); MVL_BAR_SIZES' tag off by 1 px
 # (monthemit K0); the model wrapping at 10 px (monthemit X3, monthexport X2, the text check below); the export not
 # passing the size (monthexport X2, the text check).
@@ -2218,7 +3002,7 @@ PYBW
 # ---- NOTE SIZE and the 11 / 13 px bars in the month PDF (MONTH-NOTE-SIZE-PLAN.md step 3, 2 Nov 2026) --------------------
 # The same three legs on sized notes: mvnotesize-14 (the mvnotesize leg's real Save of mvnotes at 14 px) and
 # mvnotesize-mixed (made from it: a 12 px calendar, 13 px bars, one note at 14 px and one at 8), plus existing calendars at
-# a size by ?notesize= / ?barsize= (t/lib.js, through the dropdowns). monthemit holds every box and text to Chrome's print
+# a size by ?notesize= / ?barsize= (written into the fixture by srv.js since 18 Nov 2026, when bars and notes became one Size). monthemit holds every box and text to Chrome's print
 # layout (E3 clamps a sized note there), and checks every note's lanes against R2's rule (X4); monthwriter holds the fit,
 # month-dense60's shrunk August included; monthexport holds the built app's file to the slice's.
 # Mutants, each red (2 Nov 2026): a sized note given three lanes (monthemit X4); every size's line at 13 px (monthemit
@@ -2266,6 +3050,14 @@ done
 # N3, N4); the setter not redrawing (EX); a calendar size overriding a note's own (N2); the style bar not switching the
 # lane rules (N2); a 21 px bar at 11 px (N5); New keeping the size (N7). Removing markDirty() from the setter was ALSO
 # tried and stays green, because the redraw marks the file dirty by itself.
+# ⚠️ RE-PREMISED 17 Nov 2026 ("Shrink like the PDF", MONTH-SHRINK-PLAN.md): month-dense60's August is drawn on screen
+# at the PDF's factor (k = 49/64), so every rule is judged there at k (a bar (h - 2)k + 2, an empty lane 17k, type
+# times k; a 1 px border not scaled). Red on the shrink CSS switched off; k = 1 everywhere else, rules unchanged.
+# Beside it, re-premised the same day for the same build: monthlanes L16b reads 8/12's FULL-SIZE lanes from the
+# print document (on screen the shrunk month's notes take 51 lanes, never the old cap; red on the 60-lane cap put
+# back); monthexport X1 takes font-inter-600 out before the app boots (the first month drawn now decodes the
+# programs, and a decoded weight is cached); monthemit / monthwriter / monthlayout F0 let the month page reach exactly
+# the writer names its fit uses (red on an eighth name, and monthlayout on the month-view-only guard dropped).
 # ---- mvtextstyle on the writer and on older builds (MONTH-TEXT-STYLE-PLAN.md §6 item 2, §4) ------------------------
 # ⭐ ADDED 27 Oct 2026. monthemit holds the writer's display list to Chrome's print layout of the same document; here on
 # the styled fixture (tests/fixtures/mvtextstyle.sptcal: every month text kind styled at once, minted by the mvtextstyle
@@ -2313,10 +3105,14 @@ done
 #   mv    mvnotes (20 Oct 2026, MONTH-NOTES-PLAN.md): a printed edge month, No fill notes, one-day custom pills that wrap.
 #   hd/hm halfdays and halfmarks: switch days whose two Production bars meet half way through the square (16 Oct 2026,
 #         HALF-SQUARE-BARS-PLAN.md), the second with saved ½ marks inside those bars. A3 holds every inset box to Chrome.
+#   du/duh/dub  ⭐ ADDED 17 Nov 2026 (DOUBLE-UP-DAYS-PLAN.md R14, frozen edit DU1): double-ups joined flush to their
+#         episode's bar, a moved one, the last episode's beside its own last day (doubleups); with half days, and two in
+#         one week (doubleups-half); per block (doubleups-blocks). A3 holds every joined box to Chrome, square corners
+#         and lanes included (data-du-line / data-du-below re-packed by mvlPackLanes).
 MWA="/tmp/gate${GTAG}-mwa"; rm -rf "$MWA"; mkdir -p "$MWA"
 for MWSPEC in "t1:-:-:-" "t1z:Pacific/Kiritimati:-:-" "ms:-:-:monthscale" "md:-:-:month-dense60" "nw:-:-:notewrap" \
               "sr:-:-:stintswap-reshape" "sp:-:-:colswap-simpost-refuse" "win:-:1280,800:notewrap" "hd:-:-:halfdays" \
-              "hm:-:-:halfmarks" "mv:-:-:mvnotes"; do
+              "hm:-:-:halfmarks" "mv:-:-:mvnotes" "du:-:-:doubleups" "duh:-:-:doubleups-half" "dub:-:-:doubleups-blocks"; do
   MWRUN="${MWSPEC%%:*}"; MWREST="${MWSPEC#*:}"; MWTZ="${MWREST%%:*}"; MWREST="${MWREST#*:}"
   MWWIN="${MWREST%%:*}"; MWSTATE="${MWREST#*:}"
   [[ $MWTZ == - ]] && MWTZ=""; [[ $MWWIN == - ]] && MWWIN=""; [[ $MWSTATE == - ]] && MWSTATE=""
@@ -2369,8 +3165,13 @@ for n in a:
 nw, wn = files('nw'), files('win')
 docs = [json.load(open(os.path.join(root, r, 'monthwriter.json'))).get('info', {}).get('docHash') for r in ('nw', 'win')]
 same = 'monthwriter.notewrap.pdf' in nw and nw.get('monthwriter.notewrap.pdf') == wn.get('monthwriter.notewrap.pdf')
-chk(same and docs[0] and docs[1] and docs[0] != docs[1],
-    'monthwriter (notewrap): the writer\'s file byte-identical from a 1600 and a 1280 px window, while the print document differs (%s vs %s)'
+# ⚠️ RE-PREMISED 16 Nov 2026 (the month page). Until then the PRINT document differed between the two windows
+# (renderMonthView sized each note from the live day column, which followed the window), and this check required
+# that difference as its control: the writer's file was the same although its input was not. The on-screen month is
+# now the PDF's page at every window, so the day column, and with it the print document, no longer follows the
+# window: both must be the same now. (The monthpage leg holds the card's width; gate 10's README has the proof.)
+chk(same and docs[0] and docs[1] and docs[0] == docs[1],
+    'monthwriter (notewrap): the writer\'s file byte-identical from a 1600 and a 1280 px window, and the print document too since the month page (%s vs %s)'
     % (docs[0], docs[1]))
 sys.exit(1 if bad else 0)
 PYMWC
@@ -2401,7 +3202,7 @@ for MXSPEC in "r:-:-:-" "rz:Pacific/Kiritimati:-:-" "rw:-:1280,800:-" "b:-:-:blo
               "do:-:-:dayoverrides" "mh:-:-:mvheader" "ml:-:-:mvheaderlegacy" "bo:-:-:blocksoff" "oh:-:-:dayoverrides-onhalf" \
               "lc:-:-:month-lanecap" "hb:-:-:hiatus-blanklabel" "d6:-:-:month-dense60" "mn:-:-:monthnotes" "so:-:-:shootorder" \
               "nw:-:-:notewrap" "cr:-:-:carry-rich" "hd:-:-:halfdays" "nn:-:-:mvnotes" "bl:-:-:mvbarsize-large" \
-              "n4:-:-:mvnotesize-14" "nm:-:-:mvnotesize-mixed"; do
+              "n4:-:-:mvnotesize-14" "nm:-:-:mvnotesize-mixed" "du:-:-:doubleups"; do
   MXRUN="${MXSPEC%%:*}"; MXREST="${MXSPEC#*:}"; MXTZ="${MXREST%%:*}"; MXREST="${MXREST#*:}"
   MXWIN="${MXREST%%:*}"; MXSTATE="${MXREST#*:}"
   [[ $MXTZ == - ]] && MXTZ=""; [[ $MXWIN == - ]] && MXWIN=""; [[ $MXSTATE == - ]] && MXSTATE=""
@@ -2510,7 +3311,11 @@ PYBO13
 # above -- only the driver differs: rtleg.mjs runs the page on the REAL clock over CDP, because under
 # --virtual-time-budget a service worker's register() never settles (swscope, FIX-PLAN 4.2 /
 # SUPPLY-3: the boot clean-up unregisters only workers under the app's own path).
-for RTSPEC in swscope:-:90; do
+# scenlist (⭐ ADDED 16 Nov 2026, audit item 3.10, AUD2-060; on the synthetic scenlist-20): with 20 scenario tabs the cut
+# edge fades and an "All scenarios" list names every tab, the one on screen ticked; a pick switches and scrolls its tab
+# clear. Real time because the list is a Mantine Menu whose open transition waits on rAF, starved under run.sh's virtual
+# clock. Red before at L2 (no list button; 2,780 px of tabs in 860).
+for RTSPEC in swscope:-:90 scenlist:scenlist-20:120; do
   RTLEG="${RTSPEC%%:*}"; RTREST="${RTSPEC#*:}"; RTSTATE="${RTREST%%:*}"; RTSECS="${RTREST#*:}"
   [[ $RTSTATE == - ]] && RTSTATE=""
   HARNESS_PAGE="$PAGE" HARNESS_STATE="$RTSTATE" node "$HERE/rtleg.mjs" --leg "$RTLEG" --secs "$RTSECS" >/dev/null 2>&1
@@ -2527,6 +3332,29 @@ for c in cases:
     print(('  PASS  ' if c.get('pass') is True else '  FAIL  ')+label+' '+str(c.get('id'))+': '+str(c.get('title',''))[:110])
 sys.exit(0 if cases and all(c.get('pass') is True for c in cases) else 1)
 PYRT
+done
+# forcedcolors (⭐ ADDED 16 Nov 2026, frozen-surface edit FC1, audit item W.2 / WIN-5, owner's picker "Keep colours
+# (contrast)"): a Windows contrast theme, EMULATED over CDP by rtleg.mjs when the query holds forced=active (no page can
+# switch forced-colors on for itself), keeps the calendar's own fills in the waterfall (F1) and the month view (F3), and
+# deleting FC1's block lets the theme replace them (F2, F3: the emulation bites, and FC1 is what keeps them); the control
+# run (no emulation) proves the block changes nothing outside forced colours. F4: the block is fenced to the calendar
+# and its swatches. On the build before FC1 the forced run is red at B0, F1 (the theme's colours in all 72 cells), F3, F4.
+for FCQ in forced=active -; do
+  FCLABEL="forcedcolors (${FCQ/-/control})"; [[ $FCQ == - ]] && FCQ=""
+  HARNESS_PAGE="$PAGE" HARNESS_STATE="" node "$HERE/rtleg.mjs" --leg forcedcolors --secs 120 --query "$FCQ" >/dev/null 2>&1
+  python3 - "$HERE/forcedcolors.json" "$FCLABEL" <<'PYFC' || FAIL=1
+import json,sys
+path, label = sys.argv[1], sys.argv[2]
+try: a=json.load(open(path))
+except Exception as e:
+    print('  FAIL  '+label+' produced no result: '+str(e)); sys.exit(1)
+if a.get('EX'):
+    print('  FAIL  '+label+' threw: '+str(a['EX'])[:200]); sys.exit(1)
+cases = a.get('cases') or []
+for c in cases:
+    print(('  PASS  ' if c.get('pass') is True else '  FAIL  ')+label+' '+str(c.get('id'))+': '+str(c.get('title',''))[:110])
+sys.exit(0 if len(cases) >= 7 and all(c.get('pass') is True for c in cases) else 1)
+PYFC
 done
 
 # ---- printpaper (audit L-3, FIX-PLAN 3.5): the month PDF's PAPER is pinned to Letter -------------
@@ -2632,6 +3460,8 @@ PYPE
 # date rewritten (M4), a waterfall line into another week's waterfall note (M5), an auto-note moved a day (M6); a
 # holiday stays (M7); out and back (M8) and a drop off the grid (M10) bank nothing; no anchor on an untouched calendar
 # (M9). On the 23 Oct live build (d2ac914e) M1-M6 and M8 are red.
+# ⭐ GREW 11 Nov 2026: O9, the header's Reset Bar Order -- grey with no order, live after a grip drag, a real click puts
+# date order back and greys it, ONE Ctrl+Z brings the order back.
 node "$HERE/mvorder.mjs" --page "$PAGE" >/dev/null 2>&1
 python3 - "$HERE/mvorder.json" "mvorder (mvorder, mvorder-notes, mvorder-hostile, mvdrag)" <<'PYMO' || FAIL=1
 import json,sys
@@ -2646,6 +3476,28 @@ for c in cases:
     print(('  PASS  ' if c.get('pass') is True else '  FAIL  ')+label+' '+str(c.get('id'))+': '+str(c.get('title',''))[:110])
 sys.exit(0 if cases and all(c.get('pass') is True for c in cases) else 1)
 PYMO
+
+# ---- mvordersp: Simultaneous Post takes a place in the month view's order ---------------------------------
+# ⭐ ADDED 11 Nov 2026 (owner: "we should be able to reorder the position of phases including sim post, without sim post
+# having to stick to production"; frozen edit SO1, owner-approved by picker "Approve with that gate"). mvorder's
+# plumbing on colswap-simpost-refuse: Sim Post's grip (P1), dragged to the top in every week (P2), one undo (P3), saved
+# as "simpost" in mvPhaseOrder (P4), the WRITTEN month PDF stacks it the same way (P5), Back to date order (P6), between
+# two phases (P7), another phase's reorder leaves it at the bottom (P8), Escape (P9). Red on the build before SO1 (it
+# finds no Sim Post grip at all). ⛔ Gates 10 and 13 are what prove SO1 inert where Sim Post was never moved.
+node "$HERE/mvordersp.mjs" --page "$PAGE" >/dev/null 2>&1
+python3 - "$HERE/mvordersp.json" "mvordersp (colswap-simpost-refuse)" <<'PYMOS' || FAIL=1
+import json,sys
+path, label = sys.argv[1], sys.argv[2]
+try: a=json.load(open(path))
+except Exception as e:
+    print('  FAIL  '+label+' produced no result: '+str(e)); sys.exit(1)
+if a.get('EX'):
+    print('  FAIL  '+label+' threw: '+str(a['EX'])[:200]); sys.exit(1)
+cases = a.get('cases') or []
+for c in cases:
+    print(('  PASS  ' if c.get('pass') is True else '  FAIL  ')+label+' '+str(c.get('id'))+': '+str(c.get('title',''))[:110])
+sys.exit(0 if cases and all(c.get('pass') is True for c in cases) else 1)
+PYMOS
 
 # ---- hiatusdrag: move a hiatus, or change its first or last week, in the month view -----------------
 # ⭐ ADDED 19 Oct 2026 (HIATUS-DRAG-PLAN.md, owner rulings 1-4). phaseedge's sibling, for the same
@@ -2674,6 +3526,56 @@ for c in cases:
 sys.exit(0 if cases and all(c.get('pass') is True for c in cases) else 1)
 PYHD
 
+# ---- toolbarfit: the toolbar and the app shell at every window size (owner, 16 Nov 2026) -------------------------
+# The owner: the toolbar "only looks right on a normal sized laptop screen"; wide, it keeps its laptop size packed left
+# (the gap capped at 14 px); narrow, it FOLDS in five steps, always one line (useToolbarFit, PreviewToolbar.jsx); the
+# sidebar never stacks and the app stops shrinking at 960 px, a narrower window scrolling sideways (legacy.css, "The
+# app shell"; audit 3.12, AUD2-065). A Node script, not a t/ leg: the WINDOW changes width case by case
+# (Emulation.setDeviceMetricsOverride), and the More menu's rows open their menus on hover, which only CDP input is.
+# On sideboxes.sptcal, both views. stylebarplace holds the fold ladder by the row's width inside one window.
+rm -f "$HERE/toolbarfit.json"
+node "$HERE/toolbarfit.mjs" --page "$PAGE" >/dev/null 2>&1
+python3 - "$HERE/toolbarfit.json" "toolbarfit (sideboxes)" <<'PYTF' || FAIL=1
+import json,sys
+path, label = sys.argv[1], sys.argv[2]
+try: a=json.load(open(path))
+except Exception as e:
+    print('  FAIL  '+label+' produced no result: '+str(e)); sys.exit(1)
+if a.get('EX'):
+    print('  FAIL  '+label+' threw: '+str(a['EX'])[:200]); sys.exit(1)
+cases = a.get('cases') or []
+for c in cases:
+    print(('  PASS  ' if c.get('pass') is True else '  FAIL  ')+label+' '+str(c.get('id'))+': '+str(c.get('title',''))[:110])
+sys.exit(0 if cases and all(c.get('pass') is True for c in cases) else 1)
+PYTF
+
+# ---- hiatusripple: a hiatus change moves the phases after it (HIATUS-RIPPLE-PLAN.md) ------------------
+# ⭐ ADDED 4 Nov 2026 (owner: "editing a hiatus (either all phase or per phase) can automatically ripple the whole
+# calendar to adjust all the phases"; rulings R1-R5 by picker). A Node script for hiatusdrag's reason: the ripple runs
+# when an edit SETTLES (focus leaves the hiatus's Starts / Weeks, Enter, a pick in the date popover), never per
+# keystroke, and only CDP input is trusted input that moves focus as Tab and a click do. On hiatusripple.sptcal, ON by
+# default: the three copies of the switch, no id, no file key (R0); Weeks by the spinner, one push on Tab, the notes
+# and the locked/unlocked hiatuses (R1, R3); the edit and its push ONE undo step (R2, R3, R5, R11, S2: re-expected for
+# audit AUD2-038, owner decision D2 = b, Nov 2026; they were two steps until then); a move typed digit by digit through 0002 /
+# 0020 / 0202 (R4); Enter (R5); the x (R6); a phase starting inside the hiatus (R7); a phase's own hiatus, picked in
+# the popover, and switched off (R8); the switch off, on, and across reloads (R9); code writes (R10); the month drag,
+# Keep and Undo (R11, R12); the waterfall's right-click (R13). Red on origin/main (every case) and on six mutants, each
+# on its own cases. ⚠️ Every other leg runs with the switch OFF (lib.js; hiatusdrag.mjs by its own init script).
+node "$HERE/hiatusripple.mjs" --page "$PAGE" >/dev/null 2>&1
+python3 - "$HERE/hiatusripple.json" "hiatusripple (hiatusripple)" <<'PYHR' || FAIL=1
+import json,sys
+path, label = sys.argv[1], sys.argv[2]
+try: a=json.load(open(path))
+except Exception as e:
+    print('  FAIL  '+label+' produced no result: '+str(e)); sys.exit(1)
+if a.get('EX'):
+    print('  FAIL  '+label+' threw: '+str(a['EX'])[:200]); sys.exit(1)
+cases = a.get('cases') or []
+for c in cases:
+    print(('  PASS  ' if c.get('pass') is True else '  FAIL  ')+label+' '+str(c.get('id'))+': '+str(c.get('title',''))[:110])
+sys.exit(0 if cases and all(c.get('pass') is True for c in cases) else 1)
+PYHR
+
 # ---- cspproof (4.1, audit L-4): the app runs under its Content-Security-Policy, ZERO violations ----
 # ⭐ ADDED 30 Sep 2026. A Node script, because srv.js strips the policy on ?test= pages (it injects
 # unhashed legs), so no t/ leg can see it. This loads the page WITHOUT ?test=, installs a
@@ -2697,6 +3599,30 @@ for c in cases:
     print(('  PASS  ' if c.get('pass') is True else '  FAIL  ')+label+' '+str(c.get('id'))+': '+str(c.get('title',''))[:110])
 sys.exit(0 if cases and all(c.get('pass') is True for c in cases) else 1)
 PYCS
+
+# ---- excelretry (audit item 3.11, AUD2-064; owner's decision D7 (a), 13 Nov 2026): Export to Excel when its library is missing ----
+# ⭐ ADDED 14 Nov 2026. A Node script for cspproof's reason: the Excel library is a <script> tag parsed before any t/ leg
+# exists, so only the NETWORK can make it fail, and a retry must load under the real policy, which srv.js strips on ?test=
+# pages. CDP's Fetch domain refuses, holds or passes every request for it (HTTP cache off). F1/F2 refused, then the
+# network back: the click loads it again and says plainly what happened, and the NEXT click writes the workbook; L1 late:
+# the click waits (busy) and writes it itself; S1 a shareable copy taken while a retry is in flight carries one tag; L2
+# never arrives: "still downloading", no blame; O1 offline; C1/C2 Compare's workbook; V0 zero CSP violations, P0 the
+# positive control. Red on the build before it at F1, F2, L1, L2, O1, C1, C2 (one message blamed the network or IT at
+# once, also for a library only late, and no click ever fetched it again). Needs the internet, as Export to Excel does.
+node "$HERE/excelretry.mjs" --page "$PAGE" >/dev/null 2>&1
+python3 - "$HERE/excelretry.json" "excelretry" <<'PYER' || FAIL=1
+import json,sys
+path, label = sys.argv[1], sys.argv[2]
+try: a=json.load(open(path))
+except Exception as e:
+    print('  FAIL  '+label+' produced no result: '+str(e)); sys.exit(1)
+if a.get('EX'):
+    print('  FAIL  '+label+' threw: '+str(a['EX'])[:200]); sys.exit(1)
+cases = a.get('cases') or []
+for c in cases:
+    print(('  PASS  ' if c.get('pass') is True else '  FAIL  ')+label+' '+str(c.get('id'))+': '+str(c.get('title',''))[:110])
+sys.exit(0 if len(cases) >= 10 and all(c.get('pass') is True for c in cases) else 1)
+PYER
 
 # ---- customunits: a custom phase's length in Weeks, Days or Dates (CUSTOM-PHASE-UNITS-PLAN.md) -----
 # Two runs. LIVE builds the synthetic calendar through the UI and asserts what a user sees while
@@ -2862,6 +3788,54 @@ sys.exit(0 if a.get('pass') is True and a.get('checks') and not bad else 1)
 PYEP
 done
 
+# ---- doubleups: double-up days, a second crew's day on the next episode's shoot (DOUBLE-UP-DAYS-PLAN.md) ---------------
+# ⭐ ADDED 17 Nov 2026. Four runs. LIVE: the Double-ups card under Production, month view only, no id on any control;
+# none by default; the default − / + draws one per episode but the last (R5); back at none the calendar saves byte for
+# byte what it did; one undo per click. RESTORE (doubleups.sptcal): every double-up to the hand trace in the leg's
+# header; the flush join on the episode's line, the next episode on the line below (R6); Production's colour, darker,
+# following it (R7); the right-click menu, Put back, Rename…, Remove (R11); double-click to the card's row (R12); the
+# drag, refused before the shoot and on its own days, allowed on another episode's days and after wrap, put back on its
+# default days, one undo (R8, R9); Shift keeping a moved one on its shoot day (R10); Production untouched (R17); Save /
+# Load; the M-5 trap; a hostile file. BLOCKS (doubleups-blocks) and HALF (doubleups-half, R15 and two in one week).
+# ⭐ "MONTH VIEW ONLY" (R13) IS PROVEN HERE: RESTORE exports the workbook and the waterfall PDF with double-ups ON and
+# OFF, and every Excel part (bar core.xml's timestamp) and the PDF must be byte-identical. The month PDF (R14) is
+# monthwriter's du/duh/dub and monthexport's du, above; gates 10 and 13 hold frozen edit DU1 inert without them.
+for DUSTATE in "" doubleups doubleups-half doubleups-blocks; do
+  rm -f "$HERE/doubleups.json"
+  HARNESS_PAGE="$PAGE" HARNESS_STATE="$DUSTATE" "$HERE/run.sh" doubleups 600 >/dev/null 2>&1
+  python3 - "$HERE/doubleups.json" "doubleups (${DUSTATE:-live})" <<'PYDU' || FAIL=1
+import json,sys,base64,io,zipfile
+path, label = sys.argv[1], sys.argv[2]
+try: a=json.load(open(path))
+except Exception as e:
+    print('  FAIL  '+label+' produced no result: '+str(e)); sys.exit(1)
+if a.get('EX'):
+    print('  FAIL  '+label+' threw: '+str(a['EX'])[:200]); sys.exit(1)
+bad = 0
+for c in a.get('checks') or []:
+    print(('  PASS  ' if c.get('ok') else '  FAIL  ')+label+': '+str(c.get('what')))
+errs = (a.get('health') or {}).get('errors') or []
+print(('  PASS  ' if not errs else '  FAIL  ')+label+f': 0 console errors {errs[:2]}')
+if a.get('run') == 'restore':
+    def parts(b):
+        z = zipfile.ZipFile(io.BytesIO(base64.b64decode(b)))
+        return {n: z.read(n) for n in z.namelist()}
+    try:
+        xa, xb = parts(a['xlsxOn']), parts(a['xlsxOff'])
+        diff = [n for n in sorted(set(xa) | set(xb)) if n != 'docProps/core.xml' and xa.get(n) != xb.get(n)]
+        ok = not diff and len(xa) > 5 and b'Production' in xa.get('xl/sharedStrings.xml', b'')
+        print(('  PASS  ' if ok else '  FAIL  ')+label+f': ⭐ the workbook is byte-identical with double-ups on and off ({len(xa)} parts, core.xml excluded){" -- differ: "+str(diff[:4]) if diff else ""}')
+        bad = bad or not ok
+        pa, pb = base64.b64decode(a['pdfOn']), base64.b64decode(a['pdfOff'])
+        ok = pa == pb and len(pa) > 10000
+        print(('  PASS  ' if ok else '  FAIL  ')+label+f': ⭐ the waterfall PDF is byte-identical with double-ups on and off ({len(pa)} vs {len(pb)} bytes)')
+        bad = bad or not ok
+    except Exception as e:
+        print('  FAIL  '+label+': the on/off exports could not be compared: '+str(e)); bad = 1
+sys.exit(0 if a.get('pass') is True and a.get('checks') and not bad else 1)
+PYDU
+done
+
 # ---- offweek: a Production week with no shoot days reads and counts as a Production hiatus (OFF-WEEK-PLAN.md) --
 # Two runs. LIVE builds the synthetic calendar through the UI, marks every day off (and one Saturday worked)
 # through the month view's day popover, hit-tested, and mints tests/fixtures/offweek.sptcal from its real Save.
@@ -3002,7 +3976,8 @@ PYNC
 
 # ---- calzoom: the calendar zoom, bottom right in both views (owner, 20 Oct 2026) ------------------------------
 # CSS `zoom` on #table-wrap, one value per view, a per-machine preference. 100% writes nothing at all (no style,
-# no class), which is why every byte-compared gate above is untouched by it. The leg holds the control's place
+# no class), which is why every byte-compared gate above is untouched by it. (Since 16 Nov 2026 the month view's page fit
+# keeps --mvp-* on #table-wrap's style at every zoom, which is not the zoom's: Z4 and M5 read what is left without it.) The leg holds the control's place
 # beside the help button, the grid fit at four zooms, the frozen resize handles on their rows while zoomed and at
 # 100% (shown at every zoom since 22 Oct 2026; leg zoomresize below drags them), the selection and swap overlays on their cells, the month view as a pure magnification
 # (columns and note lanes unchanged), and that a zoom never dirties the file, adds an undo step or travels in a copy.
@@ -3019,6 +3994,24 @@ for c in a.get('checks') or []:
     print(('  PASS  ' if c.get('ok') else '  FAIL  ')+'calzoom: '+str(c.get('what'))[:170])
 sys.exit(0 if a.get('pass') is True and a.get('checks') else 1)
 PYCZ
+
+# ---- pinchzoom: pinch, Ctrl-scroll and the zoom keys zoom the calendar, never the app (owner, 18 Nov 2026) ---------
+# Wheel events with ctrlKey (a trackpad pinch, Ctrl + a mouse wheel) and Cmd/Ctrl + = / - are cancelled and become the
+# slider's own zoom, about the pointer; Cmd/Ctrl+0 resets the calendar and is left to Chrome too. app.js, "PINCH,
+# CTRL-SCROLL AND THE ZOOM KEYS".
+rm -f "$HERE/pinchzoom.json"
+HARNESS_PAGE="$PAGE" HARNESS_STATE=mvnotes "$HERE/run.sh" pinchzoom 300 >/dev/null 2>&1
+python3 - "$HERE/pinchzoom.json" <<'PYPZ' || FAIL=1
+import json,sys
+try: a=json.load(open(sys.argv[1]))
+except Exception as e:
+    print('  FAIL  pinchzoom produced no result: '+str(e)); sys.exit(1)
+if a.get('EX'):
+    print('  FAIL  pinchzoom threw: '+str(a['EX'])[:200])
+for c in a.get('checks') or []:
+    print(('  PASS  ' if c.get('ok') else '  FAIL  ')+'pinchzoom: '+str(c.get('what'))[:170])
+sys.exit(0 if a.get('pass') is True and a.get('checks') else 1)
+PYPZ
 
 # ---- zoomresize: the waterfall's resize handles at every zoom (owner, 22 Oct 2026) ------------------------------
 # Frozen edits Z1-Z6 (owner sign-off by picker) divide installGridResizers' and the drags' screen measurements by
@@ -3295,6 +4288,22 @@ errs = (a.get('health') or {}).get('errors') or []
 if errs: print('  FAIL  scenariofacts: page errors '+str(errs)[:200])
 sys.exit(0 if len(cases) >= 12 and all(c.get('pass') is True for c in cases) and not errs else 1)
 PYSF
+# ---- scenversion: each scenario tab shows its Version, and a copy is offered the next one (owner, 18-19 Nov 2026) ---
+# Layout C of mockups/scenario-version-layouts.html: a badge on every tab, "→ vN" on a fresh copy (also with its name box
+# open), a click on a badge brings it back, an edit drops it, the number is the highest on any tab + 1, no Version = no
+# badge, and the file gains no key. Red on v1.21.0 (no badge: V1).
+rm -f "$HERE/scenversion.json"
+HARNESS_PAGE="$PAGE" "$HERE/run.sh" scenversion 200 >/dev/null 2>&1
+python3 - "$HERE/scenversion.json" <<'PYSV' || FAIL=1
+import json,sys
+try: a=json.load(open(sys.argv[1]))
+except Exception as e:
+    print('  FAIL  scenversion produced no result: '+str(e)); sys.exit(1)
+cases = a.get('cases') or []
+for c in cases:
+    print(('  PASS  ' if c.get('pass') is True else '  FAIL  ')+'scenversion '+str(c.get('id'))+': '+str(c.get('title',''))[:120])
+sys.exit(0 if len(cases) >= 9 and all(c.get('pass') is True for c in cases) else 1)
+PYSV
 # ---- scenariocompat: OLDER builds meet a scenarios file (SCENARIOS-PLAN.md §3.2) ------------------------------------
 # v1.8.0 must refuse tests/fixtures/scenarios-3.sptcal whole ("saved by a newer version") and keep its calendar;
 # v1.2.0, which has no version check, must open the tab that was on screen (8 episodes), never a blank calendar.

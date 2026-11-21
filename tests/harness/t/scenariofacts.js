@@ -34,8 +34,8 @@ window.addEventListener('load', function () { (async function () {
   function panel(){ return document.querySelector('main.preview-panel'); }
   function space(){ return getComputedStyle(document.documentElement).getPropertyValue('--sc-band-space').trim(); }
   function margin(){ return getComputedStyle(panel()).marginBottom; }
-  function tab(name){ return [].slice.call(document.querySelectorAll('.sc-tab')).filter(function(t){ return t.textContent.trim() === name; })[0]; }
-  function current(){ var t = document.querySelector('.sc-tab.is-current'); return t ? t.textContent.trim() : null; }
+  function tab(name){ return [].slice.call(document.querySelectorAll('.sc-tab')).filter(function(t){ return (t.querySelector('.sc-tab-name') || t).textContent.trim() === name; })[0]; }
+  function current(){ var t = document.querySelector('.sc-tab.is-current'); return t ? (t.querySelector('.sc-tab-name') || t).textContent.trim() : null; }
   function key(k, shift){ document.dispatchEvent(new KeyboardEvent('keydown', {key: k, metaKey: true, shiftKey: !!shift, bubbles: true})); }
   function compareRow(label){
     var tr = [].slice.call(document.querySelectorAll('.compare-dlg tbody tr')).filter(function(r){ return r.children[0].innerText.trim() === label; })[0];
@@ -88,9 +88,11 @@ window.addEventListener('load', function () { (async function () {
     add('F3', 'each tile reads the tab on screen exactly as Compare\'s column for it does, its weeks in its own phase\'s tile',
       !!cLoc && tl.Location === cLoc[0] && tl.Location === 'Toronto' && tl.Episodes === cEps[0] &&
       !!cWr && wrTile(tl) === cWr[0].split(' ')[0] + ' · 12 wks' && tl.Production === cFirst[0] + ' · ' + cSpan[0] &&
-      tl.Wrap === cWrap[0] && Object.keys(tl).join('|') === 'Location|Episodes|' + Object.keys(tl)[2] + '|Production|Wrap',
+      tl.Wrap === cWrap[0] && tl.Version === 'v3' &&
+      // Version last (owner, 19 Nov 2026): scenarios-3 has v3 in every tab.
+      Object.keys(tl).join('|') === 'Location|Episodes|' + Object.keys(tl)[2] + '|Production|Wrap|Version',
       {band: bt, compare: {loc: cLoc, eps: cEps, wr: cWr, first: cFirst, span: cSpan, wrap: cWrap}},
-      'Location Toronto | Episodes 8 | Writer\'s Rm <its open> · 12 wks | Production <first> · <span> | Wrap <wrap>');
+      'Location Toronto | Episodes 8 | Writer\'s Rm <its open> · 12 wks | Production <first> · <span> | Wrap <wrap> | Version v3');
 
     // F4 -- dimmed means the same in every scenario: once the parked tabs are probed, the shared writers' room and
     // first shoot day are dimmed, the rest are not. A change in one tab undims it, and ⌘Z dims it again.
@@ -100,9 +102,9 @@ window.addEventListener('load', function () { (async function () {
     key('z'); await T.sleep(900);
     var d2 = dimmed();
     add('F4', 'a fact the same in every scenario is dimmed; changing it in one tab undims it, ⌘Z dims it again',
-      JSON.stringify(d0) === JSON.stringify(['1/5/26', '12 wks', '6/29/26']) && d1.indexOf('13 wks') < 0 && / · 13 wks$/.test(bt1 || '') &&
+      JSON.stringify(d0) === JSON.stringify(['1/5/26', '12 wks', '6/29/26', 'v3']) && d1.indexOf('13 wks') < 0 && / · 13 wks$/.test(bt1 || '') &&
       JSON.stringify(d2) === JSON.stringify(d0),
-      {before: d0, after: d1, band: bt1, undone: d2}, '[1/5/26, 12 wks, 6/29/26]; 13 wks not dimmed; back after ⌘Z');
+      {before: d0, after: d1, band: bt1, undone: d2}, '[1/5/26, 12 wks, 6/29/26, v3]; 13 wks not dimmed; back after ⌘Z');
 
     // F5 -- a flip shows the other tab's facts AT ONCE (not after the band's debounce), and is no edit.
     var statusBefore = (document.getElementById('save-status') || {}).textContent;

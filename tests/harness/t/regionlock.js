@@ -32,7 +32,8 @@
 //   R1  "Reset holidays" asks ONE dialog carrying the recompute sentence, and without the old "This
 //       only affects the Holidays section." line (untrue once Production's dates move); Cancel
 //   L3  the Month view's "Reset Month Notes" (the app header, since rulings 1 and 4 split the old
-//       "Reset Notes & Hiatus" by view) clears the day note, and then a Region change no longer asks
+//       "Reset Notes & Hiatus" by view) clears the day note, and then a Region change no longer asks. The reset
+//       asks first since 14 Nov 2026 (audit AUD2-054), answered Reset
 //   H3  with no note edits, adding a custom holiday does NOT ask -- the same rule as hv-en
 //   D3  with nothing to misplace, removing a custom holiday asks only today's plain confirm
 //   R2  with nothing to misplace, "Reset holidays" asks its plain question, still without the
@@ -133,6 +134,9 @@ window.addEventListener('load', function () { (async function () {
     await T.sleep(400);
     var ta = document.querySelector('#mv-note-pop textarea');
     if(!ta) throw new Error('the day-note editor did not open');
+    // A note of the DAY: a "+" opens Stays with on the day's first phase since 19 Nov 2026 (t/notephase.js).
+    var lk = document.querySelector('#mv-note-pop .note-link-select');
+    if(lk && lk.value){ lk.value = ''; lk.dispatchEvent(new Event('change', {bubbles: true})); }
     ta.value = 'Crew BBQ';
     ta.dispatchEvent(new Event('input', {bubbles: true}));
     ta.dispatchEvent(new KeyboardEvent('keydown', {key: 'Enter', ctrlKey: true, bubbles: true}));
@@ -215,13 +219,16 @@ window.addEventListener('load', function () { (async function () {
     var mr = document.getElementById('tb-notes-reset-btn');
     if(!mr || (mr.textContent || '').trim() !== 'Reset Month Notes') throw new Error('no "Reset Month Notes" in the app header (' + (mr ? mr.textContent : 'none') + ')');
     mr.click();
+    // It asks first since 14 Nov 2026 (audit AUD2-054): answered Reset (the notesreset leg holds the question).
+    var resetAsked = await waitModal(/Reset Month Notes/, 30);
+    T.clickModalButton('Reset');
     await T.sleep(900);
     var ask3 = await pickPlace('uk-london', null);
     var l3 = lock();
     await pickPlace('us-general', null);
     add('L3', 'the Month view\'s "Reset Month Notes" clears the day note, and then a Region change no longer asks',
-      !ask3 && l3.place === 'uk-london' && lock().place === 'us-general',
-      {asked: ask3.slice(0, 60), placeAfter: l3.place, back: lock().place}, 'no dialog; the change goes through');
+      !!resetAsked && !ask3 && l3.place === 'uk-london' && lock().place === 'us-general',
+      {resetAsked: resetAsked.slice(0, 80), asked: ask3.slice(0, 60), placeAfter: l3.place, back: lock().place}, 'the reset asked; then no dialog; the change goes through');
 
     // H3: with nothing to misplace, the Add button does not ask (hv-en's own rule).
     var n3 = customCount();

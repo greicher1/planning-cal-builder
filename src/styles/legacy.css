@@ -102,6 +102,9 @@
     border-radius:var(--mantine-radius-default);
   }
   .dp-nav:hover{ background:var(--mantine-color-gray-1); color:var(--mantine-color-gray-9); }
+  /* The arrows at a phase hiatus's first or last month (DatePop's hiatus window): nothing further to show. */
+  .dp-nav[aria-disabled]{ color:var(--mantine-color-gray-3); cursor:default; }
+  .dp-nav[aria-disabled]:hover{ background:transparent; color:var(--mantine-color-gray-3); }
   .dp-dow{ display:grid; grid-template-columns:repeat(7, 1fr); margin-bottom:2px; }
   .dp-dow span{
     text-align:center; font-size:var(--mantine-font-size-xxs); font-weight:600;
@@ -150,6 +153,13 @@
     font-size:var(--mantine-font-size-xxs); color:var(--mantine-color-gray-6);
     line-height:var(--mantine-line-height-xs);
   }
+  /* The Snap to Monday switch at the foot of a phase Starts picker (owner, 18 Nov 2026; DatePop's snapBoxOf), in the
+     hint's place and rule. A .sw-row like the card's, which no longer shows it (.phase-row .phase-snap below). */
+  .date-pop .dp-snap{
+    margin-top:var(--mantine-spacing-sm); padding:var(--mantine-spacing-sm) 0 0;
+    border-top:1px solid var(--mantine-color-gray-2); border-bottom:none;
+    font-size:var(--mantine-font-size-xs); color:var(--mantine-color-gray-8);
+  }
 
   /* ---------- Header brand (the Mantine-UI header lead) ---------- */
   /* Width-frugal on purpose: header height feeds --header-h (frozen .sheet-scroll reads it), so
@@ -168,7 +178,30 @@
     font-size:15px; font-weight:650; letter-spacing:-.01em;
     color:var(--mantine-color-gray-9); white-space:nowrap;
   }
+  /* The version under the name (owner, 18 Nov 2026; mockups/header-version-label.html). Name and version share the
+     mark's 30 px (17 + 13), so the header is exactly as tall as before and --header-h does not move. */
+  .app-brand-text{ display:flex; flex-direction:column; justify-content:center; height:30px; }
+  .app-brand-text .app-brand-name{ line-height:17px; }
+  .app-brand-ver{ font-size:11px; line-height:13px; font-weight:400; color:var(--mantine-color-gray-6);
+    white-space:nowrap; font-variant-numeric:tabular-nums; }
+  /* The version is a button that opens What's New (19 Nov 2026): the label's own box, nothing a button adds. */
+  button.app-brand-ver{ appearance:none; background:none; border:0; padding:0; margin:0; font-family:inherit;
+    text-align:left; cursor:pointer; }
+  button.app-brand-ver:hover{ color:var(--mantine-color-blue-7); text-decoration:underline; }
+  button.app-brand-ver:focus-visible{ outline:2px solid var(--mantine-color-blue-5); outline-offset:1px; border-radius:2px; }
+  /* What's New (WhatsNewDialog.jsx): a plain list, a blue dot before each change. */
+  .whatsnew-list{ list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:12px; }
+  .whatsnew-item{ position:relative; padding-left:16px; }
+  .whatsnew-item::before{ content:''; position:absolute; left:2px; top:7px; width:6px; height:6px; border-radius:50%;
+    background:var(--mantine-color-blue-6); }
+  .whatsnew-title{ line-height:1.35; }
+  .whatsnew-text{ line-height:1.45; margin-top:2px; }
   .app-toolbar-div{ width:1px; height:22px; background:var(--mantine-color-gray-3); flex:none; }
+  /* Fixed header slots (owner, 11 Nov 2026, Header.jsx): a view-dependent button is as wide as the wider of its two
+     labels. The real label and a hidden zero-height ghost of the other stack in one grid column; the ghost is ::after
+     content, so it is never textContent and never read aloud. Centred, so the shorter label sits mid-slot. */
+  .tb-slot-label{ display:inline-grid; justify-items:center; }
+  .tb-slot-label::after{ content:attr(data-ghost); visibility:hidden; height:0; overflow:hidden; }
   /* ---------- The header's responsive ladder (owner, round 6: "must work at different screen
      dimensions") ----------
      THE BUG THIS FIXES: nothing overflowed and nothing wrapped — the flex items SHRANK, so at
@@ -186,9 +219,18 @@
   /* Step 1 — the chip gives up room first: it is the widest single control and the least
      information-dense (the same name is in the menu it opens). */
   @media (max-width:1320px){ .file-menu-btn{ width:180px; } }
-  /* Step 2 — the brand NAME goes. The mark stays, so identity survives. (Was 1080; raised because
+  /* Step 2 — the brand NAME goes, and the version under it with it (owner's pick, 18 Nov 2026). The mark stays, so identity survives. (Was 1080; raised because
      the name is ~185px and giving it up early is cheaper than truncating a command.) */
-  @media (max-width:1200px){ .app-brand-name{ display:none; } .app-brand{ padding-right:16px; } }
+  @media (max-width:1200px){ .app-brand-text{ display:none; } .app-brand{ padding-right:16px; } }
+  /* Step 2a — Reset Columns (owner, 6 Nov 2026) runs icon-only, with its title= tooltip, a rung before the other
+     commands. Measured in the Waterfall view, its widest state: labelled it needs 128px, and the header then
+     overflowed by 25px at 1121px and 11px at 1201px (the status keeps an inline 78px minimum, so nothing gives way).
+     Icon-only up to 1280px, the narrowest spare room anywhere is 63px (1121px); labelled above it, 66px (1321px). */
+  @media (max-width:1280px){
+    .app-toolbar .btn-collapse-early .mantine-Button-label{ display:none; }
+    .app-toolbar .btn-collapse-early .mantine-Button-section{ margin:0; }
+    .app-toolbar .btn-collapse-early{ padding-left:9px; padding-right:9px; }
+  }
   /* Step 3 — the three secondary commands run icon-only. Save keeps its label (it carries the
      engine's "Saved ✓" flash confirmation) and so does the primary Export PDF; New, Save As and
      the secondary export drop to their icons with title= tooltips. */
@@ -249,6 +291,12 @@
      this is the one thing in the old .file-menu block that carried meaning rather than looks:
      which calendar is open. */
   .file-menu-item.active{ background:var(--edit-accent-bg); color:var(--edit-accent); font-weight:600; }
+  /* The file menu's "Unsaved work" (audit AUD2-056, 14 Nov 2026): kept crash backups, each its name over the day and
+     time it was written. Two short lines, so a long name ellipsis-cuts rather than wrapping the 280 px menu. */
+  .file-menu .fm-backup .fm-name, .file-menu .fm-backup .fm-when{ display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .file-menu .fm-backup .fm-when{ font-size:var(--mantine-font-size-xs); color:var(--mantine-color-dimmed); }
+  /* Several windows closed unsaved over time leave several: the section scrolls on its own, as .fm-list does. */
+  .fm-backups{ max-height:180px; overflow-y:auto; }
   /* The right-click menu on a loaded file (Header.jsx, "Show in folder…", 4 Nov 2026). Its label is the file's name,
      cut to one line: a long show title must not wrap the 240 px menu into a tall box. */
   .fm-ctx .fm-ctx-name{ overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
@@ -265,34 +313,76 @@
      has a newer version". Sharing the structural rules and varying only the hue keeps them
      reading as one family -- this app already has more warning looks than it should
      (HANDOFF §6), and a second strip built from scratch would have made that worse. */
-  #legacy-notice, #update-notice, #colswap-notice, #holiday-notice, #browser-notice, #calrange-notice{
+  #legacy-notice, #launch-notice, #update-notice, #colswap-notice, #holiday-notice, #browser-notice, #calrange-notice, #layout-notice, #heading-notice, #backup-notice, #storage-notice{
     display:flex; align-items:center; gap:9px; padding:8px 28px;
     border-bottom:1px solid; font-size:12px;
   }
   #legacy-notice{ background:#FEF6E7; border-bottom-color:#F0D9A8; color:#7A5B14; }
+  /* The double-click strip (audit item 2.6): the legacy strip's amber, because it too says something about this FILE
+     that the user would not otherwise know (Save writes back to a copy another app handed over). */
+  #launch-notice{ background:#FEF6E7; border-bottom-color:#F0D9A8; color:#7A5B14; }
   #update-notice{ background:#EDF4FD; border-bottom-color:#C3D9F2; color:#1B4A7A; }
-  #legacy-notice[hidden], #update-notice[hidden], #colswap-notice[hidden], #holiday-notice[hidden], #browser-notice[hidden], #calrange-notice[hidden]{ display:none; }
+  #legacy-notice[hidden], #launch-notice[hidden], #update-notice[hidden], #colswap-notice[hidden], #holiday-notice[hidden], #browser-notice[hidden], #calrange-notice[hidden], #layout-notice[hidden], #heading-notice[hidden], #backup-notice[hidden], #storage-notice[hidden]{ display:none; }
   /* A paused column order is a state to notice, not a failure: amber like the legacy strip
      rather than red, because nothing is broken and no data is at risk -- the override is still
      stored and resumes by itself when the schedule allows it again. */
   #colswap-notice{ background:#FBF3FF; border-bottom-color:#E0CCEF; color:#5F2E7E; }
-  #legacy-notice .ln-icon, #update-notice .ln-icon, #colswap-notice .ln-icon, #holiday-notice .ln-icon, #browser-notice .ln-icon, #calrange-notice .ln-icon{ font-size:13px; flex:none; }
-  #legacy-notice .ln-text,  #update-notice .ln-text, #colswap-notice .ln-text, #holiday-notice .ln-text, #browser-notice .ln-text, #calrange-notice .ln-text{ flex:1; min-width:0; }
-  #legacy-notice .ln-text strong, #update-notice .ln-text strong, #colswap-notice .ln-text strong, #holiday-notice .ln-text strong, #browser-notice .ln-text strong{ font-weight:600; }
-  #legacy-notice .ln-go, #update-notice .ln-go{
+  #legacy-notice .ln-icon, #launch-notice .ln-icon, #update-notice .ln-icon, #colswap-notice .ln-icon, #holiday-notice .ln-icon, #browser-notice .ln-icon, #calrange-notice .ln-icon, #layout-notice .ln-icon, #heading-notice .ln-icon, #backup-notice .ln-icon, #storage-notice .ln-icon{ font-size:13px; flex:none; }
+  #legacy-notice .ln-text, #launch-notice .ln-text, #update-notice .ln-text, #colswap-notice .ln-text, #holiday-notice .ln-text, #browser-notice .ln-text, #calrange-notice .ln-text, #layout-notice .ln-text, #heading-notice .ln-text, #backup-notice .ln-text, #storage-notice .ln-text{ flex:1; min-width:0; }
+  /* ⭐ ONE LINE, ONE STRIP, ONE VIEW (audit 2.14, AUD2-035). On a 1280 x 800 laptop two strips stacked over the month
+     view (the holiday list's three lines, then the column question) and left under two weeks of the month in view.
+     - ONE LINE: a strip's text never wraps. Where it is cut short, the engine adds Details after it (app.js, "THE
+       NOTICE STRIPS: ONE LINE EACH"), which opens the strip to its full text (.ln-open) and reads Less while open.
+     - ONE AT A TIME, in this document order: legacy, holiday, layout, update, colswap, calrange, browser. A strip
+       after one on show waits (display:none, never `hidden`, which is the engine's and means "not raised"), and
+       shows the moment the one before it is dismissed. Pure CSS off `hidden`, so the grid fit, which watches each
+       strip's `hidden`, sees the change in the same mutation.
+     - ⭐ THE FOUR NEWER STRIPS FOLLOW THE SAME RULE (owner's picker, 16 Nov 2026: "Yes, same rule"), and the document
+       order is their priority (index.html says why each sits where it does): backup, storage, legacy, launch,
+       holiday, layout, update, colswap, heading, calrange, browser. The two about work at risk come first; the
+       double-clicked-file strip sits beside the legacy strip, the removed-heading strip beside the column-order one.
+       A strip added later joins every list below, or it wraps and stacks over the others.
+     - THE COLUMN QUESTION IS THE WATERFALL'S: #layout-notice is about the waterfall's columns, so the month view never
+       shows it, and it does not hold a strip behind it there. It is still raised (not `hidden`) and is back on the
+       waterfall. */
+  #legacy-notice .ln-text, #launch-notice .ln-text, #update-notice .ln-text, #colswap-notice .ln-text, #holiday-notice .ln-text, #browser-notice .ln-text, #calrange-notice .ln-text, #layout-notice .ln-text, #heading-notice .ln-text, #backup-notice .ln-text, #storage-notice .ln-text{
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  :is(#legacy-notice, #launch-notice, #update-notice, #colswap-notice, #holiday-notice, #browser-notice, #calrange-notice, #layout-notice, #heading-notice, #backup-notice, #storage-notice).ln-open .ln-text{
+    white-space:normal; overflow:visible; }
+  :is(#legacy-notice, #launch-notice, #update-notice, #colswap-notice, #holiday-notice, #browser-notice, #calrange-notice, #layout-notice, #heading-notice, #backup-notice, #storage-notice) .ln-more{
+    flex:none; font-family:inherit; font-size:11.5px; font-weight:600; line-height:inherit; padding:0 4px; margin-left:-4px;
+    border:0; background:none; color:inherit; text-decoration:underline; text-underline-offset:2px; cursor:pointer; border-radius:4px; }
+  :is(#legacy-notice, #launch-notice, #update-notice, #colswap-notice, #holiday-notice, #browser-notice, #calrange-notice, #layout-notice, #heading-notice, #backup-notice, #storage-notice) .ln-more:hover{ background:rgba(0,0,0,.05); }
+  :is(#legacy-notice, #launch-notice, #update-notice, #colswap-notice, #holiday-notice, #browser-notice, #calrange-notice, #layout-notice, #heading-notice, #backup-notice, #storage-notice) .ln-more:focus-visible{ outline:2px solid currentColor; outline-offset:1px; }
+  :is(#backup-notice, #storage-notice, #legacy-notice, #launch-notice, #holiday-notice, #update-notice, #colswap-notice, #heading-notice, #calrange-notice, #browser-notice):not([hidden])
+    ~ :is(#backup-notice, #storage-notice, #legacy-notice, #launch-notice, #holiday-notice, #layout-notice, #update-notice, #colswap-notice, #heading-notice, #calrange-notice, #browser-notice){ display:none; }
+  body:not(:has(#view-month-btn.active)) > #layout-notice:not([hidden])
+    ~ :is(#backup-notice, #storage-notice, #legacy-notice, #launch-notice, #holiday-notice, #layout-notice, #update-notice, #colswap-notice, #heading-notice, #calrange-notice, #browser-notice){ display:none; }
+  body:has(#view-month-btn.active) > #layout-notice{ display:none; }
+  #legacy-notice .ln-text strong, #launch-notice .ln-text strong, #update-notice .ln-text strong, #colswap-notice .ln-text strong, #holiday-notice .ln-text strong, #browser-notice .ln-text strong, #layout-notice .ln-text strong, #backup-notice .ln-text strong, #storage-notice .ln-text strong{ font-weight:600; }
+  #legacy-notice .ln-go, #launch-notice .ln-go, #update-notice .ln-go, #layout-notice .ln-go, #layout-notice .ln-keep, #backup-notice .ln-go{
     flex:none; font-family:inherit; font-size:11.5px; font-weight:500; padding:5px 10px;
     background:#fff; border:1px solid; border-radius:7px; cursor:pointer;
   }
-  #legacy-notice .ln-go{ border-color:#D9B45F; color:#7A5B14; }
-  #legacy-notice .ln-go:hover{ background:#FFFBF2; border-color:#B8912F; }
+  #legacy-notice .ln-go, #launch-notice .ln-go{ border-color:#D9B45F; color:#7A5B14; }
+  #legacy-notice .ln-go:hover, #launch-notice .ln-go:hover{ background:#FFFBF2; border-color:#B8912F; }
   #update-notice .ln-go{ border-color:#8FB4DE; color:#1B4A7A; }
   #update-notice .ln-go:hover{ background:#F7FAFE; border-color:#5A8CC4; }
-  #legacy-notice .ln-x, #update-notice .ln-x, #holiday-notice .ln-x, #browser-notice .ln-x, #calrange-notice .ln-x{
+  /* The layout strip (LAYOUT-BUILD-PLAN.md §4): the update strip's blue, an offer rather than a warning. "Keep as
+     is" is the quieter of its two buttons: no border, so the eye lands on Update layout. */
+  #layout-notice{ background:#EDF4FD; border-bottom-color:#C3D9F2; color:#1B4A7A; }
+  #layout-notice .ln-go{ border-color:#8FB4DE; color:#1B4A7A; }
+  #layout-notice .ln-go:hover{ background:#F7FAFE; border-color:#5A8CC4; }
+  #layout-notice .ln-keep{ border-color:transparent; background:none; color:#1B4A7A; }
+  #layout-notice .ln-keep:hover{ background:rgba(0,0,0,.05); }
+  #layout-notice .ln-x{ color:#5A8CC4; }
+  #layout-notice .ln-x:hover{ color:#1B4A7A; background:rgba(0,0,0,.06); }
+  #legacy-notice .ln-x, #launch-notice .ln-x, #update-notice .ln-x, #holiday-notice .ln-x, #browser-notice .ln-x, #calrange-notice .ln-x, #layout-notice .ln-x, #heading-notice .ln-x, #backup-notice .ln-x, #storage-notice .ln-x{
     flex:none; border:none; background:none; font-size:16px; line-height:1;
     cursor:pointer; padding:0 2px; border-radius:4px;
   }
-  #legacy-notice .ln-x{ color:#A98B3D; }
-  #legacy-notice .ln-x:hover{ color:#7A5B14; background:rgba(0,0,0,.06); }
+  #legacy-notice .ln-x, #launch-notice .ln-x{ color:#A98B3D; }
+  #legacy-notice .ln-x:hover, #launch-notice .ln-x:hover{ color:#7A5B14; background:rgba(0,0,0,.06); }
   /* Same amber as the legacy strip on purpose: both say "something about this file is not what
      you expected", and HANDOFF §6 warns this app already has more warning looks than it should. */
   #holiday-notice{ background:#FEF6E7; border-bottom-color:#F0D9A8; color:#7A5B14; }
@@ -303,18 +393,51 @@
   #calrange-notice{ background:#FEF6E7; border-bottom-color:#F0D9A8; color:#7A5B14; }
   #calrange-notice .ln-x{ color:#A98B3D; }
   #calrange-notice .ln-x:hover{ color:#7A5B14; background:rgba(0,0,0,.06); }
+  /* A typed column heading removed when the app rearranged the columns (audit AUD2-077): the same amber. */
+  #heading-notice{ background:#FEF6E7; border-bottom-color:#F0D9A8; color:#7A5B14; }
+  #heading-notice .ln-x{ color:#A98B3D; }
+  #heading-notice .ln-x:hover{ color:#7A5B14; background:rgba(0,0,0,.06); }
   #update-notice .ln-x{ color:#6D93BF; }
   #update-notice .ln-x:hover{ color:#1B4A7A; background:rgba(0,0,0,.06); }
   /* Audit L-20: the Chrome/Edge strip. The update strip's blue, because both are about the APP. */
   #browser-notice{ background:#EDF4FD; border-bottom-color:#C3D9F2; color:#1B4A7A; }
   #browser-notice .ln-x{ color:#6D93BF; }
   #browser-notice .ln-x:hover{ color:#1B4A7A; background:rgba(0,0,0,.06); }
+  /* Audit AUD2-075: site data refused. The Chrome/Edge strip's blue: both are about the browser. */
+  #storage-notice{ background:#EDF4FD; border-bottom-color:#C3D9F2; color:#1B4A7A; }
+  #storage-notice .ln-x{ color:#6D93BF; }
+  #storage-notice .ln-x:hover{ color:#1B4A7A; background:rgba(0,0,0,.06); }
+  /* Audit AUD2-076: unsaved work kept for another calendar. The legacy strip's amber: something about your work
+     is not where you expected it, and nothing has failed. */
+  #backup-notice{ background:#FEF6E7; border-bottom-color:#F0D9A8; color:#7A5B14; }
+  #backup-notice .ln-go{ border-color:#D9B45F; color:#7A5B14; }
+  #backup-notice .ln-go:hover{ background:#FFFBF2; border-color:#B8912F; }
+  #backup-notice .ln-x{ color:#A98B3D; }
+  #backup-notice .ln-x:hover{ color:#7A5B14; background:rgba(0,0,0,.06); }
+  /* Audit AUD2-078: the chrome's error boundary (main.jsx). It covers the window, so nothing half-drawn shows behind
+     it. The app's own :root tokens and never Mantine's: it stands in for the MantineProvider, whose variables leave
+     with it. Hidden in print with the rest of #react-root (body.printing-* > *:not(#print-root)). */
+  .chrome-failed{ position:fixed; inset:0; z-index:100000; display:flex; align-items:center; justify-content:center;
+    padding:24px 16px; background:var(--bg); color:var(--text);
+    font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; }
+  .chrome-failed-box{ max-width:420px; background:var(--panel); border:1px solid var(--border); border-radius:12px;
+    padding:24px 24px 20px; box-shadow:0 8px 28px rgba(0,0,0,.08); }
+  .chrome-failed-title{ font-size:16px; font-weight:600; margin-bottom:8px; }
+  .chrome-failed-text{ font-size:13px; line-height:1.5; color:var(--text-muted); margin:0 0 18px; }
+  .chrome-failed-btn{ font-family:inherit; font-size:13px; font-weight:500; padding:8px 14px; border:none;
+    border-radius:8px; background:var(--accent); color:#fff; cursor:pointer; }
+  .chrome-failed-btn:hover{ background:var(--accent-hover); }
 
   /* Fill the available width at any window size (no artificial cap), so the calendar gets
      as much room as the screen allows. The sidebar keeps a comfortable fixed width and the
      preview takes everything left over. */
   .layout{display:flex; gap:0; align-items:flex-start; width:100%;}
-  @media (max-width:960px){ .layout{flex-direction:column;} }
+  /* ⛔ NEVER STACKED (owner, 16 Nov 2026: "the left side bar (show, phases, settings) should always stay on the left, I
+     never want the UI to start stacking up and down....the app should basically just force you to use it on a screen
+     size that is wide enough"). Until then, at 960 px and below, the sidebar went full width above the preview and the
+     page scrolled (audit AUD2-065: at 960 px the toolbar ran off screen and the grid started below the fold). Now the
+     app shell below holds at every width and stops shrinking at its minimum, 960 px; a narrower window scrolls
+     sideways, as Excel shows fewer columns (owner's picker, "Stop shrinking, scroll sideways"). */
 
 
   /* ============================================================================================
@@ -356,29 +479,29 @@
     min-width:0;
     padding:var(--mantine-spacing-sm) var(--mantine-spacing-xl) var(--mantine-spacing-xl);
   }
-  /* Smaller laptops (above the stack breakpoint): narrow the sidebar so the waterfall gets more
-     room before it has to collapse to a single column. Declared before the 960px rule so that
-     rule's full-width stacking still wins at the smaller size. */
-  @media (max-width:1280px){ .form-panel{ width:clamp(280px, 26vw, 340px); } }
-  @media (max-width:960px){
-    .form-panel{ width:100%; border-right:none;
-      border-bottom:1px solid var(--border); max-height:none; min-height:0; position:static; }
-    /* When the panel goes full width, don't let the form fields stretch across the whole
-       window -- cap the content to a comfortable column and centre it so inputs stay a sane
-       size instead of ballooning to 900px wide. */
-    /* Descendant, not child: the three React cards now sit inside #sidebar-static, so a child
-       combinator would silently stop capping them when the panel goes full width. */
-    .form-panel section.card{ max-width:640px; margin-left:auto; margin-right:auto; }
-  }
+  /* Smaller laptops: narrow the sidebar so the calendar gets more room, down to 280 px at the app's 960 px minimum.
+     ⚠️ Capped at 320 px since 16 Nov 2026 (it was 340): 26vw is 333 px at 1280, so one pixel narrower than 1281 px
+     (where 24vw gives the 320 px floor) the sidebar grew 13 px WIDER, and the toolbar folded a step early there. Now
+     the sidebar only ever narrows as the window does. */
+  /* ⭐ THE SIDEBAR GIVES THE TOOLBAR ONLY WHAT IT NEEDS (owner, 20 Nov 2026: "narrow it only as much as the toolbar
+     needs", after Option B's flat 20.5vw had narrowed it at every width up to 1,700 px; THE LAPTOP TOOLBAR below).
+     It is 24vw as always, until the window is too narrow for 24vw AND the whole unfolded toolbar: then it is the window
+     less 1,150 px, down to a 280 px floor. 1,150 is measured: the unfolded line, at the 8 px minimum gap, fits when the
+     sidebar is at most the window less 1,130 px (sideboxes.sptcal, both views, 1,440 and 1,470), plus 20 px for a
+     classic scroll bar on the preview (Windows draws one, 17 px) and rounding. So from 1,513 px up it is exactly as
+     before (24vw; 384 px at 1,600), 320 px at 1,470 (a 13" Air, was 353), 290 at 1,440 (an M1 Air), 280 from 1,430
+     down (was 320 at 1,280 and 1,366). ⛔ If the toolbar's first line gets wider, re-measure the 1,150 (toolbarfit F0
+     holds 1,470 and 1,440 unfolded). It still only ever narrows as the window does. */
+  @media (max-width:1700px){ .form-panel{ width:clamp(280px, min(24vw, 100vw - 1150px), 440px); } }
 
   /* The 44px at the bottom is the room the fixed help button and zoom pill sit in (the bottom strip,
-     #help-fab below): stacked, the page scrolls, so at its end the last of the preview clears them. */
+     #help-fab below). In the app shell it becomes a margin (below). */
   /* + --sc-band-space: the scenario key facts band above the tabs, while it shows (KEY-FACTS-PLAN.md; written by
      ScenarioTabs.jsx from the band's measured height, absent otherwise). */
   .preview-panel{flex:1; min-width:0; padding:20px 28px calc(44px + var(--sc-band-space, 0px));}
 
   /* ---------- The app shell: the WINDOW never scrolls (owner, 22 Sep 2026) ----------
-     "Make the app behave like a standard app window." Above the 960px stack point the window is a
+     "Make the app behave like a standard app window." The window is a
      fixed frame: <body> is a full-height flex column -- the header, then whichever notice strips
      are showing at their natural height, then .layout taking everything left -- and only three
      things scroll, each inside its own box: the sidebar, the waterfall grid and (via
@@ -392,10 +515,14 @@
      header.app-header must stay a direct child of <body> for the --header-h ResizeObserver. So the
      shell is built from <body>'s existing children, in place.
 
-     ⛔ SCREEN ONLY, and above 960px only. `(width > 960px)` is the exact complement of the stack
-     rules' `(max-width:960px)`, so there is no fractional-width gap where neither applies. Print
-     media never sees these rules, so neither print path changes; at 960px and below the stacked
-     layout and its normal page scrolling are exactly what they were.
+     ⛔ SCREEN ONLY. Print media never sees these rules, so neither print path changes.
+     ⭐ AT EVERY WIDTH since 16 Nov 2026 (owner: never stack). Until then it held above 960 px only, and at 960 px and
+     below the old stacked layout scrolled as a web page. Now <body> stops shrinking at 960 px (`min-width`), the app's
+     minimum: narrower, <html> scrolls sideways and nothing else changes. That needs <html>'s own overflow set: while
+     it is `visible`, <body>'s overflow:hidden is handed to the window, and the window could not scroll at all. With
+     <html> the scroller, <body>'s overflow is its own again, and it clips only what it always clipped. <body> is
+     100% of <html>, which is the window less a sideways scrollbar (Windows draws one 17 px tall), where 100vh was
+     the window with it, so the scrollbar never pushes the bottom strip off screen.
 
      ⚠️ Once <body> is a flex column EVERY child is a flex item: script#saved-state, the notices,
      #help-fab, #help-overlay, #react-root, #print-root, and whatever the engine or Mantine appends
@@ -414,8 +541,9 @@
      SHELL'S GRID FIT"), so in that view .preview-panel's scroll never engages and the grid box is
      the one vertical scroller. The month view scrolls in #table-wrap (below, since 26 Oct 2026; it scrolled
      here before). */
-  @media screen and (width > 960px){
-    body{ height:100vh; overflow:hidden; display:flex; flex-direction:column; }
+  @media screen{
+    html{ height:100%; overflow-x:auto; overflow-y:hidden; }
+    body{ height:100%; min-width:960px; overflow:hidden; display:flex; flex-direction:column; }
     body > *{ flex:none; }
     body > .layout{ flex:1 1 0; min-height:0; align-items:stretch; }
     .form-panel{ align-self:stretch; min-height:0; max-height:none; }
@@ -427,15 +555,21 @@
     /* ...plus the scenario key facts band's measured room while it shows (--sc-band-space, KEY-FACTS-PLAN.md): the
        margin grows, the panel's border box shrinks, and the grid fit ends the waterfall above the band. */
     .preview-panel{ min-height:0; overflow:auto; padding-bottom:0; margin-bottom:calc(44px + var(--sc-band-space, 0px)); }
+    /* ⚠️ ITS OWN SCROLLBAR TAKES NO WIDTH (16 Nov 2026). The panel overflows only for a moment (the grid fit re-solving
+       after a font or a strip changes a height) or on a very short window, and a classic scrollbar (Windows; headless
+       Chrome) took 15 px from the toolbar row as it came and went: the toolbar's fold level then no longer fitted, the
+       line wrapped for a moment, and the observers above reported "ResizeObserver loop" errors (laptopfit at 1280 x
+       800). It still scrolls, by wheel or trackpad. Steady, nothing changes: the panel has no scrollbar then. */
+    .preview-panel{ scrollbar-width:none; }
     /* ⭐ THE MONTH VIEW SCROLLS IN #table-wrap, like the waterfall in its grid box (owner, 26 Oct 2026: "The
        viewport of the month view needs to work the same way as the viewport of the waterfall view ... The
        surrounding menus need to stay fixed in place"). Until then the month scrolled in .preview-panel, so the
        toolbar and the text style bar scrolled away with it, and zoomed in they went sideways too. Now the panel
        is a column: the toolbar rows at their natural height, #table-wrap taking the rest as the one scroll box.
        The panel keeps overflow:auto only so a tool popover running past its bottom stays reachable.
-       ⛔ Only #table-wrap's OWN box: nothing inside it, and no .mv-* rule, is touched. Its width is the width
-       #table-wrap always had at 100%, so the month renders exactly as before; zoomed, the grid below pins its
-       content to that same width (what `width: calc(100% * z)` did when the panel scrolled). */
+       ⛔ Only #table-wrap's OWN box: nothing inside it, and no .mv-* rule, is touched by these two rules. (Until
+       16 Nov 2026 the month took this box's width; it is the PDF page's width now, see "THE MONTH PAGE'S WIDTH"
+       below.) */
     /* ⛔ NO `.preview-panel > *` RULE HERE. One shipped for a day (`{flex:none}`), and a :has() rule with a
        universal subject made Chrome restyle far more on every view switch: month -> waterfall went from ~110 ms
        to ~260 ms (owner, 26 Oct 2026: "theres now a slight lag"; measured by deleting rules one at a time). It
@@ -443,26 +577,234 @@
        (min-height:auto), and #table-wrap's min-height:0 gives up the room first. Name elements, never `*`. */
     body:has(#view-month-btn.active) .preview-panel{ display:flex; flex-direction:column; }
     body:has(#view-month-btn.active) .preview-panel > #table-wrap{ flex:1 1 0; min-height:0; overflow:auto; }
-    /* Zoomed: #table-wrap is the zoomed box AND the scroller, so its screen width is the panel's, and 100% of its
-       content box is that width in its own (zoomed) px. One track of 100% x the zoom puts .month-view back on the
-       width it has at 100%, so the day columns keep their CSS width and every note its lines. --cal-zoom is
-       written on #table-wrap by applyCalZoom() (app.js, "CALENDAR ZOOM"), only while the month is zoomed. Rows
-       at the top: a stretched row would hand a short (zoomed-out) month the box's spare height. */
-    body.cal-zoomed:has(#view-month-btn.active) #table-wrap{
-      display:grid; grid-template-columns:calc(100% * var(--cal-zoom, 1)); align-content:start; justify-content:start;
+    /* The recent calendars of an empty start (AUD2-030) sit UNDER #table-wrap, so while they show the box takes only
+       the empty-state sentence's height; otherwise it would push them to the window's foot. There is no calendar
+       then, so nothing in it can be measured differently. #table-wrap's own box only, as above. */
+    body:has(#view-month-btn.active) .preview-panel.has-start-recents > #table-wrap{ flex:0 0 auto; }
+    /* ⭐ THE MONTH PAGE'S WIDTH (owner, 16 Nov 2026: "the viewport for the month view calendar needs to work like the
+       waterfall calendar where it maintains consistent proportions despite the window width or height. It should
+       reflect whatever is as close as how it will appear when exported to pdf"). Until then .month-view took the
+       panel's width, so the window decided its shape: 743 px wide at a 1100 px window, 2064 px at 2560, day columns
+       100 to 289 px, and the same note on three lines, two or one. The month PDF's day column is always 141.075 px.
+       Now #table-wrap lays the month out in ONE TRACK OF THE PDF PAGE'S WIDTH, at every window size and every zoom:
+         Letter landscape 11in, less two 8mm margins            995.528 px, the printable width (MVL_GEOMETRY.contentW)
+         less the print page's 2px padding and the 2px frame     987.528 = MVL_GEOMETRY.weekW, a week's width
+         plus .mv-body's 1px borders, .month-view's 18px padding and its 1px border, each side
+                                                                 = 11in - 16mm + 32px = 1027.528 px
+       so a day column on screen is the day column in the PDF, and frozen mvNoteBoxWidth(), which measures the live
+       column, wraps every note for the page it prints on (the print rollback's pages no longer change with the
+       window either). A narrower window scrolls sideways and a wider one leaves the room on the right, as the
+       waterfall does (owner's picker, "Scroll, like waterfall"). The zoom is CSS zoom on this same box (app.js,
+       "CALENDAR ZOOM"), and it scales a fixed track with nothing to undo, where the old `100% x the zoom` track had
+       to be put back on the panel's width. Rows at the top: a stretched row would hand a short month the box's
+       spare height.
+       ⛔ Only #table-wrap's OWN box, and only while it holds a month (:has(> .month-view), a child test on one
+       element): the empty state and an error message keep the panel's width. The page's HEIGHT is "THE MONTH PAGE",
+       next. */
+    /* ⚠️ grid-auto-rows:max-content is load-bearing. The card has a min-height (the page's, below), and a grid item
+       with a min-height that is not `auto` gives its row THAT as its minimum, not its content: in a box shorter than
+       the page the row stayed 788 px and a month taller than the page (one the PDF shrinks to fit) ran out of its
+       own card (measured on monthscale, August 2026: a 1191 px body in a 788 px card). */
+    body:has(#view-month-btn.active) .preview-panel > #table-wrap:has(> .month-view){
+      display:grid; grid-template-columns:calc(11in - 16mm + 32px); grid-auto-rows:max-content;
+      align-content:start; justify-content:start;
     }
+    /* ⭐ THE MONTH PAGE: the month view ON SCREEN has the month PDF's page shape (owner, 16 Nov 2026).
+       Owner: "It should reflect whatever is as close as how it will appear when exported to pdf", and by picker "Full
+       page shape": the width fixed to the PDF's AND the weeks stretched to fill a Letter landscape page, as the PDF
+       does. The month view's own rules are FROZEN and are not edited: these override them on screen only, by owner
+       instruction, as the Soft Lines block (further down this file) does.
+       ⛔ EVERY SELECTOR STARTS #table-wrap .month-view (or names it after <body>'s size classes), in this screen-only
+       block. #print-root is a different subtree of <body>, so no rule here can match the print path's document, and
+       the direct month-PDF writer reads renderMonthView's HTML, never this stylesheet. Gate 13 byte-identical is
+       the proof.
+       ⛔ NOT BESIDE THE SOFT LINES BLOCK, where it was first written: the build merges neighbouring `@media screen`
+       blocks, and the softlines leg switches Soft Lines off by deleting the block it is in, so it switched the page
+       off too (L1: the month 788 px with the look, 722 px without).
+       THE WIDTH is #table-wrap's one track ("THE MONTH PAGE'S WIDTH", just above).
+       THE HEIGHT is this block. The card is at least the page tall, and the weeks share what the header leaves by the
+       PDF's own rule (mvlShareRows, which is exportMonthPdf's fill as flexbox carries it out), carried out here by
+       flexbox again:
+         - .month-view's min-height puts the weeks' room on the PDF's:  8.5in - 16mm, the printable height (755.528 px)
+           less the print page's 2px padding twice, less 3px for the lines that print 2px wide and draw 1px here (the
+           month bar's and the weekday row's top borders, and the frame's bottom one), plus 1.5px for the month bar's
+           arrows, which print does not draw and which make the bar 27px of content here against its text's 25.5px
+           (hidden by Soft Lines with `visibility`, so their boxes still size it), plus the card's own 18px padding and
+           1px border twice  = 8.5in - 16mm + 32.5px = 788.028 px. Measured on mvnotes: the weeks' room is 630.53 px
+           here and in the written PDF;
+         - each week is `flex: <grow> 0 <basis>` with a min-height, three numbers the engine works out from that
+           week's bars after every render and hands over as custom properties on #table-wrap (app.js, "THE MONTH
+           PAGE", fitMonthPage): basis = what its bars need (the PDF's `need`), grow = how far that is below the
+           four-line height (or the four-line height itself when no week is below it), min = 0, or the bottom of a
+           line the user added to that week. With no numbers yet (the first instant, or an engine that failed) every
+           week grows equally from its own height, which is still page-shaped.
+         - A week can be shorter than the four lines every week is drawn with (a six-week month, or a light week in
+           a crowded one): the PDF has no empty lines. The WEEK then clips what is below it (overflow-y:clip, so
+           nothing sideways is cut and no scroll box is made), or an empty "+" line would lie over the next week's day
+           numbers and take their clicks. A bar is never clipped: no week goes under what its bars need.
+       A month the PDF has to SHRINK to fit (more in its weeks than a sheet holds) is shrunk here too since 17 Nov
+       2026, at the PDF's own factor: "THE MONTH PAGE SHRINKS A CROWDED MONTH", at the end of this block. (16 to 17 Nov
+       2026 it stayed full size, in a card taller than the page.)
+       - The bars layer grows with its week and NEVER SHRINKS (flex:1 0 auto), and that is load-bearing: its lines are
+         `minmax(17px, auto)`, which reach their own height only out of free room, so a layer held shorter than its
+         lines squeezed them, and the engine, which reads those heights, then handed the squeezed week back as its
+         basis and kept it squeezed (measured on notewrap, October 2026: a ten-line note's week 125 px, 195 px in the
+         PDF). align-content:start keeps the lines at the top and at their own height in a taller week; `normal`
+         would stretch them.
+       - The layer is position:static here, so the row-expand strip and a full day's "+" (absolute, inside it) sit
+         on the WEEK's bottom edge, the week being position:relative, whichever of the two is taller. Its z-index
+         still holds: it is a flex item. Nothing reads an offsetParent in the month view.
+       - .mv-daygrid is position:absolute, so it is not a flex item and fills the week as before.
+       ⚠️ Gate 10 (the print rollback) moves where a note's line count differs between the old window-wide column and
+       the page's: frozen mvNoteBoxWidth() measures the live column. Gate 13 (the PDF users get) cannot: the writer
+       re-wraps every note in its own box. */
+    #table-wrap .month-view{ display:flex; flex-direction:column; min-height:calc(8.5in - 16mm + 32.5px); }
+    #table-wrap .month-view > .mv-tools, #table-wrap .month-view > .mv-header,
+    #table-wrap .month-view > .mv-monthbar, #table-wrap .month-view > .mv-dowrow{ flex:none; }
+    #table-wrap .month-view > .mv-body{ flex:1 0 auto; display:flex; flex-direction:column; }
+    #table-wrap .month-view > .mv-body > .mv-week{ flex:1 0 auto; display:flex; flex-direction:column; overflow-y:clip; }
+    #table-wrap .month-view > .mv-body > .mv-week > .mv-bars{ flex:1 0 auto; align-content:start; position:static; }
+    #table-wrap .month-view > .mv-body > .mv-week:nth-child(1){ flex:var(--mvp-f1, 1 0 auto); min-height:var(--mvp-m1, auto); }
+    #table-wrap .month-view > .mv-body > .mv-week:nth-child(2){ flex:var(--mvp-f2, 1 0 auto); min-height:var(--mvp-m2, auto); }
+    #table-wrap .month-view > .mv-body > .mv-week:nth-child(3){ flex:var(--mvp-f3, 1 0 auto); min-height:var(--mvp-m3, auto); }
+    #table-wrap .month-view > .mv-body > .mv-week:nth-child(4){ flex:var(--mvp-f4, 1 0 auto); min-height:var(--mvp-m4, auto); }
+    #table-wrap .month-view > .mv-body > .mv-week:nth-child(5){ flex:var(--mvp-f5, 1 0 auto); min-height:var(--mvp-m5, auto); }
+    #table-wrap .month-view > .mv-body > .mv-week:nth-child(6){ flex:var(--mvp-f6, 1 0 auto); min-height:var(--mvp-m6, auto); }
+
+    /* ⭐ THE BARS AND THE NOTES AT THE HEIGHT THEY PRINT (owner, 16 Nov 2026: "phase bar size and note size should
+       also reflect the export exactly. essentially the live viewer should look just like what it will look like in
+       the pdf export"). Until then the screen kept its own convention: every line a fixed 17 px, a pill, a band and
+       a one-line note cut to it, a note over several lines stretched to fill them. Print, and the writer that is
+       held to print's layout (mvlBarHeight, mvlLaneTracks), size a line by what is in it and draw each bar at its
+       own height at the top of its lines:
+         a pill or a band    its line + 2 x (1px padding + 1px border): 19 px at Standard (20 / 22 / 23 / 25 at the
+                             other bar sizes, which the screen already drew at those heights); a band with no label
+                             too (the 1 Oct 2026 "Full height" ruling); a wrapping one-day pill two lines, 34 px
+         a 10 px note        13 px a line + 6: 19 / 32 / 45 px for one, two and three lines, and every further line
+                             of a longer note, whose lines then grow as they do in the PDF
+         a sized note        its own one- and two-line boxes (--mvn-h1 / --mvn-h2), as the screen already drew it
+       So here, as #print-root does it: lanes `minmax(17px, auto)`, every bar `align-self:start`.
+       - Standard's pills and bands take a FIXED 19 px (34 px wrapping), never a text-sized box, for Phase bar size's
+         reason: Chrome snaps the 1 px borders at a zoom and a text-sized bar comes out a fraction off.
+       - A note is text-sized, because its lines are its own. At 100% that is exact; at a zoom a note can come out a
+         fraction of a pixel taller, which moves nothing but that fraction.
+       - A "+" slot adds no height (contain:size) and fills its lane (align-self:stretch), so an empty line is 17 px
+         and a line with a bar in it is the bar's. Print has no slots at all.
+       ⛔ THE DOUBLED ID IS THE POINT. These must out-rank the screen's earlier one-id rules for the same boxes
+       (`body.mv-bar-* #table-wrap ...{ contain:size }`, `body.mv-note-sized:not(...) #table-wrap .mv-pill
+       { height:17px }`), whatever classes those carry and wherever they sit in the file. Those rules are frozen and
+       are not edited; a size's own fixed heights (22 px and the rest) are not out-ranked, only left alone: the
+       Standard rules below name the four size classes they do not apply at. */
+    #table-wrap#table-wrap .month-view .mv-bars{ grid-auto-rows:minmax(17px, auto); }
+    #table-wrap#table-wrap .month-view .mv-bar{ align-self:start; }
+    #table-wrap#table-wrap .month-view .mv-note-block{ contain:none; }
+    #table-wrap#table-wrap .month-view .mv-note-add{ contain:size; align-self:stretch; }
+    #table-wrap#table-wrap .month-view .mv-note-add.mv-note-add-full{ contain:none; }
+    body:not(.mv-bar-11):not(.mv-bar-large):not(.mv-bar-13):not(.mv-bar-xl) #table-wrap#table-wrap .month-view .mv-pill,
+    body:not(.mv-bar-11):not(.mv-bar-large):not(.mv-bar-13):not(.mv-bar-xl) #table-wrap#table-wrap .month-view .mv-hiatus-bar{ height:19px; }
+    body:not(.mv-bar-11):not(.mv-bar-large):not(.mv-bar-13):not(.mv-bar-xl) #table-wrap#table-wrap .month-view .mv-pill.mv-pill-2l{ height:34px; }
+
+    /* ⭐ THE MONTH PAGE SHRINKS A CROWDED MONTH, EXACTLY AS ITS PDF DOES (owner, 17 Nov 2026: "I think id rather the
+       live view look like it will in the pdf"; by picker "Shrink like the PDF", which replaces the 16 Nov "Full size,
+       taller page"; MONTH-SHRINK-PLAN.md). A month with more in its weeks than a sheet holds is drawn at the month PDF
+       writer's own factor k: the engine asks the writer for that month's fit and writes k as --mvk on #table-wrap's own
+       style (app.js, "THE MONTH PAGE SHRINKS A CROWDED MONTH"), with each week's share of the page (the writer's own basis and grow, so its row) in --mvp-f1..6.
+       ⛔ EVERY RULE NEEDS --mvk IN #table-wrap's OWN STYLE ([style*="--mvk"]), which only a shrunk month on screen has:
+       a month that fits is drawn by exactly the rules above, and buildSavedHtml() strips that style, so nothing here
+       reaches a shareable copy. Screen only, under #table-wrap, as the rest of this block: neither month PDF can see it.
+       WHAT SCALES is mvlWeekPaint(k)'s list, the writer's own, each as calc(<px> x var(--mvk)): the bar layer's top
+       and bottom padding, the lanes and their gap, every bar's type, line, vertical padding and corner, a note's type,
+       line and vertical padding, the grey tag, the day number, the cell's top padding and its 14 px strut, "Day N".
+       ⛔ WHAT DOES NOT: every width, every horizontal padding and margin, every line weight (a bar's 1 px border, the
+       grid's lines), and the header, the month bar and the weekday row. So a fixed height is its scaled inside plus
+       the two unscaled 1 px borders: a Standard bar 17k + 2 px, a 10 px note (13n + 4)k + 2.
+       (tests/harness/t/monthwriter.js's scaledCss() is the same list for the print document, which that leg holds box
+       for box to the written PDF.)
+       - A size written INLINE (a month text style's, or a note size's, with its line: app.js mvTextCss) is out-ranked
+         only by !important, one rule per size the app can write (6 to 14 px), in both spellings: Chrome re-serialises
+         an element's style attribute ("font-size: 12px") once any script touches its .style.
+       - The screen's own affordances (the "+" slots, the row's "+" strip, the click sheet under the date band) scale
+         with the lines they sit on. */
+    #table-wrap#table-wrap[style*="--mvk"]{ --mvk-bl:15px; }
+    body.mv-bar-11 #table-wrap#table-wrap[style*="--mvk"]{ --mvk-bl:16px; }
+    body.mv-bar-large #table-wrap#table-wrap[style*="--mvk"]{ --mvk-bl:18px; }
+    body.mv-bar-13 #table-wrap#table-wrap[style*="--mvk"]{ --mvk-bl:19px; }
+    body.mv-bar-xl #table-wrap#table-wrap[style*="--mvk"]{ --mvk-bl:21px; }
+    /* The day cell: its top padding, its strut (the cell sets no font size, so it has <body>'s 14 px), the number. */
+    #table-wrap#table-wrap[style*="--mvk"] .month-view .mv-daycell{ padding-top:calc(3px * var(--mvk)); font-size:calc(14px * var(--mvk)); }
+    #table-wrap#table-wrap[style*="--mvk"] .month-view .mv-daynum{ font-size:calc(11px * var(--mvk)); }
+    #table-wrap#table-wrap[style*="--mvk"] .month-view .mv-daycell[data-shoot-day]::after{ font-size:calc(10px * var(--mvk)); line-height:calc(24px * var(--mvk)); }
+    #table-wrap#table-wrap[style*="--mvk"] .month-view .mv-daygrid::after{ top:calc(24px * var(--mvk)); }
+    /* The bar layer and its lines. */
+    #table-wrap#table-wrap[style*="--mvk"] .month-view .mv-bars{
+      padding-top:calc(24px * var(--mvk)); padding-bottom:calc(14px * var(--mvk)); row-gap:calc(2px * var(--mvk));
+      grid-auto-rows:minmax(calc(17px * var(--mvk)), auto);
+    }
+    /* Every bar: type and vertical padding (its line is 1.5 x the type, a note's 1.3 x, both unitless, so they follow). */
+    #table-wrap#table-wrap[style*="--mvk"] .month-view .mv-bar{ font-size:calc(10px * var(--mvk)); padding-top:calc(1px * var(--mvk)); padding-bottom:calc(1px * var(--mvk)); }
+    #table-wrap#table-wrap[style*="--mvk"] .month-view .mv-note-block{ padding-top:calc(2px * var(--mvk)); padding-bottom:calc(2px * var(--mvk)); }
+    #table-wrap#table-wrap[style*="--mvk"] .month-view .mv-pill-block{ font-size:calc(9px * var(--mvk)); }
+    /* Pills and bands: the corner, and the fixed height (the line plus 2 x 1 px padding, scaled; plus the two borders). */
+    #table-wrap#table-wrap[style*="--mvk"] .month-view .mv-pill,
+    #table-wrap#table-wrap[style*="--mvk"] .month-view .mv-hiatus-bar{ border-radius:calc(9px * var(--mvk)); }
+    body:not(.mv-bar-11):not(.mv-bar-large):not(.mv-bar-13):not(.mv-bar-xl) #table-wrap#table-wrap[style*="--mvk"] .month-view .mv-pill,
+    body:not(.mv-bar-11):not(.mv-bar-large):not(.mv-bar-13):not(.mv-bar-xl) #table-wrap#table-wrap[style*="--mvk"] .month-view .mv-hiatus-bar{ height:calc(17px * var(--mvk) + 2px); }
+    body:not(.mv-bar-11):not(.mv-bar-large):not(.mv-bar-13):not(.mv-bar-xl) #table-wrap#table-wrap[style*="--mvk"] .month-view .mv-pill.mv-pill-2l{ height:calc(32px * var(--mvk) + 2px); }
+    /* ...at a phase bar size (frozen edit E1's numbers): type, line, corner, tag, and the height less its borders. */
+    body.mv-bar-11 #table-wrap#table-wrap[style*="--mvk"] .month-view .mv-pill,
+    body.mv-bar-11 #table-wrap#table-wrap[style*="--mvk"] .month-view .mv-hiatus-bar{
+      font-size:calc(11px * var(--mvk)); line-height:calc(16px * var(--mvk)); border-radius:calc(10px * var(--mvk)); height:calc(18px * var(--mvk) + 2px); }
+    body.mv-bar-11 #table-wrap#table-wrap[style*="--mvk"] .month-view .mv-pill.mv-pill-2l{ height:calc(34px * var(--mvk) + 2px); }
+    body.mv-bar-11 #table-wrap#table-wrap[style*="--mvk"] .month-view .mv-pill-block{ font-size:calc(10px * var(--mvk)); }
+    body.mv-bar-large #table-wrap#table-wrap[style*="--mvk"] .month-view .mv-pill,
+    body.mv-bar-large #table-wrap#table-wrap[style*="--mvk"] .month-view .mv-hiatus-bar{
+      font-size:calc(12px * var(--mvk)); border-radius:calc(11px * var(--mvk)); height:calc(20px * var(--mvk) + 2px); }
+    body.mv-bar-large #table-wrap#table-wrap[style*="--mvk"] .month-view .mv-pill.mv-pill-2l{ height:calc(38px * var(--mvk) + 2px); }
+    body.mv-bar-large #table-wrap#table-wrap[style*="--mvk"] .month-view .mv-pill-block{ font-size:calc(11px * var(--mvk)); }
+    body.mv-bar-13 #table-wrap#table-wrap[style*="--mvk"] .month-view .mv-pill,
+    body.mv-bar-13 #table-wrap#table-wrap[style*="--mvk"] .month-view .mv-hiatus-bar{
+      font-size:calc(13px * var(--mvk)); line-height:calc(19px * var(--mvk)); border-radius:calc(12px * var(--mvk)); height:calc(21px * var(--mvk) + 2px); }
+    body.mv-bar-13 #table-wrap#table-wrap[style*="--mvk"] .month-view .mv-pill.mv-pill-2l{ height:calc(40px * var(--mvk) + 2px); }
+    body.mv-bar-13 #table-wrap#table-wrap[style*="--mvk"] .month-view .mv-pill-block{ font-size:calc(12px * var(--mvk)); }
+    body.mv-bar-xl #table-wrap#table-wrap[style*="--mvk"] .month-view .mv-pill,
+    body.mv-bar-xl #table-wrap#table-wrap[style*="--mvk"] .month-view .mv-hiatus-bar{
+      font-size:calc(14px * var(--mvk)); border-radius:calc(13px * var(--mvk)); height:calc(23px * var(--mvk) + 2px); }
+    body.mv-bar-xl #table-wrap#table-wrap[style*="--mvk"] .month-view .mv-pill.mv-pill-2l{ height:calc(44px * var(--mvk) + 2px); }
+    body.mv-bar-xl #table-wrap#table-wrap[style*="--mvk"] .month-view .mv-pill-block{ font-size:calc(12px * var(--mvk)); }
+    /* A size written inline: one rule per size, both spellings. */
+    #table-wrap#table-wrap[style*="--mvk"] .month-view .mv-bar[style*="font-size:6px"], #table-wrap#table-wrap[style*="--mvk"] .month-view .mv-bar[style*="font-size: 6px"]{ font-size:calc(6px * var(--mvk)) !important; }
+    #table-wrap#table-wrap[style*="--mvk"] .month-view .mv-bar[style*="font-size:7px"], #table-wrap#table-wrap[style*="--mvk"] .month-view .mv-bar[style*="font-size: 7px"]{ font-size:calc(7px * var(--mvk)) !important; }
+    #table-wrap#table-wrap[style*="--mvk"] .month-view .mv-bar[style*="font-size:8px"], #table-wrap#table-wrap[style*="--mvk"] .month-view .mv-bar[style*="font-size: 8px"]{ font-size:calc(8px * var(--mvk)) !important; }
+    #table-wrap#table-wrap[style*="--mvk"] .month-view .mv-bar[style*="font-size:9px"], #table-wrap#table-wrap[style*="--mvk"] .month-view .mv-bar[style*="font-size: 9px"]{ font-size:calc(9px * var(--mvk)) !important; }
+    #table-wrap#table-wrap[style*="--mvk"] .month-view .mv-bar[style*="font-size:10px"], #table-wrap#table-wrap[style*="--mvk"] .month-view .mv-bar[style*="font-size: 10px"]{ font-size:calc(10px * var(--mvk)) !important; }
+    #table-wrap#table-wrap[style*="--mvk"] .month-view .mv-bar[style*="font-size:11px"], #table-wrap#table-wrap[style*="--mvk"] .month-view .mv-bar[style*="font-size: 11px"]{ font-size:calc(11px * var(--mvk)) !important; }
+    #table-wrap#table-wrap[style*="--mvk"] .month-view .mv-bar[style*="font-size:12px"], #table-wrap#table-wrap[style*="--mvk"] .month-view .mv-bar[style*="font-size: 12px"]{ font-size:calc(12px * var(--mvk)) !important; }
+    #table-wrap#table-wrap[style*="--mvk"] .month-view .mv-bar[style*="font-size:13px"], #table-wrap#table-wrap[style*="--mvk"] .month-view .mv-bar[style*="font-size: 13px"]{ font-size:calc(13px * var(--mvk)) !important; }
+    #table-wrap#table-wrap[style*="--mvk"] .month-view .mv-bar[style*="font-size:14px"], #table-wrap#table-wrap[style*="--mvk"] .month-view .mv-bar[style*="font-size: 14px"]{ font-size:calc(14px * var(--mvk)) !important; }
+    /* ...and the line it was written with: a bar's or band's is its bar size's (--mvk-bl), a styled 10 px note's is
+       13 px, a sized note's is its one-line box less 6 px (--mvn-h1 = line + 2 x 2 px padding + 2 x 1 px border). */
+    #table-wrap#table-wrap[style*="--mvk"] .month-view .mv-bar[style*="line-height"]{ line-height:calc(var(--mvk-bl) * var(--mvk)) !important; }
+    #table-wrap#table-wrap[style*="--mvk"] .month-view .mv-note-block[style*="line-height"]{ line-height:calc(13px * var(--mvk)) !important; }
+    #table-wrap#table-wrap[style*="--mvk"] .month-view .mv-note-block[style*="--mvn-h1"]{ line-height:calc((var(--mvn-h1) - 6px) * var(--mvk)) !important; }
+    /* A sized note's fixed boxes (frozen edit E1's --mvn-h1 / --mvn-h2, and D1's three and four lines), less their
+       two 1 px borders, scaled, plus the borders. */
+    #table-wrap#table-wrap[style*="--mvk"] .month-view .mv-bars > .mv-bar.mv-note-block[style*="--mvn-h1"]{ height:calc((var(--mvn-h1) - 2px) * var(--mvk) + 2px); }
+    #table-wrap#table-wrap[style*="--mvk"] .month-view .mv-bars > .mv-bar.mv-note-block[style*="--mvn-h1"][style*="span 2"]{ height:calc((var(--mvn-h2) - 2px) * var(--mvk) + 2px); }
+    #table-wrap#table-wrap[style*="--mvk"] .month-view .mv-bars > .mv-bar.mv-note-block[style*="--mvn-h1"][style*="span 3"]{ height:calc((2 * var(--mvn-h2) - var(--mvn-h1) - 2px) * var(--mvk) + 2px); }
+    #table-wrap#table-wrap[style*="--mvk"] .month-view .mv-bars > .mv-bar.mv-note-block[style*="--mvn-h1"][style*="span 4"]{ height:calc((3 * var(--mvn-h2) - 2 * var(--mvn-h1) - 2px) * var(--mvk) + 2px); }
+    /* The screen's own affordances, on the shrunk lines. */
+    #table-wrap#table-wrap[style*="--mvk"] .month-view .mv-note-add.mv-note-add-full{ height:calc(13px * var(--mvk)); }
+    #table-wrap#table-wrap[style*="--mvk"] .month-view .mv-row-expand{ height:calc(11px * var(--mvk)); font-size:calc(11px * var(--mvk)); }
   }
-  /* Stacked (960px and below) the page scrolls as it always has, so a zoomed month is pinned by its own width and
-     the page scrolls sideways, as before 26 Oct 2026 (when this was an inline width written by applyCalZoom). */
-  @media screen and (max-width:960px){
-    body.cal-zoomed:has(#view-month-btn.active) #table-wrap{ width:calc(100% * var(--cal-zoom, 1)); }
-  }
+  /* (A stacked twin of the zoomed month's rule lived here, for 960 px and below, until the app stopped stacking on
+     16 Nov 2026.) */
 
   /* ---------- Side boxes (SIDE-BOXES-PLAN.md, owner ruling 7, 20 Oct 2026) ----------
      Colour keys and text boxes beside the waterfall. ⛔ OUTSIDE #table-wrap: two .side-col hosts AFTER
      it in main.preview-panel (so .view-toggle-row -> #table-wrap stays the sibling pair the contracts
      above need), placed left and right by a grid on the panel that exists ONLY while a box exists, in
-     the Waterfall view, above the 960px stack point. Nothing here is a .sheet-* / .mv-* rule.
+     the Waterfall view (above the old 960px stack point until 16 Nov 2026; at every width since, as the app no longer
+     stacks). Nothing here is a .sheet-* / .mv-* rule.
 
      ⛔ HIDDEN IN THE MONTH VIEW BY THE BUTTON'S CLASS, not by a class the engine sets after a render:
      setViewMode() and applyStateSnapshot() both set #view-month-btn.active BEFORE their render, so
@@ -470,7 +812,8 @@
      repaginates the month PDF (MANTINE-SEAM §5.3; the sideboxes leg holds it to the pixel). */
   .side-col[hidden]{ display:none !important; }
   body:has(#view-month-btn.active) .side-col{ display:none !important; }
-  body:has(#view-month-btn.active) #tb-side-boxes-btn{ display:none; }
+  /* ⚠️ Side Boxes is NOT display:none in the month view since 11 Nov 2026: it keeps its place in the toolbar's slot,
+     hidden by visibility with Fill Gaps (`.tb-pair`), so the month stepper takes the same width and nothing moves. */
   .side-col{ display:flex; align-items:flex-start; min-width:0; }
   /* The width handle sits on the INNER edge, the one beside the grid. */
   .side-col.side-right{ flex-direction:row-reverse; }
@@ -485,7 +828,7 @@
   .sb-width{ flex:none; width:14px; align-self:stretch; min-height:40px; cursor:col-resize; position:relative; }
   .sb-width::before{ content:''; position:absolute; top:0; bottom:0; left:6px; width:2px; border-radius:1px; }
   .sb-width:hover::before, body.sb-resizing .sb-width::before{ background:var(--edit-accent); }
-  @media screen and (width > 960px){
+  @media screen{
     body:not(:has(#view-month-btn.active)) .preview-panel.has-side-boxes{
       display:grid; grid-template-columns:auto minmax(0, 1fr) auto; align-items:start;
       grid-template-areas:"hint hint hint" "gap gap gap" "bar bar bar" "left main right";
@@ -502,6 +845,7 @@
     .preview-panel.has-side-boxes > #table-wrap{ grid-area:main; min-width:0; }
     .preview-panel.has-side-boxes > .side-left{ grid-area:left; }
     .preview-panel.has-side-boxes > .side-right{ grid-area:right; }
+    .preview-panel.has-side-boxes > .start-recents{ grid-column:1 / -1; }
     /* As tall as the grid box may be, and no taller, so the window still never scrolls. ⚠️ A COPY of
        the frozen `.sheet-scroll{max-height:...}` expression: it reads the SAME --header-h, the panel's
        solved value (app.js, "THE APP SHELL'S GRID FIT"), so the two bottoms line up. The sideboxes leg
@@ -510,9 +854,6 @@
        2026), so the fit solves this value in the zoomed box's own px. --cal-zoom is set on .side-col by
        applyCalZoom(), and absent (1) at 100%. */
     .side-col .sb-stack{ max-height:calc((100vh - var(--header-h) - 140px) * var(--cal-zoom, 1)); }
-  }
-  @media screen and (max-width:960px){
-    .side-col{ margin-top:14px; }
   }
   /* The boxes are drawn like the grid, not like the chrome, because they print: Carlito 11px, the
      20px row pitch, a dark frame, the screen grid header's grey for the title. */
@@ -683,10 +1024,6 @@
   .side-tab-btn:hover:not(.active), .side-settings-btn:hover{ background:var(--mantine-color-gray-1); color:var(--mantine-color-gray-9); }
   .side-tab-btn:focus-visible, .side-settings-btn:focus-visible{ outline:2px solid var(--accent); outline-offset:1px; }
   .card.tab-hidden{ display:none !important; }
-  @media (max-width:960px){
-    /* On the stacked mobile layout the panel isn't its own scroll region, so un-stick. */
-    .side-tabs{ position:static; }
-  }
 
   /* ---------- The Settings window (owner ruling 12, 20 Oct 2026; src/chrome/SettingsWindow.jsx) ----------
      "A tabbed panel that slides in over the sidebar from a Settings button and leaves the waterfall
@@ -735,18 +1072,6 @@
   .sw-panel{
     flex:1 1 0; min-height:0; overflow-y:auto;
     padding:var(--mantine-spacing-sm) var(--mantine-spacing-xl) var(--mantine-spacing-xl);
-  }
-  /* Stacked (960 px and below) the sidebar is not a scroll box and the page scrolls, so the window
-     goes IN FLOW and takes the sidebar's place instead of lying over it. */
-  @media (max-width:960px){
-    .settings-window{ position:static; width:auto; height:auto; }
-    /* flex:none, or the zero basis that sizes them inside the fixed-height window collapses them to
-       nothing here, where the window's height is its content's, and they paint over the preview. */
-    .settings-window .sw-tabs, .settings-window .sw-panel{ flex:none; }
-    .settings-window .sw-panel{ overflow:visible; }
-    .form-panel.settings-open{ overflow:visible; }
-    /* The rail stays, as above 960 px; the window takes the place of everything under it. */
-    .form-panel.settings-open .side-content > :not(#settings-host){ display:none; }
   }
 
   /* ⭐ THE PHASE CARD, THE A + D BLEND (owner, 23 Oct 2026; PHASES-TAB-PLAN.md §3.4a, rulings R6-R10). A stack, no
@@ -1129,7 +1454,7 @@
   }
   /* The caret, the colour square's room, then the name and its dates. */
   .phase-head-text{ flex:1; min-width:0; margin-left:22px; }
-  /* The name and its tag share a line; the tag drops under the name rather than squeeze it (280 px sidebar). */
+  /* The name alone since 18 Nov 2026: the "Month view only" tag moved to the head's corner (.phase-head-corner below). */
   .phase-head-title{ display:flex; flex-wrap:wrap; align-items:center; gap:2px 4px; }
   .phase-name-input{
     flex:1 1 110px; min-width:0; height:28px; box-sizing:border-box; padding:0 4px;
@@ -1156,6 +1481,38 @@
     font-size:var(--mantine-font-size-xxs); font-weight:500; white-space:nowrap; cursor:default;
   }
   .phase-mvonly-tag[hidden]{ display:none; }
+  /* ⭐ THE HEAD'S CORNER (owner, 18 Nov 2026, option A: "Build A"; app.js MVONLY_TAG / phaseHeadHtml). It floats at the
+     right of .phase-head-text, so the title (a flex box, so it shrinks beside a float rather than flowing round it)
+     gives it room and the dates under it keep the full width. 3 + 24 px tall, inside the title's 28 px line. */
+  .phase-head-corner{ float:right; display:flex; align-items:center; gap:2px; margin:2px -2px 0 4px; }
+  /* "Enter a week count to include this phase" until Enter or ↳ Start after / Finish before asks for it (app.js,
+     reflectWeekCountPrompt; owner, 19 Nov 2026). Doubled class to outrank the header rule above, which sets display. */
+  .phase-meta.phase-meta.is-quiet{ display:none; }
+  .phase-head-corner .icon-btn{ margin-top:0; }
+  /* In the corner the tag is the name line's height and, on a phase that can be hidden, a button: click it to put the
+     phase back in the waterfall. Episodic Prep's and Double-ups' stay plain text (a span). */
+  /* An ICON in the corner, the eye's 22 px (owner, "lets go with fix 1"): font-size:0 hides the words (still its
+     accessible name; its title says them on hover) and the eye-off glyph above paints in the tag's blue. */
+  .phase-head-corner .phase-mvonly-tag{ width:22px; height:22px; padding:0; gap:0; justify-content:center; border:0;
+    border-radius:var(--mantine-radius-default); font-family:inherit; font-size:0; line-height:1; }
+  .phase-head-corner .phase-mvonly-tag::before{ width:15px; height:15px; }
+  .phase-head-corner button.phase-mvonly-tag{ cursor:pointer; transition:background-color 100ms ease; }
+  .phase-head-corner button.phase-mvonly-tag:hover{ background:var(--mantine-color-info-1); }
+  .phase-head-corner button.phase-mvonly-tag:focus-visible{ outline:2px solid var(--mantine-primary-color-filled); outline-offset:1px; }
+  /* The eye: the phase is in both views; click to hide it in the waterfall. Quiet until pointed at (ActionIcon subtle). */
+  .phase-wf-eye{
+    width:22px; height:22px; flex:none; padding:0; border:0; border-radius:var(--mantine-radius-default);
+    background:transparent; cursor:pointer; display:inline-flex; align-items:center; justify-content:center;
+    color:color-mix(in srgb, var(--mantine-color-black) 45%, transparent); transition:background-color 100ms ease, color 100ms ease;
+  }
+  .phase-wf-eye[hidden]{ display:none; }
+  .phase-wf-eye:hover{ background:rgba(0,0,0,.07); color:var(--mantine-color-black); }
+  .phase-wf-eye:focus-visible{ outline:2px solid var(--mantine-primary-color-filled); outline-offset:1px; }
+  .phase-wf-eye::before{
+    content:""; width:15px; height:15px; background:currentColor;
+    -webkit-mask:url("data:image/svg+xml,%3Csvg viewBox='0 0 16 16' xmlns='http://www.w3.org/2000/svg' fill='none' stroke='black' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M1.5 8C2.7 5 5.3 3 8 3s5.3 2 6.5 5c-1.2 3-3.8 5-6.5 5S2.7 11 1.5 8z'/%3E%3Ccircle cx='8' cy='8' r='2'/%3E%3C/svg%3E") center / contain no-repeat;
+    mask:url("data:image/svg+xml,%3Csvg viewBox='0 0 16 16' xmlns='http://www.w3.org/2000/svg' fill='none' stroke='black' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M1.5 8C2.7 5 5.3 3 8 3s5.3 2 6.5 5c-1.2 3-3.8 5-6.5 5S2.7 11 1.5 8z'/%3E%3Ccircle cx='8' cy='8' r='2'/%3E%3C/svg%3E") center / contain no-repeat;
+  }
   .phase-mvonly-tag::before{
     content:""; width:11px; height:11px; flex:none; background:currentColor;
     -webkit-mask:url("data:image/svg+xml,%3Csvg viewBox='0 0 16 16' xmlns='http://www.w3.org/2000/svg' fill='none' stroke='black' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M2 2l12 12M6.6 6.7a2 2 0 002.7 2.7M4.2 4.4C2.9 5.3 2 6.6 1.5 8c1.2 3 3.8 5 6.5 5 1.3 0 2.5-.4 3.6-1.1M7 3.1c.3 0 .7-.1 1-.1 2.7 0 5.3 2 6.5 5-.3.8-.7 1.5-1.2 2.2'/%3E%3C/svg%3E") center / contain no-repeat;
@@ -1213,14 +1570,30 @@
      minimum (which was pushing the whole sidebar into horizontal overflow on narrow windows). */
   .phase-fields input{ min-width:0; width:100%; box-sizing:border-box; }
   /* Per-phase "start after the previous phase" shortcut, under Starts and Length (A's AfterLink). */
-  .autostart-btn{ display:block; margin:5px 12px 0; background:none; border:none; padding:1px 0; font:inherit; font-size:var(--mantine-font-size-xs); color:var(--mantine-color-navy-5); cursor:pointer; text-align:left; }
-  .autostart-btn:hover:not(:disabled){ text-decoration:underline; }
-  .autostart-btn:disabled{ color:var(--text-faint); cursor:default; }
-  .autostart-btn:focus-visible{ outline:2px solid var(--accent); outline-offset:1px; border-radius:3px; }
+  .autostart-btn, .finish-before-btn{ display:block; margin:5px 12px 0; background:none; border:none; padding:1px 0; font:inherit; font-size:var(--mantine-font-size-xs); color:var(--mantine-color-navy-5); cursor:pointer; text-align:left; }
+  .autostart-btn:hover:not(:disabled), .finish-before-btn:hover:not(:disabled){ text-decoration:underline; }
+  .autostart-btn:disabled, .finish-before-btn:disabled{ color:var(--text-faint); cursor:default; }
+  .autostart-btn:focus-visible, .finish-before-btn:focus-visible{ outline:2px solid var(--accent); outline-offset:1px; border-radius:3px; }
+  /* FINISH BEFORE (owner, 18 Nov 2026, R1): a card shows it IN PLACE OF "Start after" while a later phase in the chain
+     is on Ends; reflectFinishBefore() sets the card's chain-back class from update(). R5 (19 Nov 2026): an empty card
+     with a dated phase after it offers it too, alone (chain-back) or, with a dated phase before it, beside Start after
+     (chain-both, the one case that shows both). */
+  .phase-row:not(.chain-back):not(.chain-both) .finish-before-btn,
+  .phase-row.chain-back .autostart-btn{ display:none; }
   .phase-switches{ padding:6px 12px 0; }
   /* Production's one switch (Snap to Monday) sits alone between Starts and the shooting-days box, with no hairline. */
   .phase-switches:has(+ .prod-total-block){ padding-top:4px; }
   .phase-switches:has(+ .prod-total-block) > .sw-row{ border-bottom:none; }
+  /* ⭐ Snap to Monday is switched in the phase's Starts picker since 18 Nov 2026 (owner: "putting snap to monday slider
+     inside the mini calendar pop up box"; DatePop's snapBoxOf), so the card no longer shows its row. ⛔ Hidden, never
+     removed: snap-<key> is in fields.byId and every saved file, and the picker's switch clicks this very box.
+     Production's block held only that row (and a hidden input), so it goes with it. */
+  .phase-row .phase-snap{ display:none; }
+  /* ...and Hide in waterfall is the eye / tag in the head's corner (owner, 18 Nov 2026, "Build A"), so its row goes too.
+     ⛔ Hidden, never removed: the corner's buttons click its .phase-hidewf-cb. A switch block left with no row to show
+     (every built-in phase's, and Production's) goes with them; a custom phase keeps Number weeks. */
+  .phase-row .phase-hidewf{ display:none; }
+  .phase-switches:not(:has(> .sw-row:not(.phase-snap):not(.phase-hidewf))){ display:none; }
 
   /* ⭐ A SWITCH ROW (D's RowD): the label on the left, the switch on the right, a hairline under it. One <label>,
      so a click anywhere on the row toggles, as the old caption did. */
@@ -1235,20 +1608,25 @@
      checkbox -- never a React Switch (UI-CONVENTIONS §8.9: the engine writes .checked directly, and a controlled
      Switch would put its own state back). Out-specifies `.form-panel input[type=checkbox]` and its :checked
      tick, which this replaces. The thumb is ::before, which Chrome draws on an appearance:none checkbox. */
-  .form-panel .sw-row > input[type=checkbox]{
+  .form-panel .sw-row > input[type=checkbox],
+  .date-pop .sw-row > input[type=checkbox]{
+    -webkit-appearance:none; appearance:none; padding:0;
     position:relative; width:32px; height:16px; flex:none; margin:0;
     border:0; border-radius:999px; background:var(--mantine-color-gray-3); background-image:none;
     transition:background-color 150ms ease;
   }
-  .form-panel .sw-row > input[type=checkbox]::before{
+  .form-panel .sw-row > input[type=checkbox]::before,
+  .date-pop .sw-row > input[type=checkbox]::before{
     content:""; position:absolute; top:2px; left:2px; width:12px; height:12px; border-radius:50%;
     background:var(--mantine-color-white); box-shadow:0 1px 2px rgba(0,0,0,.18);
     transition:transform 150ms ease;
   }
-  .form-panel .sw-row > input[type=checkbox]:checked{
+  .form-panel .sw-row > input[type=checkbox]:checked,
+  .date-pop .sw-row > input[type=checkbox]:checked{
     background-color:var(--mantine-primary-color-filled); background-image:none;
   }
-  .form-panel .sw-row > input[type=checkbox]:checked::before{ transform:translateX(16px); }
+  .form-panel .sw-row > input[type=checkbox]:checked::before,
+  .date-pop .sw-row > input[type=checkbox]:checked::before{ transform:translateX(16px); }
   .form-panel .sw-row > input[type=checkbox]:hover:not(:disabled){ border:0; }
   .form-panel .sw-row > input[type=checkbox]:focus-visible{ outline:2px solid var(--mantine-primary-color-filled); outline-offset:2px; }
 
@@ -1533,6 +1911,15 @@
   .hiatus-pair label.hiatus-weeks-lbl{ flex:0 0 64px; }
   .hiatus-pair input{ min-width:0; width:100%; box-sizing:border-box; }
   .hiatus-body > .snap-note{ margin-top:4px; }
+  /* ⭐ THE HIATUS RIPPLE (HIATUS-RIPPLE-PLAN.md §6): the line that says what a ripple moved, under the hiatus that was
+     edited. .hiatus-ripple-card is the line's home for a REMOVED hiatus, at the top of the All-phase hiatus card: empty,
+     and so no height, until then. It held the ripple's switch until 10 Nov 2026 (owner, "Settings only"). */
+  .hiatus-ripple-card{ padding:0 12px; }
+  .hiatus-ripple-card > .ripple-note{ margin:0 0 6px; }
+  .ripple-note{ margin-top:4px; padding:4px 6px; border-radius:4px; font-size:var(--mantine-font-size-xs); line-height:1.4;
+    color:var(--mantine-color-black); background:color-mix(in srgb, var(--mantine-primary-color-filled) 9%, transparent); }
+  .ripple-note[hidden], .ripple-note:empty{ display:none; }
+  .phase-hiatus > .ripple-note{ margin:0 0 8px 2px; }
   .hiatus-body > .sw-row:first-of-type{ margin-top:6px; }
   .hiatus-body > .sw-row:last-child{ border-bottom:none; }
   /* "Snapped to Mon …" hint shown under any date field whose value isn't already a Monday. */
@@ -1602,9 +1989,69 @@
 
   .empty-state{color:var(--text-faint); font-size:13.5px; padding:40px 0; text-align:center;}
 
+  /* THE RECENT CALENDARS ON AN EMPTY START (audit 2026-11, AUD2-030; StartRecents.jsx). Under the empty-state sentence,
+     centred like it. Since 16 Nov 2026 (owner, version 7 of mockups/start-recents.html) two white cards in the popovers'
+     look: the last calendar's card ("Pick up where you left off", a navy tile, Open), then "Other recent calendars"
+     with Load… in its title row and a two-line row per calendar (an arrow shows on hover). Names cut to one line (the
+     title= shows the whole of it). Outside #table-wrap (a sibling after it), so no .sheet-* / .mv-* rule is touched. */
+  .start-recents:not([hidden]){ display:flex; justify-content:center; padding:0 0 40px; }
+  .sr-stack{ width:460px; max-width:100%; display:flex; flex-direction:column; gap:12px; }
+  .sr-hero, .sr-card{ box-sizing:border-box; background:var(--mantine-color-white); border:1px solid var(--mantine-color-gray-2);
+    border-radius:var(--mantine-radius-lg); box-shadow:var(--mantine-shadow-xs); }
+  .sr-hero{ display:flex; align-items:center; gap:14px; width:100%; padding:14px 16px; text-align:left;
+    transition:border-color .12s, box-shadow .12s; }
+  .sr-hero:hover{ border-color:var(--mantine-color-gray-4); box-shadow:var(--mantine-shadow-sm); }
+  .sr-hero:focus-visible{ outline:2px solid var(--accent); outline-offset:2px; }
+  .sr-tile{ width:30px; height:30px; flex:none; display:grid; place-items:center; border-radius:var(--mantine-radius-md);
+    background:var(--mantine-color-navy-0); color:var(--mantine-color-navy-6); }
+  .sr-tile svg{ width:16px; height:16px; }
+  .sr-hero .sr-tile{ width:40px; height:40px; border-radius:var(--mantine-radius-lg); background:var(--mantine-color-navy-6);
+    color:var(--mantine-color-white); }
+  .sr-hero .sr-tile svg{ width:18px; height:18px; }
+  .sr-txt{ flex:1; min-width:0; display:flex; flex-direction:column; line-height:1.35; }
+  .sr-over{ font-size:var(--mantine-font-size-xs); font-weight:500; color:var(--text-faint); }
+  .sr-hero-name{ margin:1px 0; font-size:var(--mantine-font-size-md); font-weight:600; color:var(--text); }
+  .sr-name{ font-size:var(--mantine-font-size-sm); font-weight:500; color:var(--text); }
+  .sr-hero-name, .sr-name{ overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .sr-meta{ font-size:var(--mantine-font-size-xs); color:var(--text-faint); }
+  .sr-ext{ font-weight:400; color:var(--mantine-color-gray-5); }
+  .sr-open{ display:inline-flex; align-items:center; gap:4px; flex:none; font-size:var(--mantine-font-size-sm); font-weight:500;
+    color:var(--mantine-color-navy-6); }
+  .sr-open svg{ width:14px; height:14px; }
+  .sr-card{ padding:6px; }
+  .sr-head{ display:flex; align-items:center; justify-content:space-between; gap:8px; padding:6px 6px 8px 10px; }
+  .sr-title{ font-size:var(--mantine-font-size-sm); font-weight:600; color:var(--text); }
+  .sr-row{ display:flex; align-items:center; gap:11px; width:100%; box-sizing:border-box; padding:6px 8px;
+    border-radius:var(--mantine-radius-md); text-align:left; }
+  .sr-row:hover{ background:var(--mantine-color-gray-0); }
+  .sr-row:focus-visible{ outline:2px solid var(--accent); outline-offset:-2px; }
+  .sr-go{ display:grid; flex:none; color:var(--mantine-color-navy-6); opacity:0; transition:opacity .1s; }
+  .sr-go svg{ width:16px; height:16px; }
+  .sr-row:hover .sr-go, .sr-row:focus-visible .sr-go{ opacity:1; }
+  .sr-empty{ padding:0 10px 10px; font-size:var(--mantine-font-size-sm); color:var(--text-faint); }
+  .sr-foot{ display:flex; justify-content:center; }
+
   /* Wraps rather than overflowing once the toggle and the tools can't share a line. */
-  .view-toggle-row{display:flex; align-items:center; justify-content:space-between; gap:10px;
-    flex-wrap:wrap; margin-bottom:14px;}
+  /* THE TOOLBAR'S SECTIONS (owner, 10 Nov 2026, variation 27 of mockups/toolbar-variations.html: "the spacing between
+     the differnt sections is literally all different. It needs to be consistnet"). The view toggle alone at the left
+     edge; then, packed to the right in the owner's order of 10 Nov 2026, the date tools (Shift, Build Around), the
+     text style buttons, the page tools and Undo / Redo, the last three in grey wells. ONE gap between every section, --tb-gap (column-gap here, and between the two wells inside .preview-tools),
+     and inside every well, the view toggle's included, 2 px of padding, 2 px between buttons and nested corners (a
+     9 px well around 7 px buttons): .tb-well below. Read by useStyleBarFit too. The lines below the first (the phase
+     map, the stepper, the style bar on its own line) keep their 10 px row gap. */
+  /* ⭐ ONE EQUAL GAP since 11 Nov 2026 (owner: once the space either side of the tools was 19 px, "the gap should be the
+     same as the gaps between all the other buttons"): --tb-gap is --tb-gap-fit, which PreviewToolbar's useStyleBarFit
+     solves so the first line exactly fills the row (eight gaps, Redo's to the edge included) and writes on
+     .preview-panel; never under --tb-gap-min. Until it is solved, and while the text bar has its own line, the minimum. */
+  .view-toggle-row{display:flex; align-items:center; justify-content:flex-start; column-gap:var(--tb-gap); row-gap:10px;
+    flex-wrap:wrap; margin-bottom:14px; --tb-gap-min:10px; --tb-gap-max:14px; --tb-gap:var(--tb-gap-fit, var(--tb-gap-min));}
+  /* ⭐ PACKED LEFT, AT MOST --tb-gap-max APART (owner, 16 Nov 2026: "When the screen is made larger/on a big monitor, the
+     tool bar should stay the same size and just have extra space on the sides rather than adding a bunch of space
+     between the buttons", then the picker "On the right"). useToolbarFit caps the solved gap at 14 px, the gap on the
+     owner's laptop, and the line starts at the left, so a wider window leaves its spare room after Undo / Redo. The
+     auto margins that packed the tools right of the view toggle (10 Nov 2026) went with it. The line never wraps any
+     more: where it is short of room it folds instead (useToolbarFit's steps, the `tbf1`-`tbf4` rules below). The
+     rows under it (the phase map, the stepper's empty line) are full-width items and wrap as before. */
   /* Reads as a Mantine SegmentedControl, but it is two <button>s -- deliberately. A real
      SegmentedControl renders an <input type="radio"> per segment, and Mantine generates an id for
      each; those are `input[id]` outside any .tools-menu, so collectFieldValues() would sweep them
@@ -1615,14 +2062,15 @@
     display:inline-grid; grid-auto-flow:column; grid-auto-columns:1fr;
     gap:var(--mantine-spacing-xxs);
     background:var(--mantine-color-gray-1);
-    border-radius:var(--mantine-radius-md); padding:var(--mantine-spacing-xxs);
+    /* A 9 px well around 7 px segments, as every toolbar well (variation 27); was md around sm. */
+    border-radius:calc(var(--mantine-radius-default) + 2px); padding:var(--mantine-spacing-xxs);
   }
   .view-toggle-btn{
     display:flex; align-items:center; justify-content:center; gap:var(--mantine-spacing-sm);
     font-family:inherit; font-size:var(--mantine-font-size-sm); font-weight:500;
     border:none; background:transparent; color:var(--mantine-color-gray-7);
     padding:var(--mantine-spacing-sm) var(--mantine-spacing-lg);
-    border-radius:var(--mantine-radius-sm); cursor:pointer;
+    border-radius:var(--mantine-radius-default); cursor:pointer;
     transition:color .12s ease, background .12s ease;
   }
   .vt-ic{ width:14px; height:14px; flex:none; }
@@ -1642,15 +2090,61 @@
      max-width:100% caps the max-content size at the container's width, which is what lets the
      children wrap; row-gap keeps the wrapped lines apart. On a wide window max-content is under
      100%, nothing wraps, and the appearance is byte-identical to before. */
-  .preview-tools{display:inline-flex; align-items:center; gap:10px; flex:none;
+  .preview-tools{display:inline-flex; align-items:center; column-gap:var(--tb-gap); flex:none;
     flex-wrap:wrap; row-gap:8px; max-width:100%;}
-  .undo-redo-group{display:inline-flex; gap:6px; flex:none;}
+  /* The gap after Redo, to the toolbar's edge: a zero-width last item takes one --tb-gap (11 Nov 2026). The auto margin
+     after it pairs with the date tools' before Shift; with the gap solved they are ~0, and while the text bar has its
+     own line they split what is left evenly either side of the tools (owner, 11 Nov 2026). */
+  .preview-tools::after{ content:''; flex:none; width:0; }
+  /* THE WELLS (variation 27). The view toggle's grey ground, padding and gap, around each section's buttons. The text
+     style bar is one too (.style-bar, its block below); Undo / Redo's Mantine Group is styled here so its markup stays
+     a Group. Never position:relative and never overflow:hidden: the popovers inside anchor to their own buttons and
+     hang below the well. */
+  .tb-well, .preview-tools > .undo-redo-group{
+    display:inline-flex; align-items:center; flex:none; gap:var(--mantine-spacing-xxs); padding:var(--mantine-spacing-xxs);
+    background:var(--mantine-color-gray-1); border-radius:calc(var(--mantine-radius-default) + 2px);
+  }
+  /* The date tools have NO well (owner, 10 Nov 2026: "remove the faint grey box surrounding the shift and build around
+     buttons"): their own navy outlines are their edge. No padding either, so the gap you see from those outlines to
+     the wells beside them is the one section gap, 12 px, as between every other pair. */
+  .tb-dates{ background:transparent; padding:0; }
+  /* ...and Shift and Build Around stand apart by the one section gap, not 2 px (owner, 10 Nov 2026: "there should be
+     MORE space between the right shift button and build around so it matches the current spacing of the redo button
+     and size button gap"), so the two outlined tools read as two sections, 12 px apart like every other pair. */
+  .tb-dates{ gap:var(--tb-gap); }
+  /* The date tools come right after the view toggle (owner's reorder, 10 Nov 2026: view | Shift + Build Around | text |
+     page tools | Undo / Redo), and their auto left margin packs every tool to the right. Variation 27 had Undo / Redo
+     first, carrying this margin. */
+  /* Inside a well a plain button has no edge of its own until it is hovered or open: then the raised white chip of
+     the view toggle's active segment. The date tools keep their white ground and navy outline (owner: Shift "just
+     white background color like build around"); Header: Manual / Template keeps its purple state (an id rule). */
+  .undo-redo-group .icon-btn{ border-color:transparent; background:transparent; }
+  .undo-redo-group .icon-btn:hover:not(:disabled){ background:var(--mantine-color-white); box-shadow:var(--mantine-shadow-xs); }
+  /* THE PAGE TOOLS STAND ALONE (owner, 11 Nov 2026, card 4b: "their own buttons again and not connected together", then
+     "they should have grey backgrounds not white"): Fill Gaps, Side Boxes and Header each a grey button the wells'
+     height and corners, no border, --tb-gap apart; hover or open, a shade darker. Fill Gaps greys where it doesn't apply
+     yet rather than leaving (its place never empties). Header: Manual / Template keeps its purple (an id rule). */
+  .tb-page{ display:inline-flex; align-items:center; gap:var(--tb-gap); flex:none; }
+  .tb-page .tb-solo{
+    height:34px; border-color:transparent; background:var(--mantine-color-gray-1);
+    border-radius:calc(var(--mantine-radius-default) + 2px); padding:0 10px !important;
+    justify-content:center;   /* Header's fixed width is its longest label's: a shorter one sits centred in it */
+  }
+  .tb-page .tb-solo:hover:not([data-disabled]), .tb-page .tb-solo[aria-expanded="true"]{ background:var(--mantine-color-gray-2); }
+  .tb-page .tb-solo[data-disabled]{ opacity:.45; cursor:default; background:var(--mantine-color-gray-1); color:var(--mantine-color-gray-9); }
+  /* THE SLOT: Fill Gaps + Side Boxes in the waterfall, the month stepper in the month view, in ONE grid cell, so the
+     cell is the wider of the two in both views and Header, Undo and Redo never move when you switch (owner, 11 Nov
+     2026: "the menu should be locked where it is"). The view not shown keeps its size, hidden by visibility. */
+  .tb-slots{ display:grid; flex:none; align-items:center; }
+  .tb-slots > *{ grid-area:1 / 1; }
+  .tb-pair{ display:inline-flex; align-items:center; gap:var(--tb-gap); }
+  body:has(#view-month-btn.active) .tb-pair{ visibility:hidden; }
   .undo-redo-group .icon-btn{font-size:16px;}
-  .undo-redo-group .icon-btn:disabled{opacity:.4; cursor:default; background:#fff;}
+  .undo-redo-group .icon-btn:disabled{opacity:.4; cursor:default; background:transparent;}
   /* Shift tools. Grouped in one bordered well so the pair reads as a single control (the calendar
      moves as a whole) rather than as two unrelated arrow buttons next to Undo. */
   /* A joined three-part control at the toolbar's shared 30px control height -- the Mantine UI
-     split-button idiom. The centre IS the dropdown trigger ("Shift All ▾"); the arrows are the
+     split-button idiom. The centre IS the dropdown trigger ("Shift ▾", "Shift All ▾" until 4 Nov 2026); the arrows are the
      one-click one-week moves. */
   .shift-group{position:relative; display:inline-flex; align-items:stretch; gap:0;
     height:var(--input-height-xs, 30px); box-sizing:border-box;
@@ -1697,8 +2191,130 @@
      user had to click to find out what it was. */
   .tools-btn{display:inline-flex; align-items:center; gap:5px; padding:6px 10px !important;}
   .tools-btn .caret{color:var(--text-faint); font-size:9px;}
+  /* Fill Space (9 Nov 2026): a drawn switch inside a toggle button (a real Switch would carry an id the save sweep
+     collects). Track 22x12, knob 8; navy when on, the faint border grey when off. */
+  .fill-switch{ position:relative; display:inline-block; width:22px; height:12px; border-radius:6px;
+    background:var(--mantine-color-gray-4); transition:background .12s; flex:none; }
+  .fill-switch .fill-knob{ position:absolute; top:2px; left:2px; width:8px; height:8px; border-radius:50%;
+    background:#fff; transition:left .12s; }
+  .fill-switch.is-on{ background:var(--mantine-color-navy-6); }
+  .fill-switch.is-on .fill-knob{ left:12px; }
+  /* Measured 9 Nov 2026: the labelled button (99px) wraps the toolbar row to two lines below about 1293px, where the row
+     without it stays on one line down to 1200px. At 1300px and below it shows the drawn switch alone (40px); its
+     title= says what it does, as the header's icon-only buttons do. */
+  /* ⚠️ Since 16 Nov 2026 that is fold step 1 (useToolbarFit), not a window width: the switch alone wherever the line
+     needs the room, and from step 2 the label again, inside the More menu. */
+  .preview-panel.tbf1:not(.tbf2) .fill-space-btn .mantine-Button-label{ display:none; }
+  .preview-panel.tbf1:not(.tbf2) .fill-space-btn .mantine-Button-section{ margin:0; }
+  .preview-panel.tbf1:not(.tbf2) .fill-space-btn{ padding-left:8px !important; padding-right:8px !important; }
+
+  /* ---------- THE TOOLBAR'S FOLD STEPS (owner's pickers, 16 Nov 2026; PreviewToolbar.jsx, useToolbarFit) ----------
+     The first line is always one line. Short of room it gives up width in fixed steps, least-used first, each a
+     class on .preview-panel, cumulative: tbf1 (Fill Gaps' switch alone, above, and Header's icon), tbf2 (Fill Gaps,
+     Side Boxes and Header, or the month stepper, fold into the More menu), tbf3 (Build Around's hammer), tbf4 (the text
+     style buttons fold behind the Text button), tbf5 (Waterfall and Month show their icons alone). Shift never folds.
+     Every folded button keeps a hover hint (its title=). ⛔ Nothing here is inside #table-wrap. */
+  /* The fold icons are drawn only at the step that hides their label. ⚠️ By CLASS, not id: useFixedHeaderWidth
+     measures a copy of the Header button with its id removed, and an id rule let the hidden icon widen that copy. */
+  .has-fold-ic .mantine-Button-section[data-position="left"]{ display:none; }
+  .tb-fold-ic{ width:15px; height:15px; flex:none; }
+  /* Step 1: Header shows its icon and caret. Its fixed width (its longest label's) gives way to the icon's. */
+  .preview-panel.tbf1:not(.tbf2) #tb-hdr-mode-btn{ width:auto !important; }
+  .preview-panel.tbf1:not(.tbf2) #tb-hdr-mode-btn .mantine-Button-label{ display:none; }
+  .preview-panel.tbf1:not(.tbf2) #tb-hdr-mode-btn .mantine-Button-section[data-position="left"]{ display:flex; }
+  /* Step 2: the More menu. Below it the wrapper is not a box at all and its button is hidden, so the page tools sit in
+     the line exactly as they did. From it the page tools are SHOWN in a panel under the button: the same nodes, so the
+     engine's delegated clicks and the menus it opens under them work unchanged. The panel hangs right-aligned, so it
+     opens back over the line, never past the preview's right edge (a scroll box: keepPopInPanel's note). */
+  .tb-more{ display:contents; }
+  .tb-more-btn{ display:none; }
+  .preview-panel.tbf2 .tb-more{ display:inline-flex; position:relative; flex:none; }
+  .preview-panel.tbf2 .tb-more-btn, .preview-panel.tbf4 .tb-text-btn{
+    display:inline-flex; align-items:center; justify-content:center; flex:none; height:34px; border:0; padding:0;
+    background:var(--mantine-color-gray-1); color:var(--mantine-color-gray-7); cursor:pointer;
+    border-radius:calc(var(--mantine-radius-default) + 2px);
+  }
+  .preview-panel.tbf2 .tb-more-btn{ width:34px; }
+  .preview-panel.tbf2 .tb-more-btn .btn-ic{ width:16px; height:16px; }
+  .preview-panel.tbf2 .tb-more-btn:hover, .preview-panel.tbf2 .tb-more.is-open .tb-more-btn,
+  .preview-panel.tbf4 .tb-text-btn:hover, .preview-panel.tbf4 .tb-text-btn[aria-expanded="true"]{
+    background:var(--mantine-color-gray-2); color:var(--mantine-color-black);
+  }
+  .tb-more-btn:focus-visible, .tb-text-btn:focus-visible{ outline:2px solid var(--mantine-primary-color-filled); outline-offset:1px; }
+  .preview-panel.tbf2 .tb-more > .tb-page{ display:none; }
+  .preview-panel.tbf2 .tb-more.is-open > .tb-page{
+    display:flex; flex-direction:column; align-items:stretch; gap:2px;
+    position:absolute; top:calc(100% + 6px); right:0; z-index:300; min-width:220px; padding:4px;
+    background:var(--mantine-color-white); border:1px solid var(--mantine-color-gray-3);
+    border-radius:var(--mantine-radius-lg); box-shadow:var(--mantine-shadow-md);
+  }
+  .preview-panel.tbf2 .tb-more .tb-slots, .preview-panel.tbf2 .tb-more .tb-pair{
+    display:flex; flex-direction:column; align-items:stretch; gap:2px;
+  }
+  /* In the month view the panel holds the stepper and Header; Fill Gaps and Side Boxes, which only keep the slot's
+     width on the line, take no room in a menu. */
+  body:has(#view-month-btn.active) .preview-panel.tbf2 .tb-more .tb-pair{ display:none; }
+  /* The stepper stretches across the menu. ⚠️ It must: its inline-size containment gives it no width of its own, and
+     its line-up rule (align-self:center) would leave it 0 px wide in a column. */
+  .preview-panel.tbf2 .tb-more .tb-slots > .month-step{ align-self:stretch; margin:2px 4px 4px; }
+  .preview-panel.tbf2 .tb-more .tb-solo{ width:100% !important; height:32px; background:transparent; }
+  .preview-panel.tbf2 .tb-more .tb-solo .mantine-Button-inner{ width:100%; justify-content:flex-start; }
+  .preview-panel.tbf2 .tb-more .tb-solo .mantine-Button-section[data-position="right"]{ margin-left:auto; }
+  /* In the panel a row with a menu of its own points RIGHT, as a macOS menu's does (owner, 16 Nov 2026): its menu opens
+     beside the panel (app.js, cascadeFrom). The toolbar's ▾ is swapped for a chevron here only. */
+  .preview-panel.tbf2 .tb-more .tb-solo .caret{ font-size:0; line-height:1; }
+  .preview-panel.tbf2 .tb-more .tb-solo .caret::after{ content:'\203A'; font-size:18px; color:var(--mantine-color-gray-6); }
+  /* ...and does not turn when its menu is open (every other caret flips to point up, which made this one point left). */
+  .preview-panel.tbf2 .tb-more .tb-solo[aria-expanded="true"] .caret{ transform:none; }
+  /* It points LEFT where its menu will open on the left (owner's picker, "Arrow follows the side"): app.js measures each
+     menu when the panel opens and writes the side on the row (data-cascade). */
+  .preview-panel.tbf2 .tb-more .tb-solo[data-cascade="left"] .caret::after{ content:'\2039'; }
+  .preview-panel.tbf2 .tb-more .tb-solo:hover:not([data-disabled]),
+  .preview-panel.tbf2 .tb-more .tb-solo[aria-expanded="true"]{ background:var(--mantine-color-gray-1); }
+  .preview-panel.tbf2 .tb-more .tb-solo[data-disabled]{ background:transparent; }
+  /* Step 3: Build Around shows its hammer and caret. */
+  .preview-panel.tbf3 #pop-solve-btn .mantine-Button-label{ display:none; }
+  .preview-panel.tbf3 #pop-solve-btn .mantine-Button-section[data-position="left"]{ display:flex; }
+  /* Turned 45°, the hammer's ink fills less of its box than the upright icons do, so it is drawn a size up. */
+  #pop-solve-btn .tb-fold-ic{ width:18px; height:18px; }
+  /* Step 4: the Text button, in the text style buttons' place, and the buttons themselves in a panel under it. The
+     panel IS the host (PreviewToolbar.jsx places it): fixed, so the preview's scroll box cannot clip it. */
+  .tb-text-btn{ display:none; }
+  .preview-panel.tbf4 .tb-text-btn{ gap:5px; padding:0 10px; font-family:inherit; font-size:14px; font-weight:600; }
+  .tb-text-btn .caret{ color:var(--text-faint); font-size:9px; font-weight:400; }
+  .preview-panel.tbf4 .view-toggle-row > .style-bar-host{ display:none; }
+  /* Step 5: Waterfall and Month, the icons alone (useToolbarFit writes their names as hover hints). */
+  .preview-panel.tbf5 .view-toggle-btn > span{ display:none; }
+  .preview-panel.tbf5 .view-toggle-btn{ padding-left:var(--mantine-spacing-md); padding-right:var(--mantine-spacing-md); }
+  .preview-panel.tbf4 .view-toggle-row > .style-bar-host.is-dropped{
+    display:block; position:fixed; z-index:300; padding:5px;
+    background:var(--mantine-color-white); border:1px solid var(--mantine-color-gray-3);
+    border-radius:var(--mantine-radius-lg); box-shadow:var(--mantine-shadow-md);
+  }
+  /* ⭐ THE LAPTOP TOOLBAR (owner, 19 Nov 2026: "is a standard 13" macbook air screen not big enough to show the entire
+     menu bar in its full form?", then "Build Option B" over folding the text styles first; the mockups are
+     mockups/toolbar-13in-options.html). Unfolded, the line needed about 1,690 px and a 13" Air is 1,470 (1,440 for the
+     M1), so Fill Gaps, Side Boxes and Header went into More. At 1,700 px and narrower the toolbar is drawn tighter
+     instead, so every control shows on a 13" Air: button padding 8 px (was 10-12), the text style buttons 26 px (was
+     30), gaps down to 8 px (--tb-gap-min), the calendar's side margins 12 px (was 28, the .preview-panel rule above) and
+     a narrower sidebar (.form-panel, "Smaller laptops"). Measured with the sidebar's rule: 12 px to spare at 1,470,
+     9 px at 1,440. Narrower than that, useToolbarFit's fold steps carry on as before, from these tighter sizes.
+     ⛔ 1,700, not lower: unfolded at normal size the line fits from about 1,690 px, so one pixel wider than this block
+     the toolbar is level 0 at its laptop size again, and no width shows less than it did before.
+     ⚠️ Header's fixed width is measured with these paddings (useFixedHeaderWidth re-measures when the query flips).
+     Scoped to .view-toggle-row: the header editor's strip uses the same .hf-* controls at 22 px. */
+  @media (max-width:1700px){
+    .preview-panel{ padding-left:12px; padding-right:12px; }
+    .view-toggle-row{ --tb-gap-min:8px; }
+    .preview-panel .view-toggle-btn{ padding-left:8px; padding-right:8px; }
+    .view-toggle-row .shift-btn{ padding-left:8px; padding-right:8px; }
+    .view-toggle-row .tools-wrap > .tools-btn, .view-toggle-row .tb-page .tb-solo{ padding-left:8px !important; padding-right:8px !important; }
+    .view-toggle-row .style-bar .hf-btn, .view-toggle-row .style-bar .hf-swatch{ width:26px; min-width:26px; padding-left:4px; padding-right:4px; }
+    .view-toggle-row .style-bar .hf-size{ width:58px; padding-right:20px; }
+    .view-toggle-row .style-bar .hf-al-toggle{ padding-left:4px; padding-right:4px; }
+  }
   .tools-btn[aria-expanded="true"]{background:var(--bg);}
-  /* The four SHIFTING tools wear a NAVY OUTLINE (owner, 21 Oct 2026: "right now all the buttons look
+  /* The SHIFTING tools (four until 4 Nov 2026, when Shift From and Anchor To folded into Shift) wear a NAVY OUTLINE (owner, 21 Oct 2026: "right now all the buttons look
      exactly the same"), so Shift All to Rebuild From read as one family, apart from Side Boxes, the
      Header button and undo/redo: white, a navy-6 border, navy-6 text and caret.
      ⛔ NOT the light accent FILL. That went live first and the owner saw at once that the four buttons
@@ -1722,20 +2338,27 @@
   /* The Header button (#tb-hdr-mode-btn): Template and Manual are STATES, not actions, so they read
      as the edit-accent chip the in-grid button used (#hdr-mode-btn.is-manual). Unlayered, so it
      outranks Mantine's layered Button background without !important. */
-  #tb-hdr-mode-btn.is-manual{
-    background:var(--edit-accent-bg); border-color:var(--edit-accent); color:var(--edit-accent); font-weight:600;
-  }
-  #tb-hdr-mode-btn.is-manual:hover{ background:var(--edit-accent); color:var(--mantine-color-white); }
+  /* Since 11 Nov 2026 the states wear the date tools' NAVY OUTLINE on the button's own grey (owner: "when header is on
+     template or manual it should have the blue border around it"); Off too, the other non-Auto state. Until then they
+     were the purple edit-accent chip. The border was always there, transparent, so the state changes no size. */
+  #tb-hdr-mode-btn.is-manual{ border-color:var(--mantine-color-navy-6); color:var(--mantine-color-navy-6); font-weight:600; }
+  #tb-hdr-mode-btn.is-manual:hover, #tb-hdr-mode-btn.is-manual[aria-expanded="true"]{ background:var(--mantine-color-gray-2); }
   #tb-hdr-mode-btn.is-manual .caret{ color:inherit; }
   /* Extra space between the shifting tools and the Header button, so the four tools read as one
      group and the Header button as something else (owner, 30 Sep 2026). It is a margin on Rebuild
      From's wrapper, NOT on the Header button: .preview-tools wraps on a narrow window, and the Header
      button is what moves to the new line (measured at a 600 px viewport), where a margin-left would
      indent it. A trailing margin at the end of a line is invisible. */
-  .tools-wrap:has(> #pop-solve-btn){ margin-right:16px; }
+  /* ⛔ That margin is GONE since 10 Nov 2026 (variation 27): the date tools and the page tools are separate wells now,
+     with the one section gap (--tb-gap) between them, so a margin here would make that one gap different again. */
   /* One popover per tool, each anchored under its own button. Right-aligned because these buttons
      sit near the right edge of the preview panel. Each holds a single tool, so none is tall enough
      to need the height cap the old combined menu did. */
+  /* ⚠️ ...on a desktop window. On a short laptop window (657 px for a 1080p Windows laptop at 150%) Build Around ran
+     past the preview panel's bottom, which clips it, and its pin date and Build sat out of sight (audit 2.14, WIN-4).
+     The engine fits an open panel to the window (app.js, "A panel's foot stays on screen"): its phase list gives way,
+     as an inline max-height under .solve-list's own 276 px cap, and a panel still cut off by the preview panel floats
+     where it is. No rule here changed. */
   /* ⛔ NOT a Mantine Popover, and it must not become one. Popover portals by default, which moves
      these panels out from under .tools-menu -- the single ancestor test that keeps their eight
      id'd controls out of every saved file -- and it mounts from an effect, so the panels would not
@@ -1748,7 +2371,6 @@
     border-radius:var(--mantine-radius-lg); box-shadow:var(--mantine-shadow-md);
     padding:var(--mantine-spacing-lg); z-index:300; text-align:left;
   }
-  .tools-menu-sm{width:280px;}
   .tools-div{height:1px; background:var(--mantine-color-gray-3); margin:var(--mantine-spacing-lg) 0;}
   .tools-menu.open{display:block;}
   .tools-sec{padding-bottom:10px; margin-bottom:10px; border-bottom:1px solid var(--border);}
@@ -1756,6 +2378,29 @@
   .tools-head{margin:0 0 var(--mantine-spacing-sm); font-size:var(--mantine-font-size-xxs);
     letter-spacing:.05em; text-transform:uppercase; font-weight:600;
     color:var(--mantine-color-gray-6);}
+  /* THE PANEL MOVES (owner, 11 Nov 2026: Shift covered the dates being read). The title row is a grip; the
+     panel floats where it is dropped (`is-floating`: position:fixed, set by the engine, so the preview's scroll
+     box no longer clips it and it can sit over the sidebar). A drag lasts until the panel closes.
+     ⭐ It is a GREY BAR across the panel's top (owner, same day: "make the bar at the top of the menus grey so its
+     clear its a grabable window"): pulled out over the panel's padding to its edges, the panel's own top corners,
+     a hairline under it. Its grey is How far's control's (`.tools-seg`, gray-1; owner's screenshot of "To a date"),
+     a shade darker under the pointer and while dragging. */
+  .tools-menu .tools-head{ cursor:grab; -webkit-user-select:none; user-select:none; touch-action:none;
+    margin:calc(-1 * var(--mantine-spacing-lg)) calc(-1 * var(--mantine-spacing-lg)) var(--mantine-spacing-md);
+    padding:7px 10px 7px var(--mantine-spacing-lg); background:var(--mantine-color-gray-1);
+    border-bottom:1px solid var(--mantine-color-gray-3);
+    border-radius:calc(var(--mantine-radius-lg) - 1px) calc(var(--mantine-radius-lg) - 1px) 0 0; }
+  .tools-menu .tools-head:hover{ background:var(--mantine-color-gray-2); }
+  .tools-menu.is-dragging .tools-head{ cursor:grabbing; background:var(--mantine-color-gray-2); }
+  .tools-grip{ flex:none; width:8px; height:12px; margin-right:7px; opacity:.7;
+    background-image:radial-gradient(circle, var(--mantine-color-gray-6) 1.1px, transparent 1.3px);
+    background-size:4px 4px; background-position:0 0; }
+  .tools-head-btns{ margin-left:auto; display:inline-flex; align-items:center; gap:2px; text-transform:none; letter-spacing:0; }
+  .tools-head-btns button{ border:0; background:transparent; cursor:pointer; color:var(--mantine-color-gray-6);
+    border-radius:var(--mantine-radius-sm); height:22px; padding:0 6px; font-size:11.5px; font-weight:500; line-height:22px; }
+  .tools-head-btns button:hover{ background:var(--mantine-color-gray-3); color:var(--mantine-color-gray-9); }
+  .tools-head-btns .tools-close{ width:22px; padding:0; font-size:12px; }
+  .tools-menu.is-floating{ position:fixed; right:auto; top:auto; box-shadow:var(--mantine-shadow-lg, var(--mantine-shadow-md)); }
   .tools-row{display:flex; align-items:center; gap:6px; margin-bottom:6px;}
   .tools-row:last-child{margin-bottom:0;}
   .tools-edge{flex:none !important; width:92px;}
@@ -1781,6 +2426,63 @@
   .tools-msg{margin:9px 0 0; font-size:11px; line-height:1.4; color:var(--text-muted); min-height:0;}
   .tools-msg:empty{display:none;}
   .tools-msg.warn{color:var(--danger);}
+  /* THE SHIFT TOOL (owner's layout C, 4 Nov 2026; ANCHOR-TO-DIRECTION-PLAN.md §6). Its one choice left, How far,
+     wears Build Around's direction look (.solve-dir, below) under a small caption; "Phases" is the same caption over
+     the list (the What moves buttons went on 9 Nov 2026, see THE SHIFT LIST FIRST). The engine hides the rows a
+     choice does not need with `hidden`, which a .tools-row's own display:flex would otherwise override. */
+  .tools-cap{margin:0 0 3px; font-size:var(--mantine-font-size-xxs); letter-spacing:.05em; text-transform:uppercase;
+    font-weight:600; color:var(--mantine-color-gray-6);}
+  #pop-shift [hidden]{display:none;}
+  /* THE SHIFT LIST FIRST (owner's spec, 9 Nov 2026; ANCHOR-TO-DIRECTION-PLAN.md §7.6). The box is the list's frame:
+     a HEADER STRIP, then the rows (Build Around's .solve-list, drawn by the engine).
+       * The strip is not a column header: no labels. A select-all box in the ticks' own column (the rows' grid: 9px
+         in, 16px wide) and the live count beside it, on a slight tint with a hairline under it.
+       * ⛔ The strip is a sibling ABOVE the rows' scroller, not a sticky bar inside it: nothing may sit over the
+         rows or their text (item 8). For the same reason no row carries a `title`, and the box's hint opens upward.
+       * The rows are pressed and dragged, so their text is not selectable. */
+  .shift-box{border:1px solid var(--mantine-color-gray-2); border-radius:var(--mantine-radius-md); overflow:hidden;
+    margin-bottom:6px;}
+  #pop-shift .shift-box .solve-list, #pop-solve .shift-box .solve-list{border:0; border-radius:0; margin:0;
+    -webkit-user-select:none; user-select:none;}
+  /* Build Around's length boxes are typed in, so they stay selectable inside its list. */
+  #pop-solve .shift-box .solve-list input{-webkit-user-select:text; user-select:text;}
+  .shift-all{display:grid; grid-template-columns:16px minmax(0,1fr); align-items:center; gap:7px; margin:0;
+    padding:5px 9px; background:var(--mantine-color-gray-0); border-bottom:1px solid var(--mantine-color-gray-2);
+    font-size:11.5px; line-height:1.4; color:var(--mantine-color-gray-7); cursor:pointer;
+    -webkit-user-select:none; user-select:none;}
+  /* The header box wears the rows' box (.solve-row input, above), with a MINUS where they have a tick: ticked means
+     every phase is ticked, and a click then clears them all. */
+  .shift-all input[type=checkbox]{-webkit-appearance:none; appearance:none; width:16px; height:16px; margin:0; padding:0;
+    border:1px solid var(--mantine-color-gray-4); border-radius:4px; background:var(--mantine-color-white);
+    display:inline-block; flex:none; cursor:pointer; transition:background-color 100ms ease, border-color 100ms ease;}
+  .shift-all input[type=checkbox]:hover:not(:disabled){border-color:var(--mantine-color-gray-5);}
+  .shift-all input[type=checkbox]:checked{background-color:var(--mantine-primary-color-filled);
+    border-color:var(--mantine-primary-color-filled);
+    background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 10 10' xmlns='http://www.w3.org/2000/svg'%3E%3Crect x='1.5' y='4' width='7' height='2' rx='1' fill='white'/%3E%3C/svg%3E");
+    background-size:62% auto; background-position:center; background-repeat:no-repeat;}
+  .shift-all input[type=checkbox]:focus-visible{outline:2px solid var(--mantine-primary-color-filled); outline-offset:2px;}
+  .shift-all input[type=checkbox]:disabled{background-color:var(--mantine-color-gray-1); border-color:var(--mantine-color-gray-3);
+    cursor:not-allowed;}
+  .shift-all input[type=checkbox]:disabled:checked{background-color:var(--mantine-color-gray-4); border-color:var(--mantine-color-gray-4);}
+  /* The last row clicked, ticked, cleared or dragged over: a light outline, drawn INSIDE the row so the box's edge
+     and the row lines never clip it. It is the row Prior / After name. */
+  #pop-shift .solve-row.is-mark, #pop-solve .solve-row.is-mark{box-shadow:inset 0 0 0 1.5px var(--mantine-color-navy-3);}
+  /* To a date, the phase that lands: Build Around's pinned-row tint, on a row that keeps its tick box (it is the
+     outlined row's phase whenever that row is ticked, so it changes with a click and must stay clearable). */
+  #pop-shift .solve-row.is-land{background:var(--mantine-color-navy-0);}
+  #pop-shift .solve-row.is-land .solve-nm{font-weight:600;}
+  #pop-shift .solve-row.is-land .solve-ch{color:var(--mantine-color-navy-7); font-weight:500;}
+  /* Prior / After: two big buttons under the box, each half its width. One line always: a long phase name is cut
+     with an ellipsis, so the buttons never change height. */
+  .shift-sides{gap:6px; margin-bottom:10px;}
+  .shift-side{flex:1 1 0; min-width:0; height:34px; padding:0 10px; border:1px solid var(--mantine-color-gray-4);
+    border-radius:var(--mantine-radius-md); background:var(--mantine-color-white); font:inherit; font-size:12px;
+    font-weight:600; color:var(--mantine-color-gray-9); cursor:pointer; white-space:nowrap; overflow:hidden;
+    text-overflow:ellipsis;}
+  .shift-side:hover:not(:disabled){background:var(--mantine-color-gray-0);}
+  .shift-side:active:not(:disabled){background:var(--mantine-color-gray-1);}
+  .shift-side:disabled{color:var(--mantine-color-gray-5); border-color:var(--mantine-color-gray-3); cursor:default;}
+  .shift-side:focus-visible{outline:2px solid var(--mantine-primary-color-filled); outline-offset:1px;}
 
   /* Rebuild From's tick list (owner, 30 Oct 2026: "Build A", mockups/rebuild-from-ticks.html). The
      panel is the widest of the four because each row holds a tick, a colour, the name, a date and
@@ -1789,14 +2491,15 @@
   .tools-menu-solve{width:400px;}
   /* The direction is a choice now, drawn as a segmented control: the app's own view toggle's look
      (.view-toggle), white on gray-1 for the side that is on. */
-  .solve-dir{display:flex; background:var(--mantine-color-gray-1); border-radius:var(--mantine-radius-md);
+  .solve-dir, .tools-seg{display:flex; background:var(--mantine-color-gray-1); border-radius:var(--mantine-radius-md);
     padding:3px; margin:2px 0 var(--mantine-spacing-md);}
-  .solve-dir button{flex:1; min-width:0; height:26px; border:0; background:none; border-radius:var(--mantine-radius-sm);
+  .tools-seg{margin:2px 0 8px;}
+  .solve-dir button, .tools-seg button{flex:1; min-width:0; height:26px; border:0; background:none; border-radius:var(--mantine-radius-sm);
     font:inherit; font-size:11.5px; font-weight:500; color:var(--mantine-color-gray-7); cursor:pointer; white-space:nowrap;}
-  .solve-dir button:hover{color:var(--mantine-color-gray-9);}
-  .solve-dir button[aria-pressed="true"]{background:var(--mantine-color-white); color:var(--mantine-color-gray-9);
-    font-weight:600; box-shadow:var(--mantine-shadow-xs);}
-  .solve-dir button:focus-visible{outline:2px solid var(--mantine-primary-color-filled); outline-offset:1px;}
+  .solve-dir button:hover, .tools-seg button:hover{color:var(--mantine-color-gray-9);}
+  .solve-dir button[aria-pressed="true"], .tools-seg button[aria-pressed="true"]{background:var(--mantine-color-white);
+    color:var(--mantine-color-gray-9); font-weight:600; box-shadow:var(--mantine-shadow-xs);}
+  .solve-dir button:focus-visible, .tools-seg button:focus-visible{outline:2px solid var(--mantine-primary-color-filled); outline-offset:1px;}
   .solve-count{margin-left:auto; text-transform:none; letter-spacing:0; font-weight:500;}
   /* Capped, so a calendar with many custom phases scrolls inside the list rather than running the
      panel off the bottom of the preview. */
@@ -1829,6 +2532,41 @@
   .solve-go:hover:not(:disabled){background:var(--mantine-color-navy-7);}
   .solve-go:disabled{background:var(--mantine-color-gray-1); color:var(--mantine-color-gray-6); cursor:default;}
   .solve-go:focus-visible{outline:2px solid var(--mantine-primary-color-filled); outline-offset:2px;}
+  /* BUILD AROUND (REBUILD-FROM-LENGTHS-PLAN.md, layout B, 5 Nov 2026). Its rows gain a LENGTH column, so they get their
+     own grid; Shift's list (renderShiftList) shares .solve-row and keeps the five columns above. The phase select gives
+     way to the "starts / ends by" picker beside it, which is narrower than Shift's. */
+  #pop-solve .solve-row{grid-template-columns:16px 8px minmax(0,1fr) 62px 52px 78px; gap:6px; padding:4px 9px; min-height:31px;}
+  #pop-solve [hidden]{display:none;}
+  .tools-menu .tools-edge-solve{width:84px;}
+  /* The column heading row: says the boxes are lengths. */
+  #pop-solve .solve-row.solve-colhead{min-height:0; padding-top:5px; padding-bottom:3px; cursor:default;
+    background:var(--mantine-color-gray-0); font-size:9.5px; letter-spacing:.05em; text-transform:uppercase;
+    font-weight:600; color:var(--mantine-color-gray-5);}
+  .solve-colr{text-align:right;}
+  /* A length: a small box and its unit. An empty box is dashed amber, so the rows that still need a length stand out;
+     a typed one not saved yet is tinted navy until Build saves it. Out-specifies the app's input[type=text] look. */
+  .solve-len{display:flex; align-items:center; justify-content:flex-end; gap:4px;}
+  #pop-solve input.solve-len-in{width:34px; height:22px; padding:0 5px; text-align:right; font-size:12px;
+    font-variant-numeric:tabular-nums; border:1px solid var(--mantine-color-gray-3); border-radius:4px; flex:none;}
+  #pop-solve input.solve-len-in:hover{border-color:var(--mantine-color-gray-5);}
+  #pop-solve input.solve-len-in:focus{border-color:var(--mantine-primary-color-filled); outline:2px solid var(--mantine-color-navy-1); outline-offset:0;}
+  #pop-solve input.solve-len-in:placeholder-shown{border-style:dashed; border-color:var(--mantine-color-warn-5); background:var(--mantine-color-warn-0);}
+  #pop-solve input.solve-len-in.is-staged{border-color:var(--mantine-color-navy-6); background:var(--mantine-color-navy-0);}
+  .solve-len-u{font-size:10.5px; color:var(--mantine-color-gray-6); width:22px;}
+  /* Production's length, read-only here (ruling R4): Show info's shoot days, or "Not set". A Dates phase's too. */
+  .solve-len-ro{font-size:11.5px; color:var(--mantine-color-gray-7); white-space:nowrap;}
+  .solve-len-ro.is-unset{color:var(--mantine-color-warn-9); font-weight:600;}
+  .solve-row.is-nolen .solve-ch{color:var(--mantine-color-warn-9);}
+  .solve-ch{overflow:hidden; text-overflow:ellipsis;}
+  /* Why a phase was left unticked (owner, 10 Nov 2026): one quiet line under the list, only while it applies.
+     The engine writes it and hides it through `hidden`. Build Around has no Prior / After row (owner, 10 Nov 2026),
+     so its list box carries the gap that row gave: 10 px to "Pin to a date", 6 px to this line. */
+  #pop-solve .shift-box{margin-bottom:10px;}
+  .solve-left{margin:-4px 0 10px; padding:6px 9px; border-radius:var(--mantine-radius-md); font-size:11px; line-height:1.4;
+    color:var(--mantine-color-gray-7); background:var(--mantine-color-gray-0); border:1px solid var(--mantine-color-gray-2);}
+  .solve-note{margin:-2px 0 var(--mantine-spacing-md); padding:6px 9px; border-radius:var(--mantine-radius-md);
+    font-size:11px; line-height:1.4; color:var(--mantine-color-warn-9); background:var(--mantine-color-warn-0);
+    border:1px solid var(--mantine-color-warn-2);}
 
   /* The tool popovers' pop-out picker (SelectPop.jsx, round 5): the loader dropdown's look over
      the native selects. It is portaled INSIDE .tools-menu — the component says why — and
@@ -2132,6 +2870,22 @@
   body.mv-bar-13 #table-wrap .mv-hiatus-bar{ font-size:13px; line-height:19px; border-radius:12px; height:23px; }
   body.mv-bar-13 #table-wrap .mv-pill.mv-pill-2l{ height:42px; }
   body.mv-bar-13 #table-wrap .mv-pill-block{ font-size:12px; }
+  /* ---- FROZEN EDIT TC1 (owner, 11 Nov 2026: a screenshot, "S2 - Production Week 4...etc not centered properly", then
+     "Yes, PDF too"): the grey tag is centred on the bar's label, on screen, in the print rollback and in the written PDF.
+     vertical-align:top hung the tag's OWN line box (1.5 x its smaller font) from the top of the bar's line, so its
+     letters rode high: measured 0.6 px at Standard and Large, 1.8 px at Extra large. A bar with a month text style size
+     was already right, because M1 writes the bar's line-height as a LENGTH and the tag inherits it. This gives every tag
+     that length (mvBarLinePx: 15 / 16 / 18 / 19 / 21 px), and in Inter the cap middle IS the centre of the line, so both
+     texts centre on one line. Unscoped (body.mv-bar-* holds #table-wrap and #print-root alike); the writer follows in
+     mvlPaintBar's tagBase, which now always takes the bar's line.
+     ⛔ LAYOUT-NEUTRAL: still vertical-align:top, and a line box no taller than the bar's, so no bar, lane or "…" moves.
+     ⚠️ Written in em of the tag's OWN size (bar line / tag px), never px: a month shrunk to fit scales every font, and
+     a px line stayed full size and grew the shrunk bars (monthwriter A3/A4, measured 3.5-8 px). */
+  .mv-pill-block{ line-height:calc(15em / 9); }
+  body.mv-bar-11 .mv-pill-block{ line-height:calc(16em / 10); }
+  body.mv-bar-large .mv-pill-block{ line-height:calc(18em / 11); }
+  body.mv-bar-13 .mv-pill-block{ line-height:calc(19em / 12); }
+  body.mv-bar-xl .mv-pill-block{ line-height:calc(21em / 12); }
   /* ---- FROZEN EDIT E1 (owner sign-off by picker, 2 Nov 2026, MONTH-NOTE-SIZE-PLAN.md R0: "Yes, this setting only"):
      NOTE SIZE, on screen. A note whose effective size is above 10 px (the calendar's Note size, or the note's own month
      text style: R4) carries its size, its whole-px line and its one- and two-line heights in its OWN inline style
@@ -2158,6 +2912,16 @@
     display:-webkit-box; -webkit-box-orient:vertical; -webkit-line-clamp:2;
   }
   body.mv-note-sized #table-wrap .mv-bars > .mv-bar.mv-note-block[style*="--mvn-h1"][style*="span 2"]{ height:var(--mvn-h2); }
+  /* ⛔ FROZEN EDIT D1 (PROPOSED, audit AUD2-045, item 3.1, D4 = a): a waterfall line ending in its date takes up to FOUR
+     lanes above 10 px (renderMonthView, mvNoteLineCountSized), so its three- and four-line boxes (each a line more than the
+     one before: --mvn-h2 - --mvn-h1 is one line) show three and four lines. Only such a line ever spans three or four lanes
+     at a note size, so "span 3" / "span 4" can never be "span 30". */
+  body.mv-note-sized #table-wrap .mv-bars > .mv-bar.mv-note-block[style*="--mvn-h1"][style*="span 3"]{
+    height:calc(2 * var(--mvn-h2) - var(--mvn-h1)); -webkit-line-clamp:3;
+  }
+  body.mv-note-sized #table-wrap .mv-bars > .mv-bar.mv-note-block[style*="--mvn-h1"][style*="span 4"]{
+    height:calc(3 * var(--mvn-h2) - 2 * var(--mvn-h1)); -webkit-line-clamp:4;
+  }
   body.mv-note-sized:not(.mv-bar-11):not(.mv-bar-large):not(.mv-bar-13):not(.mv-bar-xl) #table-wrap .mv-pill,
   body.mv-note-sized:not(.mv-bar-11):not(.mv-bar-large):not(.mv-bar-13):not(.mv-bar-xl) #table-wrap .mv-hiatus-bar{ height:17px; }
   body.mv-note-sized:not(.mv-bar-11):not(.mv-bar-large):not(.mv-bar-13):not(.mv-bar-xl) #table-wrap .mv-pill.mv-pill-2l{ height:36px; }
@@ -2468,6 +3232,10 @@
   #print-root .mv-bars > .mv-bar.mv-note-block[style*="--mvn-h1"]{
     display:-webkit-box; -webkit-box-orient:vertical; -webkit-line-clamp:2;
   }
+  /* ⛔ FROZEN EDIT D1 (PROPOSED, AUD2-045): the print rollback's twin of the rules above: three or four lines for a line
+     that keeps its date, as the direct writer draws every line of it (mvlKeepsDate). */
+  #print-root .mv-bars > .mv-bar.mv-note-block[style*="--mvn-h1"][style*="span 3"]{ -webkit-line-clamp:3; }
+  #print-root .mv-bars > .mv-bar.mv-note-block[style*="--mvn-h1"][style*="span 4"]{ -webkit-line-clamp:4; }
   @media print{
     /* Landscape with minimal margins so the grid prints as large as the sheet allows.
        ⛔ FROZEN EDIT (owner-approved, FIX-PLAN R3 / audit L-3, 29 Sep 2026): the PAPER is pinned
@@ -2668,6 +3436,28 @@
      scheduleLiveUpdate, which know nothing about this layer, so hide it rather than let it go
      stale -- reusing the class the frozen code already adds and removes. */
   body.grid-resizing .grid-sel-layer{ display:none; }
+  /* ---------- The hover prompt: "Expand?" / "Pull back?" (10 Nov 2026; tracker card blank-space-expand-prompt) ----------
+     Its own layer beside .grid-sel-layer, z-index 1 so its outlines scroll UNDER the frozen sticky header like the
+     selection's. Purple for Expand (the selection's colour: it becomes a fill), amber for Pull back (the swap layer's
+     colour for taking something back). The chip is the only clickable thing on it. Never printed. */
+  .grid-hover-layer{ position:absolute; inset:0; pointer-events:none; z-index:1; overflow:hidden; }
+  /* The chip's OWN layer (audit AUD2-062, 14 Nov 2026), the .grid-swap-layer answer below to the same trap: inside
+     the outlines' layer (z 1, a stacking context) the chip painted under the frozen column handles (.grid-resize.is-col,
+     z 5), and over a blank two columns wide its centre, where the owner wants it, is a column boundary: a real click on
+     "Expand?" there hit the handle. Here it is above them; the outlines stay at 1, under the sticky heading row, and the
+     engine clips this layer to below that row as drawn (clipHoverChip), so the chip still scrolls under it. */
+  .grid-hover-layer.is-chip{ z-index:8; }
+  .grid-hover-rect{ position:absolute; box-sizing:border-box; border:2px dashed rgba(112,48,160,.8);
+    background:rgba(112,48,160,.07); border-radius:2px; }
+  .grid-hover-rect.is-pull{ border-color:rgba(185,121,26,.9); background:rgba(232,163,61,.10); }
+  .grid-hover-phase{ position:absolute; box-sizing:border-box; border:1px solid rgba(112,48,160,.45); border-radius:2px; }
+  .grid-hover-chip{ position:absolute; z-index:2; pointer-events:auto; cursor:pointer; white-space:nowrap;
+    font:11px/1.4 'Inter',system-ui,sans-serif; padding:2px 8px; border:0; border-radius:10px;
+    background:rgba(112,48,160,.94); color:#fff; box-shadow:0 1px 4px rgba(0,0,0,.25); }
+  .grid-hover-chip:hover, .grid-hover-chip:focus-visible{ background:#5A2384; }
+  .grid-hover-chip.is-pull{ background:#B9791A; }
+  .grid-hover-chip.is-pull:hover, .grid-hover-chip.is-pull:focus-visible{ background:#8F5C12; }
+  body.grid-resizing .grid-hover-layer, body.grid-selecting .grid-hover-layer, body.grid-swapping .grid-hover-layer{ display:none; }
   body.grid-selecting{ user-select:none; cursor:cell; }
   body.grid-cell-hover{ cursor:cell; }
 
@@ -2698,6 +3488,14 @@
   }
   .grid-swap-knob:hover, .grid-swap-knob:focus-visible{ background:#0A6675; transform:scale(1.12); }
   .grid-swap-knob.dragging{ background:#0A6675; cursor:grabbing; transform:scale(1.12); }
+  /* A swap of only PART of the selected column, one that leaves a phase in two columns (owner, 4 Nov
+     2026; markPartialSwap). Amber, the swap layer's colour for a consequence, so it cannot be mistaken
+     for the whole-column arrow; the dashed box (.grid-swap-partial) shows the cells that move. */
+  .grid-swap-knob.is-partial{ background:#B9791A; }
+  .grid-swap-knob.is-partial:hover, .grid-swap-knob.is-partial:focus-visible,
+  .grid-swap-knob.is-partial.dragging{ background:#8F5C12; }
+  .grid-swap-partial{ position:absolute; box-sizing:border-box; border:2px dashed #B9791A;
+    background:rgba(232,163,61,.08); border-radius:2px; pointer-events:none; }
   /* Where the two runs land. Solid = the run you are moving, dashed = the partner coming the other
      way. ⛔ Rects only: rewriting colSpan on live cells reflows the whole table on every
      pointermove, which is the documented reason frozen .span-preview is a ghost in the first place. */
@@ -3028,28 +3826,43 @@
   .month-map .mm-month.on.today::after{ background:#fff; }
   .month-map button:focus-visible{ outline:2px solid var(--accent); outline-offset:1px; }
 
-  /* The month stepper (MONTH-RAIL-PLAN.md §18; owner, 28 Oct 2026, option B): Today and ‹ October 2026 › at the right
-     end of the style bar's line, in the month view only. The map's own small arrows went with it. As tall as the
+  /* The month stepper (MONTH-RAIL-PLAN.md §18; owner, 28 Oct 2026, option B): ‹ October 2026 ›, in the month view only
+     (until 11 Nov 2026 Today and ‹ October 2026 › on a line of their own under the map). The map's own small arrows went with it. As tall as the
      style bar beside it, and the label holds the longest month ("September 2026") so the arrows never move.
      The arrows are filled with the header's Export PDF navy (owner, 30 Oct 2026: the colour only, the shape stays),
      with its hover shade and a white arrow; their focus ring is white so it shows on the navy. */
-  .month-step{ flex:none; display:flex; align-items:stretch; gap:6px; height:34px; margin-left:auto; }
-  .month-step .ms-today, .month-step .ms-group{
-    box-sizing:border-box; border:1px solid var(--mantine-color-gray-3); border-radius:var(--mantine-radius-sm);
-    background:#fff;
+  /* ⚠️ SINCE 11 NOV 2026 it sits in the toolbar's slot (.tb-slots, card 4b of mockups/toolbar-month-parity.html) and
+     stretches to it: the width Fill Gaps, the gap and Side Boxes take in the waterfall. Today went (owner: "get rid of
+     the today button entirely and just make the stepper larger"), and so did its own line. 30 px tall, the height of
+     the toolbar's other white controls (Shift, Build Around). */
+  .month-step{ display:flex; align-items:stretch; height:var(--input-height-xs, 30px); min-width:0; }
+  /* ⭐ NO WIDTH OF ITS OWN (audit 2.14, AUD2-034). `container-type:inline-size` gives the stepper inline-size
+     containment, so it adds nothing to the slot's width: the slot is Fill Gaps + gap + Side Boxes in BOTH views, and
+     the first line wraps (or not) at the same point whichever view is on screen. It was wider than the pair at 1300 px
+     and below, where Fill Gaps runs as its bare switch, so at 1280 px Shift, Header and Undo / Redo jumped when Month
+     was clicked, and again as the month's name changed length. Where the full name does not fit, the short one shows. */
+  .tb-slots > .month-step{ justify-self:stretch; align-self:center; container-type:inline-size; }
+  .month-step .ms-group{
+    flex:1 1 auto; min-width:0; display:inline-flex; align-items:stretch; overflow:hidden; box-sizing:border-box;
+    border:1px solid var(--mantine-color-gray-3); border-radius:var(--mantine-radius-default); background:#fff;
   }
-  .month-step .ms-today{ padding:0 12px; font-size:12px; font-weight:600; color:var(--accent); cursor:pointer; }
-  .month-step .ms-group{ display:inline-flex; align-items:stretch; overflow:hidden; }
   .month-step .ms-arrow{
-    width:34px; padding:0; border:0; background:var(--mantine-primary-color-filled); color:var(--mantine-color-white);
+    width:30px; flex:none; padding:0; border:0; background:var(--mantine-primary-color-filled); color:var(--mantine-color-white);
     font-size:19px; line-height:1; cursor:pointer;
   }
   .month-step .ms-label{
-    min-width:132px; padding:0 10px; display:flex; align-items:center; justify-content:center; white-space:nowrap;
+    flex:1 1 auto; min-width:0; padding:0 8px; display:flex; align-items:center; justify-content:center; white-space:nowrap;
     font-size:13px; font-weight:600; color:var(--text);
-    border-left:1px solid var(--mantine-color-gray-2); border-right:1px solid var(--mantine-color-gray-2);
   }
-  .month-step .ms-today:hover:not(:disabled){ background:var(--mantine-color-gray-0); }
+  /* The short month (AUD2-034, above): after the label's own rule, so the narrow form's padding wins. */
+  .month-step .ms-short{ display:none; }
+  @container (max-width:184px){
+    .month-step .ms-label{ position:absolute; width:1px; height:1px; overflow:hidden; clip-path:inset(50%); white-space:nowrap; padding:0; }
+    .month-step .ms-short{
+      flex:1 1 auto; min-width:0; padding:0 4px; display:flex; align-items:center; justify-content:center; white-space:nowrap;
+      font-size:13px; font-weight:600; color:var(--text);
+    }
+  }
   .month-step .ms-arrow:hover:not(:disabled){ background:var(--mantine-primary-color-filled-hover); }
   .month-step button:disabled{ opacity:.35; cursor:default; }
   .month-step button:focus-visible{ outline:2px solid var(--accent); outline-offset:-2px; }
@@ -3110,34 +3923,84 @@
   /* ---------- The text style bar (TEXT-STYLE-BAR-PLAN.md, owner rulings 21 Oct 2026) ----------
      One bar under the preview toolbar, outside the calendar, for every text in the waterfall (and the month
      header, D4). Its controls reuse the strip's .hf-* look. Chrome, never grid content: no .sheet-* rule. */
-  /* A full-width second line of the toolbar row (which wraps), so it always sits under the toggle and tools.
-     Since 28 Oct 2026 that line is .style-row, which it shares with the month stepper in the month view
-     (MONTH-RAIL-PLAN.md §18). In the waterfall the stepper renders nothing and the host fills the line, as before.
-     The host keeps 260 px, its controls' width, so on a narrow window the stepper wraps under it instead. */
+  /* SINCE 10 NOV 2026 (owner: "move the styling bar to this blank space between Month and the left shift button. It
+     should only be the buttons ... not the surrounding box, text, etc"): the host sits on the row's FIRST line,
+     between the view toggle and the tools, and the bar is its bare buttons. No box, no "Text" label (::before), no
+     "Highlight any text…" hint (::after); the engine puts that hint in the bar's title while nothing is picked.
+     BESIDE SHIFT (owner, the same day, after a first pass centred it: "the same size gap between the right edge of
+     the styling menu and the left shift button as there is between build around and fill space button"): the auto
+     left margin takes the line's free space, and the gap to Shift is the row's 10 px plus --tools-group-gap, as
+     after Build Around. A highlight well appearing (a header or box line picked) widens it to the left; nothing
+     else moves.
+     Before, the host was a full-width second line (.style-row), a boxed bar shared with the month stepper. */
+  /* VARIATION 27 (owner, later the same day): the host follows Undo / Redo with the one section gap, and the bar is a
+     grey well like every section (.style-bar below). No margins of its own. */
+  .view-toggle-row > .style-bar-host{ flex:none; }
+  /* Where the three no longer fit on one line (PreviewToolbar.jsx, useStyleBarFit), the bar alone drops to a line
+     under them -- its old place -- by flex ORDER (never by moving the node: the engine owns its children and React
+     owns its place): after the phase map in the month view, and before the stepper's line, which it then shares as
+     it did. */
+  .view-toggle-row > .style-bar-host.style-own-line{ order:1; flex:1 1 260px; min-width:0; margin:0; }
+  /* The phase map and the (empty) stepper line come after it, so the text bar's own line sits directly under the first
+     line in BOTH views (11 Nov 2026: the stepper is in the toolbar now, and the bar must not move between views). */
+  .view-toggle-row > .month-map{ order:2; }
+  .view-toggle-row > .style-row{ order:3; }
+  /* With no phase map (the waterfall, or a month view with nothing scheduled) nothing full-width ends the first line,
+     so the bar takes a whole line of its own; 260 px could still fit beside the tools and land right of Undo. */
+  /* ⚠️ In BOTH views since 13 Nov 2026 (audit 2.14, AUD2-034): below about 1150 px the tools themselves wrap to a second
+     line, and in the month view the bar (basis 260 px) then sat beside them, right of Undo, while in the waterfall it
+     had a line of its own, so it jumped when Month was clicked. Where the tools fit on one line nothing changes: the
+     bar was alone on its line there anyway, the phase map taking the next. */
+  .view-toggle-row > .style-bar-host.style-own-line{ flex-basis:100%; }
+  /* The month stepper's line. Empty in the waterfall (the stepper renders nothing there), and then it takes no room,
+     not even the row's gap above it. */
   .view-toggle-row > .style-row{
     flex:1 1 100%; min-width:0; display:flex; flex-wrap:wrap; align-items:center; gap:var(--mantine-spacing-xs);
   }
-  .style-row > .style-bar-host{ flex:1 1 260px; min-width:0; }
+  .view-toggle-row > .style-row:empty{ display:none; }
   .style-bar{
-    display:flex; align-items:center; gap:3px; flex-wrap:nowrap; box-sizing:border-box; padding:5px 8px;
-    min-width:0;
-    background:var(--mantine-color-gray-0); border:1px solid var(--mantine-color-gray-3);
-    border-radius:var(--mantine-radius-sm);
+    display:flex; align-items:center; gap:var(--mantine-spacing-xxs); flex-wrap:nowrap; box-sizing:border-box;
+    /* Its own width, never its line's: the fit measures it, and it must not change with where the bar sits. */
+    width:max-content;
+    /* A toolbar well (variation 27), on the bar and not the host, so it stays around the buttons on its own line. */
+    padding:var(--mantine-spacing-xxs); background:var(--mantine-color-gray-1);
+    border-radius:calc(var(--mantine-radius-default) + 2px);
   }
-  .style-bar::before{
-    content:'Text'; flex:none; margin-right:var(--mantine-spacing-xs);
-    font-size:var(--mantine-font-size-xxs); font-weight:600; letter-spacing:.05em;
-    text-transform:uppercase; color:var(--mantine-color-gray-6);
+  /* THE TOOLBAR'S BUTTONS (owner, 10 Nov 2026: "make the buttons tall enough to match the look and style of the other
+     buttons in the menu"): the .hf-* controls are the header strip's 22 px ones, so here they take the toolbar's
+     30 px height, white ground, gray-4 border and default radius, read from Undo / Side Boxes. B, I, A and Clear are
+     30 px squares like Undo; the glyphs grow with them. Scoped to .style-bar: the header editor keeps its own copy of
+     these controls at 22 px. */
+  /* Inside the well (variation 27) they are borderless until hovered, then the raised white chip. */
+  .style-bar .hf-ctl{
+    height:var(--input-height-xs, 30px); box-sizing:border-box;
+    border:1px solid transparent; border-radius:var(--mantine-radius-default);
+    background-color:transparent; color:var(--mantine-color-gray-7);
+    font-size:var(--mantine-font-size-xs); font-weight:500;
   }
-  /* Nothing picked: dimmed and inert, and it says why (the strip's empty-state rule, 21 Sep 2026). */
+  /* background-COLOR: the shorthand would also clear the Size box's drawn arrow on hover. */
+  .style-bar .hf-ctl:hover{ background-color:var(--mantine-color-white); box-shadow:var(--mantine-shadow-xs); color:var(--mantine-color-black); }
+  .style-bar .hf-btn{ min-width:var(--input-height-xs, 30px); padding:0 6px; font-size:14px; }
+  /* Its arrow drawn, not Chrome's: the UA arrow sat against the right border (owner, 10 Nov 2026: "move the downward
+     carrot over a little in the size box so it doesnt hit the right edge") and padding does not move it. The tool
+     popovers' selects' chevron (.tools-menu select), 8 px in from the edge. Still a real <select>: syncStyleBar
+     writes its options. */
+  .style-bar .hf-size{
+    width:66px; padding:0 24px 0 8px;
+    -webkit-appearance:none; appearance:none;
+    background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 16 16' xmlns='http://www.w3.org/2000/svg' fill='none' stroke='%23726F68' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4.5 6.5 8 10l3.5-3.5'/%3E%3C/svg%3E");
+    background-repeat:no-repeat; background-position:right 8px center; background-size:14px 14px;
+  }
+  .style-bar .hf-swatch{ width:var(--input-height-xs, 30px); }
+  .style-bar .hf-swatch .hf-swatch-ink{ font-size:14px; }
+  .style-bar .hf-al-toggle{ gap:3px; padding:0 6px 0 7px; }
+  .style-bar .hf-al-toggle svg{ width:16px; height:16px; }
+  /* Pressed (Bold on): the raised white chip of the view toggle's active segment, in the edit purple. */
+  .style-bar .hf-btn.is-on{
+    background-color:var(--mantine-color-white); box-shadow:var(--mantine-shadow-xs); color:var(--edit-accent); font-weight:700;
+  }
+  /* Nothing picked: dimmed and inert (the strip's empty-state rule, 21 Sep 2026). */
   .style-bar:not(.has-target) .hf-ctl{ opacity:.45; pointer-events:none; }
-  /* The one item that may shrink: in a narrow window the hint ends in "…" rather than widening the toolbar row past
-     the window (UI-CONVENTIONS §7). ⛔ Not overflow:hidden on the bar: that would clip the alignment menu, which hangs
-     below it. */
-  .style-bar:not(.has-target)::after{
-    content:'Highlight any text in the calendar to style it'; flex:0 1 auto; min-width:0; overflow:hidden; text-overflow:ellipsis;
-    font-size:var(--mantine-font-size-xxs); color:var(--text-faint); white-space:nowrap; margin-left:var(--mantine-spacing-xs);
-  }
   .style-bar .hf-swatch[hidden]{ display:none; }
   /* A highlight that is part one look and part another: outlined in the accent, not filled. */
   .style-bar .hf-btn.is-mixed:not(.is-on){ border-color:var(--edit-accent); color:var(--edit-accent); }
@@ -3222,6 +4085,13 @@
   td.sheet-note-cell:hover:not(.has-note):not(.editing){ background:#faf5ff; }
   td.sheet-note-cell .note-add-hint{color:#ccc; font-size:11px; font-family:'Inter',sans-serif; user-select:none; padding:2px 4px;}
   td.sheet-note-cell:hover .note-add-hint{color:#b39ddb;}
+  /* Owner, 19 Nov 2026: the empty Notes cell's "+" shows only while you point at that cell, as the
+     month view's "+" does (.mv-note-add), instead of a "+" in every empty week. An ADDED rule, not an
+     edit of the two frozen ones above: opacity only, so the cell's size, the width model and every
+     export are untouched (print already hides it: #print-root .note-add-hint), and the double-click
+     that adds a note is the cell's, not the "+"'s. */
+  #table-wrap td.sheet-note-cell .note-add-hint{ opacity:0; transition:opacity .12s; }
+  #table-wrap td.sheet-note-cell:hover .note-add-hint{ opacity:1; }
   .note-editor{display:flex; flex-direction:column; gap:var(--mantine-spacing-xs);}
   /* The note/hiatus editor is a popover anchored to the cell, not markup injected into it. It
      used to replace the cell's contents, so the cell grew to hold a two-row textarea plus three
@@ -3269,6 +4139,24 @@
      rule's, untouched. */
   #table-wrap thead th:not(.wf-notes-strip){ cursor:text; }
   #table-wrap thead th:not(.wf-notes-strip):hover{ box-shadow: inset 0 2px 0 var(--text), 0 1px 0 #C6C6C6, inset 0 0 0 2px rgba(112,48,160,.55); }
+  /* THE HEADINGS' TOP LINE, DRAWN WITHOUT A SEAM (owner, 19 Nov 2026: "when i scroll down and then scroll back up, the
+     line is now this double line"; picker "Yes, fix it"). ⚠️ An owner-approved frozen-surface edit, ON SCREEN ONLY.
+     The thick line over the column headings is TWO 2 px rules painted by two different things: the table's collapsed
+     `tr:first-child th{border-top}` and the sticky heading row's `inset 0 2px 0` shadow just under it. Once the grid
+     has scrolled, Chrome raises the sticky row to its own compositor layer and rounds that layer's position on its own,
+     so wherever the grid sits at a fractional pixel the row can land one device pixel lower than the border the table
+     painted, and the table's white background shows through between them: 3 dark, 1 white, 3 dark device pixels.
+     The heading cell cannot paint over the border itself (its outer shadow and anything outside its padding box are
+     not drawn in collapsed-border mode), so the fix paints INK UNDER IT instead: the table's own background carries a
+     4 px ink strip across its top, the border plus the shadow's rows, hidden by the heading row at rest and the only
+     thing a shifted row can uncover. Background only: no cell, width or height moves. ⛔ #table-wrap and screen media
+     only, so the print fallback in #print-root (which drops the shadow and keeps the border) never sees it, and the
+     workbook and both written PDFs read no CSS. */
+  @media screen{
+    #table-wrap table.sheet-table{
+      background-image:linear-gradient(var(--text), var(--text)); background-size:100% 4px; background-repeat:no-repeat;
+    }
+  }
   .hdrrow-ring{
     position:absolute; z-index:59; pointer-events:none; border-radius:1px;
     box-shadow:inset 0 0 0 2px var(--edit-accent);
@@ -3382,6 +4270,41 @@
     cursor:pointer;
   }
   .mv-note-pop .note-pop-delete:hover{ background:var(--mantine-color-red-0); }
+  /* The waterfall's note editor says what a line is, and hides it (owner, 4 Nov 2026; WATERFALL-NOTE-EDITOR-PLAN.md):
+     one item's Hide Auto-Note / Hide Holiday button (the month view's quiet danger-text button above), or the list "In
+     this cell" with a Hide per automatic note and holiday, marked with the month view's ↻ / ⚑ (frozen edit NS1's icons,
+     reused here; .note-pop is a body-level panel, outside #table-wrap). */
+  .note-pop .note-pop-delete{
+    display:block; margin:var(--mantine-spacing-sm) 0 0 -8px; padding:4px 8px;
+    font:inherit; font-size:var(--mantine-font-size-xs); font-weight:500; line-height:1.3;
+    color:var(--mantine-color-red-7); background:transparent; border:0; border-radius:var(--mantine-radius-sm);
+    cursor:pointer;
+  }
+  .note-pop .note-pop-delete:hover{ background:var(--mantine-color-red-0); }
+  /* The popup's heading row: the title on the left, its one action (Hide Auto-Note, Hide Holiday, Delete Note) at the
+     top right (owner, 10 Nov 2026). The button's padding is taken back with negative margins, so the row is the title's
+     height and the button's text lines up with the panel's right padding. Both note editors; chrome only. */
+  .note-pop-head{ display:flex; align-items:center; justify-content:space-between; gap:var(--mantine-spacing-sm);
+    margin-bottom:var(--mantine-spacing-sm); }
+  .note-pop-head .note-pop-title, .note-pop-head .mv-note-pop-day{ margin-bottom:0; min-width:0; }
+  .note-pop .note-pop-head .note-pop-delete, .mv-note-pop .note-pop-head .note-pop-delete{
+    flex:none; margin:-4px -8px -4px 0; white-space:nowrap; }
+  .wf-note-items{ margin-top:var(--mantine-spacing-sm); }
+  .wf-note-items-head{
+    font-size:var(--mantine-font-size-xxs); font-weight:600; letter-spacing:.04em; text-transform:uppercase;
+    color:var(--mantine-color-gray-6); margin-bottom:2px;
+  }
+  .wf-note-item{ display:flex; align-items:center; gap:6px; min-height:26px; font-size:var(--mantine-font-size-xs);
+    color:var(--mantine-color-gray-9); }
+  .wf-note-mark{ flex:none; width:10px; height:10px; background:var(--mantine-color-gray-6); }
+  .wf-note-mark-auto{ -webkit-mask:url("data:image/svg+xml,%3Csvg viewBox='0 0 16 16' xmlns='http://www.w3.org/2000/svg' fill='none' stroke='black' stroke-width='2.1' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12.5 7.4A4.8 4.8 0 1 1 9.6 4.5'/%3E%3Cpath d='M7 5.45 9.6 4.5 8.2 2.1'/%3E%3C/svg%3E") center / contain no-repeat; mask:url("data:image/svg+xml,%3Csvg viewBox='0 0 16 16' xmlns='http://www.w3.org/2000/svg' fill='none' stroke='black' stroke-width='2.1' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12.5 7.4A4.8 4.8 0 1 1 9.6 4.5'/%3E%3Cpath d='M7 5.45 9.6 4.5 8.2 2.1'/%3E%3C/svg%3E") center / contain no-repeat; }
+  .wf-note-mark-holiday{ -webkit-mask:url("data:image/svg+xml,%3Csvg viewBox='0 0 16 16' xmlns='http://www.w3.org/2000/svg' fill='black' stroke='black' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4.5 15V1.6' fill='none' stroke-width='2'/%3E%3Cpath d='M4.5 2.4h8.2l-2.3 3.3 2.3 3.3H4.5z' stroke-width='1.2'/%3E%3C/svg%3E") center / contain no-repeat; mask:url("data:image/svg+xml,%3Csvg viewBox='0 0 16 16' xmlns='http://www.w3.org/2000/svg' fill='black' stroke='black' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4.5 15V1.6' fill='none' stroke-width='2'/%3E%3Cpath d='M4.5 2.4h8.2l-2.3 3.3 2.3 3.3H4.5z' stroke-width='1.2'/%3E%3C/svg%3E") center / contain no-repeat; }
+  .wf-note-item-name{ flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .wf-note-hide{
+    flex:none; padding:2px 8px; font:inherit; font-size:var(--mantine-font-size-xs); font-weight:500; line-height:1.3;
+    color:var(--mantine-color-red-7); background:transparent; border:0; border-radius:var(--mantine-radius-sm); cursor:pointer;
+  }
+  .wf-note-hide:hover{ background:var(--mantine-color-red-0); }
   /* "Show in month view" / "Show in waterfall", right below the colours in both note editors (owner, 4 Nov 2026;
      noteViewSwitchHtml in app.js). The sidebar's switch row (.sw-row): the label left, Mantine's Switch size="xs" on the
      right, drawn on the engine's own native checkbox (UI-CONVENTIONS §8.9). A hairline ABOVE it, not under: it is the
@@ -3570,7 +4493,7 @@
     font-size:var(--mantine-font-size-xxs); color:var(--text-muted); }
   /* The editor's two small selects wear the same NativeSelect chevron as every other chrome
      select, at their own scale. They stay id-less real <select>s (save-format hygiene). */
-  .note-day-select, .note-size-select{
+  .note-day-select, .note-size-select, .note-link-select{
     -webkit-appearance:none; appearance:none;
     font-size:var(--mantine-font-size-xxs); padding:2px 20px 2px 6px;
     border:1px solid var(--mantine-color-gray-4); border-radius:var(--mantine-radius-sm);
@@ -3578,6 +4501,26 @@
     background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 16 16' xmlns='http://www.w3.org/2000/svg' fill='none' stroke='%23726F68' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4.5 6.5 8 10l3.5-3.5'/%3E%3C/svg%3E");
     background-repeat:no-repeat; background-position:right 5px center; background-size:11px 11px;
   }
+  /* "Stays with" (PHASE-LINKED-NOTES-PLAN.md §4.4, R1; step 2): the Day row's look, the select taking the rest of the
+     line, then a one-line hint (amber while the note waits on a phase's last week, R3(a)) and R2(a)'s "Also here"
+     line. Chrome only: .note-pop is a body-level panel, never in #table-wrap or #print-root. The select has no id. */
+  .note-link-row{ margin-top:var(--mantine-spacing-xs); }
+  /* The row's name (Day, Stays with) in one fixed width, so the two selects start at the same left edge (owner, 10 Nov
+     2026: "allign these two boxes on their left edge"), and set to its right, so "Day" ends where "with" ends (the same
+     evening: "move Day so the edge of the y is alligned vertically with the h in with"). The width fits "Stays with" at
+     this size; em, so zoom keeps it. */
+  .note-day-row .note-row-name, .note-link-row .note-row-name{ flex:none; width:4.9em; text-align:right; }
+  .note-link-row label{ display:flex; align-items:center; gap:var(--mantine-spacing-sm);
+    font-size:var(--mantine-font-size-xxs); color:var(--text-muted); }
+  .note-link-select{ flex:1; min-width:0; font-weight:600; }
+  /* ...and the Day select fills the rest of its row the same way, so the two boxes are one size (owner, 10 Nov 2026:
+     "make the two selector boxes the same size"). */
+  .note-day-row label{ flex:1; min-width:0; }
+  .note-day-row .note-day-select{ flex:1; min-width:0; }
+  .note-link-hint{ margin-top:3px; font-size:var(--mantine-font-size-xxs); line-height:1.4; color:var(--text-muted); }
+  .note-link-hint.is-wait{ color:var(--mantine-color-orange-8); }
+  .note-link-also{ margin-top:4px; padding:5px 7px; border-radius:var(--mantine-radius-sm);
+    background:var(--mantine-color-gray-0); font-size:var(--mantine-font-size-xxs); line-height:1.4; color:var(--text-muted); }
   .note-size-row{ display:flex; align-items:center; margin-top:var(--mantine-spacing-xs); }
   .note-size-row label{ display:flex; align-items:center; gap:var(--mantine-spacing-sm);
     font-size:var(--mantine-font-size-xxs); color:var(--text-muted); }
@@ -3603,6 +4546,87 @@
      note palette), at the same gap; a hiatus band's single row keeps the wider one. */
   .note-pop .note-palette-row{ gap:5px; }
   .note-pop .note-palette-row + .note-palette-row{ padding-top:2px; }
+  /* ---- The note editors' look A2 (owner, 4 Nov 2026: "yes A2, but its an "Auto-Note""; mockups/note-editor-look.html,
+     card note-editor-overhaul, PHASE-LINKED-NOTES-PLAN.md §4.4) ----
+     The heading's name in the panel's own type with its day in grey, the text box, then ONE LIST: a name on the left and
+     its value on the right, a hairline between rows (Day, Stays with and its hint, Colour with every swatch out, Show in
+     month view / Show in waterfall, the waterfall's "In this cell" with its Hides), then a foot with Save. Scoped to
+     `.note-a2`, which only the two note editors carry: the heading editor is a .note-pop too and keeps its own look.
+     ⛔ CHROME ONLY. Both editors are body-level panels, never in #table-wrap or #print-root, so nothing here can change
+     what a grid cell looks like or how much text fits in it (CLAUDE.md, the freeze's line). */
+  .note-pop.note-a2, .mv-note-pop.note-a2{ width:272px; padding:14px 14px 12px; }
+  .note-a2 .note-pop-head{ align-items:center; min-height:20px; margin-bottom:8px; }
+  .note-a2 .note-pop-heading{ display:flex; align-items:baseline; gap:8px; min-width:0; overflow:hidden; white-space:nowrap;
+    margin:0; font-size:13px; font-weight:400; letter-spacing:0; text-transform:none; color:var(--mantine-color-black); }
+  .note-a2 .note-pop-heading .note-pop-title{ flex:none; margin:0; font-size:13px; font-weight:600; letter-spacing:0;
+    text-transform:none; color:var(--mantine-color-black); }
+  .note-a2 .note-pop-when{ min-width:0; overflow:hidden; text-overflow:ellipsis; font-size:11.5px; font-weight:400;
+    color:var(--text-faint); }
+  .note-a2 .note-editor{ gap:0; }
+  .note-a2 .note-editor textarea, .mv-note-pop.note-a2 textarea{
+    display:block; font-size:13px; line-height:1.4; min-height:46px; padding:7px 10px; border-radius:8px;
+    background:var(--mantine-color-gray-0); border:1px solid transparent; outline:none;
+    transition:background-color 120ms ease, border-color 120ms ease, box-shadow 120ms ease;
+  }
+  .note-a2 .note-editor textarea:focus, .mv-note-pop.note-a2 textarea:focus{
+    background:var(--mantine-color-white); border-color:var(--mantine-color-navy-2); box-shadow:0 0 0 3px var(--mantine-color-navy-0);
+  }
+  /* What saving does, under the box: a single automatic note's or holiday's line (the old hint, moved up). */
+  .note-a2 .note-pop-hint, .note-a2 .mv-note-pop-hint{ margin:6px 2px 0; font-size:11px; line-height:1.4; color:var(--text-muted); }
+  .note-a2 .note-list{ margin-top:8px; border-top:1px solid var(--mantine-color-gray-2); }
+  .note-a2 .note-item{ display:block; margin:0; padding:0; border:0; border-bottom:1px solid var(--mantine-color-gray-2); }
+  .note-a2 .note-line{ display:flex; align-items:center; gap:10px; min-height:31px; margin:0;
+    font-size:12.5px; color:var(--mantine-color-black); cursor:default; }
+  .note-a2 .note-line .note-row-name, .note-a2 .note-view-label{ flex:none; width:auto; text-align:left;
+    font-size:12.5px; font-weight:400; color:var(--mantine-color-gray-7); }
+  /* The two selects are plain words with a chevron, set to the right edge (A2's "value on the right"), so Day's and
+     Stays with's line up there. Still id-less real <select>s (save-format hygiene). */
+  .note-a2 .note-line select{
+    -webkit-appearance:none; appearance:none; flex:0 1 auto; min-width:0; max-width:178px; margin-left:auto;
+    font:inherit; font-size:12.5px; font-weight:500; color:var(--mantine-color-black);
+    text-align:right; text-align-last:right; background-color:transparent; border:0; border-radius:var(--mantine-radius-sm);
+    padding:3px 16px 3px 4px; cursor:pointer;
+    /* A fixed height (Chrome drew it 30 px tall in a 31 px row), so the select's own box ends above the hint that is
+       tucked under the Stays with row (below). */
+    height:22px; line-height:16px;
+    background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 16 16' xmlns='http://www.w3.org/2000/svg' fill='none' stroke='%23726F68' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4.5 6.5 8 10l3.5-3.5'/%3E%3C/svg%3E");
+    background-repeat:no-repeat; background-position:right 1px center; background-size:11px 11px;
+  }
+  /* Hover and focus are the same soft tint, inside the select's own box. ⛔ NO OUTLINE (owner, 16 Nov 2026: "why do
+     these boxes show up"). Chrome counts a MOUSE click on a <select> as :focus-visible, so the 2 px ring this had drew
+     a dark box on every click, and it stayed until focus moved: the change handler moves focus to the text box, but
+     re-picking the same option, or closing the list, fires no change. The ring sat 1 px outside the select, and its
+     bottom edge ran through the Stays with hint. */
+  .note-a2 .note-line select:hover, .note-a2 .note-line select:focus{ outline:none; background-color:var(--mantine-color-gray-0); }
+  .note-a2 .note-link-hint{ margin:-4px 0 8px; font-size:11px; line-height:1.35; color:var(--text-muted); }
+  .note-a2 .note-link-hint.is-wait{ color:var(--mantine-color-orange-8); }
+  .note-a2 .note-link-also{ margin:-2px 0 8px; font-size:11px; }
+  .note-a2 .note-colour-name{ margin-left:auto; font-weight:500; color:var(--mantine-color-gray-7); }
+  /* Every colour out (the owner's "color is all the chips not a dropdown"): ten to a row on one grid, so the second row's
+     eight sit under the first eight. Each row stays its own .note-color-row, one line each, as the legs read them. */
+  .note-a2 .note-color-row{ display:grid; grid-template-columns:repeat(10, 18px); gap:6px; justify-content:space-between;
+    padding:1px 1px 0; }
+  .note-a2 .note-color-row + .note-color-row{ padding-top:6px; }
+  .note-a2 .note-color-row:last-child{ padding-bottom:11px; }
+  .note-a2 .color-swatch{ width:18px; height:18px; }
+  .note-a2 .note-view-row{ display:flex; align-items:center; justify-content:space-between; gap:10px; min-height:31px;
+    margin:0; padding:0; border-top:0; font-size:12.5px; }
+  /* "In this cell" (WATERFALL-NOTE-EDITOR-PLAN.md R3(a)), the list's last row: the cell's automatic notes and holidays,
+     each with its ↻ / ⚑ and its Hide at the right. */
+  .note-a2 .wf-note-items{ margin:0; padding:6px 0 4px; }
+  .note-a2 .wf-note-items-head{ margin:0 0 2px; font-size:12.5px; font-weight:400; letter-spacing:0; text-transform:none;
+    color:var(--mantine-color-gray-7); }
+  .note-a2 .wf-note-item{ min-height:27px; font-size:12px; }
+  .note-a2 .wf-note-hide{ margin-right:-8px; }
+  .note-a2 .note-pop-foot{ display:flex; align-items:center; gap:8px; margin-top:10px; }
+  .note-a2 .note-pop-keys{ min-width:0; font-size:10.5px; line-height:1.3; color:var(--text-faint); }
+  .note-a2 .note-pop-save{
+    margin-left:auto; flex:none; height:26px; padding:0 12px; border:0; border-radius:var(--mantine-radius-sm);
+    font:inherit; font-size:12px; font-weight:600; color:var(--mantine-color-white);
+    background:var(--mantine-primary-color-filled); cursor:pointer;
+  }
+  .note-a2 .note-pop-save:hover{ background:var(--mantine-primary-color-filled-hover); }
+  .note-a2 .note-pop-save:focus-visible{ outline:2px solid var(--mantine-primary-color-filled); outline-offset:2px; }
   td.sheet-note-cell.has-note{cursor:text; text-align:center;}
   /* A shrunk single-line note sits on the row's centre line like every other cell; a wrapped
      one grows the row and reads better from the top. */
@@ -3751,7 +4775,13 @@
     display:flex; align-items:center; gap:6px; height:28px; min-width:0;
   }
   .sc-tabs{ display:flex; align-items:center; gap:2px; min-width:0; overflow-x:auto; scrollbar-width:none; }
+  /* Only the TABS give way (audit AUD2-060, 14 Nov 2026). With the strip's other items left to shrink, many tabs
+     squeezed Compare down to its icon (31px at 1,440 px with 20 scenarios), its word cut off. */
+  .sc-strip > :not(.sc-tabs){ flex:none; }
   .sc-tabs::-webkit-scrollbar{ display:none; }
+  /* "+ Duplicate Scenario B" (owner, 19 Nov 2026): the button names the tab on screen. A long name is cut, so the
+     button never takes the tabs' room; its tooltip carries the whole name. */
+  .sc-add .sc-add-name{ display:inline-block; max-width:120px; overflow:hidden; text-overflow:ellipsis; vertical-align:bottom; }
   .sc-tab{
     flex:none; display:inline-flex; align-items:center; gap:2px; height:26px; padding:0 10px;
     border:1px solid transparent; border-radius:var(--mantine-radius-md);
@@ -3763,6 +4793,17 @@
     border-color:var(--mantine-color-gray-3); box-shadow:0 1px 2px rgba(0,0,0,.06);
   }
   .sc-tab.is-dragging{ opacity:.45; }
+  /* Where a dragged tab will drop (owner, 19 Nov 2026): a short blue line in the 2px gap before a tab, or after the last
+     one. Inside the tab's own box (the strip clips anything above or below it), so it draws over nothing. */
+  .sc-tab.drop-before, .sc-tab.drop-after{ position:relative; }
+  .sc-tab.drop-before::before, .sc-tab.drop-after::after{
+    content:''; position:absolute; top:2px; bottom:2px; width:2px; border-radius:1px;
+    background:var(--mantine-primary-color-filled); pointer-events:none;
+  }
+  .sc-tab.drop-before::before{ left:-2px; }
+  .sc-tab.drop-after::after{ right:0; }
+  /* The strip scrolls, so it clips its own edges: at the far left the line sits on the first tab's edge. */
+  .sc-tab:first-child.drop-before::before{ left:0; }
   .sc-tab-caret{ display:inline-flex; align-items:center; justify-content:center; width:18px; height:18px;
     border-radius:var(--mantine-radius-sm); color:var(--text-muted); }
   .sc-tab-caret:hover{ background:var(--mantine-color-gray-1); color:var(--text); }
@@ -3772,6 +4813,19 @@
     border:1px solid var(--mantine-primary-color-filled); border-radius:var(--mantine-radius-sm); outline:none;
   }
   .sc-menu-anchor{ position:fixed; width:1px; height:1px; pointer-events:none; }
+  /* Tabs that do not fit (audit AUD2-060, 14 Nov 2026). The strip has no scrollbar, so a cut edge FADES out over 24px
+     (FADE in ScenarioTabs.jsx) to say there is more that way; only an edge that actually cuts a tab off, so a strip
+     whose tabs all fit is untouched. A mask, so it fades the tabs and nothing behind them. */
+  .sc-tabs.is-cut-l{ -webkit-mask-image:linear-gradient(to right, transparent 0, #000 24px); mask-image:linear-gradient(to right, transparent 0, #000 24px); }
+  .sc-tabs.is-cut-r{ -webkit-mask-image:linear-gradient(to left, transparent 0, #000 24px); mask-image:linear-gradient(to left, transparent 0, #000 24px); }
+  .sc-tabs.is-cut-l.is-cut-r{
+    -webkit-mask-image:linear-gradient(to right, transparent 0, #000 24px, #000 calc(100% - 24px), transparent 100%);
+    mask-image:linear-gradient(to right, transparent 0, #000 24px, #000 calc(100% - 24px), transparent 100%);
+  }
+  /* The list of every scenario behind the strip's "All scenarios" button: up to 50 names, so it scrolls. */
+  .sc-list{ max-height:min(60vh, 440px); overflow-y:auto; }
+  .sc-list-tick{ display:inline-flex; width:13px; color:var(--mantine-primary-color-filled); }
+  .sc-list-item[aria-current="true"] .sc-list-name{ font-weight:600; }
   /* The key facts band (KEY-FACTS-PLAN.md; owner, 23 Oct 2026: "lets go for C", the tinted band). Fixed like the
      strip, 8px above it (the strip's 8px + 28px + 8px). The calendar's edges, measured off .preview-panel as the
      strip's `left` is, bound it (below). Each fact is a STAT TILE, a small label over its
@@ -3801,6 +4855,24 @@
   .sc-band-sep{ margin:0 6px; color:var(--mantine-color-gray-5); }
   .sc-band-v{ font-weight:600; }
   .sc-band-v.is-same{ font-weight:400; color:var(--text-muted); }
+  /* Each tab's Version as a small badge, and a fresh copy's "→ v4" (owner, 19 Nov 2026, layout C of
+     mockups/scenario-version-layouts.html; ScenarioTabs.jsx, takeScenarioVerOffer() in app.js). Chrome, not the frozen
+     surface. The badge is grey on every tab, a shade darker on the one on screen. */
+  .sc-tab-ver{
+    display:inline-flex; align-items:center; height:16px; margin-left:5px; padding:0 5px; border-radius:var(--mantine-radius-sm);
+    background:var(--mantine-color-gray-1); color:var(--text-muted); font-size:10.5px; font-weight:600; line-height:1;
+  }
+  .sc-tab.is-current .sc-tab-ver{ background:var(--mantine-color-gray-2); color:var(--text); }
+  .sc-tab-ver.is-btn{ cursor:pointer; }
+  .sc-tab-ver.is-btn:hover{ background:var(--mantine-color-gray-3); color:var(--text); }
+  .sc-ver-bump{
+    display:inline-flex; align-items:center; height:18px; margin-left:4px; padding:0 6px; border-radius:var(--mantine-radius-sm);
+    background:var(--mantine-primary-color-filled); color:var(--mantine-color-white); font-size:10.5px; font-weight:600;
+    line-height:1; cursor:pointer; animation:sc-ver-in .18s ease-out;
+  }
+  .sc-ver-bump:hover{ background:var(--mantine-primary-color-filled-hover); }
+  @keyframes sc-ver-in{ from{ opacity:0; transform:translateY(3px); } to{ opacity:1; transform:none; } }
+  @media (prefers-reduced-motion:reduce){ .sc-ver-bump{ animation:none; } }
   /* The waterfall's resize handles show at every zoom (22 Oct 2026). Until then they were hidden here
      while zoomed (body.cal-zoomed), because frozen installGridResizers and the drags mixed screen px
      with the grid's own px and a zoomed row drag SAVED the zoomed height. Frozen edits Z1-Z6 (app.js,
@@ -3862,6 +4934,36 @@
      absent show-mode means in the save format. Chrome/Edge are the target browsers (CLAUDE.md). */
   .card:has(#show-mode option[value="blocks"]:checked) .show-mode-episodes,
   .card:not(:has(#show-mode option[value="blocks"]:checked)) .show-mode-blocks{ display:none; }
+  /* Shooting Days per Episode (or per Block) + Tandem Days on ONE line (owner, 19 Nov 2026; mockups/show-info-tandem.html).
+     The days label runs over the plus column (nowrap, overflow visible), which is what keeps it to one line in the
+     narrowest sidebar: "Shooting Days per Episode" is ~142 px at the 11 px label size and the 280 px sidebar leaves ~146.
+     The Tandem box is 72 px, room for its own label. Its display:grid loses to the mode rules above (more specific), so
+     the hidden mode stays hidden. */
+  .si-days-tandem{ display:grid; grid-template-columns:minmax(0,1fr) 16px 72px; column-gap:4px; align-items:end; }
+  .si-days-tandem > .mantine-InputWrapper-root:first-child .mantine-InputWrapper-label{ white-space:nowrap; }
+  .si-days-tandem .si-plus{ display:flex; align-items:center; justify-content:center; align-self:end;
+                            height:var(--input-height-xs, 30px); color:var(--mantine-color-gray-6); }
+  .si-days-tandem .si-plus svg{ width:14px; height:14px; stroke:currentColor; stroke-width:2.5; stroke-linecap:round; }
+  .si-days-tandem .si-tandem .mantine-InputWrapper-label{ white-space:nowrap; }
+  /* A plain input (no id, see Sidebar.jsx), drawn as the xs NumberInput beside it: 30 px, 7 px radius, 12 px text,
+     no spinners (that NumberInput hides its controls). Focus colour comes from the plain-control rule above. */
+  .si-days-tandem .si-tandem-in{
+    display:block; width:100%; height:30px; box-sizing:border-box; margin:0;
+    padding:0 6px; text-align:center; font:inherit; font-size:var(--mantine-font-size-sm); color:var(--mantine-color-text);
+    background:var(--mantine-color-white); border:1px solid var(--mantine-color-gray-4); border-radius:var(--mantine-radius-md);
+    -moz-appearance:textfield; appearance:textfield;
+  }
+  .si-days-tandem .si-tandem-in::-webkit-inner-spin-button,
+  .si-days-tandem .si-tandem-in::-webkit-outer-spin-button{ -webkit-appearance:none; margin:0; }
+  .si-days-tandem .si-tandem-in::placeholder{ color:var(--mantine-color-placeholder); }
+  /* "Whole days only" / "Whole or half days only" go UNDER the row, never inside a column: in the 72 px column the
+     words wrapped and lifted the box out of line. Pinned to the row's left (the days box) or right (Tandem), in the
+     Stack's gap, which the row grows into only while a message shows. */
+  .si-days-tandem{ position:relative; }
+  .si-days-tandem:has([data-whole-err]){ margin-bottom:14px; }
+  .si-days-tandem > [data-whole-err]::after{ position:absolute; top:100%; margin-top:2px; white-space:nowrap; }
+  .si-days-tandem > .mantine-InputWrapper-root:first-child[data-whole-err]::after{ left:0; }
+  .si-days-tandem > .si-tandem[data-whole-err]::after{ right:0; }
   /* Preferences rows that belong to one view (owner, 22 Sep 2026): Single Column Mode is a
      waterfall layout, the two "Show … in Month View" switches are month-only. Keyed off the view
      toggle's `.active`, which setViewMode() maintains and the markup ships on Waterfall -- the one
@@ -3873,6 +4975,9 @@
      and its PDF only, so its row shows only there, off the same toggle as the rule above. Hidden, never
      cleared: #prep-days and #prep-name are written by id, and keep their values in the waterfall. */
   body:not(:has(#view-month-btn.active)) #prep-row{ display:none; }
+  /* The Double-ups card (DOUBLE-UP-DAYS-PLAN.md R1): month view only, like Prep's, off the same toggle. Hidden, never
+     cleared: its store is the engine's variables, so nothing it holds changes in the waterfall. */
+  body:not(:has(#view-month-btn.active)) #du-row{ display:none; }
   /* The month box's "Show" switches follow "Label Production by" (MONTH-PILL-LABEL-PLAN §5.2, owner
      ruling Q3): only the items the grey text can carry right now are offered. A switch hides while
      its item is the bar's text (the control's CHECKED radio, which is the label the bars are drawn
@@ -4059,6 +5164,65 @@
   .prep-panel{ padding:0 12px; }
   .prep-panel:has(#prep-rows:not(:empty)){ margin:10px 0 8px; }
 
+  /* ---- The Double-ups card (DOUBLE-UP-DAYS-PLAN.md R1-R5, R19) ----
+     Prep's card in look: the phase head (its colour square is R7's darker shade of Production's, no picker), then
+     "Default double-ups" as a number box with its unit inside, and the list boxed under its heading: each episode's or
+     block's tag, its own name box and its own number box. Typed = its own, in bold (the name and the count). R19 (owner,
+     17 Nov 2026): number boxes "like all other phases use", not − / +. No id on any control. The square opens the colour
+     picker (owner, 17 Nov 2026), like every phase's. No explanatory lines in the card (owner, 17 Nov 2026). */
+  .du-row .phase-fields label.du-default{ flex:0 0 150px; }
+  .du-default .num-suffix{
+    display:flex; align-items:center; height:var(--input-height-xs, 30px); box-sizing:border-box;
+    border:1px solid var(--mantine-color-gray-4); border-radius:var(--mantine-radius-default);
+    background:var(--mantine-color-white); padding-right:var(--mantine-spacing-md); cursor:text;
+    transition:border-color 100ms ease;
+  }
+  .du-default .num-suffix:focus-within{ border-color:var(--mantine-primary-color-filled); }
+  .du-default .num-suffix:has(input.is-invalid), .du-unit-row .num-suffix:has(input.is-invalid){
+    border-color:var(--mantine-color-danger-6); box-shadow:0 0 0 2px var(--mantine-color-danger-1);
+  }
+  .du-default .num-suffix input{ flex:1; min-width:0; height:28px; border:0; box-shadow:none; background:transparent; outline:none; }
+  .du-default .num-suffix span{ font-size:var(--mantine-font-size-xs); font-weight:400; color:var(--mantine-color-gray-5); }
+  .du-body{ padding:10px 12px 12px; display:flex; flex-direction:column; gap:8px; }
+  .du-panel:has(.du-rows:empty){ display:none; }
+  .du-body:has(.du-rows:empty){ display:none; }
+  .du-unit-row{ display:flex; align-items:center; gap:6px; min-height:34px; padding:0 8px;
+    border-bottom:1px solid var(--mantine-color-gray-2); background:var(--mantine-color-white); transition:background-color .2s; }
+  .du-unit-row:last-child{ border-bottom:none; }
+  .du-unit-row:hover{ background:var(--mantine-color-gray-0); }
+  .du-unit-row[data-whole-err]{ flex-wrap:wrap; }
+  .du-unit-row[data-whole-err]::after{ flex-basis:100%; text-align:right; padding-bottom:4px; }
+  .du-unit-tag{ width:52px; flex:none; font-size:var(--mantine-font-size-sm); font-weight:600; color:var(--mantine-color-black);
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .du-unit-name{ flex:1; min-width:0; height:26px; box-sizing:border-box; padding:0 7px; font:inherit;
+    font-size:var(--mantine-font-size-sm); border:1px solid var(--mantine-color-gray-4); border-radius:var(--mantine-radius-sm);
+    background:var(--mantine-color-white); outline:none; }
+  .du-unit-name:focus{ border-color:var(--mantine-primary-color-filled); }
+  .du-unit-name::placeholder{ color:var(--mantine-color-gray-5); }
+  .du-unit-name.is-own{ font-weight:700; }
+  .du-unit-row.is-none .du-unit-name{ opacity:.45; }
+  /* Its own count: Prep's per-episode box (#prep-rows .num-suffix), a number with "days" inside. */
+  .du-unit-count{ display:contents; }
+  .du-unit-row .num-suffix{
+    display:inline-flex; align-items:center; flex:none; height:26px; box-sizing:border-box;
+    border:1px solid var(--mantine-color-gray-4); border-radius:var(--mantine-radius-md);
+    background:var(--mantine-color-white); padding-right:var(--mantine-spacing-md); cursor:text;
+  }
+  .du-unit-row .num-suffix:focus-within{ border-color:var(--mantine-primary-color-filled); }
+  .du-unit-row .num-suffix input{
+    width:34px; height:24px; border:0; padding:0 4px 0 var(--mantine-spacing-md); background:transparent;
+    font-size:var(--mantine-font-size-sm); text-align:right; box-shadow:none; outline:none;
+    -moz-appearance:textfield; appearance:textfield;
+  }
+  .du-unit-row .num-suffix input::-webkit-inner-spin-button,
+  .du-unit-row .num-suffix input::-webkit-outer-spin-button{ -webkit-appearance:none; margin:0; }
+  .du-unit-row .num-suffix input::placeholder{ color:var(--mantine-color-gray-5); }
+  .du-unit-row .num-suffix input.is-edited{ font-weight:700; }
+  .du-unit-row .num-suffix span{ font-size:var(--mantine-font-size-xxs); color:var(--mantine-color-gray-6); }
+  /* The double-click on a pill (R12) flashes the card and its row. */
+  .du-row.is-flash{ box-shadow:0 0 0 3px color-mix(in srgb, var(--mantine-primary-color-filled) 35%, transparent); }
+  .du-unit-row.is-flash{ background:var(--mantine-color-yellow-0); }
+
   /* (The rule that kept ONE solid line above Production Hiatus and Sim Post, `.ep-panel + .phase-hiatus +
      .simpost-panel`, owner 22 Sep 2026, retired with the blend: both are switch rows now, each with its hairline,
      PHASES-TAB-PLAN.md §3.4a. The siblings keep that order.) */
@@ -4097,6 +5261,20 @@
   .hv-date{ font-size:var(--mantine-font-size-xxs); color:var(--mantine-color-gray-6); }
   .hv-cell{ width:46px; text-align:center; flex:none; }
   .hv-cell-month{ width:44px; }
+  /* No Enable box: the holiday is on a day no working-day count reads (holidayMovesDates). The cell is empty, kept for
+     the column (owner, 11 Nov 2026). */
+  .hv-en-na{ cursor:default; }
+  /* One list, a strip per counting phase (renderHolidayVisList, owner 11 Nov 2026, option 6): the rows of a phase that
+     counts days sit beside a strip in its own colours, its name sideways. Every row shares a 22 px gutter while any
+     strip is drawn, so the names stay in one line; the header's "Holiday" moves with them. */
+  #holiday-vis-list.hv-has-strips > .hv-row{ padding-left:24px; }
+  #holiday-vis:has(#holiday-vis-list.hv-has-strips) .hv-head-name{ padding-left:22px; }
+  .hv-run{ display:flex; }
+  .hv-strip{ width:16px; flex:none; margin:4px 6px 4px 0; border:1px solid rgba(0,0,0,.08); border-radius:4px;
+    display:flex; align-items:center; justify-content:center; overflow:hidden; cursor:default; }
+  .hv-strip span{ writing-mode:vertical-rl; transform:rotate(180deg); font-size:9.5px; font-weight:700; letter-spacing:.09em;
+    text-transform:uppercase; white-space:nowrap; max-height:100%; overflow:hidden; text-overflow:ellipsis; }
+  .hv-run-rows{ flex:1; min-width:0; }
   /* A disabled holiday's label and note cells dim; the Enable cell never does (it is the way back). */
   .hv-dim{ opacity:.45; }
   .hv-tag{
@@ -4125,20 +5303,47 @@
      same headers as a built-in row's; before, the × was the custom row's only extra child and
      pushed its boxes 22 px left (owner screenshot, 20 Oct 2026). It takes room only while some
      row has a ×. The .hv-head prefix out-specifies `.hv-head span`'s 46 px. */
-  /* The Automatic notes card (owner ruling 9): one row per phase since 27 Oct 2026 -- its name, then its start box
-     and its end box in two columns that line up down the card -- in the holiday list's type scale. The boxes are
-     plain checkboxes with no id (Sidebar.jsx says why); `.form-panel input[type=checkbox]` styles them. */
-  /* The card is ~245 px wide: an 8 px column gap is what leaves "Writer's Room" its 79 px on one line (measured,
-     27 Oct 2026; the 12 px gap cut it to "Writer's Ro…"). A longer name typed in the Phases tab wraps, never clips. */
-  .autonote-list{ display:grid; grid-template-columns:minmax(0, 1fr) auto auto; align-items:center;
-    column-gap:8px; row-gap:var(--mantine-spacing-sm); }
-  .autonote-name{ font-size:var(--mantine-font-size-sm); color:var(--mantine-color-gray-9); min-width:0;
-    line-height:1.25; overflow-wrap:anywhere; }
-  .autonote-row{ display:flex; align-items:center; gap:var(--mantine-spacing-sm); font-size:var(--mantine-font-size-sm);
-    color:var(--mantine-color-gray-9); cursor:pointer; user-select:none; }
-  .autonote-row input{ margin:0; flex:none; }
-  /* A custom phase's rows (engine-drawn, syncCustomAutoNoteRows) take this grid's columns through their host. */
-  .autonote-custom{ display:contents; }
+  /* The Automatic notes card (owner ruling 9), PER VIEW since 4 Nov 2026 (AUTO-NOTES-PER-VIEW-PLAN.md, R1(a)), and
+     ONE ROW PER PHASE since the same evening (owner: "make this menu less ugly", then "go with b", option B of
+     mockups/autonote-card.html). Engine-drawn (buildAutoNoteCard, reflectAutoNoteKinds) as one grid of six columns:
+     the phase's name, Start | End under WATERFALL, an 8 px gap, Start | End under MONTH. Each view's heading spans
+     its two columns with its own rule; "Start" / "End" sit under it in a lighter gray. A gray-2 rule runs above
+     every phase's row and the whole row shades gray-0 on hover (`.autonote-row` is display:contents, so its cells
+     sit in this grid and the row still takes :hover). The phase's own colour is a chip before its name: its fill
+     (--phase-color, .phase-row's variable) edged in its month-bar ink (--phase-ink), both written by
+     reflectAutoNoteKinds, because the pastel fills alone barely show. The note's own word ("Opens", "Wraps") is each
+     box's tooltip. The boxes are plain checkboxes with no id (Sidebar.jsx says why); `.form-panel
+     input[type=checkbox]` styles them.
+     ⛔ Widths: at the narrow window's 247 px card the grid has 221 px. 4 x 27 + 8 leaves the name column 105 px:
+     4 of padding and 16 of chip leave 85 for the text, and "Writer's Room" is 81.4 px at 12 px semibold, so it stays
+     on one line (at 28 px columns it wrapped). "WATERFALL" (57 px) runs 1.5 px past each end of its 54 px heading,
+     unclipped. A longer typed name wraps, never clips.
+     ⛔ The PADDING and the rule are on `.autonote-namecell`, never on `.autonote-name`: autonotephases P1 fails a
+     default name whose own box is taller than 1.5 line-heights. */
+  .autonote-list{ display:grid; grid-template-columns:minmax(0, 1fr) 27px 27px 8px 27px 27px; align-items:center; }
+  .autonote-hd{ grid-column:span 2; font-size:var(--mantine-font-size-xxs); text-transform:uppercase;
+    color:var(--mantine-color-gray-6); text-align:center; line-height:1.3; white-space:nowrap;
+    padding-bottom:3px; border-bottom:1px solid var(--mantine-color-gray-3); }
+  .autonote-hd-name{ grid-column:auto; border-bottom:0; }
+  .autonote-sub{ font-size:var(--mantine-font-size-xxs); color:var(--mantine-color-gray-5); text-align:center;
+    line-height:1.2; padding:3px 0 5px; }
+  .autonote-row{ display:contents; }
+  .autonote-row > *{ align-self:stretch; display:flex; align-items:center; border-top:1px solid var(--mantine-color-gray-2); }
+  .autonote-row:hover > *{ background:var(--mantine-color-gray-0); }
+  .autonote-row > :first-child{ border-radius:var(--mantine-radius-sm) 0 0 var(--mantine-radius-sm); }
+  .autonote-row > :last-child{ border-radius:0 var(--mantine-radius-sm) var(--mantine-radius-sm) 0; }
+  .autonote-namecell{ min-width:0; padding:6px 3px 6px 1px; }
+  .autonote-name{ position:relative; display:block; flex:1; min-width:0; padding-left:16px;
+    font-size:var(--mantine-font-size-sm); font-weight:600; color:var(--mantine-color-gray-9); line-height:1.25;
+    overflow-wrap:anywhere; }
+  .autonote-name::before{ content:''; position:absolute; left:0; top:calc(.625em - 5px); width:10px; height:10px;
+    border-radius:3px; background:var(--phase-color, var(--mantine-color-gray-2));
+    box-shadow:inset 0 0 0 1px color-mix(in srgb, var(--phase-ink, var(--mantine-color-gray-6)) 60%, transparent); }
+  .autonote-cell{ justify-content:center; }
+  .autonote-cell input{ margin:0; flex:none; cursor:pointer; }
+  /* A phase hidden in the waterfall: its Waterfall boxes dim and keep their ticks (plan D2). */
+  .autonote-cell.autonote-dim{ opacity:.45; }
+  .autonote-cell.autonote-dim input{ cursor:not-allowed; }
   .hv-del-slot, .hv-head .hv-del-slot{ display:none; width:22px; flex:none; justify-content:flex-end; align-items:center; }
   #holiday-vis:has(.hv-del) .hv-del-slot{ display:flex; }
 
@@ -4189,6 +5394,47 @@
   .phase-row.ends-mode .ph-start-box,
   .phase-row.ends-mode .phase-snap,
   .phase-row.ends-mode .autostart-btn{ display:none; }
+  /* THE WEEK ARROWS (PHASE-WEEK-ARROWS-PLAN.md, layout C2; owner, 4 Nov 2026: "C2, but make sure the buttons aren't
+     actually touching the top or bottom lines of the box", after D was built and every layout was shown on the real
+     card at three window widths). ▲ ▼ stacked INSIDE the date box at its right end, on every card whose `nudge-on`
+     class is set (reflectPhaseNudges: the waterfall is on screen and the phase has a date). Keyed on that class, never
+     on a :has() (see the ⛔ further down).
+     - The geometry, top to bottom inside the box: its 1 px border, 2 px clear, ▲ 15 px, 1 px gap, ▼ 15 px, 2 px clear,
+       its border. So while the arrows show, the card's boxes are 37 px tall (30 everywhere else), the Length box too,
+       so the two stay level. The card is 7 px taller and keeps its shape: Starts and Length side by side as before.
+     - `top` is the caption line (14) + its gap (3) + the border (1) + the clearance (2); the phasearrows leg holds the
+       clearance on every card, so a change to the caption's height shows up there.
+     - The date text keeps the box's left padding and stops 32 px from the right (24 px of button, 4 px either side),
+       which leaves "mm/dd/yyyy" its ~73 px in the narrowest side-by-side box (118 px).
+     The month view has no arrows, and its card is as it was. */
+  .ph-nudge, .ph-nudge-chip{ display:none; }
+  .phase-row.nudge-on .ph-starts{ position:relative; }
+  .phase-row.nudge-on .phase-fields input[type=date],
+  .phase-row.nudge-on .phase-fields input[type=number]{ height:37px; }
+  .phase-row.nudge-on .ph-start-box input,
+  .phase-row.nudge-on .ph-ends-box input{ padding-right:32px; }
+  .phase-row.nudge-on .ph-nudge{
+    display:flex; flex-direction:column; gap:1px; position:absolute; z-index:1; right:4px; top:20px;
+  }
+  .ph-nudge-btn{
+    display:grid; place-items:center; flex:none; width:24px; height:15px; padding:0; cursor:pointer;
+    border:1px solid var(--mantine-color-gray-4); border-radius:4px;
+    background:var(--mantine-color-white); color:var(--mantine-color-navy-6);
+    transition:background-color 100ms ease, border-color 100ms ease;
+  }
+  .ph-nudge-btn svg{ width:9px; height:9px; }
+  .ph-nudge-btn:hover{ background:var(--mantine-color-navy-0); border-color:var(--mantine-color-navy-5); }
+  .ph-nudge-btn:active{ background:var(--mantine-color-navy-1); }
+  .ph-nudge-btn:focus-visible{ outline:2px solid var(--mantine-primary-color-filled); outline-offset:1px; }
+  /* A burst's running total, "Pulled 2 wks", at the right end of the caption line (ruling D5). Empty between bursts. */
+  .phase-row.nudge-on .ph-nudge-chip{
+    display:block; margin-left:auto; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+    padding:0 6px; border-radius:7px; font-size:10.5px; font-weight:600; line-height:14px;
+    background:var(--mantine-color-navy-0); color:var(--mantine-color-navy-6);
+    opacity:0; transition:opacity 150ms ease;
+  }
+  .phase-row.nudge-on .ph-nudge-chip.on{ opacity:1; }
+  .phase-row.nudge-on .ph-nudge-chip:empty{ padding:0; }
   /* ENDS FOR PRODUCTION (productionEnds, owner, 30 Oct 2026): in both modes, the shoot as a span (option B of
      mockups/production-start-readout.html): the first shoot day and the wrap at the two ends of a dashed line. The end
      that holds is solid (--span-ink, Production's own text colour, set by reflectProductionEnds), the one worked out
@@ -4375,6 +5621,12 @@
 .month-sel-box{ position:fixed; z-index:48; box-sizing:border-box; pointer-events:none; border-radius:3px;
   border:1.5px solid rgba(255,255,255,.95); box-shadow:0 0 0 1.5px #7030A0; background:rgba(112,48,160,.10); }
 .month-sel-box.is-active{ box-shadow:0 0 0 2.5px #7030A0; }
+/* The grid's short message in the month view (drawMvSelFlash): the waterfall's .text-sel-chip, body-level and fixed like
+   the outlines above, and over them. */
+.text-sel-chip.month-sel-chip{ position:fixed; z-index:49; }
+/* ...and a message about a DAY ("This day is full (10 lines)."; MONTH-ROW-LIMIT-PLAN.md, mvSayDayFull): two short
+   lines, each on its own. Body-level chrome: it is never inside #table-wrap. */
+.text-sel-chip.month-sel-chip.is-lines{ white-space:pre-line; padding:5px 10px; }
 /* N1: a pill keeps its own text colour, so the bar's colour well greys while only pills are picked. */
 .style-bar .hf-swatch.is-disabled{ opacity:.35; pointer-events:none; }
 /* ...and its alignment control while only the month name is picked: centred between the arrows, it cannot move. */
@@ -4406,3 +5658,46 @@
   filter:drop-shadow(0 4px 10px rgba(0,0,0,.28)); will-change:transform;
 }
 .mv-drag-shield{ position:fixed; inset:0; z-index:300; cursor:grabbing; }
+
+/* ---- Double-ups in the month view (DOUBLE-UP-DAYS-PLAN.md R8-R11): chrome laid OVER the grid, never in it ----
+   The drop boxes over the day cells while a double-up is dragged: grey where it can never go (its own episode's
+   days, before the shoot), outlined where it would land, red where that is refused. pointer-events:none, so the
+   pointer still reads the day under it. Under the moving copy (.mv-drag-ghost, 301). */
+.du-drop-box{ position:fixed; z-index:299; pointer-events:none; box-sizing:border-box; }
+.du-drop-box.is-nodrop{ background:rgba(120,118,110,.18); }
+.du-drop-box.is-target{ box-shadow:inset 0 0 0 2px var(--mantine-primary-color-filled);
+  background:color-mix(in srgb, var(--mantine-primary-color-filled) 8%, transparent); }
+.du-drop-box.is-target.is-bad{ box-shadow:inset 0 0 0 2px var(--mantine-color-red-6); background:rgba(224,49,49,.08); }
+body.du-dragging, body.du-dragging *{ cursor:grabbing !important; user-select:none; }
+body.du-dragging.du-refuse, body.du-dragging.du-refuse *{ cursor:not-allowed !important; }
+/* The one-line reason a refused drop snaps back with. */
+.du-toast{ position:fixed; z-index:400; max-width:360px; padding:6px 10px; border-radius:var(--mantine-radius-md);
+  background:var(--mantine-color-dark-7, #25262b); color:#fff; font-size:var(--mantine-font-size-xs); line-height:1.4;
+  box-shadow:0 6px 18px rgba(0,0,0,.22); pointer-events:none; }
+/* Rename… (R11): a unit's own double-up name, in a small box by the pill. */
+.du-rename-pop{ position:fixed; z-index:400; width:250px; box-sizing:border-box; padding:10px 12px;
+  background:var(--mantine-color-white); border:1px solid var(--mantine-color-gray-3); border-radius:var(--mantine-radius-md);
+  box-shadow:0 8px 24px rgba(0,0,0,.14); font-size:var(--mantine-font-size-sm); }
+.du-rename-title{ font-size:var(--mantine-font-size-xs); font-weight:600; margin:0 0 6px; }
+.du-rename-input{ width:100%; height:30px; box-sizing:border-box; padding:0 8px; font:inherit;
+  border:1px solid var(--mantine-color-gray-4); border-radius:var(--mantine-radius-sm); outline:none; }
+.du-rename-input:focus{ border-color:var(--mantine-primary-color-filled); }
+.du-rename-acts{ display:flex; justify-content:space-between; align-items:center; gap:8px; margin-top:8px; }
+.du-rename-default{ border:0; background:none; padding:0; font:inherit; font-size:var(--mantine-font-size-xs);
+  color:var(--mantine-primary-color-filled); text-decoration:underline; cursor:pointer; }
+.du-rename-done{ border:0; border-radius:var(--mantine-radius-sm); padding:4px 12px; font:inherit; font-size:var(--mantine-font-size-xs);
+  background:var(--mantine-primary-color-filled); color:#fff; cursor:pointer; }
+
+/* ⛔ FROZEN-SURFACE EDIT FC1 -- OWNER-APPROVED by picker, 16 Nov 2026, "Keep colours (contrast)" (audit 2026-11, item
+   W.2, WIN-5: "A Windows contrast theme removes the phase colours on screen"). In forced-colors mode (Windows
+   Settings > Accessibility > Contrast themes) Chrome replaces every background with the theme's, so the on-screen
+   waterfall and month view lose every phase fill, hiatus band and coloured note: the colours ARE the calendar's
+   information. forced-color-adjust:none keeps the calendar's own colours there and nowhere else; outside
+   forced-colors mode this block matches nothing, so the screen, both PDFs and the workbook are unchanged byte for
+   byte. #table-wrap is the frozen container (CLAUDE.md), hence the owner's sign-off. The chrome swatches that show
+   the same colours (the phase cards' colour buttons .pc-sw, the phase map, the side boxes' colour keys) follow, so
+   the key and the calendar never disagree. Leg `forcedcolors` (rtleg.mjs emulates the contrast theme over CDP with
+   ?forced=active; run.sh is the control). */
+@media (forced-colors: active){
+  #table-wrap, .month-map, .side-col, .pc-sw{ forced-color-adjust:none; }
+}

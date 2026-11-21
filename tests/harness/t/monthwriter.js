@@ -34,8 +34,10 @@
 //
 // CASES (each judged over every document)
 //   S0  the writer, MV_MIN_LANES and the frozen primitives slice verbatim out of src/legacy/app.js and evaluate
-//   F0  only the month export (exportMonthPdfDirect, since step 5) calls the writer, and only through its public
-//       entry points; nothing else in app.js uses a name the writer defines
+//   F0  only the month export (exportMonthPdfDirect, since step 5) builds a month PDF, and only through the writer's
+//       public entry points; the Compare PDF reaches buildListPdf alone, and the month page on screen exactly the seven
+//       names it asks the writer's fit with (17 Nov 2026, "Shrink like the PDF"); nothing else in app.js uses a name
+//       the writer defines
 //   C0  CONTROL: the print path's measurement, re-run here, gives every week exactly the basis (or the shrunk height)
 //       the print path wrote into the document, and the scaled oracle's base sizes are the app's computed print styles
 //   A0  every month that fits: each week the print path measured as the writer lays it out gets the table's basis and
@@ -73,7 +75,12 @@ window.addEventListener('load', function () { (async function () {
   // font-size its inline style carries with --mvn-h1 (mvTextCss writes both).
   var NOTE_LINE = {11: 14, 12: 16, 13: 17, 14: 18};
   function noteSizedPx(it){ var z = it && it.fmt && it.fmt.size; return NOTE_LINE[z] ? z : 0; }
-  function noteMaxLanes(it){ return noteSizedPx(it) ? 2 : 3; }
+  // ⭐ A waterfall line ending in a date keeps it above 10 px (audit AUD2-045, item 3.1, the owner's D4 = a, 14 Nov 2026): the
+  // writer models it as a 10 px note at its own size, up to three lanes and every line shown. Stated here, never read from
+  // the writer (its mvlKeepsDate). The print document still clamps it to two lines (frozen CSS), so decidePage lays out the
+  // writer's decision unclamped, as it lays out the writer's own wrap of a one-day pill.
+  function keepsDate(it){ return !!(noteSizedPx(it) && it.note && it.note.kind === 'wf' && /\s\d{1,2}\/\d{1,2}\/\d{2}(?:\d{2})?$/.test(String(it.text || '').trim())); }
+  function noteMaxLanes(it){ return noteSizedPx(it) && !keepsDate(it) ? 2 : 3; }
   function elNoteLine(b){
     var st = b.getAttribute('style') || '', m = /font-size:\s*(\d+)px/.exec(st);
     return (st.indexOf('--mvn-h1') >= 0 && m && NOTE_LINE[+m[1]]) ? NOTE_LINE[+m[1]] : 13;
@@ -128,8 +135,9 @@ window.addEventListener('load', function () { (async function () {
     // app.js, exportMonthPdfDirect. So every top-level name the writer declares is counted in app.js outside both the
     // writer and that function, comment lines skipped: none may appear. Inside the function exactly the writer's
     // public surface may: the fonts' loader and weights, the model, the fit, the printable-characters walk and the
-    // emitter. And each entry point appears once more than before: loadInterPdfFont four times (its declaration,
-    // buildMonthPdf's call, buildListPdf's and the export's), the others twice (declared, and called by the export).
+    // emitter. And each entry point appears once more than before: loadInterPdfFont five times (its declaration,
+    // buildMonthPdf's call, buildListPdf's, the export's and, since 17 Nov 2026, the month page's, which asks for the
+    // programs the first time a month is drawn), the others twice (declared, and called by the export).
     var code = function (s) { return s.split('\n').filter(function (l) { return !/^\s*\/\//.test(l); }).join('\n'); };
     var exportSrc = slice('  async function exportMonthPdfDirect(){', "      chrome.exportBtn({ busy: false, disabled: false });\n    }\n  }", 'exportMonthPdfDirect');
     var at = src.indexOf(writerSrc), rest = src.slice(0, at) + src.slice(at + writerSrc.length);
@@ -139,19 +147,38 @@ window.addEventListener('load', function () { (async function () {
     var cmpStart = src.indexOf('  function buildComparePdf(model){'), cmpEnd = src.indexOf('    return list;\n  }', cmpStart);
     var cmpSrc = (cmpStart >= 0 && cmpEnd > cmpStart) ? src.slice(cmpStart, cmpEnd + '    return list;\n  }'.length) : '';
     var eAt = rest.indexOf(exportSrc), rest2 = rest.slice(0, eAt) + rest.slice(eAt + exportSrc.length);
-    var outside = code(cmpSrc ? rest2.replace(cmpSrc, '') : rest2);
+    // ⭐ SINCE 16 NOV 2026 THE WRITER HAS A THIRD READER, the month page on screen (monthPageNumbers, which fitMonthPage
+    // runs after each month render): the screen shares the page out among the weeks by the writer's own rule, so it reads
+    // the writer's constants through mvlFitNumbers (38 px of chrome, 19 px a line, the 57 px floor) instead of keeping a
+    // copy that could drift from the PDF.
+    // ⭐ SINCE 17 NOV 2026 IT ALSO ASKS THE WRITER FOR ITS FIT OF THE MONTH ON SCREEN ("Shrink like the PDF",
+    // MONTH-SHRINK-PLAN.md): a month the PDF shrinks is drawn at the PDF's own factor, so mvAskPdfFonts loads the four
+    // programs (MVL_FONT_WEIGHTS, loadInterPdfFont) and mvWriterFit models the month as the export does (mvlMonthLayout,
+    // with mvlTextWidth at MVL_GEOMETRY's note size) and takes mvlFitMonth's answer. It still builds no PDF and paints
+    // nothing. So the region runs from monthPageNumbers to the end of mvShrinkToFit, is cut out of `outside` like the
+    // export and the Compare PDF, and is held to EXACTLY those seven names: an eighth is a new reach into the writer.
+    var mpEndMark = "\n    return false;\n  }";
+    var mpStart = src.indexOf('  function monthPageNumbers(tw){'), mpTail = mpStart < 0 ? -1 : src.indexOf('  function mvShrinkToFit(){', mpStart);
+    var mpEnd = mpTail < 0 ? -1 : src.indexOf(mpEndMark, mpTail);
+    var mpSrc = (mpStart >= 0 && mpEnd > mpStart) ? src.slice(mpStart, mpEnd + mpEndMark.length) : '';
+    var MONTH_PAGE = ['MVL_FONT_WEIGHTS', 'MVL_GEOMETRY', 'loadInterPdfFont', 'mvlFitMonth', 'mvlFitNumbers', 'mvlMonthLayout', 'mvlTextWidth'];
+    var outside0 = cmpSrc ? rest2.replace(cmpSrc, '') : rest2;
+    var outside = code(mpSrc ? outside0.replace(mpSrc, '') : outside0);
     var NAMES = [], dm, dre = /^  (?:async )?(?:function|const|let) (\w+)/gm;
     while((dm = dre.exec(writerSrc))) NAMES.push(dm[1]);
     var has = function (n, s) { return new RegExp('\\b' + n + '\\b').test(s); };
     var usedOut = NAMES.filter(function (n) { return has(n, outside); });
-    var PUBLIC = ['MVL_FONT_WEIGHTS', 'buildMonthLayout', 'buildMonthPdf', 'fitMonthLayout', 'loadInterPdfFont', 'mvlUnprintable'];
+    // mvlSmallType since 14 Nov 2026 (audit AUD2-043, item 3.1, D4 = a): the export asks it which months print below 6 pt.
+    var PUBLIC = ['MVL_FONT_WEIGHTS', 'buildMonthLayout', 'buildMonthPdf', 'fitMonthLayout', 'loadInterPdfFont', 'mvlSmallType', 'mvlUnprintable'];
     var usedByExport = NAMES.filter(function (n) { return has(n, code(exportSrc)); }).sort();
     var usedByCompare = NAMES.filter(function (n) { return has(n, code(cmpSrc)); }).sort();
-    var counts = ['loadInterPdfFont(', 'buildMonthLayout(', 'buildMonthPdf(', 'fitMonthLayout(', 'mvlUnprintable('].map(function (s) { return code(src).split(s).length - 1; });
-    add('F0', 'only the month export (exportMonthPdfDirect) calls the writer, and only through its public entry points',
-        usedOut.length === 0 && NAMES.indexOf('mvlFitMonth') >= 0 && same(usedByExport, PUBLIC) && same(counts, [4, 2, 2, 2, 2]) && cmpSrc && same(usedByCompare, ['buildListPdf']),
-        {usedOutside: usedOut, usedByExport: usedByExport, usedByCompare: usedByCompare, namesDeclared: NAMES.length, entryPointOccurrences: counts},
-        {usedOutside: [], usedByExport: PUBLIC, usedByCompare: ['buildListPdf'], entryPointOccurrences: [4, 2, 2, 2, 2]});
+    var usedByMonthPage = NAMES.filter(function (n) { return has(n, code(mpSrc)); }).sort();
+    var counts = ['loadInterPdfFont(', 'buildMonthLayout(', 'buildMonthPdf(', 'fitMonthLayout(', 'mvlUnprintable(', 'mvlSmallType('].map(function (s) { return code(src).split(s).length - 1; });
+    add('F0', 'only the month export (exportMonthPdfDirect) builds a month PDF, through the writer\'s public entry points; the Compare PDF and the month page on screen reach exactly the names listed for them',
+        usedOut.length === 0 && NAMES.indexOf('mvlFitMonth') >= 0 && same(usedByExport, PUBLIC) && same(counts, [5, 2, 2, 2, 2, 2]) && cmpSrc && same(usedByCompare, ['buildListPdf']) &&
+          !!mpSrc && same(usedByMonthPage, MONTH_PAGE),
+        {usedOutside: usedOut, usedByExport: usedByExport, usedByCompare: usedByCompare, usedByMonthPage: usedByMonthPage, namesDeclared: NAMES.length, entryPointOccurrences: counts},
+        {usedOutside: [], usedByExport: PUBLIC, usedByCompare: ['buildListPdf'], usedByMonthPage: MONTH_PAGE, entryPointOccurrences: [5, 2, 2, 2, 2, 2]});
 
     var G = F.G, P = F.P, fonts = {};
     for(var fw of ['400', '500', '600', '700']) fonts[fw] = await F.loadInterPdfFont(fw);
@@ -250,7 +277,7 @@ window.addEventListener('load', function () { (async function () {
             if(!mk) return;
             if(it.kind === 'note'){
               if(mk.span !== it.lanes) why.push('span');
-              if(mk.lines !== Math.min(noteSizedPx(it) ? 2 : Infinity, it.lines.length)) why.push('lines');
+              if(mk.lines !== Math.min(noteSizedPx(it) && !keepsDate(it) ? 2 : Infinity, it.lines.length)) why.push('lines');
             } else if(it.kind === 'hiatus' && F.mvlFlat(it.text) === '' && F.mvlFlat(it.tag || '') === '') why.push('blankBand');
             // ⭐ A one-day custom pill the writer wraps and the print document does not, or the other way round
             // (MONTH-BAR-SIZE-PLAN.md step 3). Each decides at its own box: the print path at the SCREEN's day width, the
@@ -483,7 +510,7 @@ window.addEventListener('load', function () { (async function () {
       if(bars.length !== wk.items.length) throw new Error(m.label + ' week ' + (wi + 1) + ': ' + bars.length + ' bars, ' + wk.items.length + ' items');
       wk.items.forEach(function (it, k) {
         var b = bars[k], st = (b.getAttribute('style') || '').replace(/grid-row:\s*[^;]*/, 'grid-row:' + (it.lane + 1) + ' / span ' + it.lanes);
-        if(it.kind === 'note'){ b.textContent = it.lines.join('\n'); st += ';white-space:pre'; }
+        if(it.kind === 'note'){ b.textContent = it.lines.join('\n'); st += ';white-space:pre' + (keepsDate(it) ? ';display:block;-webkit-line-clamp:none' : ''); }
         // The writer's own wrap of a one-day custom pill (see 'wrap' above): Chrome lays it out as the writer decided.
         if(it.kind === 'pill') b.classList.toggle('mv-pill-2l', !!(it.lines && it.lines.length > 1));
         b.setAttribute('style', st);
@@ -656,7 +683,9 @@ window.addEventListener('load', function () { (async function () {
         if(it.kind === 'hiatus' && !cut) judgeNear('A3', 'centre', bWhere + ' centre', first.x + first.w / 2, c0.x + c0.w / 2, LEFT);
         else judgeNear('A3', 'left', bWhere + ' start', first.x, c0.x, LEFT);
         if(it.kind === 'note'){
-          var lh = F.mvlWeekPaint(m.fit.scale).note.lineH;
+          // A sized note's lines are its size's line apart (NOTE_LINE), not 13 px: two lines never told them apart, a
+          // third (a dated line that keeps its date, AUD2-045) does.
+          var zl = noteSizedPx(it), lh = zl ? NOTE_LINE[zl] * m.fit.scale : F.mvlWeekPaint(m.fit.scale).note.lineH;
           texts.forEach(function (o) {
             var c = cb.text.filter(function (rc) { return Math.round((rc.y - c0.y) / lh) === o.li; })[0];
             if(!c){ bad.A3.push(bWhere + ' line ' + (o.li + 1) + ': not laid out'); return; }

@@ -1,5 +1,6 @@
 // Entry point. The order of operations in this file is load-bearing; read the comments before
 // reordering anything.
+import { Component } from 'react'
 import { createRoot } from 'react-dom/client'
 import { flushSync } from 'react-dom'
 import { createPortal } from 'react-dom'
@@ -93,16 +94,20 @@ import { theme } from './theme.js'
 import { InfoHint } from './chrome/InfoHint.jsx'
 import { Header } from './chrome/Header.jsx'
 import { PreviewToolbar } from './chrome/PreviewToolbar.jsx'
-import { ShowInfoCard, CalendarRangeCard, HiatusResetButton } from './chrome/Sidebar.jsx'
+import { ShowInfoCard, CalendarRangeCard } from './chrome/Sidebar.jsx'
 import { SettingsWindow } from './chrome/SettingsWindow.jsx'
 import { DatePop } from './chrome/DatePop.jsx'
 import { SelectPop } from './chrome/SelectPop.jsx'
 import { SeasonPop } from './chrome/SeasonPop.jsx'
 import { Dialogs } from './chrome/Dialogs.jsx'
 import { ExportPdfDialog } from './chrome/ExportPdfDialog.jsx'
+import { MonthPdfDialog } from './chrome/MonthPdfDialog.jsx'
 import { ZoomControl } from './chrome/ZoomControl.jsx'
 import { ScenarioTabs } from './chrome/ScenarioTabs.jsx'
 import { CompareDialog } from './chrome/CompareDialog.jsx'
+import { ChangesDialog } from './chrome/ChangesDialog.jsx'
+import { WhatsNewDialog } from './chrome/WhatsNewDialog.jsx'
+import { StartRecents } from './chrome/StartRecents.jsx'
 import { APP_ICON } from './chrome/appIcon.js'
 import { initLegacyApp } from './legacy/app.js'
 
@@ -137,6 +142,9 @@ function Chrome() {
     <>
       {portal(<Header />, 'header.app-header')}
       {portal(<PreviewToolbar />, '.view-toggle-row')}
+      {/* The recent calendars on an empty, Untitled start (audit 2026-11, AUD2-030), in the static host right AFTER
+          #table-wrap: beside the grid, never in it. The engine shows and hides the host; buildSavedHtml() empties it. */}
+      {portal(<StartRecents />, '.start-recents')}
       {/* The calendar range (owner ruling 3) is the Show tab's, so it stays in the sidebar. Its two ids are
           swept into fields.byId, ahead of the Settings window's Region ids, as on its own branch. */}
       {portal(<><ShowInfoCard /><CalendarRangeCard /></>, '#sidebar-static')}
@@ -150,12 +158,12 @@ function Chrome() {
       {portal(
         <InfoHint label="All-phase hiatus" width={300}>
           A production-wide pause (e.g. a winter break) that stops every phase at once and pushes
-          the whole schedule out. For pausing a single phase, use its own hiatus toggle above.
+          the whole schedule out. For pausing a single phase, use its own hiatus toggle above. With
+          Ripple Hiatus Periods on (in Settings), the phases that start after a hiatus move with it when you change it.
         </InfoHint>,
         '#hiatus-hint-host')}
-      {/* "Reset hiatus bands" (owner ruling 5) at the foot of the same static card, the way
-          "Reset holidays" ends Holidays. Its host is listed in buildSavedHtml()'s emptied hosts. */}
-      {portal(<HiatusResetButton />, '#hiatus-reset-host')}
+      {/* "Reset hiatus bands" sat here (owner ruling 5, 30 Sep 2026) until the owner removed it, 19 Nov 2026: it
+          only reset the bands' look, read as if it cleared the hiatuses, and each band's look is set on its card. */}
       {/* Not a portal: DatePop renders straight into #react-root, which is a direct child of
           <body> BEFORE #print-root — so `body.printing-* > *:not(#print-root)` hides it in both
           print paths with no extra work, and #print-root stays last. */}
@@ -166,12 +174,18 @@ function Chrome() {
       <Dialogs />
       {/* The Export PDF dialog (PAPER-SIZE-PLAN.md §5a). Inline in #react-root for Dialogs' reason. */}
       <ExportPdfDialog />
+      {/* The month view's Export PDF dialog: which months (audit AUD2-026). Inline for the same reason. */}
+      <MonthPdfDialog />
       {/* The calendar zoom, bottom right beside the help button. In #react-root for DatePop's reason. */}
       <ZoomControl />
       {/* The scenario tabs, bottom left in the strip the zoom shares, and the Compare window (SCENARIOS-PLAN.md).
           In #react-root for DatePop's reason. */}
       <ScenarioTabs />
       <CompareDialog />
+      {/* File menu ▸ "Changes since last save…" (audit AUD2-103). In #react-root for DatePop's reason. */}
+      <ChangesDialog />
+      {/* What's New, once after an update (owner, 19 Nov 2026). In #react-root for DatePop's reason. */}
+      <WhatsNewDialog />
     </>
   )
 }
@@ -187,6 +201,52 @@ function portal(node, selector) {
     return null
   }
   return createPortal(node, host)
+}
+
+// ---- If the chrome cannot draw: say so, and offer the reset (audit AUD2-078, 14 Nov 2026) ------------------------------
+// With no error boundary, ONE component throwing while it rendered made React unmount the whole tree: every portal
+// above emptied, and the app opened as a blank window. A preset name stored as an object did exactly that, on every
+// launch, since the value stays in this computer's storage (the engine now checks the store when it reads it,
+// loadPrefs). This catches whatever is left. It sits OUTSIDE MantineProvider and draws plain markup styled by
+// legacy.css (.chrome-failed), so it still works if the failure is Mantine's own. The button carries no id
+// (collectFieldValues sweeps ids into saved calendars) and clears ONLY the preferences, then reloads: calendars live in
+// files, and unsaved work in its crash backup, which the reload offers back. The engine's unsaved-changes prompt still
+// guards the reload. `chromeFailed` lets the boot skip initLegacyApp() when the very first render failed, because the
+// engine binds to chrome elements by id that would then not exist.
+let chromeFailed = false
+class ChromeBoundary extends Component {
+  constructor(props) {
+    super(props)
+    this.state = { failed: false }
+  }
+  static getDerivedStateFromError() {
+    return { failed: true }
+  }
+  componentDidCatch(error) {
+    chromeFailed = true
+    console.error('chrome: the app could not draw its controls', error)
+  }
+  render() {
+    return this.state.failed ? <ChromeFailed /> : this.props.children
+  }
+}
+function ChromeFailed() {
+  const reset = () => {
+    try { localStorage.removeItem('sptcal.prefs') } catch (e) { /* storage blocked: the reload still tries */ }
+    location.reload()
+  }
+  return (
+    <div className="chrome-failed" role="alertdialog" aria-label="SPTCal could not start">
+      <div className="chrome-failed-box">
+        <div className="chrome-failed-title">SPTCal could not start</div>
+        <p className="chrome-failed-text">
+          A setting saved on this computer may be damaged. Reset your preferences to start SPTCal again. This clears
+          your preferences on this computer, saved header presets included. Your calendars are not changed.
+        </p>
+        <button type="button" className="chrome-failed-btn" onClick={reset}>Reset preferences</button>
+      </div>
+    </div>
+  )
 }
 
 // ---- The install gate owns a browser tab on the hosted link (PWA-ONLY-PLAN.md) -----------------
@@ -213,11 +273,13 @@ if (!document.documentElement.hasAttribute('data-app-gate')) {
   flushSync(() => {
     root.render(
       // forceColorScheme="light" — dark mode is a stated non-goal, see theme.js.
-      <MantineProvider theme={theme} forceColorScheme="light" withCssVariables>
-        <Chrome />
-      </MantineProvider>
+      <ChromeBoundary>
+        <MantineProvider theme={theme} forceColorScheme="light" withCssVariables>
+          <Chrome />
+        </MantineProvider>
+      </ChromeBoundary>
     )
   })
 
-  initLegacyApp()
+  if (!chromeFailed) initLegacyApp()
 }

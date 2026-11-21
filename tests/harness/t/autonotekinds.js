@@ -6,7 +6,9 @@
 // computeSchedule tags each automatic note with a kind ('writersRoomOpens', 'principalStart', 'principalWrap'),
 // and autoNotesForView() -- the one filter every reader of the notes goes through -- drops a kind the calendar has
 // switched off. Holiday notes are not a kind (owner's picker: they keep their per-holiday list). A note the user
-// typed (userNotes) is never touched, even one that began as an automatic note's text.
+// typed (userNotes) keeps the user's own lines; since 13 Nov 2026 (audit AUD2-002, the owner's decision D1 (a)) the
+// automatic line it carries LEAVES it while its kind is off and comes back when ticked on (followAutoNotes). Until then
+// such a line stayed printed after its kind was switched off: A3, A4, A9 and A12 were re-expected for it.
 //
 // THE CALENDAR (synthetic: made-up 2027 dates, no region, so no holidays):
 //   Writer's Room Mon 1/4/27 x 8        -> "Writer's Room Opens 1/4/27", which the user then EDITS (+ "Pitch day")
@@ -60,40 +62,40 @@ window.addEventListener('load', function () { (async function () {
   function note(w) { var td = document.querySelector('#table-wrap td.sheet-note-cell[data-week="' + w + '"]'); return td ? txt(td).replace(/^\+$/, '') : null; }
   function notes() { return { '2027-01-04': note('2027-01-04'), '2027-03-01': note('2027-03-01'), '2027-05-03': note('2027-05-03'), '2027-05-24': note('2027-05-24') }; }
   var ALL_ON = { '2027-01-04': EDITED, '2027-03-01': 'Table read', '2027-05-03': START, '2027-05-24': WRAP };
-  function box(kind) { return document.querySelector('input[data-autonote="' + kind + '"]'); }
-  function boxes() { return KINDS.map(function (k) { var b = box(k); return b ? b.checked : null; }); }
+  // Since 4 Nov 2026 every kind has a Waterfall box and a Month box (AUTO-NOTES-PER-VIEW-PLAN.md, R1(a)). This leg
+  // is about switching a KIND off and on, so a "click" is both boxes (two undo steps), and a kind reads true or false
+  // only while its two boxes agree ('split' otherwise). The per-view cases are autonoteview's.
+  function box(kind, view) { return document.querySelector('input[data-autonote="' + kind + '"][data-view="' + (view || 'sheet') + '"]'); }
+  function kindState(k) {
+    var s = box(k, 'sheet'), m = box(k, 'month');
+    if (!s || !m) return null;
+    return s.checked === m.checked ? s.checked : 'split';
+  }
+  function boxes() { return KINDS.map(kindState); }
   // ⛔ HIT-TESTED: the element on top at the box's centre must be the box, and THAT element gets the click.
-  async function clickBox(kind) {
+  async function clickOne(kind, view) {
     // The card lives in the Settings window's Preferences tab (its Calendar tab, merged into Preferences by
     // the owner on 20 Oct 2026; the sidebar's Settings tab before ruling 12): open it there so the box is
     // laid out and on top.
     await T.openSettings('prefs');
     await T.sleep(150);
-    var b = box(kind);
-    if (!b) throw new Error('no Automatic notes box for ' + kind);
+    var b = box(kind, view);
+    if (!b) throw new Error('no Automatic notes ' + view + ' box for ' + kind);
     b.scrollIntoView({ block: 'center' });
     await T.sleep(150);
     var r = b.getBoundingClientRect(), hit = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
-    if (hit !== b) throw new Error('the ' + kind + ' box is not on top at its centre (got ' + (hit && (hit.className || hit.tagName)) + ')');
+    if (hit !== b) throw new Error('the ' + kind + ' ' + view + ' box is not on top at its centre (got ' + (hit && (hit.className || hit.tagName)) + ')');
     hit.click();
     await settle();
   }
-  async function pdfRuns(u8) {
-    var s = '', runs = [];
-    for (var i = 0; i < u8.length; i += 8192) s += String.fromCharCode.apply(null, u8.subarray(i, i + 8192));
-    var re = /stream\r?\n/g, m;
-    while ((m = re.exec(s))) {
-      var st = m.index + m[0].length, en = s.indexOf('endstream', st);
-      if (en < 0) continue;
-      while (en > st && (u8[en - 1] === 10 || u8[en - 1] === 13)) en--;   // DecompressionStream rejects the EOL
-      try {
-        var ds = new Blob([u8.subarray(st, en)]).stream().pipeThrough(new DecompressionStream('deflate'));
-        var t = await new Response(ds).text(), tj = /\(((?:\\.|[^\\)])*)\) Tj/g, x;
-        while ((x = tj.exec(t))) runs.push(x[1].replace(/\\(.)/g, '$1'));
-      } catch (e) { /* not a Flate stream */ }
-    }
-    return runs;
+  async function clickBox(kind, view) {
+    if (view) return clickOne(kind, view);
+    await clickOne(kind, 'sheet');
+    await clickOne(kind, 'month');
   }
+  // Every "(text) Tj" run in the PDF's Flate streams, each cut at its own /Length (T.pdfRuns, lib.js: never by
+  // trimming the EOL, which truncated a stream whose data ended in 0x0A / 0x0D and read as no text at all).
+  async function pdfRuns(u8) { return T.pdfRuns(u8); }
   function has(list, re) { return list.some(function (x) { return re.test(x); }); }
   // The month PDF's runs for May 2027, through its real Save dialog (the direct writer).
   // ⚠️ The writer WRAPS a note into short runs in a day cell ("Start Principal", "Principal Photography"), so
@@ -168,19 +170,21 @@ window.addEventListener('load', function () { (async function () {
       var card = document.querySelector('.autonote-list'), sec = card && card.closest('section.card');
       // Since 27 Oct 2026 the card has one row per phase (its name, then a start box and an end box, autonotephases),
       // so each of these kinds' label is its row's name plus its box's word.
+      // Since 4 Nov 2026 a phase is ONE row again (owner's pick B): its name, then Start | End under Waterfall and under
+      // Month. The note's word is no longer printed; it is its box's data-autonote-word (and tooltip).
       var labels = KINDS.map(function (k) {
-        var l = box(k) && box(k).closest('label'), n = l && l.previousElementSibling;
-        while (n && !n.classList.contains('autonote-name')) n = n.previousElementSibling;
-        return txt(n) + ' ' + txt(l);
+        var b = box(k), row = b && b.closest('.autonote-row');
+        return txt(row && row.querySelector('.autonote-name')) + ' ' + (b ? b.getAttribute('data-autonote-word') : '');
       });
+      var heads = Array.from(card ? card.querySelectorAll('.autonote-hd') : []).map(txt);
       // The FORM CONTROLS collectFieldValues() would sweep. (The InfoHint's button carries a Mantine id; it is no
       // form control, as on every card.)
       var ids = sec ? Array.from(sec.querySelectorAll('input[id], select[id], textarea[id]')).map(function (e) { return e.id; }) : ['(no card)'];
-      kase('A1', 'the card: in the Settings window\'s Preferences tab, "Automatic notes", one ticked box per kind, and NO id on any control in it',
+      kase('A1', 'the card: in the Settings window\'s Preferences tab, "Automatic notes", a Waterfall and a Month box per kind, both ticked, and NO id on any control in it',
            !!sec && T.settingsTabOf(sec) === 'prefs' && /Automatic notes/.test(txt(sec.querySelector('h2'))) &&
-           same(labels, ['Writer’s Room Opens', 'Production Starts', 'Production Wraps']) &&
+           same(labels, ['Writer’s Room Opens', 'Production Starts', 'Production Wraps']) && same(heads, ['', 'Waterfall', 'Month']) &&
            same(boxes(), [true, true, true]) && ids.length === 0 && !sec.closest('.prefs-card'),
-           { labels: labels, boxes: boxes(), ids: ids });
+           { labels: labels, heads: heads, boxes: boxes(), ids: ids });
     });
 
     await step('A2', async function () {
@@ -194,8 +198,8 @@ window.addEventListener('load', function () { (async function () {
       await clickBox('writersRoomOpens');
       await clickBox('principalWrap');
       var n = notes();
-      kase('A3', 'all three off: Wraps\'s week is empty, and the user\'s EDITED Writer\'s Room note and their own note are untouched',
-           same(n, { '2027-01-04': EDITED, '2027-03-01': 'Table read', '2027-05-03': '', '2027-05-24': '' }) && same(boxes(), [false, false, false]),
+      kase('A3', 'all three off: Wraps\'s week is empty, the user\'s EDITED Writer\'s Room note keeps only their line (D1 (a)), and their own note is untouched',
+           same(n, { '2027-01-04': 'Pitch day', '2027-03-01': 'Table read', '2027-05-03': '', '2027-05-24': '' }) && same(boxes(), [false, false, false]),
            { notes: n, boxes: boxes() });
     });
 
@@ -210,8 +214,8 @@ window.addEventListener('load', function () { (async function () {
         var v = c.value; if (v && typeof v === 'object' && v.richText) v = v.richText.map(function (r) { return r.text; }).join('');
         if (typeof v === 'string') cells.push(v);
       }); }); });
-      kase('A4', 'Excel: no Start or Wraps note; the user\'s two notes are there as typed',
-           !has(cells, NOTE_RE) && has(cells, /^Table read$/) && has(cells, /^Writer's Room Opens 1\/4\/27\nPitch day$/),
+      kase('A4', 'Excel: no Start or Wraps note; the user\'s two lines are there, and not the switched-off Writer\'s Room line',
+           !has(cells, NOTE_RE) && has(cells, /^Table read$/) && has(cells, /^Pitch day$/) && !has(cells, /Writer's Room Opens/),
            { notes: cells.filter(function (c) { return /Table read|Pitch day|Principal/.test(c); }) });
     });
 
@@ -241,14 +245,16 @@ window.addEventListener('load', function () { (async function () {
 
     await step('A8', async function () {
       // ⚠️ From a clean step: until 22 Oct 2026 the view switches above were undo steps of their own.
-      await clickBox('principalWrap');                 // on
-      await clickBox('principalWrap');                 // off: the step under test
+      // One box, so one step (since 4 Nov 2026 a kind has two): Wraps' Waterfall box, on then off.
+      await clickBox('principalWrap', 'sheet');        // on
+      await clickBox('principalWrap', 'sheet');        // off: the step under test
       $('undo-btn').click(); await settle();
       var undone = { boxes: boxes(), wrap: note('2027-05-24') };
       $('redo-btn').click(); await settle();
       var redone = { boxes: boxes(), wrap: note('2027-05-24') };
-      kase('A8', 'ONE undo puts Wraps back (box ticked, its note in its week); redo takes it out again',
-           same(undone, { boxes: [false, false, true], wrap: WRAP }) && same(redone, { boxes: [false, false, false], wrap: '' }),
+      kase('A8', 'ONE undo puts Wraps back in the waterfall (its Waterfall box ticked, its note in its week); redo takes it out again',
+           same(undone, { boxes: [false, false, 'split'], wrap: WRAP }) &&
+           same(redone, { boxes: [false, false, false], wrap: '' }),
            { undone: undone, redone: redone });
     });
 
@@ -256,9 +262,10 @@ window.addEventListener('load', function () { (async function () {
     await step('A9', async function () {
       saveC = await save();
       var s = JSON.parse(saveC), a = JSON.parse(saveA);
-      kase('A9', 'Save writes autoNotesOff with the three kinds; fields.byId holds the SAME ids, and userNotes is untouched',
+      kase('A9', 'Save writes autoNotesOff with the three kinds; fields.byId holds the SAME ids, and userNotes differs only by the switched-off line (D1 (a))',
            same(sorted(s.autoNotesOff), { principalStart: true, principalWrap: true, writersRoomOpens: true }) &&
-           same(idSet(saveC), idSet(saveA)) && same(s.userNotes, a.userNotes),
+           same(idSet(saveC), idSet(saveA)) &&
+           same(s.userNotes, Object.assign({}, a.userNotes, { '2027-01-04': Object.assign({}, a.userNotes['2027-01-04'], { text: 'Pitch day' }) })),
            { key: s.autoNotesOff, ids: idSet(saveC).length, idsBefore: idSet(saveA).length });
     });
 
@@ -285,7 +292,7 @@ window.addEventListener('load', function () { (async function () {
       await load(saveA);
       var m5 = { boxes: boxes(), notes: notes() };
       kase('A12', 'Load round trip: the file with kinds off opens with them off; the same calendar with no key, loaded after it, opens with every kind ON (the M-5 trap)',
-           same(rt.boxes, [false, false, false]) && same(rt.notes, { '2027-01-04': EDITED, '2027-03-01': 'Table read', '2027-05-03': '', '2027-05-24': '' }) &&
+           same(rt.boxes, [false, false, false]) && same(rt.notes, { '2027-01-04': 'Pitch day', '2027-03-01': 'Table read', '2027-05-03': '', '2027-05-24': '' }) &&
            same(m5.boxes, [true, true, true]) && same(m5.notes, ALL_ON), { roundTrip: rt, m5: m5 });
     });
 

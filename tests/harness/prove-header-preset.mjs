@@ -52,7 +52,7 @@ const idsBody = slice(
   'the id lists and DEFAULT_HEADER_TEMPLATE');
 const mvIdsBody = slice(
   "const MV_HDR_IDS = ['tleft','title','subtitle','today'];",
-  "subtitle: '', today: '{today:dotpad}',",
+  "subtitle: '', today: '{lastEdited:dotpad}',",
   '\n  };',
   'the month id list and DEFAULT_MV_TEMPLATE');
 // The section helpers + the file reader/writer + the store normaliser.

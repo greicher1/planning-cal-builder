@@ -157,7 +157,7 @@ window.addEventListener('load', function () { (async function () {
            rs.length === 4 && rs.every(function (r) { return r.querySelectorAll('.hiatus-swatch').length === 1; }) &&
            order.every(function (o) { return eq(o, ['hiatus-collapse-btn', 'swatch', 'hiatus-head-text', 'icon-btn']); }) &&
            geo.every(function (g) { return eq(g, want); }) &&
-           rs.every(function (r) { var s = squareOf(r); return !s.id && s.title === 'Change colour' && s.classList.contains('clickable'); }) &&
+           rs.every(function (r) { var s = squareOf(r); return !s.id && s.title === 'Change color' && s.classList.contains('clickable'); }) &&
            squares().every(function (c) { return c === RED; }) && heads().every(function (c) { return c === heads()[0]; }) &&
            Object.keys(colours(saveA)).length === 0,
            { order: order[0], geo: geo, phase: want, squares: squares(), heads: heads() });

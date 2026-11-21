@@ -48,6 +48,11 @@ export const chrome = {
   // the SAME data-id / data-remove / data-action attributes the engine's delegated click handler
   // matches on, so that handler ports across untouched.
   fileMenu: noop,
+  // { items } — items are [{id, name}]: the recent calendars an empty, Untitled start lists in the preview panel
+  // (StartRecents.jsx, audit 2026-11 AUD2-030). WHEN they show is the engine's (reflectStartRecents sets the host's
+  // `hidden`); this is only what the rows say. Each row carries data-id, and Load… data-action="open", so a click is
+  // the file menu's own delegated handler.
+  startRecents: noop,
   // (which, { visible, text, fileName }) — which is 'legacy' | 'update'.
   notice: noop,
   // { undo, redo } booleans — TRUE means disabled, matching `u.disabled = !undoStack.length`.
@@ -94,8 +99,14 @@ export const chrome = {
   // as a string (a textContent write would destroy a Mantine Button's inner spans).
   headerModeBtn: noop,
   // { view: 'sheet'|'month' } — the app header's notes reset (ruling 4, and the owner's measured
-  // fallback that put it where Reset All was): "Reset Notes" / "Reset Month Notes".
+  // fallback that put it where Reset All was): "Reset Waterfall Notes" / "Reset Month Notes".
   notesResetBtn: noop,
+  // { view: 'sheet'|'month', any } -- the app header's Reset Columns (owner, 6 Nov 2026): Waterfall view only,
+  // greyed while `any` is false (every column already on the automatic layout).
+  colsResetBtn: noop,
+  // { visible, on } -- the preview toolbar's Fill Space toggle (owner, 9 Nov 2026), left of Side Boxes: the Waterfall of
+  // a stamped calendar only; `on` = phases fill the empty columns beside them (today's layout), off = each keeps its lane.
+  fillSpaceBtn: noop,
   // { value: 'week'|'episode'|'block', blockAvailable } — Settings ▸ Preferences ▸ Month view ▸ "Label Production by"
   // (MONTH-PILL-LABEL-PLAN.md §5.1). `value` is the label the month bars are DRAWN in, so with nothing
   // chosen it is what Schedule by gives; the engine's mvProdLabel is the only store. Bridged because a
@@ -105,7 +116,8 @@ export const chrome = {
   // radio fires no `change` in Chrome (React restores it inside the click; see setMvProdLabel).
   mvProdLabel: noop,
   // ("mvBarSize", the Phase bar size SegmentedControl's push, was removed 2 Nov 2026: the control is a dropdown now,
-  // #pref-mv-barsize, which the engine writes directly, as it writes #wf-paper. MONTH-NOTE-SIZE-PLAN.md §1a.)
+  // #pref-mv-barsize, which the engine writes directly, as it writes #wf-paper. MONTH-NOTE-SIZE-PLAN.md §1a. Since
+  // 18 Nov 2026 it is #pref-mv-size, one Size for bars and notes, written the same way by reflectMvSizeSelects.)
   // { open?, tab? } — the Settings window (owner ruling 12, src/chrome/SettingsWindow.jsx). The
   // engine only ever CLOSES it, when it sends the user to a sidebar tab the window would cover
   // (revealSidebarTab). Whether it is open is session UI: never in captureSnapshot(), never an undo
@@ -139,6 +151,10 @@ export const chrome = {
   // ({ scenarios: [{ id, name, values }], currentId, rows }) — open the Compare window (CompareDialog.jsx).
   // Its exports go back as 'sptcal-compare-export' {kind: 'xlsx' | 'pdf', model}; the engine writes the files.
   compareDialog: noop,
+  // ({ state, since, lines }) — open File menu ▸ "Changes since last save…" (ChangesDialog.jsx, audit AUD2-103). state is
+  // 'ok' | 'none' | 'newtab' | 'failed'; `lines` are the changes in words, `since` the line under the title. Nothing
+  // goes back: Copy writes the clipboard itself.
+  changesDialog: noop,
   // ({ paper, orientation, gridlines, papers, fits }) → Promise<{ paper, orientation, gridlines } | null> —
   // the Export PDF dialog (src/chrome/ExportPdfDialog.jsx, PAPER-SIZE-PLAN.md §5a). The default, for a
   // chrome that failed to mount, EXPORTS WITH WHAT IS ALREADY CHOSEN rather than cancelling: the PDF comes
@@ -148,6 +164,15 @@ export const chrome = {
     orientation: opts.orientation || ((opts.fits || {})[opts.paper] || {}).recommended || '',
     gridlines: opts.gridlines,
   }),
+  // ({ months: [{ value: 'YYYY-MM', label, short }], current: 'YYYY-MM' | '' }) → Promise<{ all: true } |
+  // { from, to } | null> — the month view's Export PDF dialog (src/chrome/MonthPdfDialog.jsx; audit AUD2-026). The
+  // default, for a chrome that failed to mount, writes EVERY month, exactly as before the dialog existed.
+  monthPdfDialog: () => Promise.resolve({ all: true }),
+  // () — opens the What's New window on its latest entries (src/chrome/WhatsNewDialog.jsx), from the version label.
+  whatsNew: noop,
+  // () → Promise, settled when this launch's What's New is closed, or at once when there is none. The engine's backup
+  // recovery question waits on it (owner, 19 Nov 2026: What's New comes first).
+  whatsNewDone: () => Promise.resolve(),
 }
 
 export function installChrome(impl) {

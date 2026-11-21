@@ -1,6 +1,6 @@
 // monthmap -- the phase map above the month view (MONTH-RAIL-PLAN.md). Part A, plan step 2: the engine's half.
 // Part B, plan step 3: the map MonthMap.jsx draws. Part C, §18 (owner, 28 Oct 2026, option B): the month stepper,
-// Today and ‹ October 2026 › on the style bar's line, which replaced the map's own two small arrows.
+// ‹ October 2026 ›, which replaced the map's own two small arrows; in the toolbar's slot since 11 Nov 2026, without Today.
 //
 //   HARNESS_PAGE=/dist/index.html HARNESS_STATE=mvnotes ./run.sh monthmap 120
 //
@@ -19,7 +19,7 @@
 //   A4  paging is session UI: the undo button's state and the save status are what they were
 //   A5  in the waterfall the attributes do nothing: the grid is untouched and the view stays the waterfall
 //   PART B, plan step 3: the map itself (MonthMap.jsx), held to the month view
-//   B0  in the month view the map is a line of the toolbar row, directly above the style bar's line (.style-row)
+//   B0  in the month view the map is a line of the toolbar row, directly above the stepper's line (.style-row)
 //   B1  its months are the frozen arrows' months, the dimmed ones its ends, and its highlight follows the arrows
 //   B2  every phase the month view draws has a bar spanning its drawn days (and past them only over weekends and the
 //       hiatus or off-week days the month view draws in its place), and a bar goes to its phase's first month
@@ -28,12 +28,15 @@
 //   B5  no taller than the slimmer rows allow
 //   B6  this month's dot, and no id or form field anywhere in it
 //   PART C, §18: the month stepper (MonthStepper in MonthMap.jsx)
-//   C0  it sits on the style bar's line, at its right end, after the style bar and level with it
+//   C0  it sits in the toolbar's slot (.tb-slots), exactly where Fill Gaps and Side Boxes sit in the waterfall, level with
+//       Shift; its old line (.style-row) is empty. The text style bar is on the first line after Build Around, or (fold
+//       step 4, a narrow window; useToolbarFit) behind the Text button. It had a line of its own until 16 Nov 2026
 //   C1  its label is always the month band's month: stepping › through every month, and after every map click
 //   C2  its ‹ and › are real clicks one month each way, disabled at the two ends
-//   C3  Today goes to this month and is then disabled; outside the calendar it is disabled and says so
+//   C3  there is no Today button (owner, 11 Nov 2026); the phase map's month still goes straight to this month
 //   C4  no id or form field anywhere in it
-//   B7  in the waterfall the map and the stepper are gone, and the style bar fills its line right under the tools
+//   B7  in the waterfall the map and the stepper are gone, the stepper's line takes no room, and the style bar is after
+//       Build Around on the first line, or (fold step 4) behind the Text button
 //   E0  no console errors over every render above, in both views
 window.__T.memoryIDB();
 window.addEventListener('load', function () { (async function () {
@@ -157,7 +160,7 @@ window.addEventListener('load', function () { (async function () {
     // ---- B0: where it sits ----
     var kids = Array.from(document.querySelector('.view-toggle-row').children).map(function (e) { return e.className; });
     var mi = kids.indexOf('month-map'), si = kids.indexOf('style-row');
-    add('B0', "in the month view the map is a line of the toolbar row, directly above the style bar's line",
+    add('B0', "in the month view the map is a line of the toolbar row, directly above the stepper's line",
         mi >= 0 && si === mi + 1 && document.querySelector('.view-toggle-row').nextElementSibling === document.getElementById('table-wrap'),
         kids, 'view-toggle | preview-tools | month-map | style-row, then #table-wrap');
 
@@ -283,19 +286,27 @@ window.addEventListener('load', function () { (async function () {
         {dots: dots, idsOrFields: ids}, {dots: keys.indexOf(thisMonth) >= 0 ? [thisMonth] : [], idsOrFields: 0});
 
     // ================= PART C, §18: the month stepper =================
-    var stp = function () { return document.querySelector('.view-toggle-row > .style-row > .month-step'); };
+    var stp = function () { return document.querySelector('.view-toggle-row .tb-slots > .month-step'); };
     var lbl = function () { var e = stp() && stp().querySelector('.ms-label'); return e ? e.textContent.trim() : ''; };
     var arrow = function (n) { return stp().querySelector('.ms-arrow[data-mvstep="' + n + '"]'); };
     // ---- C0: where it sits ----
-    var rowKids = Array.from(document.querySelector('.view-toggle-row > .style-row').children).map(function (e) { return e.className; });
-    var rowR = document.querySelector('.style-row').getBoundingClientRect(), hostR = document.querySelector('.style-bar-host').getBoundingClientRect();
-    var stR = stp() ? stp().getBoundingClientRect() : null;
-    add('C0', "the stepper sits on the style bar's line, at its right end, after the style bar and level with it",
-        !!stR && JSON.stringify(rowKids) === JSON.stringify(['style-bar-host', 'month-step']) && Math.abs(stR.right - rowR.right) < 1 &&
-          Math.abs(stR.top - hostR.top) < 1 && Math.abs(stR.height - hostR.height) < 1 && hostR.right <= stR.left,
-        {kids: rowKids, step: stR && [Math.round(stR.left), Math.round(stR.top), Math.round(stR.right), Math.round(stR.height)],
-         host: [Math.round(hostR.left), Math.round(hostR.top), Math.round(hostR.right), Math.round(hostR.height)], rowRight: Math.round(rowR.right)},
-        'style-bar-host | month-step; the stepper ends at the row\'s right edge, on the style bar\'s top, at its height');
+    // Since 11 Nov 2026 the stepper is in the toolbar's slot, the one grid cell Fill Gaps and Side Boxes share with it (they
+    // keep their place here, hidden by visibility), so it covers exactly their span and nothing on the line moves.
+    // Folded behind the Text button (fold step 4, useToolbarFit; until 16 Nov 2026 it took a line of its own instead).
+    var ownLine = document.querySelector('.preview-panel').classList.contains('tbf4');
+    var R0 = function (el) { return el.getBoundingClientRect(); };
+    var cy = function (r) { return r.top + r.height / 2; };
+    var stR = stp() ? R0(stp()) : null, fR = R0(document.getElementById('tb-fill-space-btn')), sR = R0(document.getElementById('tb-side-boxes-btn'));
+    var shR = R0(document.querySelector('.shift-group')), barR = R0(document.querySelector('.style-bar')), mapR = R0(map());
+    var lineEmpty = document.querySelector('.view-toggle-row > .style-row').children.length === 0;
+    add('C0', "the stepper sits in the toolbar's slot, over Fill Gaps' and Side Boxes' span, level with Shift; its old line is empty; the style bar after Build Around (or on its own line under the first)",
+        !!stR && lineEmpty && Math.abs(stR.left - fR.left) < 1 && Math.abs(stR.right - sR.right) < 1 && Math.abs(cy(stR) - cy(shR)) < 1 &&
+          getComputedStyle(document.getElementById('tb-side-boxes-btn')).visibility === 'hidden' &&
+          (ownLine ? barR.width === 0 && cy(R0(document.querySelector('.tb-text-btn'))) - cy(shR) < 1
+                   : Math.abs(cy(barR) - cy(shR)) < 1 && barR.left > R0(document.getElementById('pop-solve-btn')).right),
+        {ownLine: ownLine, lineEmpty: lineEmpty, step: stR && [Math.round(stR.left), Math.round(stR.right), Math.round(cy(stR))],
+         slot: [Math.round(fR.left), Math.round(sR.right)], shiftMid: Math.round(cy(shR)), bar: [Math.round(barR.left), Math.round(barR.top)]},
+        'the stepper over the slot, level with Shift; .style-row empty');
     // ---- C1: the label is the month band's month, always ----
     var off = [];
     clickMap('.mm-month[data-mvgo="' + keys[0] + '"]');
@@ -322,23 +333,12 @@ window.addEventListener('load', function () { (async function () {
         s1 === labelOf(step(mid, 1)) && s2 === labelOf(mid) && firstOff && firstNextOn && lastOff && lastPrevOn,
         {next: s1, prev: s2, prevOffAtStart: firstOff, nextOffAtEnd: lastOff},
         {next: labelOf(step(mid, 1)), prev: labelOf(mid), prevOffAtStart: true, nextOffAtEnd: true});
-    // ---- C3: Today ----
-    var tb = function () { return stp().querySelector('.ms-today'); };
-    var inCal = keys.indexOf(thisMonth) >= 0, c3;
-    if(inCal){
-      var away = thisMonth === keys[0] ? keys[keys.length - 1] : keys[0];
-      clickMap('.mm-month[data-mvgo="' + away + '"]'); await frame();
-      var onAway = !tb().disabled;
-      tb().click(); await frame();
-      c3 = {inCalendar: true, enabledAway: onAway, went: shown(), disabledThere: tb().disabled, title: tb().title};
-      add('C3', 'Today goes to this month and is then disabled', onAway && shown() === labelOf(thisMonth) && tb().disabled && lbl() === shown(),
-          c3, {inCalendar: true, enabledAway: true, went: labelOf(thisMonth), disabledThere: true, title: 'This month is on screen'});
-    } else {
-      c3 = {inCalendar: false, disabled: tb().disabled, title: tb().title};
-      add('C3', 'with this month outside the calendar, Today is disabled and says so',
-          tb().disabled && tb().title === 'This month is outside the calendar', c3,
-          {inCalendar: false, disabled: true, title: 'This month is outside the calendar'});
-    }
+    // ---- C3: no Today (owner, 11 Nov 2026), and the map still goes straight to this month ----
+    var noToday = !stp().querySelector('.ms-today') && !stp().querySelector('[data-mvgo]');
+    var inCal = keys.indexOf(thisMonth) >= 0, wentHome = true;
+    if(inCal){ clickMap('.mm-month[data-mvgo="' + thisMonth + '"]'); await frame(); wentHome = shown() === labelOf(thisMonth) && lbl() === shown(); }
+    add('C3', 'the stepper has no Today button; the phase map\'s month goes straight to this month', noToday && wentHome,
+        {noToday: noToday, inCalendar: inCal, label: lbl()}, {noToday: true});
     // ---- C4: no ids ----
     var stIds = stp().querySelectorAll('[id], input, select, textarea').length;
     add('C4', 'nothing in the stepper has an id or is a form field', stIds === 0, stIds, 0);
@@ -349,11 +349,17 @@ window.addEventListener('load', function () { (async function () {
     await frame();
     // ---- B7: gone in the waterfall ----
     var wfKids = Array.from(document.querySelector('.view-toggle-row').children).map(function (e) { return e.className; });
-    var wfRow = document.querySelector('.style-row').getBoundingClientRect(), wfHost = document.querySelector('.style-bar-host').getBoundingClientRect();
-    add('B7', 'in the waterfall the map and the stepper are gone, and the text style bar fills its line right under the tools, as before',
-        !document.querySelector('.month-map') && !document.querySelector('.month-step') && wfKids.indexOf('style-row') === wfKids.indexOf('preview-tools') + 1 &&
-          Math.abs(wfHost.width - wfRow.width) < 0.5 && Math.abs(wfHost.height - wfRow.height) < 0.5,
-        {kids: wfKids, hostW: Math.round(wfHost.width), rowW: Math.round(wfRow.width)}, 'view-toggle | preview-tools | style-row; the style bar as wide as its line');
+    var wfLine = document.querySelector('.style-row'), wfOwn = document.querySelector('.preview-panel').classList.contains('tbf4');
+    var wfBar = document.querySelector('.style-bar').getBoundingClientRect(), wfShift = document.querySelector('.shift-group').getBoundingClientRect();
+    var wfTools = document.querySelector('.preview-tools').getBoundingClientRect(), wfRowR = document.querySelector('.view-toggle-row').getBoundingClientRect();
+    var vmid = function (r) { return r.top + r.height / 2; };
+    add('B7', "in the waterfall the map and the stepper are gone, the stepper's empty line takes no room, and the style bar sits after Build Around (or on its own line under the tools)",
+        !document.querySelector('.month-map') && !document.querySelector('.month-step') && wfLine.children.length === 0 &&
+          getComputedStyle(wfLine).display === 'none' &&
+          (wfOwn ? wfBar.width === 0
+                 : Math.abs(vmid(wfBar) - vmid(wfShift)) < 1 && wfBar.left > document.getElementById('pop-solve-btn').getBoundingClientRect().right),
+        {kids: wfKids, ownLine: wfOwn, lineDisplay: getComputedStyle(wfLine).display, bar: [Math.round(wfBar.left), Math.round(wfBar.top), Math.round(wfBar.right)],
+         shift: [Math.round(wfShift.left), Math.round(wfShift.top)]}, 'style-row empty and display:none; the bar level with Shift, or a line of its own under the tools');
     await new Promise(function (r) { setTimeout(r, 50); });
     out.errors = (window.__ERR || []).filter(function (m) { return !/SPTCal: \d+ value\(s\) in this calendar were not in a form/.test(m); }).slice(0, 10);
     add('E0', 'no console errors over every render above, in both views', out.errors.length === 0, out.errors, []);

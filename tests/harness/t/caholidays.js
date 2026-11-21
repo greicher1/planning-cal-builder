@@ -58,8 +58,8 @@ window.addEventListener('load', function () { (async function () {
   function rows2026() {
     var o = {};
     [].slice.call(document.querySelectorAll('#holiday-vis-list .hv-row')).forEach(function (r) {
-      var en = r.querySelector('.hv-en');
-      var hid = en ? en.getAttribute('data-hid') : '';
+      // The row's own data-hid: a row with no Enable box (no date it could move) has none to read it from.
+      var hid = r.getAttribute('data-hid') || '';
       if (hid.slice(-5) !== '@2026' || hid.indexOf('-observed') !== -1) return;
       var tag = r.querySelector('.hv-src');
       o[hid] = { tag: tag ? txt(tag) : null, title: tag ? tag.getAttribute('title') : null, costs: !!r.querySelector('.hv-shoot') };

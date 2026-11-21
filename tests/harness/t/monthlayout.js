@@ -33,7 +33,9 @@
 //
 // CASES (each judged over every document)
 //   S0  the slice: the model and what it calls, found in src/legacy/app.js and evaluated
-//   F0  only the month export calls the model (since step 5), so no Inter block is decoded at boot: only an export
+//   F0  only the month export calls the model (since step 5) and, since 17 Nov 2026, the month page on screen (a
+//       month the PDF shrinks is drawn at the PDF's factor), so no Inter block is decoded while the waterfall is on
+//       screen: only an export or a month drawn
 //   F1  the REAL loader decodes font-inter-500 (atob + DecompressionStream) into a program the frozen
 //       ttfRead reads as PJIXRL+InterPDF-Medium, 2048 units/em; it is cached; a bad weight is refused
 //   F2  a line is measured as the PDF will set it: what pdfEscape writes "?" for measures as "?"
@@ -80,7 +82,11 @@ window.addEventListener('load', function () { (async function () {
     await T.appReady();
 
     // ---- S0: the slice -------------------------------------------------------------------------------
-    var src = await (await fetch('/src/legacy/app.js', {cache: 'no-store'})).text();
+    // ?src=<path> slices another copy of the source (HARNESS_QUERY=src=...), as monthemit and monthwriter do, so a
+    // mutant lives in a throwaway file and src/legacy/app.js is never edited to make one.
+    var srcPath = decodeURIComponent((location.search.match(/[?&]src=([^&]+)/) || [])[1] || '/src/legacy/app.js');
+    if(!/^\/[\w.\/-]+\.js$/.test(srcPath) || srcPath.indexOf('..') >= 0) throw new Error('a src= that is not a plain path: ' + srcPath);
+    var src = await (await fetch(srcPath, {cache: 'no-store'})).text();
     function slice(startMark, endMark, what){
       var from = src.indexOf(startMark), to = from < 0 ? -1 : src.indexOf(endMark, from);
       if(from < 0 || to < 0) throw new Error('could not locate ' + what + ' in src/legacy/app.js: re-anchor this leg');
@@ -130,7 +136,19 @@ window.addEventListener('load', function () { (async function () {
     var writerLen = wEnd < 0 ? mvlSrc.length : wEnd + writerEnd.length - at;
     var exportSrc = slice('  async function exportMonthPdfDirect(){', "      chrome.exportBtn({ busy: false, disabled: false });\n    }\n  }", 'exportMonthPdfDirect');
     var rest = src.slice(0, at) + src.slice(at + writerLen), eAt = rest.indexOf(exportSrc);
-    var outside = code(rest.slice(0, eAt) + rest.slice(eAt + exportSrc.length));
+    // ⭐ SINCE 17 NOV 2026 THE MODEL HAS A SECOND CALLER, the month page on screen ("Shrink like the PDF",
+    // MONTH-SHRINK-PLAN.md): to draw a month the PDF shrinks at the PDF's own factor, mvAskPdfFonts loads the four
+    // programs the first time a MONTH is drawn (never while the waterfall is on screen: it returns unless viewMode is
+    // 'month') and mvWriterFit models the month on screen exactly as the export does. That region (monthPageNumbers to
+    // the end of mvShrinkToFit, as monthemit and monthwriter cut it) is taken out of `outside` and held to EXACTLY the
+    // five model names it uses.
+    var mpEndMark = "\n    return false;\n  }";
+    var mpStart = src.indexOf('  function monthPageNumbers(tw){'), mpTail = mpStart < 0 ? -1 : src.indexOf('  function mvShrinkToFit(){', mpStart);
+    var mpEnd = mpTail < 0 ? -1 : src.indexOf(mpEndMark, mpTail);
+    var mpSrc = (mpStart >= 0 && mpEnd > mpStart) ? src.slice(mpStart, mpEnd + mpEndMark.length) : '';
+    var MONTH_PAGE = ['MVL_FONT_WEIGHTS', 'MVL_GEOMETRY', 'loadInterPdfFont', 'mvlMonthLayout', 'mvlTextWidth'];
+    var outside0 = rest.slice(0, eAt) + rest.slice(eAt + exportSrc.length);
+    var outside = code(mpSrc ? outside0.replace(mpSrc, '') : outside0);
     var NAMES = ['MVL_GEOMETRY', 'MVL_FONT_WEIGHTS', '_mvlFonts', 'loadInterPdfFont', 'mvlPdfChar', 'mvlTextWidth', 'mvlCleanText',
                  'mvlWrapText', 'mvlNoteLines', 'MVL_MONTH_NAMES', 'mvlDecls', 'mvlHeaderFmt', 'MVL_HALF_IMAGE', 'mvlHalfColumns',
                  'mvlParseItem', 'mvlParseMonth', 'mvlPackLanes', 'mvlMonthLayout', 'buildMonthLayout',
@@ -140,16 +158,21 @@ window.addEventListener('load', function () { (async function () {
     var has = function (n, t) { return new RegExp('\\b' + n + '\\b').test(t); };
     var used = NAMES.filter(function (n) { return has(n, outside); });
     var byExport = NAMES.filter(function (n) { return has(n, code(exportSrc)); }).sort();
+    var byMonthPage = NAMES.filter(function (n) { return has(n, code(mpSrc)); }).sort();
+    // The month page asks for the programs in the month view only: the one line that keeps a waterfall session from
+    // decoding them.
+    var monthOnly = /function mvAskPdfFonts\(\)\{\s*if\([^\n]*viewMode !== 'month'\) return;/.test(mpSrc);
     var defined = NAMES.filter(function (n) { return new RegExp('\\b(?:function|const|let) ' + n + '\\b').test(mvlSrc); });
     // And nothing runs at boot: buildMonthLayout appears twice in the whole file (its declaration and the export's
-    // call), and the loader four times (its declaration, buildMonthPdf's call, buildListPdf's -- the scenarios Compare
-    // PDF's entry point, 23 Oct 2026 -- and the export's). Mutant M9, which calls the loader from inside the section,
-    // makes a fifth.
+    // call), and the loader five times (its declaration, buildMonthPdf's call, buildListPdf's -- the scenarios Compare
+    // PDF's entry point, 23 Oct 2026 --, the export's and, since 17 Nov 2026, the month page's). Mutant M9, which calls
+    // the loader from inside the section, makes a sixth.
     var once = ['loadInterPdfFont(', 'buildMonthLayout('].map(function (s) { return code(src).split(s).length - 1; });
-    add('F0', 'only the month export calls the layout model, through its public part, and no Inter block is decoded at boot: only an export decodes one',
-        used.length === 0 && same(byExport, ['MVL_FONT_WEIGHTS', 'buildMonthLayout', 'loadInterPdfFont']) && defined.length === NAMES.length && once[0] === 4 && once[1] === 2,
-        {usedOutside: used, usedByExport: byExport, definedInSection: defined.length, entryPointOccurrences: once},
-        {usedOutside: [], usedByExport: ['MVL_FONT_WEIGHTS', 'buildMonthLayout', 'loadInterPdfFont'], definedInSection: NAMES.length, entryPointOccurrences: [4, 2]});
+    add('F0', 'only the month export and the month page on screen call the layout model, each through exactly the names listed for it, and no Inter block is decoded while the waterfall is on screen: an export decodes one, or the first month drawn',
+        used.length === 0 && same(byExport, ['MVL_FONT_WEIGHTS', 'buildMonthLayout', 'loadInterPdfFont']) && !!mpSrc && same(byMonthPage, MONTH_PAGE) && monthOnly &&
+          defined.length === NAMES.length && once[0] === 5 && once[1] === 2,
+        {usedOutside: used, usedByExport: byExport, usedByMonthPage: byMonthPage, monthViewOnly: monthOnly, definedInSection: defined.length, entryPointOccurrences: once},
+        {usedOutside: [], usedByExport: ['MVL_FONT_WEIGHTS', 'buildMonthLayout', 'loadInterPdfFont'], usedByMonthPage: MONTH_PAGE, monthViewOnly: true, definedInSection: NAMES.length, entryPointOccurrences: [5, 2]});
 
     // ---- F1: the real loader ------------------------------------------------------------------------------
     var p1 = F.loadInterPdfFont('500'), p2 = F.loadInterPdfFont(500);

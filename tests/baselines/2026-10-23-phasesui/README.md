@@ -32,3 +32,9 @@ build that has not changed the phase cards' markup since, so it stays a "before"
 the empty Location, so their re-save carries `union-place` `us-general` and `show-location` `Atlanta`. Those eight
 values were changed in place by a script that asserted each one before writing it (`diff` against the old file: eight
 lines, nothing else). Not a re-cut: every other value, and the other 42 fixtures, are the 24 Oct cut unchanged.
+
+⚠️ **Not re-cut, 20 Nov 2026: Show info's field order (`368f9e2`, owner, 19 Nov 2026).** That commit moved
+`#num-blocks` / `#days-per-block` before `#num-episodes` / `#shoot-days-per-ep` in the markup, so every fixture's re-save
+writes those four keys in that order. Checked on all 46 fixtures against a record from that build: the four keys' order
+is the only difference, every value identical. So `before.json` is left as it is and P1 compares through
+`T.showInfoOrderEra()` (t/lib.js), which puts those four in today's order and nothing else.

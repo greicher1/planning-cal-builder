@@ -153,10 +153,14 @@ try {
           const b = new Uint8Array(await new Blob(parts).arrayBuffer()), t = latin1(b);
           window.__mpdf = { name: o && o.suggestedName, size: b.length, head: t.slice(0, 8), pages: (t.match(/\\/Type \\/Page \\/Parent/g) || []).length }; } }; } });
       document.getElementById('export-btn').click(); return 1; })()`);
+  // Since 13 Nov 2026 (audit AUD2-026) the month view's Export PDF asks which months first (MonthPdfDialog.jsx): answer it
+  // at its default, All, as for the waterfall's dialog above. (A calendar with one month to print writes with no dialog.)
+  await until(`!!document.querySelector('.month-pdf-dlg [data-pdfdlg="export"]') || !!window.__mpdf`, 'the month Export PDF dialog', 10000).catch(() => {});
+  await ev(`(function(){ var b = document.querySelector('.month-pdf-dlg [data-pdfdlg="export"]'); if(b) b.click(); return 1; })()`);
   await until(`!!window.__mpdf`, 'the month PDF written', 20000).catch(() => {});
   const m2 = await ev(`({ pdf: window.__mpdf, prints: window.__mprints })`);
   kase('M2', 'the month PDF is written by the direct writer, through the Save dialog, with no print',
-       !!m2 && !!m2.pdf && m2.pdf.head === '%PDF-1.4' && m2.pdf.pages > 0 && /Month Calendar\.pdf$/.test(m2.pdf.name || '') && m2.prints === 0, { m2 });
+       !!m2 && !!m2.pdf && m2.pdf.head === '%PDF-1.4' && m2.pdf.pages > 0 && /Month Calendar .*- a\.o\. \d{1,2}\.\d{1,2}\.\d{2}\.pdf$/.test(m2.pdf.name || '') && m2.prints === 0, { m2 });
 
   // M3: the print path, the rollback (MV_PDF_MODE), reached here by its localhost-only switch, must still run under the
   // policy too: the month document is prepared and printed.

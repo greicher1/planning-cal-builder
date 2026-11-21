@@ -1,0 +1,480 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Double-up Days UI</title>
+<!-- MOCKUP, not the app. Every UI element of double-up days, before building (tracker card `double-up-days`).
+     Owner, 17 Nov 2026: "mock all these UI elements up before building...could we consider giving double up/tandem
+     days their own phase section similar to how we did for block/episode prep", and "allow me to change the name per
+     episode/block so one could be tandem and one could be double up and one could be something else".
+     Rulings already given (17 Nov 2026, pickers): frozen month-view edit approved; entry is a − / + box; the last
+     episode or block has NO double-up by default but can be given one, and then it sits beside its own last days;
+     a moved double-up moves with the shoot; a drag moves the whole pill; colour is a darker shade of Production's;
+     not in the waterfall; prints in the month PDF; a half day and a double-up can go together (the double-up starts on
+     the next full day); flush join; drops only on another episode's days or after wrap.
+     What this page shows:
+       1. A DOUBLE-UPS CARD in the Phases tab, like Episodic Prep's card: below Production, month view only, its name
+          is the default pill name, its default count is a − / +, and its list has every episode (or block) with its
+          own name box and − / +.
+       2. The other place for the defaults, Show info (the owner's earlier picks), as a switch at the top.
+       3. The month view: pills joined to the end of the shoot pill, each episode's own name; right-click a pill for
+          Rename…, Put back, Remove; double-click opens the Double-ups card at that episode's row; drag rules as ruled.
+     Made-up show and dates (starts on a Wednesday). Whole main-unit days only here. -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --gray-0:#F8F9FA; --gray-1:#F1F3F5; --gray-2:#E9ECEF; --gray-3:#DEE2E6; --gray-4:#CED4DA; --gray-5:#ADB5BD;
+  --gray-6:#868E96; --gray-7:#495057; --gray-9:#1E1D1B;
+  --navy-6:#2C3E50; --navy-0:#EAEEF2; --page:#ECEBE6; --red:#E03131; --red-1:#FFE3E3;
+  --prod:#E2F0D9; --prod-ink:#375623; --prod-line:#A9C99A; --prep:#FCE4D6; --prep-ink:#843C0C;
+  --dub:#B7D9A3; --dub-ink:#274016; --dub-line:#8DBB74; --warn:#854F0B;
+}
+*{ box-sizing:border-box; }
+body{ margin:0; font-family:'Inter',system-ui,sans-serif; color:var(--gray-9); background:var(--page); line-height:1.45; }
+button, input, select{ font:inherit; color:inherit; }
+.page{ max-width:1280px; margin:0 auto; padding:18px 14px 60px; }
+h1{ font-size:21px; margin:0 0 6px; letter-spacing:-.01em; }
+.lede{ margin:0 0 12px; color:var(--gray-7); font-size:13.5px; max-width:900px; }
+.topbar{ display:flex; flex-wrap:wrap; gap:8px 18px; align-items:center; margin:0 0 14px; padding:8px 12px; background:#fff;
+         border:1px solid var(--gray-3); border-radius:10px; }
+.topbar .lbl{ font-size:12px; color:var(--gray-6); }
+.seg{ display:inline-flex; background:var(--gray-1); border-radius:8px; padding:3px; gap:2px; }
+.seg button{ border:0; background:none; padding:4px 11px; border-radius:6px; font-size:12.5px; cursor:pointer; color:var(--gray-7); font-weight:500; white-space:nowrap; }
+.seg button[aria-pressed="true"]{ background:#fff; color:var(--gray-9); box-shadow:0 1px 3px rgba(0,0,0,.12); }
+.topbar .seg button[aria-pressed="true"]{ background:var(--navy-6); color:#fff; box-shadow:none; }
+
+.layout{ display:grid; grid-template-columns:320px minmax(0,1fr); gap:18px; align-items:start; }
+@media (max-width:900px){ .layout{ grid-template-columns:minmax(0,1fr); } }
+
+/* ---------- The sidebar ---------- */
+.side{ background:#F7F6F2; border:1px solid var(--gray-3); border-radius:12px; overflow:hidden; }
+.tabs{ display:flex; border-bottom:1px solid var(--gray-3); background:#fff; }
+.tabs button{ flex:1; border:0; background:none; padding:9px 0; font-size:13px; font-weight:600; color:var(--gray-6); cursor:pointer; border-bottom:2px solid transparent; }
+.tabs button[aria-pressed="true"]{ color:var(--gray-9); border-bottom-color:var(--navy-6); }
+.pane{ padding:12px; display:flex; flex-direction:column; gap:10px; }
+.fld label, .fld .lbl{ display:block; font-size:12.5px; font-weight:500; margin:0 0 4px; }
+.fld .desc{ font-size:11px; color:var(--gray-6); margin:3px 0 0; line-height:1.35; }
+.inp{ width:100%; height:32px; border:1px solid var(--gray-4); border-radius:8px; padding:0 10px; font-size:13.5px; background:#fff; outline:none; }
+.inp:focus{ border-color:var(--navy-6); }
+.inp.ro{ background:var(--gray-0); color:var(--gray-7); }
+.new{ position:relative; }
+.new::before{ content:'New'; position:absolute; right:0; top:0; font-size:9.5px; font-weight:700; letter-spacing:.04em; text-transform:uppercase;
+              color:#8A5A00; background:#FFF3D6; border-radius:999px; padding:0 6px; }
+
+.stepper{ display:inline-flex; align-items:stretch; height:32px; border:1px solid var(--gray-4); border-radius:8px; overflow:hidden; background:#fff; }
+.stepper button{ width:30px; border:0; background:var(--gray-0); cursor:pointer; font-size:15px; color:var(--gray-7); padding:0; }
+.stepper button:hover{ background:var(--gray-2); }
+.stepper b{ min-width:34px; display:grid; place-items:center; font-size:13.5px; font-weight:500; border-left:1px solid var(--gray-3); border-right:1px solid var(--gray-3); }
+.stepper .unit{ align-self:center; padding:0 9px; font-size:11.5px; color:var(--gray-6); }
+.mini{ height:26px; border-radius:7px; }
+.mini button{ width:22px; font-size:13px; }
+.mini b{ min-width:24px; font-size:12.5px; font-weight:400; }
+.mini b.own{ font-weight:700; }
+
+.card{ background:#fff; border:1px solid var(--gray-4); border-radius:10px; box-shadow:0 1px 2px rgba(0,0,0,.06); overflow:hidden; }
+.card.flash{ box-shadow:0 0 0 3px rgba(44,62,80,.25); }
+.ph-head{ display:flex; align-items:center; gap:8px; padding:7px 10px; background:#F4F2EC; min-height:40px; cursor:pointer; }
+.ph-head .caret{ width:14px; height:14px; display:grid; place-items:center; color:var(--gray-6); flex:none; }
+.ph-head .caret::before{ content:''; width:6px; height:6px; border-right:1.6px solid currentColor; border-bottom:1.6px solid currentColor; transform:translateY(-2px) rotate(45deg); }
+.card.closed .ph-head .caret::before{ transform:rotate(-45deg); }
+.sw{ width:16px; height:16px; border-radius:4px; border:1px solid rgba(0,0,0,.2); flex:none; }
+.ph-name{ font-weight:600; font-size:14px; flex:1; min-width:0; border:1px solid transparent; border-radius:6px; padding:2px 5px; background:transparent; outline:none; }
+.ph-name:hover{ border-color:var(--gray-3); background:#fff; }
+.ph-name:focus{ border-color:var(--navy-6); background:#fff; }
+.ph-name.static{ cursor:default; }
+.ph-name.static:hover{ border-color:transparent; background:transparent; }
+.mvtag{ font-size:9.5px; font-weight:700; letter-spacing:.04em; text-transform:uppercase; color:var(--gray-6); background:var(--gray-1); border-radius:999px; padding:1px 7px; white-space:nowrap; flex:none; }
+.ph-meta{ font-size:11px; color:var(--gray-6); padding:0 12px 0 34px; margin:-4px 0 0; background:#F4F2EC; padding-bottom:7px; }
+.card.closed .ph-body{ display:none; }
+.ph-body{ padding:10px 12px 12px; display:flex; flex-direction:column; gap:10px; }
+.row-line{ display:flex; align-items:center; gap:8px; font-size:12.5px; }
+.row-line .grow{ flex:1; }
+.note{ font-size:11px; color:var(--gray-6); line-height:1.35; }
+.total{ border:1px solid var(--gray-3); border-radius:12px; padding:7px 10px 9px; background:var(--gray-0); }
+.total .k{ font-size:10px; font-weight:700; letter-spacing:.05em; text-transform:uppercase; color:var(--gray-6); }
+.total .v{ display:flex; align-items:baseline; gap:6px; margin-top:1px; }
+.total .v strong{ font-size:22px; line-height:1.1; font-weight:700; }
+.total .v .u{ font-size:12.5px; color:var(--gray-6); }
+
+.sec-head{ display:flex; align-items:center; justify-content:space-between; gap:8px; margin:0 4px -4px; }
+.sec-title{ font-size:10px; font-weight:600; letter-spacing:.06em; text-transform:uppercase; color:var(--gray-6); white-space:nowrap; }
+.sec-note{ font-size:10.5px; color:var(--gray-6); white-space:nowrap; }
+.list{ background:#fff; border:1px solid var(--gray-3); border-radius:8px; overflow:hidden; }
+.lrow{ display:flex; align-items:center; gap:6px; min-height:34px; padding:0 8px; border-bottom:1px solid var(--gray-2); }
+.lrow:last-child{ border-bottom:none; }
+.lrow:hover{ background:var(--gray-0); }
+.lrow.flash{ background:#FFF3D6; transition:background .2s; }
+.lrow .tag{ width:46px; flex:none; font-size:12.5px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.lrow .nm{ flex:1; min-width:0; height:26px; border:1px solid var(--gray-4); border-radius:7px; padding:0 7px; font-size:12.5px; outline:none; background:#fff; }
+.lrow .nm:focus{ border-color:var(--navy-6); }
+.lrow .nm.own{ font-weight:700; }
+.lrow .nm::placeholder{ color:var(--gray-5); }
+.lrow.none .nm{ opacity:.45; }
+
+/* ---------- The month view ---------- */
+.main-head{ display:flex; flex-wrap:wrap; align-items:center; gap:8px 14px; margin:0 0 8px; }
+.main-head .seg{ background:#fff; border:1px solid var(--gray-3); }
+.main-head .seg button[aria-pressed="true"]{ background:var(--navy-6); color:#fff; box-shadow:none; }
+.status{ display:flex; flex-wrap:wrap; align-items:center; gap:4px 12px; font-size:12px; color:var(--gray-7); margin:0 0 8px; min-height:20px; }
+.status b{ font-weight:600; color:var(--gray-9); }
+.status .warn{ color:var(--warn); }
+.status .refused{ color:var(--red); }
+.tips{ font-size:11.5px; color:var(--gray-6); margin:0 0 8px; }
+.scroll-x{ overflow-x:auto; }
+.cal{ background:#fff; border:1px solid var(--gray-4); border-radius:8px; overflow:hidden; user-select:none; -webkit-user-select:none; min-width:640px; }
+.dow, .days, .bars{ display:grid; grid-template-columns:.5fr repeat(5, minmax(0,1fr)) .5fr; }
+.dow{ background:var(--gray-0); border-bottom:1px solid var(--gray-3); }
+.dow span{ font-size:10px; font-weight:600; text-transform:uppercase; letter-spacing:.05em; color:var(--gray-6); padding:3px 5px; }
+.week{ position:relative; border-top:1px solid var(--gray-3); }
+.dow + .week{ border-top:0; }
+.days{ position:absolute; inset:0; }
+.day{ border-left:1px solid var(--gray-2); padding:2px 4px; font-size:10.5px; font-weight:600; color:#555; min-width:0; overflow:hidden; white-space:nowrap; }
+.day:first-child{ border-left:0; }
+.day.wkend{ background:#F6F5F2; color:#999; }
+.day .mo{ color:var(--navy-6); }
+.day.after{ background:#FBFAF6; }
+.day .wrapm{ float:right; font-size:9px; font-weight:700; letter-spacing:.04em; text-transform:uppercase; color:var(--prod-ink); margin-left:4px; }
+.day.nodrop{ background:#ECEBE7; color:#B5B3AC; }
+.day.drop{ box-shadow:inset 0 0 0 2px var(--navy-6); background:var(--navy-0); }
+.day.drop.bad{ box-shadow:inset 0 0 0 2px var(--red); background:#FBEDED; }
+.bars{ position:relative; grid-auto-rows:17px; row-gap:2px; padding:19px 0 6px; min-height:64px; pointer-events:none; }
+.b{ margin:0 2px; border-radius:9px; font-size:10.5px; font-weight:600; height:17px; line-height:17px; padding:0 7px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+    background:var(--prod); color:var(--prod-ink); box-shadow:inset 0 0 0 .5px var(--prod-line); pointer-events:auto; min-width:0; }
+.b.prep{ background:var(--prep); color:var(--prep-ink); box-shadow:inset 0 0 0 .5px #E9B89B; }
+.b.dub{ background:var(--dub); color:var(--dub-ink); box-shadow:inset 0 0 0 .5px var(--dub-line); cursor:grab; touch-action:none; }
+.b.dub.dragging{ opacity:.35; }
+.b.cr{ border-top-right-radius:0; border-bottom-right-radius:0; margin-right:0; }
+.b.cl{ border-top-left-radius:0; border-bottom-left-radius:0; margin-left:0; }
+body.dragging, body.dragging .b{ cursor:grabbing; }
+body.dragging.refuse, body.dragging.refuse .b{ cursor:not-allowed; }
+
+/* ---------- The pill's menu and the rename box ---------- */
+.menu{ position:fixed; z-index:20; min-width:190px; background:#fff; border:1px solid var(--gray-3); border-radius:8px; box-shadow:0 8px 24px rgba(0,0,0,.14);
+       padding:4px; font-size:13px; }
+.menu .mh{ font-size:11px; color:var(--gray-6); padding:4px 8px 3px; white-space:nowrap; }
+.menu button{ display:flex; align-items:center; gap:8px; width:100%; border:0; background:none; text-align:left; padding:6px 8px; border-radius:6px; cursor:pointer; }
+.menu button:hover{ background:var(--gray-1); }
+.menu button.danger{ color:#C92A2A; }
+.menu hr{ border:0; border-top:1px solid var(--gray-2); margin:4px 0; }
+.pop{ position:fixed; z-index:21; width:250px; background:#fff; border:1px solid var(--gray-3); border-radius:10px; box-shadow:0 8px 24px rgba(0,0,0,.14); padding:10px 12px; }
+.pop .t{ font-size:12px; font-weight:600; margin:0 0 6px; }
+.pop .acts{ display:flex; justify-content:space-between; align-items:center; margin-top:8px; }
+.pop .link{ border:0; background:none; padding:0; font-size:12px; color:var(--navy-6); text-decoration:underline; cursor:pointer; }
+.pop .done{ border:0; background:var(--navy-6); color:#fff; border-radius:7px; padding:4px 12px; font-size:12.5px; cursor:pointer; }
+</style>
+</head>
+<body>
+<div class="page">
+  <h1>Double-up days: every UI piece</h1>
+  <p class="lede">A <b>Double-ups card</b> in the Phases tab, like Episodic Prep’s: its name is the default pill name,
+    its − / + is the default count, and its list gives each episode (or block) its own name and count. The month view
+    draws the pills. Right-click a pill for Rename…, Put back and Remove; double-click one to jump to its row.</p>
+
+  <div class="topbar">
+    <span class="lbl">Defaults live in</span>
+    <div class="seg" id="var-seg"><button type="button" data-var="card" aria-pressed="true">The Double-ups card</button><button type="button" data-var="si" aria-pressed="false">Show info</button></div>
+    <span class="lbl">Schedule by</span>
+    <div class="seg" id="mode-seg"><button type="button" data-mode="episodes" aria-pressed="true">Episodes</button><button type="button" data-mode="blocks" aria-pressed="false">Blocks</button></div>
+  </div>
+
+  <div class="layout">
+    <aside class="side">
+      <div class="tabs" id="tabs"><button type="button" data-tab="si" aria-pressed="false">Show info</button><button type="button" data-tab="ph" aria-pressed="true">Phases</button></div>
+      <div class="pane" id="pane"></div>
+    </aside>
+    <main>
+      <div class="main-head">
+        <div class="seg" id="weeks-seg"><button type="button" data-w="6" aria-pressed="true">First 6 weeks</button><button type="button" data-w="all" aria-pressed="false">All</button></div>
+      </div>
+      <div class="status" id="status"></div>
+      <div class="tips">Drag a double-up onto another episode’s days, or after wrap. Right-click it for its menu; double-click it to open its row.</div>
+      <div class="scroll-x"><div class="cal" id="cal"></div></div>
+    </main>
+  </div>
+</div>
+
+<script>
+'use strict';
+/* Made-up show: starts Wed 6 Jan 2027, Monday to Friday, no holidays or hiatus. Prep: 3 days before each episode. */
+const MON0 = Date.UTC(2027, 0, 4), OFF = 7;                     // first shoot day: the second week's Wednesday
+const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const DOW = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+const S = {
+  variant:'card', mode:'episodes', tab:'ph', weeks:'6', open:{prod:false, dub:true},
+  dubName:'Double-up', defDU:1,                                  // the defaults (the card's, or Show info's)
+  episodes:{ d:10, n:8, rows:[], moved:{} },
+  blocks:  { d:20, n:4, rows:[], moved:{} },
+};
+['episodes','blocks'].forEach(k=>{ S[k].rows = Array.from({length:S[k].n}, ()=> ({du:null, name:null})); });
+S.episodes.rows[1].name = 'Tandem';                              // so the page opens showing one renamed
+const M = ()=> S[S.mode];
+const esc = s=> String(s).replace(/[&<>"]/g, c=> ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const slotOf = k=> k + OFF;
+const dateOfSlot = s=> new Date(MON0 + (Math.floor(s / 5) * 7 + (s % 5)) * 864e5);
+const fmtDate = d=> DOW[d.getUTCDay()] + ' ' + MONTHS[d.getUTCMonth()] + ' ' + d.getUTCDate();
+
+function units(){
+  const m = M(), eps = S.mode === 'episodes';
+  return m.rows.map((r, i)=>{
+    const last = i === m.n - 1;
+    const du = r.du != null ? r.du : (last ? 0 : S.defDU);      // the last one has none by default
+    return {i, s:i * m.d, f:(i + 1) * m.d, du, last,
+      tag: eps ? String(101 + i) : 'Block ' + (i + 1),
+      bar: eps ? 'Shoot ' + (101 + i) : 'Block ' + (i + 1),
+      name: r.name != null && r.name.trim() ? r.name.trim() : S.dubName};
+  });
+}
+// A unit's double-up: its default first day, and where it is now. Last unit: beside its own last days.
+function dubOf(u){
+  if(!u.du) return null;
+  const def = u.last ? slotOf(u.f - u.du) : slotOf(u.f);
+  const at = M().moved[u.i];
+  return {u, def, a: at != null ? at : def, b: (at != null ? at : def) + u.du, joined: !u.last && (at == null || at === def), moved: at != null && at !== def};
+}
+const ownerOf = (slot, us)=>{ const u = us.find(x=> slot >= slotOf(x.s) && slot < slotOf(x.f)); return u ? u.i : null; };
+function canDrop(a, u, us){
+  const total = us[us.length - 1].f, d = dubOf(u);
+  if(d && a === d.def) return true;                              // back on its own default days
+  for(let s = a; s < a + u.du; s++){
+    const o = ownerOf(s, us);
+    if(o === u.i) return false;
+    if(o == null && s < slotOf(total)) return false;              // before the shoot
+  }
+  return true;
+}
+
+/* ---------- The sidebar ---------- */
+function stepper(act, val, own, mini){
+  return `<span class="stepper${mini ? ' mini' : ''}"><button type="button" data-act="${act}" data-d="-1" aria-label="Fewer">−</button><b class="${own ? 'own' : ''}">${val || (mini ? '–' : 'None')}</b><button type="button" data-act="${act}" data-d="1" aria-label="More">+</button>${mini ? '' : '<span class="unit">days</span>'}</span>`;
+}
+function drawSide(){
+  const eps = S.mode === 'episodes', us = units(), m = M(), card = S.variant === 'card';
+  document.querySelectorAll('#tabs button').forEach(b=> b.setAttribute('aria-pressed', String(b.dataset.tab === S.tab)));
+  const P = document.getElementById('pane');
+  if(S.tab === 'si'){
+    P.innerHTML = `
+      <div class="fld"><label>Shooting Days per ${eps ? 'Episode' : 'Block'}</label><input class="inp ro" value="${m.d}" readonly></div>
+      ${card ? '' : `
+      <div class="fld new"><span class="lbl">Double-up Days per ${eps ? 'Episode' : 'Block'}</span>${stepper('def', S.defDU, false)}
+        <div class="desc">Every ${eps ? 'episode' : 'block'} but the last. Change one in Phases › Double-ups.</div></div>
+      <div class="fld new"><label>Double-up name</label><input class="inp" data-f="dubName" value="${esc(S.dubName)}" placeholder="Double-up">
+        <div class="desc">What the pills say. Each ${eps ? 'episode' : 'block'} can have its own.</div></div>`}
+      <div class="fld"><label>Number of ${eps ? 'Episodes' : 'Blocks'}</label><input class="inp ro" value="${m.n}" readonly></div>
+      ${card ? '<div class="note">Double-ups are set in Phases › Double-ups.</div>' : ''}`;
+    return;
+  }
+  const total = us.reduce((a, u)=> a + u.du, 0), withDu = us.filter(u=> u.du);
+  const range = withDu.length ? (eps ? `${withDu[0].tag}–${withDu[withDu.length - 1].tag}` : `${withDu.length} blocks`) : '';
+  const meta = total ? `${withDu.length} double-up${withDu.length > 1 ? 's' : ''} · ${total} day${total > 1 ? 's' : ''}${eps ? ' · ' + range : ''}` : 'None yet';
+  P.innerHTML = `
+    <div class="card closed"><div class="ph-head"><span class="caret"></span><span class="sw" style="background:var(--prep)"></span><span class="ph-name static">${eps ? 'Episodic Prep' : 'Block Prep'}</span><span class="mvtag">Month view only</span></div></div>
+    <div class="card${S.open.prod ? '' : ' closed'}" data-card="prod"><div class="ph-head" data-toggle="prod"><span class="caret"></span><span class="sw" style="background:var(--prod)"></span><span class="ph-name static">Production</span></div>
+      <div class="ph-body"><div class="total"><div class="k">Total shooting days</div><div class="v"><strong>${us[us.length - 1].f}</strong><span class="u">days</span></div></div>
+      <div class="note">Double-ups never change Production’s days.</div></div></div>
+    <div class="card new-card${S.open.dub ? '' : ' closed'}" data-card="dub" id="dub-card">
+      <div class="ph-head" data-toggle="dub"><span class="caret"></span>
+        <span class="sw" style="background:var(--dub)" title="A shade darker than Production, and follows it"></span>
+        ${card ? `<input class="ph-name" data-f="dubName" value="${esc(S.dubName)}" placeholder="Double-up" aria-label="Double-up name">` : '<span class="ph-name static">Double-ups</span>'}
+        <span class="mvtag">Month view only</span></div>
+      <div class="ph-meta">${meta}</div>
+      <div class="ph-body">
+        ${card ? `<div class="row-line"><span class="grow">Default double-ups</span>${stepper('def', S.defDU, false)}</div>
+        <div class="note" style="margin-top:-6px">Every ${eps ? 'episode' : 'block'} but the last, joined to the end of its shoot. The name above is what the pills say.</div>`
+        : `<div class="note">Default ${S.defDU ? S.defDU + ' day' + (S.defDU > 1 ? 's' : '') : 'none'}, named “${esc(S.dubName)}”, from Show info.</div>`}
+        <div class="sec-head"><span class="sec-title">${eps ? 'Episodes' : 'Blocks'}</span><span class="sec-note">Name · days</span></div>
+        <div class="list">${us.map(u=>{
+          const r = m.rows[u.i];
+          return `<div class="lrow${u.du ? '' : ' none'}" data-r="${u.i}"><span class="tag">${u.tag}</span>
+            <input class="nm${r.name != null && r.name.trim() ? ' own' : ''}" data-f="rowName" data-r="${u.i}" value="${esc(r.name || '')}" placeholder="${esc(S.dubName)}" aria-label="${u.tag} double-up name">
+            ${stepper('row', u.du, r.du != null, true).replace(/data-act="row"/g, `data-act="row" data-r="${u.i}"`)}</div>`;
+        }).join('')}</div>
+        <div class="note">Bold = its own. The last ${eps ? 'episode' : 'block'} starts with none; give it one and it sits beside its own last days.</div>
+      </div></div>`;
+}
+
+/* ---------- The month view ---------- */
+function drawCal(){
+  const us = units(), m = M(), total = us[us.length - 1].f, wrapSlot = slotOf(total) - 1;
+  const dubs = us.map(dubOf).filter(Boolean);
+  let maxSlot = wrapSlot; dubs.forEach(d=> maxSlot = Math.max(maxSlot, d.b - 1));
+  const need = Math.ceil((maxSlot + 1) / 5) + 1, n = S.weeks === '6' ? Math.min(6, need) : need;
+  let html = '<div class="dow">' + DOW.map(d=> `<span>${d}</span>`).join('') + '</div>';
+  for(let w = 0; w < n; w++){
+    const lo = w * 5, hi = lo + 5, col = s=> s - lo + 2;
+    let days = '';
+    for(let c = 0; c < 7; c++){
+      const d = new Date(MON0 + (w * 7 + c - 1) * 864e5), wk = c === 0 || c === 6, slot = wk ? null : lo + c - 1;
+      const first = d.getUTCDate() === 1 || (w === 0 && c === 0);
+      days += `<div class="day${wk ? ' wkend' : ''}${slot != null && slot > wrapSlot ? ' after' : ''}"${slot != null ? ` data-slot="${slot}"` : ''}>${slot === wrapSlot ? '<span class="wrapm">Wrap</span>' : ''}${first ? `<span class="mo">${MONTHS[d.getUTCMonth()]}</span> ` : ''}${d.getUTCDate()}</div>`;
+    }
+    // Items: prep (3 days before each unit's first day), each shoot pill with the double-up joined to its end, then
+    // the loose double-ups (moved, or the last unit's beside its last days). First free row, week by week.
+    const items = [];
+    us.forEach(u=>{
+      const pa = Math.max(slotOf(u.s) - 3, lo), pb = Math.min(slotOf(u.s), hi);
+      if(pa < pb && slotOf(u.s) - 3 >= 0) items.push({kind:'prep', u, a:pa, b:pb});
+    });
+    us.forEach(u=>{
+      const a = Math.max(slotOf(u.s), lo), b = Math.min(slotOf(u.f), hi), d = dubOf(u);
+      const j = d && d.joined ? [Math.max(d.a, lo), Math.min(d.b, hi)] : null, hasJ = j && j[0] < j[1];
+      if(a < b || hasJ) items.push({kind:'chain', u, d, main: a < b ? [a, b] : null, du: hasJ ? j : null, a: a < b ? a : j[0], b: hasJ ? j[1] : b});
+    });
+    dubs.filter(d=> !d.joined).forEach(d=>{ const a = Math.max(d.a, lo), b = Math.min(d.b, hi); if(a < b) items.push({kind:'loose', u:d.u, d, du:[a, b], a, b}); });
+    // The shoot pills (with their joined double-ups) take the top row, prep sits under them, loose double-ups after.
+    const order = {chain:0, prep:1, loose:2}, laneEnd = [];
+    // First row with room for it (a row may have gaps: prep fits before the shoot that starts mid-week).
+    items.sort((x, y)=> order[x.kind] - order[y.kind] || x.a - y.a || x.u.i - y.u.i).forEach(x=>{
+      let l = laneEnd.findIndex(row=> row.every(([a, b])=> b <= x.a || a >= x.b)); if(l < 0){ l = laneEnd.length; laneEnd.push([]); }
+      laneEnd[l].push([x.a, x.b]); x.lane = l + 1;
+    });
+    let bars = '';
+    items.forEach(x=>{
+      const u = x.u;
+      if(x.kind === 'prep'){ bars += `<div class="b prep" style="grid-column:${col(x.a)} / ${col(x.b)};grid-row:${x.lane}">Prep ${S.mode === 'episodes' ? u.tag : u.tag}</div>`; return; }
+      const joined = x.kind === 'chain' && x.main && x.du;
+      if(x.main) bars += `<div class="b${joined ? ' cr' : ''}" style="grid-column:${col(x.main[0])} / ${col(x.main[1])};grid-row:${x.lane}">${u.bar}</div>`;
+      if(x.du) bars += `<div class="b dub${joined ? ' cl' : ''}" data-u="${u.i}" style="grid-column:${col(x.du[0])} / ${col(x.du[1])};grid-row:${x.lane}" title="${esc(u.name)} ${u.tag}: ${u.du} day${u.du > 1 ? 's' : ''}">${esc(u.name)} ${S.mode === 'episodes' ? u.tag : u.tag}</div>`;
+    });
+    html += `<div class="week"><div class="days">${days}</div><div class="bars">${bars}</div></div>`;
+  }
+  document.getElementById('cal').innerHTML = html;
+  document.querySelector('#weeks-seg [data-w="all"]').textContent = `All ${need} weeks`;
+  const dus = dubs.reduce((a, d)=> a + d.u.du, 0), moved = dubs.filter(d=> d.moved).length, past = dubs.filter(d=> d.b - 1 > wrapSlot).length;
+  document.getElementById('status').innerHTML = `<span><b>${total}</b> shooting days${dus ? ` + <b>${dus}</b> double-up day${dus > 1 ? 's' : ''}` : ''}${moved ? `, ${moved} moved` : ''}</span>
+    <span>Main unit wraps <b>${fmtDate(dateOfSlot(wrapSlot))}</b>${past ? `, <span class="warn">${past} after wrap</span>` : ''}</span><span class="refused" id="refused"></span>`;
+}
+function drawAll(){ drawSide(); drawCal(); }
+
+/* ---------- Clicks, typing ---------- */
+const setDU = (r, v, def)=>{ v = Math.max(0, Math.min(9, v)); r.du = v === def ? null : v; };
+document.addEventListener('click', e=>{
+  closeMenus(e);
+  const b = e.target.closest('button');
+  const tog = e.target.closest('[data-toggle]');
+  if(tog && !e.target.closest('input')){ S.open[tog.dataset.toggle] = !S.open[tog.dataset.toggle]; drawSide(); return; }
+  if(!b) return;
+  if(b.dataset.var){ S.variant = b.dataset.var; press('#var-seg', b); drawAll(); }
+  else if(b.dataset.mode){ S.mode = b.dataset.mode; press('#mode-seg', b); drawAll(); }
+  else if(b.dataset.tab){ S.tab = b.dataset.tab; drawSide(); }
+  else if(b.dataset.w){ S.weeks = b.dataset.w; press('#weeks-seg', b); drawCal(); }
+  else if(b.dataset.act === 'def'){ S.defDU = Math.max(0, Math.min(9, S.defDU + +b.dataset.d)); drawAll(); }
+  else if(b.dataset.act === 'row'){
+    const i = +b.dataset.r, u = units()[i];
+    setDU(M().rows[i], u.du + +b.dataset.d, u.last ? 0 : S.defDU);
+    if(!units()[i].du) delete M().moved[i];
+    drawAll();
+  }
+});
+const press = (sel, b)=> document.querySelectorAll(sel + ' button').forEach(x=> x.setAttribute('aria-pressed', String(x === b)));
+document.addEventListener('input', e=>{
+  const t = e.target;
+  if(t.dataset.f === 'dubName'){
+    S.dubName = t.value.trim() || 'Double-up';
+    document.querySelectorAll('.lrow .nm').forEach(x=> x.placeholder = S.dubName);
+    drawCal();
+  } else if(t.dataset.f === 'rowName'){
+    M().rows[+t.dataset.r].name = t.value.trim() ? t.value : null;
+    t.classList.toggle('own', !!t.value.trim());
+    drawCal();
+  }
+});
+
+/* ---------- Drag a double-up ---------- */
+let drag = null;
+const cal = document.getElementById('cal');
+const dayAt = (x, y)=> document.elementsFromPoint(x, y).find(el=> el.matches && el.matches('#cal .day[data-slot]')) || null;
+const clearDrop = ()=> cal.querySelectorAll('.day.drop, .day.nodrop').forEach(d=> d.classList.remove('drop', 'bad', 'nodrop'));
+cal.addEventListener('pointerdown', e=>{
+  const bar = e.target.closest('.b.dub');
+  if(!bar || e.button !== 0) return;
+  const d = dayAt(e.clientX, e.clientY); if(!d) return;
+  const u = units()[+bar.dataset.u], du = dubOf(u);
+  drag = {u, start:du.a, grab:+d.dataset.slot, x:e.clientX, y:e.clientY, live:false, to:null, ok:false};
+  e.preventDefault();
+});
+document.addEventListener('pointermove', e=>{
+  if(!drag) return;
+  if(!drag.live){
+    if(Math.abs(e.clientX - drag.x) + Math.abs(e.clientY - drag.y) < 4) return;
+    drag.live = true; document.body.classList.add('dragging');
+    cal.querySelectorAll(`.b.dub[data-u="${drag.u.i}"]`).forEach(b=> b.classList.add('dragging'));
+  }
+  const d = dayAt(e.clientX, e.clientY), us = units();
+  clearDrop();
+  cal.querySelectorAll('.day[data-slot]').forEach(c=>{ const o = ownerOf(+c.dataset.slot, us); if(o === drag.u.i || (o == null && +c.dataset.slot < slotOf(us[us.length - 1].f))) c.classList.add('nodrop'); });
+  drag.to = d ? drag.start + (+d.dataset.slot - drag.grab) : null;
+  document.body.classList.remove('refuse');
+  if(drag.to == null || drag.to < 0) return;
+  drag.ok = canDrop(drag.to, drag.u, us);
+  document.body.classList.toggle('refuse', !drag.ok);
+  for(let s = drag.to; s < drag.to + drag.u.du; s++){ const c = cal.querySelector(`.day[data-slot="${s}"]`); if(c){ c.classList.add('drop'); if(!drag.ok) c.classList.add('bad'); } }
+});
+document.addEventListener('pointerup', ()=>{
+  if(!drag) return;
+  const was = drag; drag = null;
+  document.body.classList.remove('dragging', 'refuse');
+  clearDrop();
+  if(!was.live) return;
+  if(was.to == null || was.to === was.start){ drawCal(); return; }
+  if(!was.ok){ drawCal(); document.getElementById('refused').textContent = `${was.u.name} ${was.u.tag} can only go on another ${S.mode === 'episodes' ? 'episode' : 'block'}’s days, or after wrap.`; return; }
+  const def = dubOf(was.u).def;
+  if(was.to === def) delete M().moved[was.u.i]; else M().moved[was.u.i] = was.to;
+  drawAll();
+});
+
+/* ---------- Double-click: open its row. Right-click: its menu. ---------- */
+cal.addEventListener('dblclick', e=>{
+  const bar = e.target.closest('.b.dub'); if(!bar) return;
+  const i = +bar.dataset.u;
+  S.tab = 'ph'; S.open.dub = true; drawSide();
+  const row = document.querySelector(`.lrow[data-r="${i}"]`), card = document.getElementById('dub-card');
+  card.classList.add('flash'); row.classList.add('flash'); row.scrollIntoView({block:'nearest'});
+  setTimeout(()=>{ card.classList.remove('flash'); row.classList.remove('flash'); }, 1400);
+});
+let menu = null, pop = null;
+function closeMenus(e){
+  if(menu && !(e && e.target.closest && e.target.closest('.menu'))){ menu.remove(); menu = null; }
+  if(pop && !(e && e.target.closest && e.target.closest('.pop'))){ pop.remove(); pop = null; }
+}
+cal.addEventListener('contextmenu', e=>{
+  const bar = e.target.closest('.b.dub'); if(!bar) return;
+  e.preventDefault(); closeMenus();
+  const u = units()[+bar.dataset.u], d = dubOf(u);
+  menu = document.createElement('div'); menu.className = 'menu';
+  menu.innerHTML = `<div class="mh">${esc(u.name)} ${u.tag} · ${u.du} day${u.du > 1 ? 's' : ''}</div>
+    <button type="button" data-m="rename">Rename…</button>
+    ${d.moved ? '<button type="button" data-m="back">Put back on its default days</button>' : ''}
+    <hr><button type="button" class="danger" data-m="remove">Remove double-up</button>`;
+  document.body.appendChild(menu);
+  menu.style.left = Math.min(e.clientX, innerWidth - 200) + 'px'; menu.style.top = Math.min(e.clientY, innerHeight - 140) + 'px';
+  menu.addEventListener('click', ev=>{
+    // Stop here: the page's own click-to-close would otherwise shut the rename box this click opens.
+    ev.stopPropagation();
+    const m = ev.target.closest('button'); if(!m) return;
+    const r = M().rows[u.i];
+    menu.remove(); menu = null;
+    if(m.dataset.m === 'back'){ delete M().moved[u.i]; drawAll(); }
+    else if(m.dataset.m === 'remove'){ setDU(r, 0, u.last ? 0 : S.defDU); delete M().moved[u.i]; drawAll(); }
+    else if(m.dataset.m === 'rename'){
+      pop = document.createElement('div'); pop.className = 'pop';
+      pop.innerHTML = `<div class="t">Name of ${u.tag}’s double-up</div>
+        <input class="inp" value="${esc(r.name || '')}" placeholder="${esc(S.dubName)}">
+        <div class="acts"><button type="button" class="link" data-p="def">Use “${esc(S.dubName)}”</button><button type="button" class="done" data-p="ok">Done</button></div>`;
+      document.body.appendChild(pop);
+      pop.style.left = Math.min(ev.clientX, innerWidth - 260) + 'px'; pop.style.top = Math.min(ev.clientY, innerHeight - 120) + 'px';
+      const inp = pop.querySelector('input'); inp.focus(); inp.select();
+      const save = v=>{ r.name = v && v.trim() ? v : null; pop.remove(); pop = null; drawAll(); };
+      inp.addEventListener('keydown', k=>{ if(k.key === 'Enter') save(inp.value); if(k.key === 'Escape'){ pop.remove(); pop = null; } });
+      pop.addEventListener('click', p=>{ p.stopPropagation(); const x = p.target.closest('button'); if(!x) return; save(x.dataset.p === 'def' ? '' : inp.value); });
+    }
+  });
+});
+document.addEventListener('keydown', e=>{ if(e.key === 'Escape') closeMenus(); });
+
+drawAll();
+</script>
+</body>
+</html>

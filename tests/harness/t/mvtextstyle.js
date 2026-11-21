@@ -238,8 +238,8 @@ window.addEventListener('load', function () { (async function () {
       var ep = pill(/201/), wfn = note('wf', /Principal Photography/), day = note('day', /Crew lunch/);
       await click(ep);
       var b1 = {armed: armed(), boxes: boxes(), bold: lit('.hf-b'), colorOff: q('.hf-color', bar()).disabled, sizes: sizes(),
-                ids: qa('[id]', bar()).length, hl: q('.hf-swatch-hl', bar()).hidden};
-      add('B1', "a click on an episode bar picks it: the bar armed, one outline (body-level), B lit (600), the colour greyed (N1), sizes 6-11, no highlight, no id on any control",
+                ids: qa('[id]', bar()).length, hl: q('.hf-swatch-hl', bar()).classList.contains('is-disabled') && !q('.hf-swatch-hl', bar()).hidden};
+      add('B1', "a click on an episode bar picks it: the bar armed, one outline (body-level), B lit (600), the colour greyed (N1), sizes 6-11, the highlight greyed (always shown since 11 Nov 2026), no id on any control",
         b1.armed && b1.boxes >= 1 && b1.bold && b1.colorOff && b1.sizes === '6,7,8,9,10,11' && b1.ids === 0 && b1.hl, b1, 'armed, greyed, 6-11');
       await click(wfn, {metaKey: true});
       var g2 = {boxes: boxes(), colorOff: q('.hf-color', bar()).disabled, sizes: sizes()};
@@ -342,17 +342,24 @@ window.addEventListener('load', function () { (async function () {
         !!S.episode && S.episode.c === S.episode.ring && S.episode.c === ink0.episode && !!S.phase && S.phase.c === S.phase.ring && !!S.simpost && S.simpost.c === S.simpost.ring
           && mixed.ep === ink0.episode && mixed.wf === 'rgb(255, 0, 255)' && mixed.stored === false, {ep: S.episode, ph: S.phase, sp: S.simpost, ink0: ink0, mixed: mixed}, 'ring = ink = unstyled ink');
       // Rows compared week by week; a week where a note's lane count changed is named, not failed (§6 item 2).
-      var grew = [], noteMoved = [];
+      // ⚠️ RE-PREMISED 16 Nov 2026 (the month page). The month is the PDF's page now: its weeks SHARE a fixed height, as
+      // they do in the PDF. So in a month where a note is re-laid (the 6 px note in July: two lines to one), that week
+      // needs less and every week of that month takes a new share. Held there instead: the weeks still add up to the
+      // same page, to 0.05 px. Until then a week was as tall as its content, and only the re-laid week could move.
+      var grew = [], noteMoved = [], shared = [];
       Object.keys(shape0).forEach(function (m) {
         var a = shape0[m], b2 = shape1[m];
         if(!eq(a.frame, b2.frame)) grew.push(m + ' frame');
+        var relaid = a.rows.some(function (h, i) { return a.notes[i] !== b2.notes[i]; });
+        var sum = function (r) { return r.reduce(function (x, y) { return x + y; }, 0); };
+        if(relaid && Math.abs(sum(a.rows) - sum(b2.rows)) > 0.05) grew.push(m + ' weeks in all ' + sum(a.rows).toFixed(2) + ' -> ' + sum(b2.rows).toFixed(2));
         a.rows.forEach(function (h, i) {
           if(a.notes[i] !== b2.notes[i]){ noteMoved.push(m + ' week ' + (i + 1) + ': ' + a.notes[i] + ' -> ' + b2.notes[i]); return; }
-          if(Math.abs(h - b2.rows[i]) > 0.01) grew.push(m + ' week ' + (i + 1) + ' ' + h + ' -> ' + b2.rows[i]);
+          if(Math.abs(h - b2.rows[i]) > 0.01){ if(relaid) shared.push(m + ' week ' + (i + 1) + ' ' + h + ' -> ' + b2.rows[i]); else grew.push(m + ' week ' + (i + 1) + ' ' + h + ' -> ' + b2.rows[i]); }
         });
       });
-      add('S3', 'R3: no week row, month bar or weekday row changed height in any month styled (April, July, November, December), except a week whose note changed its line count (named: the 6 px note in July)',
-        grew.length === 0 && noteMoved.length === 1 && /2026-07-15/.test(noteMoved[0]), {grew: grew, noteLines: noteMoved}, 'none grown; one note re-laid');
+      add('S3', 'R3: no week row, month bar or weekday row changed height in any month styled (April, July, November, December), except in the month whose note changed its line count (the 6 px note in July), where the weeks re-share the same page',
+        grew.length === 0 && noteMoved.length === 1 && /2026-07-15/.test(noteMoved[0]), {grew: grew, noteLines: noteMoved, reshared: shared}, 'none grown; one note re-laid; its month the same height in all');
       // M1's line counters: each note's lanes are exactly the lines it lays out in its own style (to 3), so none is cut
       // short and none holds an empty line. Read in July, where both day notes and the waterfall line are.
       await goTo('July 2026');
@@ -450,11 +457,15 @@ window.addEventListener('load', function () { (async function () {
         !!k1 && k1.fs === '11px' && k1.i === 'italic' && !!k1c && k1c.c === 'rgb(255, 255, 0)', {phase: k1, band: k1c}, 'still styled');
       el('undo-btn').click(); await settle();
       await goTo('July 2026');
-      el('tb-notes-reset-btn').click(); await settle();
+      el('tb-notes-reset-btn').click();
+      // It asks first since 14 Nov 2026 (audit AUD2-054): answered Reset (the notesreset leg holds the question).
+      for(var k2g = 0; k2g < 30 && !/Reset Month Notes/.test(T.modalText()); k2g++) await T.sleep(100);
+      var k2asked = T.modalText();
+      T.clickModalButton('Reset'); await settle();
       var k2t = JSON.parse(await saveText());
       add('K2', 'Reset Month Notes clears the waterfall notes\' month styles and the day notes (and their `fmt`), and nothing else',
-        !(k2t.mvTextStyles || {}).wfnote && !(k2t.dayNotes || {})['2026-07-08'] && !!(k2t.mvTextStyles || {}).phase && !!(k2t.mvTextStyles || {}).band,
-        {kinds: Object.keys(k2t.mvTextStyles || {})}, 'wfnote gone');
+        /Reset Month Notes/.test(k2asked) && !(k2t.mvTextStyles || {}).wfnote && !(k2t.dayNotes || {})['2026-07-08'] && !!(k2t.mvTextStyles || {}).phase && !!(k2t.mvTextStyles || {}).band,
+        {kinds: Object.keys(k2t.mvTextStyles || {}), asked: k2asked.slice(0, 80)}, 'wfnote gone');
       el('undo-btn').click(); await settle();
       // The last episode's bars (Ep. 210) styled, then the episode count lowered to 9: its style goes with it.
       var ep10 = null;

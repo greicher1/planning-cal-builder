@@ -34,6 +34,15 @@ window.addEventListener('load', function () { (async function () {
     return el.map(function (e) { return (e.textContent || '').replace(/\s+/g, ' ').trim(); }).join(' || ');
   }
   function shown(el){ var l = el && el.closest('label'); return !!l && getComputedStyle(l).display !== 'none'; }
+  // Snap to Monday's switch moved from the card into the phase's Starts picker (owner, 18 Nov 2026): the card's row is
+  // always hidden, so "Snap applies here" is asked of the picker. Opens it on start-<key>, reads, closes it.
+  async function pickerSnap(key){
+    var el = $('start-' + key); if(!el) return null;
+    el.dispatchEvent(new FocusEvent('focusin', {bubbles: true})); await T.sleep(150);
+    var on = !!document.querySelector('.date-pop .dp-snap');
+    document.body.dispatchEvent(new MouseEvent('mousedown', {bubbles: true})); await T.sleep(100);
+    return on;
+  }
   async function settle(){ await T.sleep(700); }   // past the 500 ms undo debounce
   async function view(mode){ $(mode === 'month' ? 'view-month-btn' : 'view-sheet-btn').click(); await T.sleep(300); }
   async function gotoMonth(label){
@@ -121,9 +130,12 @@ window.addEventListener('load', function () { (async function () {
         days:  [shown($('weeks-custom2')), shown($('days-custom2')), shown($('end-custom2')), shown($('snap-custom2'))],
         dates: [shown($('weeks-custom3')), shown($('days-custom3')), shown($('end-custom3')), shown($('snap-custom3'))],
       };
-      check(out.boxes.weeks.join() === 'true,false,false,true', 'Weeks shows Weeks + Snap only');
+      out.pickerSnap = {weeks: await pickerSnap('custom1'), days: await pickerSnap('custom2'), dates: await pickerSnap('custom3')};
+      check(out.boxes.weeks.join() === 'true,false,false,false', 'Weeks shows Weeks only (its Snap to Monday row is hidden: the switch is in the Starts picker)');
       check(out.boxes.days.join()  === 'false,true,false,false', 'Days shows the Days box only');
       check(out.boxes.dates.join() === 'false,false,true,false', 'Dates shows the End date only');
+      check(out.pickerSnap.weeks === true && out.pickerSnap.days === false && out.pickerSnap.dates === false,
+        'only the Weeks phase\'s Starts picker offers Snap to Monday');
 
       // ⭐ Reachable by a real pointer, not just by a dispatched event (MONTH-VIEW-PLAN §8 step 5).
       var tb = document.querySelector('.side-tab-btn[data-tab="phases"]'); if(tb) tb.click(); await T.sleep(150);
@@ -227,18 +239,25 @@ window.addEventListener('load', function () { (async function () {
       $('pop-shift-btn').click(); await T.sleep(150);
       T.set('tool-shift-weeks', '1'); $('tool-shift-later').click(); await settle();
       out.movers.shift = dates(); out.movers.shiftHint4 = meta('custom4');
-      check(out.movers.shift.s3 === '2027-02-17' && out.movers.shift.e3 === '2027-03-02', 'Shift All +1 wk moves BOTH ends of a Dates phase');
-      // Rigging's new start 2/18 sits in the locked hiatus, so its 5 days run Mon 2/22 - Fri 2/26.
-      check(out.movers.shift.s4 === '2027-02-18' && out.movers.shiftHint4.indexOf('Mon 2/22/27 \u2192 Fri 2/26/27') !== -1,
-            'Shift All moves a Days phase, which walks past the locked hiatus');
+      // ⭐ Since 5 Nov 2026 Shift STEPS OVER a held hiatus (stepOverHeld; owner's picker "Step over it"): one working
+      // week, and the locked week of 2/15 is not one. Stage Build Wed 2/10 -> Wed 2/24, and its END goes through the same
+      // step: Tue 2/23 -> Tue 3/2, its 5 working days kept (the break was inside it; now it is not). Before: 2/17-3/2,
+      // a start inside the break.
+      check(out.movers.shift.s3 === '2027-02-24' && out.movers.shift.e3 === '2027-03-02', 'Shift All +1 wk moves BOTH ends of a Dates phase, over the held week');
+      // Rigging Thu 2/11 steps over the break to Thu 2/25, a day after Stage Build as before; its 5 days Thu 2/25 - Wed 3/3.
+      // (Before: start 2/18, inside the break, worked Mon 2/22 - Fri 2/26.)
+      check(out.movers.shift.s4 === '2027-02-25' && out.movers.shiftHint4.indexOf('Thu 2/25/27 \u2192 Wed 3/3/27') !== -1,
+            'Shift All moves a Days phase over the locked hiatus');
       await undo(); check(same(), 'one undo restores every date after Shift All');
 
-      // Anchor To: Stage Build's START to 2/24/27, a whole-calendar shift of 2 weeks.
-      $('pop-anchor-btn').click(); await T.sleep(150);
+      // Anchor To: Stage Build's START to 2/24/27. Two calendar weeks, ONE working week (the step-over: the locked week of
+      // 2/15 is not counted), so its end goes to Tue 3/2 as on the +1 wk shift above (was 3/9 before 5 Nov 2026).
+      // Anchor To is the Shift form's To a date since 4 Nov 2026 (ANCHOR-TO-DIRECTION-PLAN.md §6), on All phases.
+      $('pop-shift-btn').click(); await T.sleep(150); document.querySelector('#pop-shift [data-far="date"]').click(); await T.sleep(100);
       T.set('tool-anchor-phase', 'custom3'); T.set('tool-anchor-edge', 'start'); T.set('tool-anchor-date', '2027-02-24');
       $('tool-anchor-go').click(); await settle();
       out.movers.anchor = dates();
-      check(out.movers.anchor.s3 === '2027-02-24' && out.movers.anchor.e3 === '2027-03-09', 'Anchor To moves BOTH ends of a Dates phase');
+      check(out.movers.anchor.s3 === '2027-02-24' && out.movers.anchor.e3 === '2027-03-02', 'Anchor To moves BOTH ends of a Dates phase');
       await undo(); check(same(), 'one undo restores every date after Anchor To');
 
       // Rebuild From FORWARDS from Scout, pinned where it is (Wed 1/13, ends Tue 1/26):
@@ -253,7 +272,8 @@ window.addEventListener('load', function () { (async function () {
       await undo(); check(same(), 'one undo restores every date after Rebuild forwards');
 
       // Rebuild From BACKWARDS from Rigging, pinned to Mon 3/1/27:
-      //   Stage Build ends the day before (Sun 2/28), keeping 13 days: Mon 2/15;
+      //   Stage Build ends on the last weekday before it (Fri 2/26), keeping its 10 weekdays: Mon 2/15. (Until the audit's
+      //   AUD2-068, 14 Nov 2026, it ended the day before, Sun 2/28, keeping 13 calendar days: a Sunday end.)
       //   Read-through counts 6 working days back from Sun 2/14: Fri 2/5 .. Fri 2/12;
       //   Scout (Weeks, Snap off) 2 weeks back from Fri 2/5: Fri 1/22;
       //   Pre Prep (snapped) 4 working weeks back from 1/18, the 12/21/26 winter hiatus skipped: 12/7/26.
@@ -261,7 +281,7 @@ window.addEventListener('load', function () { (async function () {
       T.set('tool-solve-phase', 'custom4'); T.set('tool-solve-date', '2027-03-01');
       T.rebuildAll(-1); await settle();
       out.movers.back = dates(); out.movers.backHint2 = meta('custom2');
-      check(out.movers.back.s3 === '2027-02-15' && out.movers.back.e3 === '2027-02-28', 'Rebuild backwards: a Dates phase ends the day before the next, keeping its length');
+      check(out.movers.back.s3 === '2027-02-15' && out.movers.back.e3 === '2027-02-26', 'Rebuild backwards: a Dates phase ends on the last weekday before the next, keeping its weekdays');
       check(out.movers.back.s2 === '2027-02-05' && out.movers.backHint2.indexOf('Fri 2/5/27 \u2192 Fri 2/12/27') !== -1,
             'Rebuild backwards: a Days phase ends by the next phase start (checked against the scheduler)');
       check(out.movers.back.s1 === '2027-01-22' && out.movers.back.pre === '2026-12-07' && out.movers.back.s4 === '2027-03-01',

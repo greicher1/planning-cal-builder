@@ -19,9 +19,19 @@
 # upload-pages-artifact v5 pins upload-artifact v7 internally. To update one: take the release's
 # commit (gh api repos/<owner>/<action>/commits/<tag> --jq .sha), and read its notes first.
 #
-# TO ROLL BACK, if the build ever needs pulling: Settings > Pages > Source back to "Deploy from a
-# branch" (main, /). That instantly restores the root index.html, which is a known-good app -- no
-# revert, no rebuild, no waiting on CI.
+# TO ROLL BACK A BAD RELEASE: redeploy the PREVIOUS release (owner's decision D7 (a), 13 Nov 2026; audit AUD2-006).
+#   Actions > "Build and deploy" > Run workflow, on main, with "release" set to the version before the bad one
+#   (e.g. v1.12.1). The deploy job then publishes releases/<that version>.html as the site, with a version.json
+#   that matches it, and builds nothing, so it works even when main does not build. Then fix forward on main as
+#   usual; the next push deploys main again. Reverting the bad commit on main and pushing is the other way back.
+#   The release must be v1.4.1 or later (the first with the install gate), and the workflow checks the file is
+#   the version it says. A calendar SAVED with the bad release can lose that release's newest settings when the
+#   older one saves it (a newer file into an older app is not supported), so keep a rollback short.
+# ⛔ NEVER roll back by switching Settings > Pages > Source to "Deploy from a branch". That serves the root
+#   index.html, the v1.2.0 legacy app: it does not know the Region (every Production wrap date moves), has no
+#   install gate, no Content-Security-Policy and no snapshot sanitizer, and its Save drops every setting since
+#   v1.2.0 and every scenario but one, permanently (audit AUD2-006, measured). It was this file's documented
+#   rollback until 13 Nov 2026.
 
 name: Build and deploy
 
@@ -36,6 +46,10 @@ on:
         description: 'Re-deploy the current main without a code change'
         type: boolean
         default: false
+      release:
+        description: 'EMERGENCY ROLLBACK ONLY: publish this stored release instead of main (e.g. v1.12.1). Leave empty otherwise.'
+        type: string
+        default: ''
 
 permissions:
   contents: read
@@ -97,7 +111,14 @@ jobs:
     # ⛔ AUDIT N-7: MAIN ONLY. `on.push` is already limited to main, but a manual "Run workflow" can
     # target ANY branch, and with deploy ticked it published that branch to the live site. The ref
     # test closes that door; a re-deploy still works by dispatching on main.
-    if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.deploy))
+    # ⭐ ROLLBACK (D7 (a), 13 Nov 2026): a dispatch with `release` set publishes that stored release and does NOT wait on
+    # the build of main succeeding (always()), because a rollback must work when main is what broke. A push and a plain
+    # re-deploy still need the build to have passed, as before.
+    if: >-
+      always() && github.ref == 'refs/heads/main' && (
+        (github.event_name == 'push' && needs.build.result == 'success') ||
+        (github.event_name == 'workflow_dispatch' && inputs.deploy && inputs.release == '' && needs.build.result == 'success') ||
+        (github.event_name == 'workflow_dispatch' && inputs.release != ''))
     needs: build
     runs-on: ubuntu-latest
     permissions:
@@ -106,28 +127,54 @@ jobs:
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
+    env:
+      # The rollback's release, '' for every normal deploy (a push has no inputs). Read from here and never
+      # interpolated into a script, so the typed text cannot run as shell.
+      RELEASE: ${{ github.event_name == 'workflow_dispatch' && inputs.release || '' }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        if: env.RELEASE == ''
         with:
           node-version: '22'
           cache: 'npm'
 
       - name: Install
+        if: env.RELEASE == ''
         run: npm ci
 
       - name: Build
+        if: env.RELEASE == ''
         run: npm run build
 
       - name: Check the build
+        if: env.RELEASE == ''
         run: npm run check
 
-      - name: Include version.json beside the app
-        # The app polls version.json relative to itself to spot a new deploy. It lives at the repo
-        # root, not in dist/, so the build output alone would 404 that poll and the update banner
-        # would never fire. Copy it in rather than moving it -- the legacy root app polls it too.
-        run: cp version.json dist/version.json
+      # (No "Include version.json" step any more: since 19 Nov 2026 the build writes dist/version.json itself, with the
+      # build stamp the update bar compares (tools/build-stamp.mjs). Copying the root version.json over it would drop
+      # that stamp, and the bar would again show only on a version cut. `npm run check` above holds the two together.)
+
+      - name: ROLLBACK -- publish a stored release instead of main
+        # dist/ is built here from releases/<release>.html: the release copy, byte-identical to that version's build
+        # (CLAUDE.md's version cut), as index.html, and a version.json naming it, so the update check agrees with the
+        # page. Refused unless the name is a version, the file exists, it states that version, and it has the
+        # install gate (v1.4.1 on). Nothing is built, so a main that will not build cannot block it.
+        if: env.RELEASE != ''
+        run: |
+          set -eu
+          if ! printf '%s' "$RELEASE" | grep -Eq '^v[0-9]+\.[0-9]+\.[0-9]+$'; then
+            echo "::error::release must look like v1.12.1, got: $RELEASE"; exit 1
+          fi
+          FILE="releases/$RELEASE.html"; VER="${RELEASE#v}"
+          [ -f "$FILE" ] || { echo "::error::no $FILE in the repo"; exit 1; }
+          grep -q "\`$VER\`" "$FILE" || { echo "::error::$FILE does not state version $VER"; exit 1; }
+          grep -q 'app-gate' "$FILE" || { echo "::error::$FILE has no install gate; roll back only to v1.4.1 or later"; exit 1; }
+          rm -rf dist && mkdir dist
+          cp "$FILE" dist/index.html
+          printf '{ "version": "%s" }\n' "$VER" > dist/version.json
+          echo "Rolling the live site back to $RELEASE ($(wc -c < dist/index.html) bytes)."
 
       - name: Setup Pages
         # Fails if Pages Source is still "Deploy from a branch". That failure is the guard: it
@@ -142,3 +189,16 @@ jobs:
       - name: Deploy
         id: deployment
         uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5.0.1
+
+      # ⭐ CLOUDFLARE PAGES: sptcal.pages.dev, behind a Cloudflare Access sign-in (CLOUDFLARE-ACCESS-PLAN.md, owner,
+      # 18 Nov 2026). The SAME checked dist/ (or the same rollback copy) goes to both hosts for the switch-over window;
+      # the build tells them apart by host and shows "SPTCal has moved" on the old one. After the window the GitHub
+      # Pages steps above are removed (plan Phase E) and this is the only publish. AFTER the Pages deploy on purpose:
+      # while users are still on the old address, a Cloudflare failure must not hold back their release.
+      # The two secrets are the owner's (a token with ONLY Account > Cloudflare Pages > Edit; it expires 18 Nov 2028,
+      # renew it before then) and are never printed. wrangler is pinned to an exact version, as the actions are by SHA.
+      - name: Publish to Cloudflare Pages (sptcal.pages.dev)
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: npx --yes wrangler@3.114.17 pages deploy dist --project-name=sptcal --branch=main --commit-dirty=true

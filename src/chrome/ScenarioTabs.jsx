@@ -3,6 +3,13 @@
 // flip to it, double-click to rename, right-click (or the ▾ on the tab on screen) for its menu, drag to reorder.
 // "+" duplicates the tab on screen; with one scenario the strip holds nothing but "+ Scenario".
 //
+// ⭐ TABS THAT DO NOT FIT (audit AUD2-060, 14 Nov 2026). The tabs scroll sideways with no scrollbar, so with 10-20
+// scenarios most were out of sight (at 1,600 px, 7 of 20) with nothing to say so or reach them but a wheel. Now, only
+// while some tab is cut off: the strip FADES the edge it cuts at, and a list button right after the tabs ("All
+// scenarios") names every scenario in tab order, the one on screen ticked; a click there switches to it, and its tab
+// scrolls into view clear of the fade. Excel's sheet list, as the finding recommends. With every tab in view (2 or 3
+// scenarios on most screens) neither shows, so the strip is exactly as it was.
+//
 // The engine owns the tabs (scenarioTabs in app.js) and pushes them here through the bridge; every action goes back
 // as a 'sptcal-scenario' DOM event, the way the zoom control hands back its zoom. So this holds no tab state of its
 // own beyond what is being typed or dragged.
@@ -43,11 +50,13 @@ function bandGroups(band) {
   if (v.loc) groups.push({ label: 'Location', items: [val('loc', v.loc)] })
   // The label names the unit, so the value is the bare count: "Episodes 8", "Blocks 5".
   if (v.count) groups.push({ label: v.count.unit === 'block' ? 'Blocks' : 'Episodes', items: [val('count', String(v.count.n))] })
-  const wr = [v.wrOpen && val('wrOpen', fmt(v.wrOpen)), v.wrWeeks != null && val('wrWeeks', plural(v.wrWeeks, 'wk'))].filter(Boolean)
+  const wr = [v.wrOpen && val('wrOpen', fmt(v.wrOpen, band.dayFirst)), v.wrWeeks != null && val('wrWeeks', plural(v.wrWeeks, 'wk'))].filter(Boolean)
   if (wr.length) groups.push({ label: labels.wr || 'Writer’s Rm', items: wr })
-  const pr = [v.first && val('first', fmt(v.first)), v.span != null && val('span', plural(v.span, 'wk'))].filter(Boolean)
+  const pr = [v.first && val('first', fmt(v.first, band.dayFirst)), v.span != null && val('span', plural(v.span, 'wk'))].filter(Boolean)
   if (pr.length) groups.push({ label: labels.prod || 'Production', items: pr })
-  if (v.wrap) groups.push({ label: 'Wrap', items: [val('wrap', fmt(v.wrap))] })
+  if (v.wrap) groups.push({ label: 'Wrap', items: [val('wrap', fmt(v.wrap, band.dayFirst))] })
+  // The Version as the header prints it, while the tab on screen has one (owner, 18 Nov 2026, with the offer below).
+  if (v.ver) groups.push({ label: 'Version', items: [val('ver', v.ver)] })
   return groups
 }
 // Writes the band's room, only when it changed: a style write on <html> is a mutation the grid fit observes.
@@ -126,6 +135,24 @@ function IconCaret(props) {
     </svg>
   )
 }
+function IconList(props) {
+  return (
+    <svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="1.6"
+         strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" focusable="false" {...props}>
+      <path d="M6 4h7.5M6 8h7.5M6 12h7.5" /><path d="M2.75 4h.01M2.75 8h.01M2.75 12h.01" strokeWidth="2.2" />
+    </svg>
+  )
+}
+function IconCheck(props) {
+  return (
+    <svg viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="1.9"
+         strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" focusable="false" {...props}>
+      <path d="M3 8.5 6.5 12 13 4.5" />
+    </svg>
+  )
+}
+// How far the cut edge fades (legacy.css .sc-tabs.is-cut-*); a tab scrolled into view keeps clear of it.
+const FADE = 24
 function IconCompare(props) {
   return (
     <svg viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="1.6"
@@ -140,9 +167,29 @@ export function ScenarioTabs() {
   const [editing, setEditing] = useState(null)      // the tab whose name is being typed
   const [menu, setMenu] = useState(null)            // { id, x, y }: the tab menu, opened at a point
   const [drag, setDrag] = useState(null)            // the tab being dragged
+  const [gap, setGap] = useState(null)              // where it would drop: 0 = before the first tab, n = after the last
   const [left, setLeft] = useState(28)
   const [right, setRight] = useState(28)   // the band's right edge: where the calendar ends
+  const [cut, setCut] = useState({ l: false, r: false })   // tabs cut off at the strip's left / right edge
   const stripRef = useRef(null)
+  const listRef = useRef(null)
+  // Which edges cut a tab off, read off the strip as drawn. The same object back when nothing changed, so React skips
+  // the render (this runs after every render and on every scroll and resize of the strip).
+  const measureCut = () => {
+    const el = stripRef.current
+    const l = !!el && el.scrollLeft > 1
+    const r = !!el && el.scrollLeft + el.clientWidth < el.scrollWidth - 1
+    setCut((p) => (p.l === l && p.r === r ? p : { l, r }))
+  }
+  useLayoutEffect(measureCut)
+  const many0 = st.visible && st.tabs.length > 1
+  useEffect(() => {
+    const el = stripRef.current
+    if (!el) return undefined
+    const ro = new ResizeObserver(measureCut)
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [many0])
 
   useLayoutEffect(() => {
     installChrome({ scenarios: (s) => setSt((p) => ({ ...p, ...s })) })
@@ -169,15 +216,22 @@ export function ScenarioTabs() {
   // A fresh copy's name opens ready to type over (the engine asks with a new editSeq).
   useEffect(() => { if (st.edit) setEditing(st.edit) }, [st.editSeq])
 
-  // The tab on screen stays in view when the strip scrolls sideways.
+  // The tab on screen stays in view when the strip scrolls sideways, clear of a faded edge. The strip's own
+  // scrollLeft, never scrollIntoView(), which also scrolls every ancestor (the app shell's window must not scroll).
   useEffect(() => {
-    const el = stripRef.current && stripRef.current.querySelector('.sc-tab.is-current')
-    if (el) el.scrollIntoView({ block: 'nearest', inline: 'nearest' })
-  }, [st.current, st.tabs.length])
+    const s = stripRef.current, el = s && s.querySelector('.sc-tab.is-current')
+    if (!el) return
+    const sr = s.getBoundingClientRect(), r = el.getBoundingClientRect()
+    if (r.left < sr.left + FADE) s.scrollLeft -= sr.left + FADE - r.left
+    else if (r.right > sr.right - FADE) s.scrollLeft += r.right - (sr.right - FADE)
+  // `editing` and the offer too: a fresh copy goes at the far right (duplicateScenario, 19 Nov 2026), and its name box
+  // and "→ v4" open a render AFTER it becomes current, widening it, so a scroll taken only then left "→ v4" under the fade.
+  }, [st.current, st.tabs.length, editing, st.verOffer && st.verOffer.to])
 
   if (!st.visible || !st.tabs.length) return null
   const many = st.tabs.length > 1
   const full = st.tabs.length >= st.max
+  const curName = (st.tabs.find((t) => t.id === st.current) || {}).name || 'this scenario'
 
   if (!many) {
     return (
@@ -200,12 +254,65 @@ export function ScenarioTabs() {
     setEditing(null)
   }
   const menuTab = menu && st.tabs.find((t) => t.id === menu.id)
+  // ⭐ THE DROP MARKER (owner, 19 Nov 2026: "little markers between scenario tabs that appear when you drag ... so you
+  // know where they are going to drop"). The whole strip is the drop target, not each tab, so the 2 px between tabs and
+  // the room after the last one drop too. The slot is the number of tabs whose middle is left of the pointer; a slot
+  // either side of the dragged tab would not move it, so it shows no marker and drops nothing.
+  const from = drag ? st.tabs.findIndex((t) => t.id === drag) : -1
+  const slotAt = (x) => {
+    const els = stripRef.current ? stripRef.current.querySelectorAll('.sc-tab') : []
+    let g = 0
+    els.forEach((el) => { const r = el.getBoundingClientRect(); if (x > r.left + r.width / 2) g++ })
+    return g
+  }
+  const moves = (g) => from >= 0 && g !== null && g !== from && g !== from + 1
+  const endDrag = () => { setDrag(null); setGap(null) }
+  // Drawn as one line, on the tab after the slot, or after the last tab for the far end.
+  const markOf = (i) => !moves(gap) ? '' : gap === i ? ' drop-before' : (gap === st.tabs.length && i === st.tabs.length - 1) ? ' drop-after' : ''
+  // ⭐ THE VERSION ON EVERY TAB (owner, 19 Nov 2026, layout C of mockups/scenario-version-layouts.html): a small badge
+  // after the name, as the header prints it, so a name never has to carry the version. A fresh copy whose Version is a
+  // number also shows "→ v4" (the engine's offer, takeScenarioVerOffer() in app.js), there while its name box is open
+  // too: a press on it must not blur the box first, or the rename's re-render takes the button away mid-click.
+  // A NUMBER badge is a button too (owner, 19 Nov 2026): a click brings "→ v4" back, on that tab, and a second click
+  // puts it away. A text Version kept from before 18 Nov ("Blue") has no next one, so its badge is plain.
+  const badge = (t) => {
+    if (!t.ver) return null
+    if (!/^v\d/.test(t.ver)) return <span className="sc-tab-ver">{t.ver}</span>
+    return (
+      <span className="sc-tab-ver is-btn" role="button" tabIndex={-1} title="Offer the next version"
+            onClick={(e) => { e.stopPropagation(); send({ op: 'verAsk', id: t.id }) }}
+            onDoubleClick={(e) => e.stopPropagation()}>
+        {t.ver}
+      </span>
+    )
+  }
+  const bump = (t) => (st.verOffer && t.id === st.current) ? (
+    <span className="sc-ver-bump" role="button" tabIndex={-1} title={'Make this scenario ' + st.verOffer.to + ', the next version'}
+          onMouseDown={(e) => { e.preventDefault(); e.stopPropagation() }}
+          onClick={(e) => { e.stopPropagation(); send({ op: 'verTake' }) }}>
+      → {st.verOffer.to}
+    </span>
+  ) : null
 
   return (
     <>
     {st.band && <FactsBand band={st.band} left={left} right={right} />}
     <div className="sc-strip" style={{ left }} role="group" aria-label="Scenarios">
-      <div className="sc-tabs" ref={stripRef} role="tablist" aria-label="Scenarios"
+      <div className={'sc-tabs' + (cut.l ? ' is-cut-l' : '') + (cut.r ? ' is-cut-r' : '')} ref={stripRef} role="tablist"
+           aria-label="Scenarios" onScroll={measureCut}
+           onDragOver={(e) => {
+             if (!drag) return
+             e.preventDefault(); e.dataTransfer.dropEffect = 'move'
+             const g = slotAt(e.clientX)
+             if (g !== gap) setGap(g)
+           }}
+           onDragLeave={(e) => { if (!e.currentTarget.contains(e.relatedTarget)) setGap(null) }}
+           onDrop={(e) => {
+             e.preventDefault()
+             const g = slotAt(e.clientX)
+             if (moves(g)) send({ op: 'move', id: drag, to: g > from ? g - 1 : g })
+             endDrag()
+           }}
            onWheel={(e) => { if (e.deltaY && stripRef.current) stripRef.current.scrollLeft += e.deltaY }}>
         {st.tabs.map((t, i) => {
           const on = t.id === st.current
@@ -223,22 +330,23 @@ export function ScenarioTabs() {
                     e.stopPropagation()
                   }}
                   onBlur={(e) => finishRename(e.currentTarget, t.id, true)} />
+                {bump(t)}
               </span>
             )
           }
           return (
             <UnstyledButton key={t.id} role="tab" aria-selected={on}
-              className={'sc-tab' + (on ? ' is-current' : '') + (drag === t.id ? ' is-dragging' : '')}
+              className={'sc-tab' + (on ? ' is-current' : '') + (drag === t.id ? ' is-dragging' : '') + markOf(i)}
               draggable
               onDragStart={(e) => { setDrag(t.id); e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/plain', t.name) }}
-              onDragOver={(e) => { if (drag) { e.preventDefault(); e.dataTransfer.dropEffect = 'move' } }}
-              onDrop={(e) => { e.preventDefault(); if (drag && drag !== t.id) send({ op: 'move', id: drag, to: i }); setDrag(null) }}
-              onDragEnd={() => setDrag(null)}
+              onDragEnd={endDrag}
               onClick={() => { if (!on) send({ op: 'switch', id: t.id }) }}
               onDoubleClick={() => setEditing(t.id)}
               onContextMenu={(e) => { e.preventDefault(); if (!on) send({ op: 'switch', id: t.id }); openMenu(t.id, e.clientX, e.clientY) }}
               title={on ? 'Double-click to rename · right-click for more' : 'Show ' + t.name}>
               <span className="sc-tab-name">{t.name}</span>
+              {badge(t)}
+              {bump(t)}
               {on && (
                 <span className="sc-tab-caret" role="button" aria-label={'More for ' + t.name}
                   onClick={(e) => { e.stopPropagation(); const r = e.currentTarget.getBoundingClientRect(); openMenu(t.id, r.left, r.top) }}>
@@ -249,10 +357,49 @@ export function ScenarioTabs() {
           )
         })}
       </div>
-      <ActionIcon variant="subtle" color="gray" size="sm" radius="md" onClick={() => send({ op: 'add' })} disabled={full}
-                  aria-label="Duplicate this scenario" title={full ? 'A calendar holds at most ' + st.max + ' scenarios' : 'Duplicate this scenario'}>
-        <IconPlus width={12} height={12} />
-      </ActionIcon>
+      {/* Every scenario, while some tab is cut off (AUD2-060). Upward, like the tab menu: the strip is at the bottom. */}
+      {(cut.l || cut.r) && (
+        <Menu position="top-end" withinPortal={false} width={260} closeOnItemClick returnFocus={false}
+              onOpen={() => {
+                // The one on screen in view in a long list: the dropdown's own scrollTop, as the strip's above. The
+                // dropdown mounts through its opening transition, so wait for it (a few tries, then give up).
+                const centre = (n) => {
+                  const box = listRef.current, on = box && box.querySelector('.sc-list-item[aria-current="true"]')
+                  if (on) box.scrollTop = Math.max(0, on.offsetTop - (box.clientHeight - on.offsetHeight) / 2)
+                  else if (n < 10) setTimeout(() => centre(n + 1), 30)
+                }
+                setTimeout(() => centre(0), 0)
+              }}>
+          <Menu.Target>
+            <ActionIcon variant="subtle" color="gray" size="sm" radius="md" aria-label="All scenarios" title="All scenarios">
+              <IconList />
+            </ActionIcon>
+          </Menu.Target>
+          <Menu.Dropdown ref={listRef} className="sc-list">
+            <Menu.Label>{st.tabs.length} scenarios</Menu.Label>
+            {st.tabs.map((t) => {
+              const on = t.id === st.current
+              return (
+                <Menu.Item key={t.id} className="sc-list-item" aria-current={on ? 'true' : undefined}
+                           leftSection={<span className="sc-list-tick">{on && <IconCheck />}</span>}
+                           onClick={() => { if (!on) send({ op: 'switch', id: t.id }) }}>
+                  <span className="sc-list-name">{t.name}</span>
+                </Menu.Item>
+              )
+            })}
+          </Menu.Dropdown>
+        </Menu>
+      )}
+      {/* ⭐ The button SAYS which tab it copies (owner, 19 Nov 2026: "Yes, add the name", then "i thought the button was
+          going to dynamically change and have text, not just a hover text"): "+ Duplicate Scenario B", the tab on
+          screen, following every switch and rename. The copy goes at the far right, away from its source, so the
+          name says which one before the click. A long name is cut with "…" (.sc-add-name); the tooltip keeps it whole.
+          The aria-label stays "Duplicate this scenario": legs find the button by it. */}
+      <Button variant="subtle" color="gray" size="compact-xs" className="sc-add" leftSection={<IconPlus width={11} height={11} />}
+              onClick={() => send({ op: 'add' })} disabled={full} aria-label="Duplicate this scenario"
+              title={full ? 'A calendar holds at most ' + st.max + ' scenarios' : 'Duplicate ' + curName}>
+        Duplicate&nbsp;<span className="sc-add-name">{curName}</span>
+      </Button>
       <Button variant="default" size="compact-xs" leftSection={<IconCompare />} onClick={() => send({ op: 'compare' })}>
         Compare
       </Button>

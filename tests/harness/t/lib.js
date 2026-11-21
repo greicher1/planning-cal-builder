@@ -8,6 +8,42 @@
 // ⚠️ If the chrome is ever migrated to React/Mantine, `el.value = v` + a dispatched event stops
 // working -- React ignores it -- and every test here would quietly assert against a blank
 // calendar. Fix this file (native value setter) BEFORE porting anything, not after.
+// ⭐ THE HIATUS RIPPLE IS OFF IN EVERY LEG BUT ITS OWN (HIATUS-RIPPLE-PLAN.md §8). It is ON by default for users (owner
+// ruling R1, 4 Nov 2026), and with it on a hiatus edit that settles moves the phases after it. The legs that edit a
+// hiatus through the UI were written for a hiatus that only pauses, so they keep testing that. Written before the app
+// reads its preferences: this script is inline at the end of <body>, the build's app a deferred module. t/hiatusripple.js
+// deletes the key again at its top, which also runs before the app, so it tests the users' default.
+(function(){
+  try {
+    var o = JSON.parse(localStorage.getItem('sptcal.prefs') || '{}') || {};
+    o.hiatusRipple = false;
+    localStorage.setItem('sptcal.prefs', JSON.stringify(o));
+  } catch(e){}
+})();
+// ⭐ A NEW NOTE IS A NOTE OF ITS WEEK (OR DAY) IN EVERY LEG BUT THOSE THAT TEST THE DEFAULT. Since 19 Nov 2026 (owner: "New
+// default, notes should stay with their specifc phase week") a note editor opened on a NEW note starts "Stays with" on the
+// row's first phase; the app marks that row's select `data-new-note`. The legs written before were written for a note of
+// the week / day, so this picks "Week of …" / "This day" the moment such an editor opens -- what a user now does for one.
+// A leg that tests the default (t/notephase.js, t/phasemonth.js) sets window.__keepNewNoteDefault = true at its top. Paste
+// has no such choice: legs that paste were re-expected one by one.
+(function(){
+  try {
+    new MutationObserver(function(){
+      if(window.__keepNewNoteDefault) return;
+      var sel = document.querySelector('select.note-link-select[data-new-note]:not([data-harness-week])');
+      if(!sel) return;
+      sel.setAttribute('data-harness-week', '');
+      if(sel.value){ sel.value = ''; sel.dispatchEvent(new Event('change', {bubbles: true})); }
+    }).observe(document.documentElement, {childList: true, subtree: true});
+  } catch(e){}
+})();
+// ⭐ POST'S "FINAL DELIVERY" STARTS OFF IN EVERY LEG BUT ITS OWN. A NEW calendar starts with it ticked for users
+// (owner, 19 Nov 2026), and every leg builds on a new calendar: the reference calendar (buildFixture) and the baselines
+// cut from it were cut without that note in Post's last week. The app reads this localhost-only key at the boot and at
+// New (newCalendarAutoNotesOn); t/finaldelivery.js removes it at its top, before the app, so it tests the users' default.
+(function(){
+  try { localStorage.setItem('sptcal.finalDeliveryTest', 'off'); } catch(e){}
+})();
 window.__T = (function(){
   // ⚠️ NATIVE SETTER, not `e.value = v`.
   // React installs its own `value` setter on the input prototype and tracks the last value it
@@ -40,17 +76,39 @@ window.__T = (function(){
   //    inside the app would have hidden exactly that.
   //  - modalText() leaves the dialog out while in this mode, for the moment between its opening and the click.
   //  - t/pdfdialog.js takes it over ('manual') to drive it the way a user does.
-  var pdfDialogMode = 'auto', pdfDialogAnswered = 0;
+  //  - ⭐ T.pdfDialogPick(['dashed', 'tabloid']) (11 Nov 2026): the NEXT dialog answered in 'auto' clicks those segments
+  //    first, then Export. Since the owner removed Paper and Grid Lines in Exports from Preferences, the dialog is
+  //    the only place a user picks either, so a leg that needs a paper or a grid-lines preference goes through it.
+  //    T.pdfDialog() also reports what the last answered dialog OPENED on (`opened`) and its segments (`values`).
+  var pdfDialogMode = 'auto', pdfDialogAnswered = 0, pdfDialogPicks = null, pdfDialogLast = null;
+  function pdfDialogRadios(){ return Array.prototype.slice.call(document.querySelectorAll('.export-pdf-dlg input[type="radio"]')); }
   function answerPdfDialog(){
     if(pdfDialogMode !== 'auto') return;
     var b = document.querySelector('.export-pdf-dlg [data-pdfdlg="export"]');
-    if(b && !b.__tAnswered){ b.__tAnswered = true; pdfDialogAnswered++; b.click(); }
+    if(!b || b.__tAnswered) return;
+    b.__tAnswered = true; pdfDialogAnswered++;
+    var rs = pdfDialogRadios();
+    pdfDialogLast = { values: rs.map(function(i){ return i.value; }),
+                      opened: rs.filter(function(i){ return i.checked; }).map(function(i){ return i.value; }) };
+    var picks = pdfDialogPicks; pdfDialogPicks = null;
+    if(!picks || !picks.length){ b.click(); return; }
+    picks.forEach(function(v){
+      var inp = pdfDialogRadios().find(function(i){ return i.value === v; });
+      if(!inp){ (window.__ERR = window.__ERR || []).push('T.pdfDialogPick: no ' + v + ' segment'); return; }
+      var lab = document.querySelector('label[for="' + inp.id + '"]');
+      (lab || inp).click();
+    });
+    setTimeout(function(){
+      var e = document.querySelector('.export-pdf-dlg [data-pdfdlg="export"]');
+      if(e) e.click();
+    }, 300);
   }
   new MutationObserver(answerPdfDialog).observe(document.documentElement, {childList: true, subtree: true});
   function pdfDialog(mode){
     if(mode === 'auto' || mode === 'manual') pdfDialogMode = mode;
-    return { mode: pdfDialogMode, answered: pdfDialogAnswered };
+    return { mode: pdfDialogMode, answered: pdfDialogAnswered, last: pdfDialogLast };
   }
+  function pdfDialogPick(values){ pdfDialogPicks = [].concat(values || []); }
   // Alt+Left / Alt+Right on the document: the column swap's keyboard path. The toolbar's
   // ◀ Swap / Swap ▶ buttons only duplicated it, and they went with owner ruling 2 (30 Sep 2026),
   // so the swap legs press the keys. The engine's handler needs a live selection in the
@@ -63,10 +121,38 @@ window.__T = (function(){
   // ticks, so a leg written against the old buttons keeps asserting the same dates. The popover must be
   // open with its phase and date set. ** RE-QUERY each tick: the list is redrawn on every change. The
   // rebuildticks leg is the one that holds what unticked phases do.
+  // ⚠️ BUILD AROUND (5 Nov 2026, REBUILD-FROM-LENGTHS-PLAN.md): the list holds BOTH sides with the pin in its place,
+  // and it opens with ticks set by a rule (a phase running alongside its neighbour starts unticked). ⛔ There are NO
+  // side buttons since 10 Nov 2026 (owner: Prior to X / After X removed; tool-solve-back / tool-solve-fwd are gone),
+  // so this reaches one side by the boxes alone: it ticks every phase on the chosen side (rows before the pin for
+  // -1, after it for 1) and unticks the other side. Still exactly the old one-sided, every-phase rebuild. The
+  // buildaround leg holds the defaults.
   function rebuildAll(dir){
-    document.getElementById(dir < 0 ? 'tool-solve-back' : 'tool-solve-fwd').click();
-    for(var guard = 0, box; guard < 60 && (box = document.querySelector('#pop-solve .solve-list input[data-key]:not(:checked)')); guard++) box.click();
+    function sideBoxes(want){
+      var rows = Array.prototype.slice.call(document.querySelectorAll('#pop-solve .solve-list .solve-row'));
+      var at = rows.findIndex(function (r) { return r.classList.contains('is-pin'); });
+      return rows.filter(function (r, i) { return at >= 0 && (dir < 0 ? i < at : i > at) === want; })
+        .map(function (r) { return r.querySelector('input[type=checkbox][data-key]'); }).filter(Boolean);
+    }
+    for(var guard = 0, box; guard < 60 && (box = sideBoxes(true).filter(function (b) { return !b.checked; })[0]); guard++) box.click();
+    for(guard = 0; guard < 60 && (box = sideBoxes(false).filter(function (b) { return b.checked; })[0]); guard++) box.click();
     document.getElementById('tool-solve-go').click();
+  }
+  // BUILD AROUND, ONE SIDE OF THE PIN BY THE BOXES ALONE (there are no Prior to / After buttons since 10 Nov 2026):
+  // unticks every ticked phase on the OTHER side. dir -1 keeps the phases before the pin, 1 the ones after it. The
+  // kept side's ticks are left as they are (the starting ticks, or the caller's own). Synchronous: a box's click
+  // redraws the list at once, so every pass re-queries.
+  function solveKeepSide(dir){
+    for(var guard = 0; guard < 60; guard++){
+      var rows = Array.prototype.slice.call(document.querySelectorAll('#pop-solve .solve-list .solve-row'));
+      var at = rows.findIndex(function (r) { return r.classList.contains('is-pin'); }), box = null;
+      rows.forEach(function (r, i) {
+        var b = r.querySelector('input[type=checkbox][data-key]');
+        if(!box && at >= 0 && b && b.checked && (dir < 0 ? i > at : i < at)) box = b;
+      });
+      if(!box) return;
+      box.click();
+    }
   }
   // A realistic 10-episode US-General calendar spanning two year blocks, with every phase dated
   // so the notes column carries milestones AND holidays.
@@ -123,6 +209,11 @@ window.__T = (function(){
     if(!ta) throw new Error('note editor did not open');
     ta.value=text;
     ta.dispatchEvent(new Event('input',{bubbles:true}));
+    // ⭐ A NOTE OF THE WEEK, as this helper always made: since 19 Nov 2026 a new note's "Stays with" opens on the row's
+    // first phase (t/notephase.js holds that default), so the helper picks "Week of …", as a user now does for one. A
+    // week with no phase has no row; a cell already holding a week note opens on it.
+    var lk=document.querySelector('.note-pop .note-link-select');
+    if(lk && lk.value){ lk.value=''; lk.dispatchEvent(new Event('change',{bubbles:true})); }
     // Ctrl+Enter is the explicit commit; a body click relies on an outside-click handler that
     // a synthetic click does not always satisfy.
     ta.dispatchEvent(new KeyboardEvent('keydown',{key:'Enter',ctrlKey:true,bubbles:true}));
@@ -271,11 +362,18 @@ window.__T = (function(){
   // file is opened. That was the first attempt at this fix and it timed out for a reason that
   // looks identical to the bug it was fixing. It is the right probe for base.js, which builds a
   // fixture first; it is the wrong one here.
+  // ⚠️ LATCHED (13 Nov 2026, the loadsparse leg). The hiatus rows are the sign that the engine BOOTED, and a boot
+  // always builds the four default ones. They are not a fact about every calendar: one with no all-phase hiatus has
+  // no row, and openViaFakePicker() calls this before every load, so the load AFTER such a calendar waited out the
+  // whole 20 s and threw. Once the boot has been seen it stays seen.
+  var appBooted = false;
   async function appReady(){
+    if(appBooted) return;
     await until(function(){
       return !!document.getElementById('start-production') &&
              document.querySelectorAll('#hiatus-list .hiatus-entry').length > 0;
     }, 'the engine to build the sidebar (IndexedDB-free; see the note above)', 200, 100);
+    appBooted = true;
   }
   // opts (optional, added 25 Sep 2026 for the audit-fix legs):
   //   opts.writes -- an array. The handle then gets a createWritable() that RECORDS every write as
@@ -293,7 +391,9 @@ window.__T = (function(){
   async function openViaFakePicker(url, name, opts){
     opts = opts || {};
     var txt = (typeof opts.text === 'string') ? opts.text : await (await fetch(url)).text();
-    var mtime = Date.now() - 60000;
+    // opts.mtime (9 Nov 2026, the lastedited leg): the file's last-modified time, which a file with no Date Last
+    // Edited stamp stands in with. Default: a minute ago, as before.
+    var mtime = (typeof opts.mtime === 'number') ? opts.mtime : Date.now() - 60000;
     var called = false;
     var handle = {
       name: name,
@@ -394,7 +494,56 @@ window.__T = (function(){
   // BEFORE the engine boots -- and idbOpen() re-opens the database on every call, so everything after
   // boot goes through the fake. Values are stored by reference (no structured clone), which is what
   // lets a fake FileSystemFileHandle (an object with functions) sit in the recents list.
+  //
+  // ⚠️ IT FAKES navigator.locks TOO (14 Nov 2026, audit AUD2-074). The
+  // engine now tells an OPEN window's crash backup from a closed one by Web Locks (liveBackupSlots), and asks
+  // navigator.locks.query() before it offers, lists or retires any backup. That query is a real round trip to the
+  // browser process, and --virtual-time-budget does not wait for one: a leg polling for the recovery question with
+  // virtual sleeps could run out of polls before the answer came back (backuplink did, the one time it ran so). The fake answers
+  // on a microtask, as this IndexedDB does, so every leg that seeds a backup stays deterministic. It is one page's
+  // LockManager: a leg plays "another open window" by requesting that window's slot name itself before boot.
+  // ⛔ Never the real API under run.sh. Tried (backuplive, 14 Nov 2026): a leg that awaits the real query has, for that
+  // moment, no timer of its own pending, so virtual time jumps straight to the engine's next one (autosave, 10
+  // minutes) and the whole budget is gone: "exited after 1.6s wall-clock", no result, one run in four. The real API is
+  // proved over CDP in real time instead, by backuptwowin.mjs (two windows of one profile). memoryLocks() alone is
+  // exported for a leg that fakes IndexedDB its own way (backupblocked).
+  function memoryLocks(){
+    var held = {}, waiting = {};
+    function grant(name, cb, resolve, reject){
+      held[name] = true;
+      Promise.resolve().then(function(){ return cb({name: name, mode: 'exclusive'}); })
+        .then(function(v){ release(name); resolve(v); }, function(e){ release(name); reject(e); });
+    }
+    function release(name){
+      delete held[name];
+      var q = waiting[name];
+      if(q && q.length){ var next = q.shift(); grant(name, next.cb, next.resolve, next.reject); }
+    }
+    var fake = {
+      request: function(name, opts, cb){
+        if(typeof opts === 'function'){ cb = opts; opts = {}; }
+        opts = opts || {};
+        return new Promise(function(resolve, reject){
+          Promise.resolve().then(function(){
+            if(!held[name]) grant(name, cb, resolve, reject);
+            else if(opts.ifAvailable) Promise.resolve().then(function(){ return cb(null); }).then(resolve, reject);
+            else (waiting[name] = waiting[name] || []).push({cb: cb, resolve: resolve, reject: reject});
+          });
+        });
+      },
+      query: function(){
+        return Promise.resolve({
+          held: Object.keys(held).map(function(n){ return {name: n, mode: 'exclusive', clientId: 'harness'}; }),
+          pending: Object.keys(waiting).reduce(function(a, n){ return a.concat(waiting[n].map(function(){ return {name: n, mode: 'exclusive', clientId: 'harness'}; })); }, [])
+        });
+      }
+    };
+    try { Object.defineProperty(navigator, 'locks', {configurable: true, get: function(){ return fake; }}); }
+    catch(e){ window.__MEMLOCKS_FAILED = String(e); }
+    return fake;
+  }
   function memoryIDB(){
+    memoryLocks();
     var dbs = {};
     function later(fn){ Promise.resolve().then(fn); }
     function request(){ return {result: undefined, error: null, onsuccess: null, onerror: null, onupgradeneeded: null}; }
@@ -577,6 +726,75 @@ window.__T = (function(){
     return {writer: u8.subarray(0, end), mark: {prev: +prev[1], trailer: tr[1].trim(), info: infoDict,
             creator: str(infoDict, 'Creator'), producer: str(infoDict, 'Producer'), pages: pages, bytes: u8.length - end}};
   }
+  // ⭐ EVERY STREAM OF A PDF, CUT AT ITS OWN /Length (5 Nov 2026). The one stream reader for the legs that read a
+  // PDF's text: pdfStreams(u8) -> [{at, dict, bytes, byLength, flate, text}], `text` the stream inflated (UTF-8,
+  // as every leg's copy read it) or null when it is not Flate or did not inflate; pdfInflated(u8) -> the texts
+  // that did inflate, in file order; pdfRuns(u8) -> every "(text) Tj" literal in them, escapes undone ("\(" -> "(").
+  // ⛔ NEVER TRIM THE EOL BEFORE `endstream` INSTEAD. Chrome's DecompressionStream rejects any byte after the
+  // compressed data, so the copies these replaced found `endstream` and stripped trailing 0x0A / 0x0D bytes. But
+  // compressed data can END in 0x0A or 0x0D itself, and stripping that byte truncates it: inflation throws (as
+  // "TypeError: Failed to fetch" from Response.text()), the copy's catch swallowed it, and the leg saw no text at
+  // all. Found twice: hiatuslabel N1-2 (23 Oct 2026, a header date of 10.23.26), then phiatusnum H4 (5 Nov 2026,
+  // red on v1.11.0 because the layout rules' widths made page 1's content stream /Length 1466 end in an EOL byte;
+  // the PDF was valid, pdftotext read every run). Twelve legs carried the trimming copy, so any of them could go
+  // red the same way whenever a PDF's bytes moved.
+  // The cut: `/Length N`, a DIRECT integer in the stream's own dictionary (the text from its "<n> <g> obj" to the
+  // `stream` keyword; never /Length1, a font program's raw length, and never "/Length 12 0 R", an indirect one),
+  // then N bytes after the keyword's EOL, accepted only when `endstream` follows them (after an optional EOL).
+  // Anything else (no direct length, or a length that does not land on `endstream`) falls back to the old trim,
+  // which is right whenever the data does not end in an EOL byte. Reading by length also STEPS OVER the data, so a
+  // binary stream can no longer be mistaken for a `stream` keyword, and `endstream` is no longer one either.
+  // ⚠️ A /FlateDecode stream cut at a verified length that still fails to inflate THROWS, never skips: a reader
+  // that silently returns nothing is how this bug read as "no such text" for a day. A trimmed fallback that fails
+  // is skipped, as before, since the trim itself may be what broke it.
+  // The SPTCal mark (pdfUnmark above) adds its own streams after the writer's %%EOF: `<< /Length N >>`, no filter,
+  // so they are cut by length and left uninflated (`text` null), exactly as the copies left them.
+  async function pdfStreams(u8){
+    var s = '';
+    for(var i = 0; i < u8.length; i += 0x8000) s += String.fromCharCode.apply(null, u8.subarray(i, i + 0x8000));
+    var out = [], re = /stream(\r\n|\n)/g, m;
+    while((m = re.exec(s))){
+      if(s.slice(m.index - 3, m.index) === 'end') continue;          // the `endstream` keyword, not a stream
+      var st = m.index + m[0].length;
+      var objAt = s.lastIndexOf(' obj', m.index), dict = objAt >= 0 ? s.slice(objAt + 4, m.index) : '';
+      // (?![\d.]) first, or the digits would backtrack out of the indirect test ("12 0 R" read as 1).
+      var lm = /\/Length\s+(\d+)(?![\d.])(?!\s+\d+\s+R)/.exec(dict), en = -1, byLength = false;
+      if(lm){
+        var cut = st + parseInt(lm[1], 10), k = cut;
+        if(s.charCodeAt(k) === 13) k++;
+        if(s.charCodeAt(k) === 10) k++;
+        if(cut <= u8.length && s.startsWith('endstream', k)){ en = cut; byLength = true; }
+      }
+      if(!byLength){
+        en = s.indexOf('endstream', st);
+        if(en < 0) continue;
+        while(en > st && (u8[en - 1] === 10 || u8[en - 1] === 13)) en--;
+      }
+      var bytes = u8.subarray(st, en), flate = /\/FlateDecode\b/.test(dict) || !lm, text = null;
+      if(flate){
+        try {
+          text = await new Response(new Blob([bytes]).stream().pipeThrough(new DecompressionStream('deflate'))).text();
+        } catch(e){
+          if(byLength && /\/FlateDecode\b/.test(dict))
+            throw new Error('pdfStreams: the /FlateDecode stream at byte ' + st + ' (/Length ' + lm[1] + ') did not inflate: ' + (e && e.message || e));
+        }
+      }
+      out.push({at: st, dict: dict.trim(), bytes: bytes, byLength: byLength, flate: flate, text: text});
+      re.lastIndex = en;                                             // step over the data
+    }
+    return out;
+  }
+  async function pdfInflated(u8){
+    return (await pdfStreams(u8)).filter(function(x){ return x.text !== null; }).map(function(x){ return x.text; });
+  }
+  async function pdfRuns(u8){
+    var runs = [];
+    (await pdfInflated(u8)).forEach(function(t){
+      var tj = /\(((?:\\.|[^\\)])*)\) Tj/g, x;
+      while((x = tj.exec(t))) runs.push(x[1].replace(/\\(.)/g, '$1'));
+    });
+    return runs;
+  }
   // ⭐ THE SETTINGS WINDOW (owner ruling 12, 20 Oct 2026) is what the sidebar's Settings TAB used to
   // be: Region and holidays, the preferences, the header presets, Export App With Data. Its tabs are
   // 'prefs' | 'region' | 'presets' (Mantine derives the tab ids from #settings-tabs). 'calendar' is still
@@ -641,13 +859,15 @@ window.__T = (function(){
     return el.getClientRects().length > 0;
   }
   // ⭐ THE PHASE BAR SIZE (MONTH-BAR-SIZE-PLAN.md step 3). `?barsize=large|xl` (HARNESS_QUERY) puts the calendar on
-  // screen at that size, through the control's own radio, exactly as a click picks it (one undo step, the file
-  // dirtied), so the month legs can run any calendar at a size without a fixture per size. Returns the size set, or ''
+  // screen at that size (a dropdown pick until 18 Nov 2026; the loaded file since, below), so the month legs can run any
+  // calendar at a size without a fixture per size. Returns the size set, or ''
   // when the query names none. A leg that builds the writer's model passes barSizeShown(), the size on screen, which
   // is also a sized FIXTURE's size: the size is read off <body>'s class, as legacy.css's rules read it.
-  // ?barsize=11|large|13|xl (or 12 / 14 for large / xl) picks the phase bar size through its dropdown,
-  // #pref-mv-barsize, as a user picks it (MONTH-NOTE-SIZE-PLAN.md §1a: a dropdown since 2 Nov 2026, Standard /
-  // Large / Extra large segments before). ?notesize=11-14 picks the note size through #pref-mv-notesize.
+  // ⚠️ SINCE 18 Nov 2026 (owner: one Size, Standard / Large / Extra Large, for bars AND notes, #pref-mv-size) no control
+  // sets the bar size or the note size alone, so ?barsize=11|12|13|14|large|xl and ?notesize=11-14 are written into the
+  // ?state= fixture by tests/harness/srv.js, and the calendar OPENS at that size, as one saved there does (its Size
+  // reads Custom unless the pair is one of the three). These wait for the size to be drawn and return it. A leg that
+  // must pick the size as a user does picks #pref-mv-size with pickSelect (mvbarsize, mvnotesize).
   async function pickSelect(id, value, label){
     var sel = document.getElementById(id);
     if(!sel) throw new Error('no #' + id);
@@ -657,11 +877,14 @@ window.__T = (function(){
     await sleep(300);
     return label;
   }
+  function needsState(q){
+    if(!/[?&]state=/.test(location.search)) throw new Error('?' + q + ' needs a ?state= fixture since 18 Nov 2026 (srv.js writes the size into it)');
+  }
   async function applyBarSizeQuery(){
     var q = (/[?&]barsize=(11|12|13|14|large|xl)\b/.exec(location.search) || [])[1] || '';
     if(!q) return '';
+    needsState('barsize');
     q = q === '12' ? 'large' : q === '14' ? 'xl' : q;
-    await pickSelect('pref-mv-barsize', q, q);
     await until(function(){ return document.body.classList.contains('mv-bar-' + q); }, 'the ' + q + ' bar size', 50, 100);
     await sleep(300);
     return q;
@@ -669,7 +892,7 @@ window.__T = (function(){
   async function applyNoteSizeQuery(){
     var q = (/[?&]notesize=(11|12|13|14)\b/.exec(location.search) || [])[1] || '';
     if(!q) return '';
-    await pickSelect('pref-mv-notesize', q, q);
+    needsState('notesize');
     await until(function(){ return document.body.classList.contains('mv-note-sized'); }, 'the ' + q + ' px note size', 50, 100);
     await sleep(300);
     return q;
@@ -678,20 +901,107 @@ window.__T = (function(){
     var c = document.body.classList;
     return c.contains('mv-bar-xl') ? 'xl' : c.contains('mv-bar-13') ? '13' : c.contains('mv-bar-large') ? 'large' : c.contains('mv-bar-11') ? '11' : '';
   }
+  // The Size dropdown's own value: 'standard', 'large', 'xl', or 'custom' (a saved pair the three do not name).
   function noteSizeShown(){
-    var n = document.getElementById('pref-mv-notesize');
+    var n = document.getElementById('pref-mv-size');
     return n ? n.value : '';
   }
+  // ⭐ THE SHIFT BOX (the list first, 9 Nov 2026; ANCHOR-TO-DIRECTION-PLAN.md §7.6). The What moves buttons are gone:
+  // a leg says what moves through the LIST, as a user does. These press with real pointer events, the path the mouse
+  // takes (the list's pointerdown); a dispatched `click` only reaches its tap path. The box must be open: the rows
+  // are found by their place on the page.
+  //   shiftRow(key)                 the phase's row (throws when it has none)
+  //   shiftPress(key, where)        press and release: 'row' (its name: chooses the row, no tick changes; the default)
+  //                                 or 'box' (its tick box: flips the tick)
+  //   shiftDrag(from, to, where)    press on `from`, drag over each row in `to` (a key, or keys in order), release
+  //   shiftSide('prior'|'after', key)  choose the row, then press "Prior to X" / "After X": what Phase & before /
+  //                                 Phase & after on that phase used to set
+  // ⭐ BUILD AROUND'S LIST is pressed the same way since 10 Nov 2026 (it took Shift's look and feel): solveRow /
+  // solvePress / solveDrag are these helpers on #pop-solve. There a press on the row itself PINS the phase.
+  var listSel = '#pop-shift [data-shift-list]';
+  function onList(sel, fn){ var was = listSel; listSel = sel; try { return fn(); } finally { listSel = was; } }
+  function shiftRow(key){
+    var rows = document.querySelectorAll(listSel + ' .solve-row[data-key]');
+    for(var i = 0; i < rows.length; i++) if(rows[i].dataset.key === key) return rows[i];
+    throw new Error('no row for ' + key + ' in ' + listSel);
+  }
+  function shiftPoint(key, where){
+    var row = shiftRow(key), el = where === 'box' ? row.querySelector('input[type=checkbox]') : row.querySelector('.solve-nm');
+    if(!el) throw new Error('no ' + where + ' in the row for ' + key);
+    var r = el.getBoundingClientRect();
+    if(!r.height) throw new Error('the box is not open (' + listSel + ')');
+    return {el: el, x: r.left + r.width / 2, y: r.top + r.height / 2};
+  }
+  function shiftPointer(type, target, x, y){
+    target.dispatchEvent(new PointerEvent(type, {bubbles: true, cancelable: true, button: 0, buttons: type === 'pointerup' ? 0 : 1,
+      pointerId: 1, pointerType: 'mouse', isPrimary: true, clientX: x, clientY: y}));
+  }
+  function pressNow(key, where){
+    var p = shiftPoint(key, where || 'row');
+    shiftPointer('pointerdown', p.el, p.x, p.y); shiftPointer('pointerup', document, p.x, p.y);
+  }
+  function dragNow(from, to, where){
+    var a = shiftPoint(from, where || 'row'), last = a;
+    shiftPointer('pointerdown', a.el, a.x, a.y);
+    // Each point is read AFTER the step before it: the list is redrawn as the drag goes.
+    (Array.isArray(to) ? to : [to]).forEach(function(k){ last = shiftPoint(k, 'row'); shiftPointer('pointermove', document, last.x, last.y); });
+    shiftPointer('pointerup', document, last.x, last.y);
+  }
+  async function shiftPress(key, where){ pressNow(key, where); await sleep(80); }
+  async function shiftDrag(from, to, where){ dragNow(from, to, where); await sleep(80); }
+  var SOLVE_LIST = '#pop-solve [data-solve-list]';
+  function solveRow(key){ return onList(SOLVE_LIST, function(){ return shiftRow(key); }); }
+  // A press on a Build Around row pins it (the dropdown's own change redraws the list, which runs the solvers), so
+  // these wait longer than Shift's.
+  async function solvePress(key, where){ onList(SOLVE_LIST, function(){ pressNow(key, where); }); await sleep(450); }
+  async function solveDrag(from, to, where){ onList(SOLVE_LIST, function(){ dragNow(from, to, where); }); await sleep(450); }
+  async function shiftSide(side, key){
+    await shiftPress(key, 'row');
+    var b = document.querySelector('#pop-shift ' + (side === 'prior' ? '[data-shift-prior]' : '[data-shift-after]'));
+    if(!b) throw new Error('no ' + side + ' button in the Shift box');
+    b.click();
+    await sleep(120);
+  }
+  // closePops(): close every open tool panel (Shift, Build Around) and any menu that closes on a click outside.
+  // ⚠️ From 11 Nov 2026 a tool panel did NOT close on a click outside it (owner: "keep it open"), so a leg's old
+  // `document.body.click()` left it up, and the next press of its button then CLOSED it instead of opening it. Since
+  // 16 Nov 2026 a click outside closes it again UNLESS it has been dragged, so the ✕ is still the one sure way: press
+  // each open panel's ✕; the page click stays for everything else.
+  function closePops(){
+    document.querySelectorAll('.tools-menu.open [data-tools-close]').forEach(function(b){ b.click(); });
+    document.body.click();
+  }
   function done(o){ scrubSurrogates(); document.getElementById('R').textContent=JSON.stringify(o); }
-  return {set:set,sleep:sleep,buildFixture:buildFixture,showHolidaysInSheet:showHolidaysInSheet,
+  // ⭐ SHOW INFO'S FIELD-ORDER ERA (20 Nov 2026). `368f9e2` (19 Nov 2026, owner: "fields in the order each mode is
+  // filled in") moved Show info's markup to num-blocks, days-per-block, num-episodes, shoot-days-per-ep, and
+  // fields.byId is built in DOCUMENT order, so every Save since writes those four keys in that order. A file saved
+  // before writes shoot-days-per-ep, num-episodes, num-blocks, days-per-block. Same ids, same values; only the key
+  // order moved, and nothing reads that order (applyStateSnapshot sets each value with no event; Date Last Edited
+  // hashes sorted keys). A leg that compares a Save's fields.byId with an older fixture or baseline puts the four in
+  // today's order through this, so every OTHER id still has to be where it was. Takes a fields.byId object or an
+  // array of [id, value] pairs (phasesui's records) and returns the same shape; anything without all four is untouched.
+  var SHOW_INFO_ORDER = ['num-blocks', 'days-per-block', 'num-episodes', 'shoot-days-per-ep'];
+  function showInfoOrderEra(byId){
+    var pairs = Array.isArray(byId) ? byId.slice() : Object.keys(byId || {}).map(function(k){ return [k, byId[k]]; });
+    var at = [];
+    pairs.forEach(function(kv, i){ if(SHOW_INFO_ORDER.indexOf(kv[0]) !== -1) at.push(i); });
+    if(at.length === SHOW_INFO_ORDER.length){
+      var val = {}; at.forEach(function(i){ val[pairs[i][0]] = pairs[i]; });
+      at.forEach(function(i, n){ pairs[i] = val[SHOW_INFO_ORDER[n]]; });
+    }
+    if(Array.isArray(byId)) return pairs;
+    var o = {}; pairs.forEach(function(kv){ o[kv[0]] = kv[1]; }); return o;
+  }
+  return {set:set,sleep:sleep,closePops:closePops,shiftRow:shiftRow,shiftPress:shiftPress,shiftDrag:shiftDrag,shiftSide:shiftSide,
+          solveRow:solveRow,solvePress:solvePress,solveDrag:solveDrag,buildFixture:buildFixture,showHolidaysInSheet:showHolidaysInSheet,
           typeUserNote:typeUserNote,openCell:openCell,addHiatus:addHiatus,openViaFakePicker:openViaFakePicker,
           formSignature:formSignature,appHealth:appHealth,until:until,appReady:appReady,
           clippedCells:clippedCells,gridWidthPt:gridWidthPt,colList:colList,
           gridSignature:gridSignature,captureDownload:captureDownload,captureExport:captureExport,b64:b64,done:done,
-          memoryIDB:memoryIDB,modalText:modalText,clickModalButton:clickModalButton,scrubSurrogates:scrubSurrogates,
-          latestBackup:latestBackup,altSwap:altSwap,monthPrintPath:monthPrintPath,fakeSavePicker:fakeSavePicker,reloadWith:reloadWith,pdfPages:pdfPages,pdfUnmark:pdfUnmark,
+          memoryIDB:memoryIDB,memoryLocks:memoryLocks,modalText:modalText,clickModalButton:clickModalButton,scrubSurrogates:scrubSurrogates,
+          latestBackup:latestBackup,altSwap:altSwap,monthPrintPath:monthPrintPath,fakeSavePicker:fakeSavePicker,reloadWith:reloadWith,pdfPages:pdfPages,pdfUnmark:pdfUnmark,pdfStreams:pdfStreams,pdfInflated:pdfInflated,pdfRuns:pdfRuns,
           openSettings:openSettings,closeSettings:closeSettings,settingsTabOf:settingsTabOf,shownInSettings:shownInSettings,
-          pdfDialog:pdfDialog,applyBarSizeQuery:applyBarSizeQuery,barSizeShown:barSizeShown,
+          pdfDialog:pdfDialog,pdfDialogPick:pdfDialogPick,applyBarSizeQuery:applyBarSizeQuery,barSizeShown:barSizeShown,
           applyNoteSizeQuery:applyNoteSizeQuery,noteSizeShown:noteSizeShown,pickSelect:pickSelect,
-          rebuildAll:rebuildAll};
+          rebuildAll:rebuildAll, solveKeepSide:solveKeepSide, showInfoOrderEra:showInfoOrderEra};
 })();

@@ -19,9 +19,10 @@
 // `defaultValue`. See UI-CONVENTIONS.md §2c.
 import { useState, useLayoutEffect } from 'react'
 import { TextInput, NativeSelect, NumberInput, Input, Button, Text, Group, Stack, Box, Switch, Divider, SegmentedControl, Tooltip, CloseButton } from '@mantine/core'
-import { IconTv, IconMapPin, IconCalendarDot, IconCalendarRange, IconShare, IconHeading, IconNote, IconRows, IconCalendarPlain } from './icons.jsx'
+import { IconTv, IconMapPin, IconCalendarDot, IconCalendarRange, IconHeading, IconNote, IconRows, IconCalendarPlain, IconPause } from './icons.jsx'
 import { InfoHint } from './InfoHint.jsx'
 import { installChrome } from './bridge.js'
+import { keyLabel } from './keys.js'
 import { useSeasons, seasonsText } from './SeasonPop.jsx'
 
 const SEASONS = [
@@ -36,6 +37,30 @@ const SEASONS = [
 // Its list is SeasonPop's checkbox dropdown, and the engine's seasonList keeps the others. With two or more
 // ticked, the first season's option reads "Seasons 3 & 4", so the closed field says what is ticked. Only that
 // option's TEXT changes, never a value.
+// Show info's Tandem Days box (owner, 19 Nov 2026: "To the right of the Shooting days per episode should be a big plus
+// symbol and then to the right of that another box to add the double up/tandem days"; mockups/show-info-tandem.html).
+// It is a SECOND view of the Tandem card's "Default tandem days" (doubleUpDays, saved under `doubleUps.days`), shown
+// beside the days per episode or per block so "8 + 1" reads as it is said. One value, two places: the engine
+// (installShowInfoTandem in app.js) writes a typed count to doubleUpDays exactly as the card's box does, and
+// reflectShowInfoTandem() writes the store back here from update(), so an undo, a Load or New shows at once.
+//   ⛔ NO ID ON THE INPUT (the card's rule, DOUBLE-UP-DAYS-PLAN §5): collectFieldValues() sweeps id'd inputs into
+//   fields.byId, and the count already has its own key. So it is a PLAIN <input>, the Region mirror's pattern: a Mantine
+//   `Input` inside `Input.Wrapper` takes the wrapper's minted id (seen in the built page, 19 Nov 2026), and TextInput /
+//   NumberInput mint their own. The wrapper only draws the label (a div, so it points at nothing); legacy.css gives the
+//   box the xs input's look (.si-tandem-in). `du-days-in` puts it under the card's "Whole days only" check (PREP_FIELDS).
+function TandemDaysBox() {
+  return (
+    <>
+      <span className="si-plus" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M12 4v16M4 12h16" /></svg>
+      </span>
+      <Input.Wrapper label="Tandem Days" labelElement="div" className="si-tandem">
+        <input type="number" min={0} step={1} placeholder="None" aria-label="Tandem days" className="si-tandem-in du-days-in" />
+      </Input.Wrapper>
+    </>
+  )
+}
+
 function SeasonField() {
   const list = useSeasons()
   const many = seasonsText(list)
@@ -56,7 +81,7 @@ export function ShowInfoCard() {
           cramped. 16px of air between fields; the Phases-tab overflow argument in theme.js is
           about input HEIGHT, which this does not touch. */}
       <Stack gap="xl">
-        <TextInput id="show-title" label="Title" placeholder="e.g. Show Title" />
+        <TextInput id="show-title" label="Title" />
         {/* ⛔ The Season select, never Mantine's Select: Select puts the option LABEL in the id-bearing
             input, so this would save "Season 2" where the format expects "2". Since 27 Oct 2026 its list is a
             checkbox dropdown (SeasonPop.jsx), so two or more seasons can share one calendar. */}
@@ -85,32 +110,39 @@ export function ShowInfoCard() {
             anything else ("Whole or half days only"). The value is still a plain numeric string, so
             fields.byId is unchanged in shape and every saved whole number reads as before. min stays 1:
             a typed 0 still clamps to 1 on blur (the numclamp leg), and no episode is shot in half a day. */}
-        <Box className="show-mode-episodes">
-          <NumberInput id="shoot-days-per-ep" label="Shooting Days per Episode" placeholder="e.g. 8"
+        {/* THE ORDER (owner, 19 Nov 2026): Episodes mode reads Number of Episodes, then Shooting Days per Episode +
+            Tandem Days; Blocks mode reads Number of Blocks, then Shooting Days per Block + Tandem Days, then Number of
+            Episodes. ONE #num-episodes serves both (an id is the save format, so it is never duplicated): the Blocks-only
+            rows come BEFORE it and the Episodes-only row AFTER it, so DOM order, and with it Tab order, is right in each
+            mode with no CSS `order`. The mode's hidden rows are hidden, never cleared (BLOCKS-PLAN §3): switching back
+            must restore the previous dates exactly.
+            .si-days-tandem: the days box, a plus and Tandem Days on one line (legacy.css), the label running over the
+            plus so it never wraps in the narrowest sidebar. */}
+        <Box className="show-mode-blocks">
+          <NumberInput id="num-blocks" label="Number of Blocks"
+                       min={1} max={200} step={1} allowDecimal={false} allowNegative={false} hideControls />
+        </Box>
+        <Box className="show-mode-blocks si-days-tandem">
+          <NumberInput id="days-per-block" label="Shooting Days per Block"
                        min={1} step={0.5} decimalScale={1} allowNegative={false} hideControls />
+          <TandemDaysBox />
         </Box>
         {/* max={200} is the audit M-15 ceiling, mirrored from the engine's MAX_SHOW_ROWS, which is
             what actually enforces it (capCountField clamps while typing). This is the belt: Mantine
-            clamps on blur too. */}
-        {/* "(optional)" shows in Blocks mode only (owner, 20 Oct 2026, LABELS-SETUP-PLAN.md item 4): blocks
-            schedule without an episode count there. The same :has() rule as the boxes below hides it in
-            Episodes mode, where the count still drives the total, so that label reads as it always has. */}
-        <NumberInput id="num-episodes" label={<>Number of Episodes<span className="show-mode-blocks"> (optional)</span></>} placeholder="e.g. 10"
+            clamps on blur too.
+            In Blocks mode the count is still optional (blocks schedule without it, LABELS-SETUP-PLAN.md item 4), but
+            the label no longer says so (owner, 19 Nov 2026: "it can still be optional but remove that it says so"). */}
+        <NumberInput id="num-episodes" label="Number of Episodes"
                      min={1} max={200} step={1} allowDecimal={false} allowNegative={false} hideControls />
-        {/* Hidden, never cleared, in Episodes mode (and Days per Episode likewise in Blocks mode):
-            switching back must restore the previous dates exactly, so neither mode's inputs are
-            ever discarded (BLOCKS-PLAN §3). */}
-        <Box className="show-mode-blocks">
-          <NumberInput id="num-blocks" label="Number of Blocks" placeholder="e.g. 5"
-                       min={1} max={200} step={1} allowDecimal={false} allowNegative={false} hideControls />
-        </Box>
-        <Box className="show-mode-blocks">
-          <NumberInput id="days-per-block" label="Shooting Days per Block" placeholder="e.g. 20"
+        <Box className="show-mode-episodes si-days-tandem">
+          <NumberInput id="shoot-days-per-ep" label="Shooting Days per Episode"
                        min={1} step={0.5} decimalScale={1} allowNegative={false} hideControls />
+          <TandemDaysBox />
         </Box>
         {/* ⛔ TextInput, never NumberInput (owner decision H1, 1 Sep 2026): owners write 3, 3.1
             and 3a, so the field is a LABEL and not arithmetic. Since 3 Nov 2026 it prints EXACTLY as
-            typed (owner: "no longer with a v prefix"), so the placeholder shows the v being typed.
+            typed (owner: "no longer with a v prefix"). No placeholder in any Show info box (owner, 19 Nov
+            2026: "remove all these e.g. labels").
             ⛔ It is NOT part of showInfoStatus()'s completeness test and must never gate
             Production -- a calendar with no version number is a complete calendar.
             The description answers the one question this field raises that the others do not: where
@@ -122,8 +154,10 @@ export function ShowInfoCard() {
             typed onto a manual header changes nothing. Title has behaved that way since the header
             gained modes; the difference is that Title makes no claim. Step 2's mode popover is where
             Auto/Template/Manual gets explained; do not try to fix it with 9px of copy here. */}
-        <TextInput id="show-version" label="Version" placeholder="e.g. v3"
-                   description={'Shows in the header’s bottom-left, exactly as typed.'} />
+        {/* A NUMBER (owner, 18 Nov 2026): the header adds the "v", so 3 shows as v3. The engine drops anything but
+            digits and dots as it is typed (app.js, the show-version input listener). */}
+        <TextInput id="show-version" label="Version" inputMode="decimal"
+                   description={'A number. The header adds the v: 3 shows as v3.'} />
         {/* The Production Region, a SECOND time (owner, 21 Oct 2026: "below the version number box
             in the Show Info tab ... now it appears in both places"). The Settings window's Region
             tab keeps #union-place, which stays the one real control.
@@ -146,7 +180,7 @@ export function ShowInfoCard() {
             ⛔ `show-location` IS CALENDAR DATA, so it carries an id and collectFieldValues() sweeps it into
             fields.byId -- a PERMANENT id from the first file saved with it. Never rename it. An absent key means
             blank (applyStateSnapshot's absent-field defaults), so an older file never shows another show's town. */}
-        <TextInput id="show-location" label="Location" placeholder="e.g. Winnipeg" maxLength={40}
+        <TextInput id="show-location" label="Location" maxLength={40}
                    description="Optional. Shown instead of the region when you compare scenarios." />
       </Stack>
       {/* The blue "Production's Total Shooting Days: N" note (#show-info-note) and its "Manually changed" list sat
@@ -192,24 +226,6 @@ export function CalendarRangeCard() {
         </Group>
       </div>
     </section>
-  )
-}
-
-// "Reset hiatus bands" (owner ruling 5, relayed 30 Sep 2026): the hiatus reset left the calendar's
-// old combined "Reset Notes & Hiatus" and sits at the foot of the All-phase hiatus card, the way
-// "Reset holidays" sits at the foot of Holidays -- same Group, same subtle gray xs Button. That card
-// is STATIC markup (its rows are engine-generated), so main.jsx portals this into #hiatus-reset-host,
-// which buildSavedHtml() empties in its clone like every other React host. The engine handles the
-// click by delegation on the id; it clears every band's label, colour and size, all-phase and
-// per-phase, and the hiatus periods themselves stay.
-export function HiatusResetButton() {
-  return (
-    <Group justify="flex-end" mt="lg">
-      <Button id="hiatus-reset-btn" type="button" variant="subtle" color="gray" size="xs"
-              title="Return every hiatus band, all-phase and per-phase, to its default label, colour and size. The hiatus periods themselves stay.">
-        Reset hiatus bands
-      </Button>
-    </Group>
   )
 }
 
@@ -328,42 +344,24 @@ export function RegionCard() {
 // "Automatic notes" (owner ruling 9, 20 Oct 2026): which KINDS of automatic note this calendar shows, all on
 // by default. Its own card in the Settings window's Preferences tab (SettingsWindow.jsx), saved with the calendar.
 //
-// ⛔ CALENDAR DATA, saved in the file (the engine's autoNotesOff, captureSnapshot()'s `autoNotesOff`), so this
+// ⛔ CALENDAR DATA, saved in the file (the engine's autoNotesOff, autoNotesOn and autoNotesView, each its own
+// captureSnapshot() key), so this
 // is NOT a .prefs-card -- and therefore NOT ONE `id` ON ANY CONTROL HERE: collectFieldValues() sweeps every
 // input[id] in the document, and an id here would bake a second, disagreeing copy into every saved calendar
 // with a phantom undo step. That is also why these are plain <input type="checkbox">, never Mantine's
 // Checkbox or Switch: both mint an id with useId() when given none (UI-CONVENTIONS §8.3). legacy.css's
 // `.form-panel input[type=checkbox]` gives them the Mantine look.
-// ⛔ UNCONTROLLED, and the engine owns them: `data-autonote` is the kind word the engine's computeSchedule
-// tags each note with (permanent, it is save format), its change listener writes the store, and
-// reflectAutoNoteKinds() writes .checked on every update() -- so undo, Load and New all show through.
-// Holiday notes are deliberately not a row (owner's picker): they keep their per-holiday list above.
-//
-// ONE ROW PER BUILT-IN PHASE, in calendar order (owner, 27 Oct 2026: "do the phase starts and ends. they should
-// be disabled by default"): the phase, then a box for its start and one for its end, each named by the word its
-// note uses ("Post Begins"). The three original kinds keep their boxes, as Writer's Room's Opens and Production's
-// Starts / Wraps. ⛔ `on` is only the FIRST paint: the engine's autoNoteKindShown() is the truth, and the new kinds
-// start OFF because they live in a separate store (autoNotesOn), so no calendar saved before them changes.
-// `key` is the phase whose name the row shows: reflectAutoNoteKinds() writes a name typed in the Phases tab into the
-// row's data-autonote-name span, and puts back data-autonote-default (the words below) when the box holds the phase's
-// own label again. EVERY row has one since 2 Nov 2026 (owner: "if we renamed Production to "Shoot" that should reflect
-// in the setting menu"). Writer's Room's and Production's NOTES still keep their own words ("Writer's Room Opens",
-// "Start Principal Photography") whatever the phase is called; only the row's name follows.
-// CUSTOM PHASES' ROWS (owner, 2 Nov 2026: "Can we also add automatic notes for all custom phases too";
-// AUTO-NOTES-PER-VIEW-PLAN.md step 1) come and go with the phases, which React does not know, so the engine draws
-// them (syncCustomAutoNoteRows) into `.autonote-custom`: rendered EMPTY here, never given children by React, and
-// display:contents, so its rows sit in this grid's three columns. Off until ticked, like the built-in phases'.
-const AUTO_NOTE_PHASES = [
-  { phase: 'Writer’s Room', key: 'writersRoom', start: { kind: 'writersRoomOpens', word: 'Opens', on: true },
-                            end: { kind: 'writersRoomEnd', word: 'Closes' } },
-  { phase: 'Pre-Prep', key: 'prePrep', start: { kind: 'prePrepStart', word: 'Begins' }, end: { kind: 'prePrepEnd', word: 'Ends' } },
-  { phase: 'Prod Prep', key: 'prodPrep', start: { kind: 'prodPrepStart', word: 'Begins' }, end: { kind: 'prodPrepEnd', word: 'Ends' } },
-  { phase: 'Production', key: 'production', start: { kind: 'principalStart', word: 'Starts', on: true },
-                         end: { kind: 'principalWrap', word: 'Wraps', on: true } },
-  { phase: 'Post', key: 'post', start: { kind: 'postStart', word: 'Begins' }, end: { kind: 'postEnd', word: 'Ends' } },
-  { phase: 'Localization', key: 'localization', start: { kind: 'localizationStart', word: 'Begins' },
-                                                end: { kind: 'localizationEnd', word: 'Ends' } },
-]
+// ⛔ ENGINE-DRAWN, ALL OF IT, since 4 Nov 2026 (AUTO-NOTES-PER-VIEW-PLAN.md, ruling R1(a), "grouped by phase"): each
+// phase's two notes ("Opens" / "Closes", "Begins" / "Ends", "Starts" / "Wraps") have a Waterfall box and a Month
+// box, as the Holidays list has. Since the same evening (owner's pick B) a phase is ONE row: its name, then Start | End
+// under Waterfall and under Month, the note's own word on each box's tooltip. Custom phases' rows come and go with
+// the phases, which React does not know, so the engine draws the whole list (reflectAutoNoteKinds) into
+// `.autonote-list`: rendered EMPTY here and never given children by React (#holiday-vis-list's arrangement). Its boxes
+// are plain checkboxes with no id, named by `data-autonote` (the kind word computeSchedule tags each note with,
+// permanent: it is save format) and `data-view`; the engine's change listener writes the stores and update() ticks
+// them, so undo, Load and New all show through.
+// Each note is off in a view until ticked there, except Writer's Room Opens and Production's Starts / Wraps, which
+// start on in both. Holiday notes are deliberately not rows (owner's picker): they keep their per-holiday list.
 export function AutoNotesCard() {
   return (
     <section className="card">
@@ -371,24 +369,12 @@ export function AutoNotesCard() {
         <IconNote className="card-ic" /><span>Automatic notes</span>
         <InfoHint label="Automatic notes" width={300}>
           Notes the calendar writes for you on the day a phase starts or ends, such as “Post Begins 7/5/27”. Tick
-          one to add it to the Notes column, the month view and every export. Phases you add yourself are listed
-          too. Notes you typed yourself never change. Holiday notes are chosen holiday by holiday under Holidays, in
-          the Region tab.
+          a note under Waterfall to add it to the Notes column, Excel and the waterfall PDF, and under Month to add it
+          to the month view and its PDF. Tick both for both. Phases you add yourself are listed too. Notes you typed
+          yourself never change. Holiday notes are chosen holiday by holiday under Holidays, in the Region tab.
         </InfoHint>
       </h2>
-      <div className="side-block autonote-list">
-        {AUTO_NOTE_PHASES.map((r) => [
-          <span key={r.start.kind + '-name'} className="autonote-name"
-                data-autonote-name={r.key} data-autonote-default={r.phase}>{r.phase}</span>,
-          ...[r.start, r.end].map((b) => (
-            <label key={b.kind} className="autonote-row">
-              <input type="checkbox" data-autonote={b.kind} defaultChecked={!!b.on} aria-label={r.phase + ' ' + b.word} />
-              <span>{b.word}</span>
-            </label>
-          )),
-        ])}
-        <div className="autonote-custom" />
-      </div>
+      <div className="side-block autonote-list" />
     </section>
   )
 }
@@ -491,9 +477,7 @@ export function WaterfallCard() {
           How the waterfall reads, on screen and in Excel and the PDF. Double-click any column heading
           to type your own, or to split or merge headings; Reset puts a heading back. A Notes heading
           can also hide its column on screen and in Excel and the PDF; click its thin strip, or its
-          year below, to bring it back. Paper is the sheet the PDF and the Excel file are laid
-          out for: bigger paper prints a long or wide calendar larger. Grid Lines in Exports draws the
-          cell borders in Excel and the PDF only; the grid on screen is unchanged.
+          year below, to bring it back. The paper and the grid lines are chosen when you export a PDF.
         </InfoHint>
       </h2>
       <div className="side-block">
@@ -517,20 +501,10 @@ export function WaterfallCard() {
                   aria-label="Single Column Mode"
                   title="Run the whole calendar down one continuous column, from the first working week to the last, instead of a separate block per calendar year" />
         </SettingRow>
-        {/* ✅ COLUMN-REUSE-PLAN.md (owner, 20 Oct 2026): ONE box and one line under it -- the owner's
-            ruling is that this stays simple. Same arrangement as #one-col-btn above: calendar data
-            carried by captureSnapshot()'s own `colReuse` key, inside .prefs-card so
-            collectFieldValues() never sweeps it into fields.byId, and UNCONTROLLED -- the engine writes
-            .checked in reflectColReuse() and listens for 'change' on the document. It was built beside
-            Single Column Mode in the old Preferences card, and stays beside it here, in the Settings
-            window's Preferences tab, since it is this calendar's. */}
-        <Divider my="sm" />
-        <SettingRow htmlFor="col-reuse-btn" label="Reuse Empty Columns">
-          <Switch id="col-reuse-btn" size="md" aria-label="Reuse Empty Columns" />
-        </SettingRow>
-        <Text size="xs" c="dimmed" mt={4}>
-          When one phase ends and the next begins, the next one moves into the freed column.
-        </Text>
+        {/* ⛔ The "Reuse Empty Columns" switch (#col-reuse-btn, COLUMN-REUSE-PLAN.md, 20 Oct 2026) sat here until
+            5 Nov 2026, when the owner retired it (LAYOUT-RULES.md §4, LAYOUT-BUILD-PLAN.md §4): every new calendar
+            lays out by the layout rules, and its saved key `colReuse: true` is now the layout STAMP, which a file
+            without it is offered by the strip above the calendar ("Update layout"), never by a switch. */}
         {/* The waterfall's dates (owner ruling 4, 20 Oct 2026; HEADER-ROW-PLAN.md), folded into this card
             when the Settings window merged: it was a "Waterfall Layout" card of its own in the old Settings
             tab. The same .prefs-card rule as the switch above: the id is skipped by the sweep and travels as
@@ -543,53 +517,23 @@ export function WaterfallCard() {
         <Divider my="sm" />
         <SettingRow htmlFor="wf-date-format" label="Dates">
           <NativeSelect id="wf-date-format" size="xs" w={132} aria-label="Dates"
-                        title="How the waterfall’s Date column reads, on screen, in Excel and in the PDF">
-            <option value="">1/6/25</option>
-            <option value="m/d/yyyy">1/6/2025</option>
+                        title="How the waterfall’s Date column reads, on screen, in Excel and in the PDF. DD/MM puts every date in the calendar day first, notes and header included, and reads dates you type or paste day first">
+            {/* Since 13 Nov 2026 (audit item 2.4, the owner's decision D3 (a)) DD/MM is the calendar's ORDER: every
+                date the app writes or reads follows it (datesDayFirst in app.js). MM/DD/YYYY is the Date column only.
+                Owner, 11 Nov 2026: the four in this order, named by pattern. Unpadded output (owner's
+                picker): MM/DD/YY still draws 1/6/25. The values are the save format: '' is the absent
+                key, the others are permanent (WEEK_DATE_FORMATS in app.js). */}
+            <option value="m/d/yyyy">MM/DD/YYYY</option>
+            <option value="">MM/DD/YY</option>
+            <option value="d/m/yyyy">DD/MM/YYYY</option>
+            <option value="d/m/yy">DD/MM/YY</option>
           </NativeSelect>
         </SettingRow>
         <HiddenNotesRow />
-        {/* The paper (PAPER-SIZE-PLAN.md, owner rulings R1-R4, 21 Oct 2026): CALENDAR DATA, the `paperSize`
-            snapshot key, so it sits with the calendar settings above Grid Lines, not after it. The same
-            .prefs-card rule as #wf-date-format: the sweep skips the id, and the engine owns the value.
-            ⛔ UNCONTROLLED: reflectPaperSize() writes .value and a delegated 'change' sets it.
-            The option values are the save format: '' (Letter, an absent key), 'legal', 'tabloid'.
-            The Export PDF dialog shows and changes the same value. */}
-        <Divider my="sm" />
-        <SettingRow htmlFor="wf-paper" label="Paper">
-          <NativeSelect id="wf-paper" size="xs" w={150} aria-label="Paper"
-                        title="The paper the waterfall PDF and the Excel file are laid out for">
-            <option value="">Letter (8.5 × 11)</option>
-            <option value="legal">Legal (8.5 × 14)</option>
-            <option value="tabloid">Tabloid (11 × 17)</option>
-          </NativeSelect>
-        </SettingRow>
-        {/* ⚠️ THE ONE ROW IN THIS CARD THAT IS A PREFERENCE, kept on this computer (localStorage) and never
-            saved in the calendar -- which is why it is last, and why the Preferences tab's opening line
-            names it in the waterfall.
-            Uncontrolled ON PURPOSE: the engine writes .value in reflectGridlines(), the same
-            contract #tool-anchor-date has. A controlled input would ignore that write.
-            ⛔ Export-only: the owner ruled 3 Sep 2026 that this is "about the pdf export ... not in
-            the live app view". The editor's own gridlines are unchanged by it.
-            ⛔ No separate "Default" entry (owner, 3 Sep 2026): None IS the default, and a Default
-            that merely meant None was a second name for the same output. None is listed first for
-            that reason.
-            ⚠️ "EXPORTS", PLURAL, AND THAT PLURAL IS LOAD-BEARING. This drives SHEET_GRIDLINES, which
-            BOTH writers read -- exportExcel draws the workbook's cell borders from it just as
-            buildWaterfallPdf draws the PDF's. It briefly shipped as "Grid Lines in PDF Export",
-            which was flagged as understating the reach and corrected by the owner the same day.
-            Grid lines is a waterfall setting by what it DOES, not only by ruling: nothing in the
-            month view or exportMonthPdf reads SHEET_GRIDLINES. Hidden in Month view, it still
-            applies to every waterfall export. */}
-        <Divider my="sm" />
-        <SettingRow htmlFor="pref-gridlines" label="Grid Lines in Exports">
-          <NativeSelect id="pref-gridlines" size="xs" w={132}
-                        aria-label="Grid Lines in Exports">
-            <option value="none">None</option>
-            <option value="solid">Solid</option>
-            <option value="dashed">Dashed (Excel style)</option>
-          </NativeSelect>
-        </SettingRow>
+        {/* ⛔ Paper (#wf-paper) and Grid Lines in Exports (#pref-gridlines) sat here until 11 Nov 2026, when the
+            owner removed them from Preferences. Both are still chosen in the Export PDF dialog, which writes the same
+            `paperSize` key and the same `gridlines` preference, so Excel follows that choice too. The engine's
+            reflectPaperSize() / reflectGridlines() find no select and do nothing. */}
       </div>
     </section>
   )
@@ -693,36 +637,26 @@ export function MonthViewCard() {
                   title="Write “Day 1”, “Day 2” … on each shoot day in the month view — on screen and in the month PDF. Saved with the calendar" />
         </SettingRow>
 
-        {/* Phase bar size and Note size, two dropdowns of 10-14 px (MONTH-NOTE-SIZE-PLAN.md §1a, §4.7; owner, 2 Nov
-            2026: "do sizes 10, 11, 12, 13, and 14 for the phase bar sizes. And make sizes for both the phase bars and
-            the notes be dropdown menus"). They replace Phase bar size's Standard · Large · Extra large segments
-            (MONTH-BAR-SIZE-PLAN.md R3, R6), in the same place. CALENDAR DATA: the engine's mvBarSize and mvNoteSize
-            are the one stores, saved as captureSnapshot()'s own keys.
-            ⛔ Built as #wf-paper is: an id INSIDE .prefs-card (so collectFieldValues() skips it and fields.byId
-            does not move), UNCONTROLLED (reflectMvBarSize / reflectMvNoteSize write .value on every update()), and a
-            delegated 'change' sets it (one undo step, the file dirtied).
-            ⛔ THE OPTION VALUES ARE THE SAVE FORMAT. Bars: '' (10 px, an absent key), '11', 'large' (12 px, as since
-            v1.9.0), '13', 'xl' (14 px, as since v1.9.0). Notes: '' (10 px, an absent key), '11' to '14'. */}
+        {/* Size: ONE dropdown for the month view's phase bars, hiatus bands AND notes (owner, 18 Nov 2026: "lets make
+            the phase bar size and notes size one size adjuster - and the unit should be Standard, Large, Extra
+            Large"). It replaces Phase bar size and Note size (two 10-14 px dropdowns since 2 Nov 2026,
+            MONTH-NOTE-SIZE-PLAN.md §1a), in the same place. Standard is 10 px bars and notes, Large 12 px, Extra
+            Large 14 px: the engine's setMvSize() writes BOTH of its stores, mvBarSize and mvNoteSize, which stay
+            captureSnapshot()'s own keys, so no saved file changes shape and every older file opens as it was.
+            ⛔ Built as #wf-paper is: an id INSIDE .prefs-card (so collectFieldValues() skips it and fields.byId does
+            not move), UNCONTROLLED (reflectMvSizeSelects() writes .value on every update()), and a delegated 'change'
+            sets it (one undo step, the file dirtied).
+            The fourth option, Custom, is HIDDEN: the engine shows and selects it only for a calendar saved with a
+            pair the three do not name (11 px bars, or 12 px bars with 10 px notes, …), so the control never claims a
+            size the calendar is not drawn at. Picking any of the three replaces it. */}
         <Divider my="sm" />
-        <SettingRow htmlFor="pref-mv-barsize" label="Phase bar size">
-          <NativeSelect id="pref-mv-barsize" size="xs" w={96} aria-label="Phase bar size"
-                        title="How big the phase bars and hiatus bands are in the month view, on screen and in the month PDF. Saved with the calendar">
-            <option value="">10 px</option>
-            <option value="11">11 px</option>
-            <option value="large">12 px</option>
-            <option value="13">13 px</option>
-            <option value="xl">14 px</option>
-          </NativeSelect>
-        </SettingRow>
-        <Divider my="sm" />
-        <SettingRow htmlFor="pref-mv-notesize" label="Note size">
-          <NativeSelect id="pref-mv-notesize" size="xs" w={96} aria-label="Note size"
-                        title="How big the notes are in the month view, on screen and in the month PDF. Above 10 px a note shows at most two lines. A note can take its own size from the text style bar. Saved with the calendar">
-            <option value="">10 px</option>
-            <option value="11">11 px</option>
-            <option value="12">12 px</option>
-            <option value="13">13 px</option>
-            <option value="14">14 px</option>
+        <SettingRow htmlFor="pref-mv-size" label="Size">
+          <NativeSelect id="pref-mv-size" size="xs" w={124} aria-label="Size"
+                        title="How big the phase bars, hiatus bands and notes are in the month view, on screen and in the month PDF. A note can take its own size from the text style bar. Saved with the calendar">
+            <option value="standard">Standard</option>
+            <option value="large">Large</option>
+            <option value="xl">Extra Large</option>
+            <option value="custom" disabled hidden>Custom</option>
           </NativeSelect>
         </SettingRow>
 
@@ -736,7 +670,7 @@ export function MonthViewCard() {
         <Divider my="sm" />
         <SettingRow htmlFor="paste-notes-btn" label="Paste notes">
           <Button id="paste-notes-btn" type="button" size="xs" variant="default"
-                  title="Add many month-view notes at once: one per line, as date, text, colour">
+                  title="Add many month-view notes at once: one per line, as date, text, color">
             Paste notes…
           </Button>
         </SettingRow>
@@ -970,24 +904,49 @@ function HeaderPresets() {
   )
 }
 
-export function AppCard() {
+// ⭐ "Ripple Hiatus Periods" (HIATUS-RIPPLE-PLAN.md §5; named by the owner 4 Nov 2026, "Ripple Hiatus" in a phase's
+// Hiatus block; owner rulings R1-R3, 4 Nov 2026: one on/off
+// switch, ON by default, kept on this computer). Both views, so it is no .pref-view-* card. ⛔ A PREFERENCE
+// (prefs.hiatusRipple, absent = on), never calendar data: inside .prefs-card, so collectFieldValues() skips its id and
+// fields.byId does not move. ⛔ UNCONTROLLED: the engine writes .checked in reflectHiatusRipple() (every update()), and
+// takes a flip by delegation on the id, as #pref-mv-week.
+// ⭐ ITS ONLY PLACE since 10 Nov 2026 (owner, "Settings only"): the id-less copies on the All-phase hiatus card and in
+// each phase's Hiatus block (ruling R2) are gone, to remove clutter.
+export function HiatusPrefsCard() {
   return (
-    <section className="card">
+    <section className="card prefs-card">
       <h2>
-        <IconShare className="card-ic" /><span>App</span>
-        <InfoHint label="Export App With Data">
-          A standalone HTML copy of the app with this calendar loaded — for sending to someone who
-          doesn’t have the tool. It opens by double-click, anywhere, offline.
+        <IconPause className="card-ic" /><span>Hiatus</span>
+        <InfoHint label="Ripple Hiatus Periods" width={300}>
+          On: when a hiatus is added, removed, lengthened, shortened or moved, every phase that starts on or
+          after it moves by the same number of weeks, so the gaps between phases stay as they were. Locked
+          hiatuses, holidays and notes with a date stay put. {keyLabel('Mod+Z')} takes back your hiatus change and its push
+          together. To change a hiatus without moving anything else, turn this off first.
         </InfoHint>
       </h2>
       <div className="side-block">
-        {/* #share-copy-btn: the engine's document-delegated click listener matches this id — the
-            same flow that used to live on a header button (owner moved it here, 29 Aug 2026). */}
-        <Button id="share-copy-btn" type="button" variant="default" size="xs" fullWidth>
-          Export App With Data
-        </Button>
+        <SettingRow htmlFor="pref-hiatus-ripple" label="Ripple Hiatus Periods">
+          <Switch id="pref-hiatus-ripple" size="md" defaultChecked
+                  aria-label="Ripple Hiatus Periods: move the phases after a hiatus when it changes"
+                  title="Kept on this computer. Applies to all-phase hiatuses and each phase’s own hiatus" />
+        </SettingRow>
       </div>
     </section>
+  )
+}
+
+// ⛔ "EXPORT APP WITH DATA" IS GONE FOR USERS (owner's picker, 18 Nov 2026, CLOUDFLARE-ACCESS-PLAN.md §7 D7). It wrote a
+// whole working copy of the app into one file, which runs anywhere and so gets around the sign-in SPTCal now sits
+// behind. The card is not drawn. What stays is the engine's flow (buildSavedHtml, still the definition of what a
+// shareable copy holds, and every copy already sent keeps opening, forever) and, on LOCALHOST ONLY, a hidden
+// #share-copy-btn, because some thirty harness legs and cspproof / excelretry still build a copy through it to prove
+// that what was sent still opens and carries nothing it should not. Never visible, never on the hosted address.
+const ON_LOCALHOST = typeof location !== 'undefined' && /^(localhost|127\.0\.0\.1)$/.test(location.hostname)
+export function AppCard() {
+  if (!ON_LOCALHOST) return null
+  return (
+    // #share-copy-btn: the engine's document-delegated click listener matches this id. Test use only.
+    <button id="share-copy-btn" type="button" hidden>Export App With Data</button>
   )
 }
 
@@ -997,8 +956,9 @@ export function HolidaysCard() {
       <h2>
         <IconCalendarDot className="card-ic" /><span>Holidays</span>
         <InfoHint label="Holidays" width={280}>
-          Un-tick <strong>Enable</strong> to drop a holiday from this show entirely — it stops costing
-          Production a shoot day and stops appearing as a note. The two note columns control where an
+          Un-tick <strong>Enable</strong> to work a holiday: it stops costing a day and stops appearing
+          as a note. It only shows where that moves a date. A colored strip marks the holidays inside a
+          phase that counts days (Production, a phase counted in Days, episode prep). The two note columns control where an
           enabled holiday shows up. <strong>Costs a shoot day</strong> marks a weekday holiday that falls
           during Production, on a day the shoot would otherwise have worked.
         </InfoHint>

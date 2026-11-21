@@ -32,8 +32,10 @@
 //
 // CASES (each judged over every document)
 //   S0  the writer and the primitives it calls are sliced verbatim out of src/legacy/app.js and evaluate
-//   F0  only the month export (exportMonthPdfDirect, since step 5) calls the writer, and only through its public
-//       entry points; nothing else in app.js uses a name the writer defines
+//   F0  only the month export (exportMonthPdfDirect, since step 5) builds a month PDF, and only through the writer's
+//       public entry points; the Compare PDF reaches buildListPdf alone, and the month page on screen exactly the seven
+//       names it asks the writer's fit with (17 Nov 2026, "Shrink like the PDF"); nothing else in app.js uses a name
+//       the writer defines
 //   C0  CONTROL: the transplanted print layout is the print path's own -- every fill month's weeks fill the body to
 //       the page's foot, every week is at least its document min-height, and the page is laid out at W
 //   H0  the header: every line's box, highlight, text anchor and baseline where Chrome puts them
@@ -108,8 +110,9 @@ window.addEventListener('load', function () { (async function () {
     // app.js, exportMonthPdfDirect. So every top-level name the writer declares is counted in app.js outside both the
     // writer and that function, comment lines skipped: none may appear. Inside the function exactly the writer's
     // public surface may: the fonts' loader and weights, the model, the fit, the printable-characters walk and the
-    // emitter. And each entry point appears once more than before: loadInterPdfFont four times (its declaration,
-    // buildMonthPdf's call, buildListPdf's and the export's), the others twice (declared, and called by the export).
+    // emitter. And each entry point appears once more than before: loadInterPdfFont five times (its declaration,
+    // buildMonthPdf's call, buildListPdf's, the export's and, since 17 Nov 2026, the month page's, which asks for the
+    // programs the first time a month is drawn), the others twice (declared, and called by the export).
     var code = function (s) { return s.split('\n').filter(function (l) { return !/^\s*\/\//.test(l); }).join('\n'); };
     var exportSrc = slice('  async function exportMonthPdfDirect(){', "      chrome.exportBtn({ busy: false, disabled: false });\n    }\n  }", 'exportMonthPdfDirect');
     var at = src.indexOf(writerSrc), rest = src.slice(0, at) + src.slice(at + writerSrc.length);
@@ -119,19 +122,38 @@ window.addEventListener('load', function () { (async function () {
     var cmpStart = src.indexOf('  function buildComparePdf(model){'), cmpEnd = src.indexOf('    return list;\n  }', cmpStart);
     var cmpSrc = (cmpStart >= 0 && cmpEnd > cmpStart) ? src.slice(cmpStart, cmpEnd + '    return list;\n  }'.length) : '';
     var eAt = rest.indexOf(exportSrc), rest2 = rest.slice(0, eAt) + rest.slice(eAt + exportSrc.length);
-    var outside = code(cmpSrc ? rest2.replace(cmpSrc, '') : rest2);
+    // ⭐ SINCE 16 NOV 2026 THE WRITER HAS A THIRD READER, the month page on screen (monthPageNumbers, which fitMonthPage
+    // runs after each month render): the screen shares the page out among the weeks by the writer's own rule, so it reads
+    // the writer's constants through mvlFitNumbers (38 px of chrome, 19 px a line, the 57 px floor) instead of keeping a
+    // copy that could drift from the PDF.
+    // ⭐ SINCE 17 NOV 2026 IT ALSO ASKS THE WRITER FOR ITS FIT OF THE MONTH ON SCREEN ("Shrink like the PDF",
+    // MONTH-SHRINK-PLAN.md): a month the PDF shrinks is drawn at the PDF's own factor, so mvAskPdfFonts loads the four
+    // programs (MVL_FONT_WEIGHTS, loadInterPdfFont) and mvWriterFit models the month as the export does (mvlMonthLayout,
+    // with mvlTextWidth at MVL_GEOMETRY's note size) and takes mvlFitMonth's answer. It still builds no PDF and paints
+    // nothing. So the region runs from monthPageNumbers to the end of mvShrinkToFit, is cut out of `outside` like the
+    // export and the Compare PDF, and is held to EXACTLY those seven names: an eighth is a new reach into the writer.
+    var mpEndMark = "\n    return false;\n  }";
+    var mpStart = src.indexOf('  function monthPageNumbers(tw){'), mpTail = mpStart < 0 ? -1 : src.indexOf('  function mvShrinkToFit(){', mpStart);
+    var mpEnd = mpTail < 0 ? -1 : src.indexOf(mpEndMark, mpTail);
+    var mpSrc = (mpStart >= 0 && mpEnd > mpStart) ? src.slice(mpStart, mpEnd + mpEndMark.length) : '';
+    var MONTH_PAGE = ['MVL_FONT_WEIGHTS', 'MVL_GEOMETRY', 'loadInterPdfFont', 'mvlFitMonth', 'mvlFitNumbers', 'mvlMonthLayout', 'mvlTextWidth'];
+    var outside0 = cmpSrc ? rest2.replace(cmpSrc, '') : rest2;
+    var outside = code(mpSrc ? outside0.replace(mpSrc, '') : outside0);
     var NAMES = [], dm, dre = /^  (?:async )?(?:function|const|let) (\w+)/gm;
     while((dm = dre.exec(writerSrc))) NAMES.push(dm[1]);
     var has = function (n, s) { return new RegExp('\\b' + n + '\\b').test(s); };
     var usedOut = NAMES.filter(function (n) { return has(n, outside); });
-    var PUBLIC = ['MVL_FONT_WEIGHTS', 'buildMonthLayout', 'buildMonthPdf', 'fitMonthLayout', 'loadInterPdfFont', 'mvlUnprintable'];
+    // mvlSmallType since 14 Nov 2026 (audit AUD2-043, item 3.1, D4 = a): the export asks it which months print below 6 pt.
+    var PUBLIC = ['MVL_FONT_WEIGHTS', 'buildMonthLayout', 'buildMonthPdf', 'fitMonthLayout', 'loadInterPdfFont', 'mvlSmallType', 'mvlUnprintable'];
     var usedByExport = NAMES.filter(function (n) { return has(n, code(exportSrc)); }).sort();
     var usedByCompare = NAMES.filter(function (n) { return has(n, code(cmpSrc)); }).sort();
-    var counts = ['loadInterPdfFont(', 'buildMonthLayout(', 'buildMonthPdf(', 'fitMonthLayout(', 'mvlUnprintable('].map(function (s) { return code(src).split(s).length - 1; });
-    add('F0', 'only the month export (exportMonthPdfDirect) calls the writer, and only through its public entry points',
-        usedOut.length === 0 && NAMES.length > 30 && same(usedByExport, PUBLIC) && same(counts, [4, 2, 2, 2, 2]) && cmpSrc && same(usedByCompare, ['buildListPdf']),
-        {usedOutside: usedOut, usedByExport: usedByExport, usedByCompare: usedByCompare, namesDeclared: NAMES.length, entryPointOccurrences: counts},
-        {usedOutside: [], usedByExport: PUBLIC, usedByCompare: ['buildListPdf'], entryPointOccurrences: [4, 2, 2, 2, 2]});
+    var usedByMonthPage = NAMES.filter(function (n) { return has(n, code(mpSrc)); }).sort();
+    var counts = ['loadInterPdfFont(', 'buildMonthLayout(', 'buildMonthPdf(', 'fitMonthLayout(', 'mvlUnprintable(', 'mvlSmallType('].map(function (s) { return code(src).split(s).length - 1; });
+    add('F0', 'only the month export (exportMonthPdfDirect) builds a month PDF, through the writer\'s public entry points; the Compare PDF and the month page on screen reach exactly the names listed for them',
+        usedOut.length === 0 && NAMES.length > 30 && same(usedByExport, PUBLIC) && same(counts, [5, 2, 2, 2, 2, 2]) && cmpSrc && same(usedByCompare, ['buildListPdf']) &&
+          !!mpSrc && same(usedByMonthPage, MONTH_PAGE),
+        {usedOutside: usedOut, usedByExport: usedByExport, usedByCompare: usedByCompare, usedByMonthPage: usedByMonthPage, namesDeclared: NAMES.length, entryPointOccurrences: counts},
+        {usedOutside: [], usedByExport: PUBLIC, usedByCompare: ['buildListPdf'], usedByMonthPage: MONTH_PAGE, entryPointOccurrences: [5, 2, 2, 2, 2, 2]});
 
     var G = F.G, P = F.P, fonts = {};
     for(var fw of ['400', '500', '600', '700']) fonts[fw] = await F.loadInterPdfFont(fw);
@@ -145,7 +167,12 @@ window.addEventListener('load', function () { (async function () {
     var NOTE_LINE = {11: 14, 12: 16, 13: 17, 14: 18};
     function noteSizedPx(it){ var z = it.fmt && it.fmt.size; return NOTE_LINE[z] ? z : 0; }
     function noteLine(it){ var z = noteSizedPx(it); return z ? NOTE_LINE[z] : G.noteLinePx; }
-    function noteShown(it){ return noteSizedPx(it) ? Math.min(2, it.lines.length) : it.lines.length; }
+    // ⭐ A waterfall line ending in a date keeps it above 10 px (audit AUD2-045, item 3.1, the owner's D4 = a, 14 Nov 2026): the
+    // writer models it as a 10 px note at its own size -- up to three lanes, every line drawn. The leg's own statement of
+    // the writer's mvlKeepsDate. The print document still clamps it to two lines (frozen CSS), so such a week's lanes are
+    // not the document's and B0/T0 skip it, as they skip any week whose notes print otherwise.
+    function keepsDate(it){ return !!(noteSizedPx(it) && it.note && it.note.kind === 'wf' && /\s\d{1,2}\/\d{1,2}\/\d{2}(?:\d{2})?$/.test(String(it.text || '').trim())); }
+    function noteShown(it){ return noteSizedPx(it) && !keepsDate(it) ? Math.min(2, it.lines.length) : it.lines.length; }
 
     // ---- the documents, stamp pinned ----------------------------------------------------------------------
     var docs = [];
@@ -877,9 +904,9 @@ window.addEventListener('load', function () { (async function () {
             var ell = mine.filter(function (o) { return o.role === 'bar-ell'; }).length;
             // The lanes the model gave the note: its lines, at most three at 10 px and at most TWO above it (R2). Checked
             // here because B0 skips a week whose lanes are not the document's, which is exactly where a wrong count lands.
-            var wantLanes = Math.min(noteSizedPx(it) ? 2 : 3, Math.max(1, it.lines.length));
+            var wantLanes = Math.min(noteSizedPx(it) && !keepsDate(it) ? 2 : 3, Math.max(1, it.lines.length));
             if(it.lanes !== wantLanes) bad.X4.push(where + ' week ' + (wi + 1) + ' note ' + (k + 1) + ': ' + it.lanes + ' lanes for ' + it.lines.length + ' lines' + (noteSizedPx(it) ? ' at ' + noteSizedPx(it) + ' px' : ''));
-            if(noteSizedPx(it) && it.lines.length > 2){
+            if(noteSizedPx(it) && !keepsDate(it) && it.lines.length > 2){
               // A sized note cut at two lines: its first line as wrapped, a start of its second, and one "…".
               var ok2 = drawnLines.length === 2 && drawnLines[0] === it.lines[0] && it.lines[1].indexOf(drawnLines[1]) === 0 && ell === 1;
               if(!ok2) bad.X4.push(where + ' week ' + (wi + 1) + ' note ' + (k + 1) + ' (cut): ' + JSON.stringify(drawnLines) + ' +' + ell + ' "…" for ' + JSON.stringify(it.lines.slice(0, 2)));

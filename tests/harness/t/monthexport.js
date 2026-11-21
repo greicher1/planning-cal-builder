@@ -23,8 +23,11 @@
 //   X0  the clock is pinned: `new Date()` is 22 Sep 2026, and the month header shows "9.22.26" (a Manual header's date
 //       slot shows its own text instead: mvheaderlegacy's is "{version}")
 //   X1  a build that FAILS offers the print path (owner ruling 2): Cancel prints nothing and writes nothing; "Print
-//       instead" runs the print path, one page per month; nothing is written either way
-//   X2  ⭐ Export PDF writes the month PDF through the Save dialog: one call, named "<title> Month Calendar.pdf", PDF
+//       instead" runs the print path, one page per month; nothing is written either way. The failure is a missing
+//       font-inter-600 block, taken out BEFORE THE APP BOOTS (phase 1 only) and put back after X1: since 17 Nov 2026
+//       ("Shrink like the PDF") the first month drawn decodes the four programs, and a decoded weight is cached, so a
+//       block taken out after the month view is up no longer makes the export fail.
+//   X2  ⭐ Export PDF writes the month PDF through the Save dialog: one call, named "<title> <season> Month Calendar <yyyy-mm-dd> <version>.pdf", PDF
 //       typed, one write, closed; a PDF with one page per month; no print; the button busy, then not. And its bytes
 //       ARE the sliced source's for the same calendar
 //   X3  a cancelled dialog (AbortError) is silent: no file, no dialog of the app's own, no print, the button free
@@ -33,7 +36,7 @@
 //   X5  a soft hyphen is dropped (step 5): a note typed with one gives no warning, and its lines carry none
 //   X6  characters the PDF cannot set are NAMED first (owner ruling 4): the warning lists each one and where it is,
 //       names the ones that print as a box; Cancel writes nothing; Export anyway writes the slice's bytes
-//   X7  (phase 2) without the File System Access API the PDF DOWNLOADS: "<title> Month Calendar.pdf", application/pdf,
+//   X7  (phase 2) without the File System Access API the PDF DOWNLOADS: "<title> <season> Month Calendar <yyyy-mm-dd> <version>.pdf", application/pdf,
 //       the same bytes as phase 1's
 //   T0  the build fits well inside a click's activation (Chrome allows 5 s): real-clock runs only (?realtime=1)
 //   E0  no console errors but the one X1 caused on purpose
@@ -59,6 +62,21 @@
     try { if(typeof window[k] === 'function') Object.defineProperty(window, k, {value: undefined, configurable: true, writable: true}); } catch (e) {}
   });
   window.__NOFSA = typeof window.showSaveFilePicker;
+})();
+// X1's failure, set up before the app boots (phase 1 only). The app's script is a module, so it runs after parsing
+// ends, and readyState turns 'interactive' just BEFORE it runs: the block is parsed by then, and nothing has read it.
+(function hideFontBeforeBoot(){
+  var phase = null; try { phase = sessionStorage.getItem('monthexport-phase'); } catch (e) {}
+  if(phase === '2') return;
+  function hide(){
+    if(window.__x1Block) return;
+    var el = document.getElementById('font-inter-600');
+    if(!el) return;
+    window.__x1Block = {el: el, parent: el.parentNode, next: el.nextSibling};
+    el.parentNode.removeChild(el);
+  }
+  if(document.readyState !== 'loading') hide();
+  else document.addEventListener('readystatechange', function on(){ if(document.readyState !== 'loading'){ document.removeEventListener('readystatechange', on); hide(); } });
 })();
 window.__T.memoryIDB();
 window.addEventListener('load', function () { (async function () {
@@ -99,6 +117,32 @@ window.addEventListener('load', function () { (async function () {
     return T.modalText();
   }
   async function clickExport(){ await T.sleep(700); btn().click(); }   // past the button's 600 ms re-click guard
+  // ⭐ THE SMALL-TYPE NOTICE (audit AUD2-043, item 3.1, the owner's D4 = a, 14 Nov 2026): Export now stops before the Save
+  // dialog on a calendar with a month whose notes and bars print below 6 pt (monthscale's, month-dense60's and
+  // month-lanecap's Augusts), naming those months. t/textfit.js holds the notice; here it is answered "Export anyway" the
+  // moment it opens, as a user exporting such a calendar answers it, and an answered one is invisible to modalText() and
+  // clickModalButton() while it closes, so every case below meets exactly the dialogs it met before. The file is the same
+  // either way (the notice changes no byte). info.smallNotices counts the answers.
+  info.smallNotices = 0;
+  new MutationObserver(function(){
+    Array.prototype.forEach.call(document.querySelectorAll('.mantine-Modal-content'), function(d){
+      if(d.__smallAnswered || !/prints? very small/.test(d.textContent || '')) return;
+      var b = Array.prototype.find.call(d.querySelectorAll('button'), function(x){ return (x.textContent || '').trim() === 'Export anyway'; });
+      if(b){ d.__smallAnswered = true; info.smallNotices++; b.click(); }
+    });
+  }).observe(document.documentElement, {childList: true, subtree: true});
+  T.modalText = (function(base){ return function(){
+    return Array.from(document.querySelectorAll('.mantine-Modal-content'))
+      .filter(function(d){ return !d.__smallAnswered && !d.closest('.export-pdf-dlg'); })
+      .map(function(d){ return (d.innerText || d.textContent || '').replace(/\s+/g, ' ').trim(); }).filter(Boolean).join(' || ');
+  }; })(T.modalText);
+  T.clickModalButton = function(label){
+    var b = Array.from(document.querySelectorAll('.mantine-Modal-content')).filter(function(d){ return !d.__smallAnswered; })
+      .reduce(function(a, d){ return a.concat(Array.from(d.querySelectorAll('button'))); }, [])
+      .find(function(x){ var t = (x.innerText || x.textContent || '').trim(); return label instanceof RegExp ? label.test(t) : t === label; });
+    if(b) b.click();
+    return !!b;
+  };
   try {
     await T.appReady();
     if(!fromState){
@@ -114,7 +158,24 @@ window.addEventListener('load', function () { (async function () {
     if(await T.applyNoteSizeQuery()) await settle('the calendar at its note size');   // MONTH-NOTE-SIZE-PLAN.md step 3
     info.barSize = T.barSizeShown();
     var title = (document.getElementById('show-title').value || '').trim();
-    var wantName = (title ? title.replace(/[\\/:*?"<>|]/g, '-').replace(/\s+/g, ' ').trim() + ' ' : '') + 'Month Calendar.pdf';
+    // Since audit 2026-11 AUD2-025 (D8 = c) the name carries the season, the Date Last Edited (yyyy-mm-dd, the stamp
+    // this leg cannot read, so any date) and the Version as typed; since 16 Nov 2026 the season sits beside the title
+    // (owner-approved, exportFileName): "<title> S2 Month Calendar 2026-11-13 v3.pdf". Re-expected then (it was
+    // "<title> Month Calendar S2 …"), and tightened: a calendar with a season must carry it, "S<n>" or "S<n> & S<m>".
+    var reEsc = function (s) { return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); };
+    var verTyped = ((document.getElementById('show-version') || {}).value || '').replace(/[\\/:*?"<>|]/g, '-').replace(/\s+/g, ' ').trim();
+    var seasonNum = parseInt(((document.getElementById('season-num') || {}).value || '').trim(), 10);
+    // ⭐ RE-EXPECTED 18 Nov 2026, the owner's default: "<title> <season> Month Calendar <v + number> WRO <M.D.YY> - a.o.
+    // <M.D.YY>.pdf" (the Version box holds a number and the v is added; WRO when the Writers' Room has a date; the
+    // scenario off by default). A Version that is not a number prints as saved.
+    var verNum = verTyped.replace(/^[vV]\s*/, '');
+    var verShown = /^\d+(\.\d+)*\.?$/.test(verNum) ? 'v' + verNum : verTyped;
+    var wrSet = !!((document.getElementById('start-writersRoom') || {}).value || '').trim();
+    var wantName = '^' + reEsc(title ? title.replace(/[\\/:*?"<>|]/g, '-').replace(/\s+/g, ' ').trim() + ' ' : '')
+                 + (seasonNum >= 1 ? 'S' + seasonNum + '(?:(?:, S\\d+)* & S\\d+)? ' : '')
+                 + 'Month Calendar' + (verShown ? ' ' + reEsc(verShown) : '') + (wrSet ? ' WRO \\d+\\.\\d+\\.\\d{2}' : '')
+                 + ' - a\\.o\\. \\d+\\.\\d+\\.\\d{2}\\.pdf$';
+    var nameOk = function (n) { return new RegExp(wantName).test(n || ''); };
     info.window = [window.innerWidth, window.innerHeight];
     info.tz = {zone: Intl.DateTimeFormat().resolvedOptions().timeZone, offsetMin: new Date().getTimezoneOffset()};
 
@@ -134,8 +195,8 @@ window.addEventListener('load', function () { (async function () {
       URL.createObjectURL = realURL; HTMLAnchorElement.prototype.click = realClick;
       var dlBytes = dl ? new Uint8Array(await dl.arrayBuffer()) : null;
       var want = keep.built ? unb64(keep.built) : null;
-      add('X7', 'without the File System Access API the month PDF DOWNLOADS: "<title> Month Calendar.pdf", application/pdf, the same bytes as with the Save dialog',
-          window.__NOFSA === 'undefined' && !!dl && dl.type === 'application/pdf' && name === wantName && sameBytes(dlBytes, want),
+      add('X7', 'without the File System Access API the month PDF DOWNLOADS: "<title> <season> Month Calendar <date> <version>.pdf", application/pdf, the same bytes as with the Save dialog',
+          window.__NOFSA === 'undefined' && !!dl && dl.type === 'application/pdf' && nameOk(name) && sameBytes(dlBytes, want),
           {api: window.__NOFSA, type: dl && dl.type, name: name, wantName: wantName, bytes: dlBytes && dlBytes.length, sameAsPhase1: sameBytes(dlBytes, want)},
           'undefined; that name; application/pdf; identical');
       var errs = (T.appHealth().errors || []).filter(function (e) { return !/font-inter-600/.test(e); });
@@ -167,8 +228,15 @@ window.addEventListener('load', function () { (async function () {
       slice('  const MVL_GEOMETRY = (function(){', "return { tag: 'F' + w, ttf: fonts[w].font, raw: fonts[w].bytes, deflated: fonts[w].deflated };\n    }));\n  }", 'the writer') +
       '\nreturn {G: MVL_GEOMETRY, loadInterPdfFont: loadInterPdfFont, mvlMonthLayout: mvlMonthLayout, fitMonthLayout: fitMonthLayout,' +
       ' buildMonthPdf: buildMonthPdf, mvlUnprintable: mvlUnprintable, mvlTextWidth: mvlTextWidth};')();
-    var fonts = {};
-    for(var fw of ['400', '500', '600', '700']) fonts[fw] = await F.loadInterPdfFont(fw);
+    var fonts = {}, fontsP = {};
+    // X1's block is out of the page (hideFontBeforeBoot), and the slice's loader reads the same block. Its read is
+    // synchronous (the element is looked up before the loader's first await), so the block goes back for exactly the
+    // four calls and out again: no code of the app's can run in between.
+    var hb = window.__x1Block;
+    if(hb) hb.parent.insertBefore(hb.el, hb.next);
+    try { ['400', '500', '600', '700'].forEach(function (w) { fontsP[w] = F.loadInterPdfFont(w); }); }
+    finally { if(hb){ hb.next = hb.el.nextSibling; hb.parent.removeChild(hb.el); } }
+    for(var fw of ['400', '500', '600', '700']) fonts[fw] = await fontsP[fw];
     var noteW = function (s) { return F.mvlTextWidth(fonts['500'].font, s, F.G.noteFontPx); };
     // A one-day custom pill wraps at the bar's own type, 600 (MONTH-NOTES-PLAN.md §6), as buildMonthLayout does.
     var pillW = function (s) { return F.mvlTextWidth(fonts['600'].font, s, F.G.noteFontPx); };
@@ -209,10 +277,14 @@ window.addEventListener('load', function () { (async function () {
         {date: pinned.toString(), header: hdrToday, manualSlot: manualSlot}, '22 Sep 2026; 9.22.26, or a Manual slot\'s text');
 
     // ---- X1: a build that fails offers the print path --------------------------------------------------------------
-    // The fonts are decoded on first use and a failed decode is not cached, so hiding one block makes the FIRST exports
-    // fail, and putting it back lets the rest succeed.
-    var block = document.getElementById('font-inter-600'), parent = block.parentNode, next = block.nextSibling;
-    parent.removeChild(block);
+    // The fonts are decoded on first use and a failed decode is not cached, so a missing block makes the FIRST exports
+    // fail, and putting it back lets the rest succeed. ⚠️ Since 17 Nov 2026 "first use" is the first MONTH DRAWN (the
+    // month page asks the writer for its fit, "Shrink like the PDF"), so the block was taken out before the app booted
+    // (hideFontBeforeBoot, above), and is only put back here.
+    var hid = window.__x1Block || null;
+    if(!hid){ var b0 = document.getElementById('font-inter-600'); hid = {el: b0, parent: b0.parentNode, next: b0.nextSibling}; b0.parentNode.removeChild(b0); }
+    var block = hid.el, parent = hid.parent, next = hid.next;
+    info.x1HiddenBeforeBoot = !!window.__x1Block;
     var sp1 = T.fakeSavePicker(), prints1 = 0, realPrint1 = window.print;
     window.print = function () { prints1++; window.__x1pages = document.querySelectorAll('#print-root .print-page').length; };
     var m1 = await modal(function () { clickExport(); }, 'the failure dialog');
@@ -226,6 +298,7 @@ window.addEventListener('load', function () { (async function () {
     window.print = realPrint1;
     sp1.restore();
     parent.insertBefore(block, next);
+    window.__x1Block = null;
     await T.until(function () { return !busy(); }, 'the button to come free', 100, 100).catch(function () {});
     add('X1', 'a build that fails offers the print path: Cancel prints and writes nothing, "Print instead" prints one page per month',
         /Something went wrong writing the month PDF/.test(m1) && /font-inter-600/.test(m1) && /Print it with the browser instead/.test(m1) &&
@@ -255,7 +328,7 @@ window.addEventListener('load', function () { (async function () {
     var call = sp2.calls[0] || {};
     var types = call.types || [];
     add('X2', 'Export PDF writes the month PDF through the Save dialog, one page per month, and its bytes ARE the sliced source\'s, then the SPTCal mark',
-        sp2.calls.length === 1 && call.suggestedName === wantName &&
+        sp2.calls.length === 1 && nameOk(call.suggestedName) &&
         same(types, [{description: 'PDF document', accept: {'application/pdf': ['.pdf']}}]) &&
         !!f2 && f2.closed && f2.parts.length === 1 && T.pdfPages(built) === ref.months && prints2 === 0 && busySeen && !busy() &&
         sameBytes(writerOf(built), ref.bytes),

@@ -1,0 +1,493 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Note Editor Looks</title>
+<!-- MOCKUP, not the app. Cleaner looks for the note editor, asked for by the owner on 4 Nov 2026 on a screenshot of the
+     phase-linked notes mockup's editor: "i like it but can you mockup a few cleaner looking variations of this menu? I
+     think it needs a bit of an overhaul. this would also apply to the same menu in the month view".
+     "Today" copies the live editors (legacy.css .note-pop and .mv-note-pop, 248 px), with the plan's new "Stays with"
+     row added (PHASE-LINKED-NOTES-PLAN.md). A, B and C are new. Every variation holds the same settings as today, with
+     nothing added and nothing taken away: the text, Stays with, Day (waterfall only), the note palette's 18 colours,
+     Show in the other view, and the month view's Hide Auto-Note. Chrome only: the popover is a body-level panel, so
+     none of this touches the frozen grid. Synthetic notes, 2033.
+     A2 added the same day at the owner's ask: "show me a version of a where the date selector is on the top, then stays
+     with, then color is all the chips not a dropdown, then show in month view".
+     PICKED the same day: "yes A2, but its an "Auto-Note"". So the automatic note's editor is titled Auto-Note in every
+     new look (the live app's title, "5/2/33 · Auto Note", stays in the Today column). -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  /* src/theme.js */
+  --navy-0:#EAEEF2; --navy-1:#D3DAE1; --navy-2:#B4BFC9; --navy-6:#2C3E50; --navy-7:#1C2833;
+  --gray-0:#F7F6F3; --gray-1:#EEECE5; --gray-2:#E3E1DA; --gray-3:#D9D7CE; --gray-4:#C4C1B6; --gray-5:#A5A197;
+  --gray-6:#726F68; --gray-7:#5A5750; --gray-9:#1E1D1B;
+  --danger-0:#FDF2F2; --danger-9:#B3261E; --amber:#B9791A;
+  --shadow-md:0 8px 24px rgba(0,0,0,.12); --shadow-xs:0 1px 2px rgba(0,0,0,.08);
+  --r-xs:3px; --r-sm:5px; --r-md:7px; --r-lg:10px;
+  --page:#ECEBE6; --primary:#2C3E50;
+}
+*{ box-sizing:border-box; }
+body{ margin:0; font-family:'Inter',system-ui,sans-serif; color:var(--gray-9); background:var(--page); line-height:1.5; }
+button, input, select, textarea{ font:inherit; color:inherit; }
+
+.page{ max-width:1560px; margin:0 auto; padding:24px 16px 60px; }
+.page-head h1{ font-size:22px; margin:0 0 6px; letter-spacing:-.01em; }
+.page-head p{ margin:0 0 4px; color:var(--gray-6); font-size:13.5px; max-width:920px; }
+.bar{ display:flex; flex-wrap:wrap; gap:10px 16px; align-items:center; margin:16px 0 14px; }
+.bar .lbl{ font-size:12px; color:var(--gray-6); }
+.seg{ display:inline-flex; flex-wrap:wrap; background:var(--gray-1); border-radius:var(--r-md); padding:3px; gap:2px; }
+.seg button{ border:0; background:none; font-size:12.5px; font-weight:500; padding:4px 12px; border-radius:var(--r-sm);
+             color:var(--gray-7); cursor:pointer; white-space:nowrap; }
+.seg button[aria-pressed="true"]{ background:#fff; box-shadow:var(--shadow-xs); color:var(--gray-9); }
+.reset{ border:0; background:none; color:var(--gray-6); font-size:12.5px; cursor:pointer; text-decoration:underline; margin-left:auto; }
+
+.cols{ display:grid; grid-template-columns:repeat(auto-fit, minmax(275px, 1fr)); gap:16px; align-items:start; }
+.col{ background:#fff; border:1px solid var(--gray-2); border-radius:12px; overflow:hidden; }
+.col-head{ padding:12px 14px 10px; border-bottom:1px solid var(--gray-2); }
+.col-head h2{ margin:0; font-size:14px; display:flex; align-items:baseline; gap:8px; }
+.col-head h2 .tag{ font-size:11px; font-weight:600; color:#fff; background:var(--navy-6); border-radius:999px; padding:1px 8px; }
+.col-head h2 .tag.today{ background:var(--gray-5); }
+.col-head h2 .h{ margin-left:auto; font-size:11px; font-weight:500; color:var(--gray-6); font-variant-numeric:tabular-nums; }
+.col-head p{ margin:4px 0 0; font-size:12px; color:var(--gray-7); line-height:1.45; }
+.stage{ padding:22px 12px 26px; display:flex; justify-content:center; align-items:flex-start; min-height:360px;
+        background:repeating-linear-gradient(to bottom, var(--gray-0) 0 19px, var(--gray-2) 19px 20px); }
+
+.ed{ position:relative; background:#fff; border:1px solid var(--gray-3); border-radius:var(--r-lg); box-shadow:var(--shadow-md); }
+textarea{ display:block; width:100%; resize:vertical; }
+.swatch{ width:16px; height:16px; border-radius:var(--r-xs); cursor:pointer; display:inline-block; padding:0;
+         border:1px solid rgba(255,255,255,.55); box-shadow:0 0 0 1px rgba(0,0,0,.2); transition:transform 80ms ease; }
+.swatch:hover{ transform:scale(1.15); }
+.swatch.sel{ box-shadow:0 0 0 1px #fff, 0 0 0 3px var(--primary); }
+.nofill{ background:linear-gradient(to top right, #fff calc(50% - 1px), #E03131 calc(50% - 1px) calc(50% + 1px), #fff calc(50% + 1px)) !important; }
+.tog{ -webkit-appearance:none; appearance:none; position:relative; width:32px; height:16px; flex:none; margin:0; cursor:pointer;
+      border:0; border-radius:999px; background:var(--gray-3); transition:background-color 150ms; }
+.tog::before{ content:""; position:absolute; top:2px; left:2px; width:12px; height:12px; border-radius:50%; background:#fff;
+              box-shadow:0 1px 2px rgba(0,0,0,.18); transition:transform 150ms; }
+.tog:checked{ background:var(--primary); }
+.tog:checked::before{ transform:translateX(16px); }
+.chev{ width:11px; height:11px; flex:none; color:var(--gray-6); }
+select.plain{ -webkit-appearance:none; appearance:none; background:transparent; border:0; cursor:pointer; padding:0 16px 0 0;
+              background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 16 16' xmlns='http://www.w3.org/2000/svg' fill='none' stroke='%23726F68' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4.5 6.5 8 10l3.5-3.5'/%3E%3C/svg%3E");
+              background-repeat:no-repeat; background-position:right 0 center; background-size:11px 11px; }
+
+/* ---------- Today (legacy.css .note-pop / .mv-note-pop, 248 px) ---------- */
+.T{ width:248px; padding:16px; }
+.T .title{ font-size:10px; font-weight:600; letter-spacing:.04em; text-transform:uppercase; color:var(--gray-6); margin-bottom:8px; }
+.T .box{ display:flex; flex-direction:column; gap:6px; }
+.T textarea{ font-size:13px; border:1px solid var(--gray-4); border-radius:var(--r-md); padding:6px 9px; line-height:1.4; min-height:44px; }
+.T .row{ display:flex; align-items:center; gap:8px; font-size:10.5px; color:var(--gray-6); position:relative; }
+.T .row select{ -webkit-appearance:none; appearance:none; font-size:10.5px; padding:2px 20px 2px 6px; border:1px solid var(--gray-4);
+                border-radius:var(--r-sm); background:#fff;
+                background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 16 16' xmlns='http://www.w3.org/2000/svg' fill='none' stroke='%23726F68' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4.5 6.5 8 10l3.5-3.5'/%3E%3C/svg%3E");
+                background-repeat:no-repeat; background-position:right 5px center; background-size:11px 11px; }
+.T .row select.link{ flex:1; font-weight:600; }
+.T .newdot{ position:absolute; left:-12px; width:6px; height:6px; border-radius:50%; background:var(--amber); }
+.T .cap{ font-size:10.5px; color:var(--gray-7); line-height:1.4; margin:-2px 0 0; }
+.T .pal{ display:flex; gap:5px; padding:4px 0 1px; flex-wrap:wrap; justify-content:center; }
+.T .pal + .pal{ padding-top:2px; }
+.T .sw{ display:flex; align-items:center; justify-content:space-between; gap:10px; margin-top:6px; padding-top:8px;
+        border-top:1px solid var(--gray-2); font-size:13px; cursor:pointer; }
+.T .del{ align-self:flex-start; margin:6px 0 0 -8px; padding:4px 8px; font-size:12px; font-weight:500; color:#C92A2A;
+         background:none; border:0; border-radius:var(--r-sm); cursor:pointer; }
+.T .hint{ font-size:10px; color:var(--gray-5); line-height:1.4; margin-top:8px; }
+
+/* ---------- A: one tidy list ---------- */
+.A{ width:272px; padding:14px 14px 12px; }
+.A .head{ display:flex; align-items:baseline; gap:8px; margin-bottom:8px; }
+.A .head b{ font-size:13px; font-weight:600; }
+.A .head span{ margin-left:auto; font-size:11.5px; color:var(--gray-6); }
+.A textarea{ font-size:13px; border:1px solid transparent; background:var(--gray-0); border-radius:8px; padding:7px 10px;
+             line-height:1.4; min-height:46px; outline:none; }
+.A textarea:focus{ background:#fff; border-color:var(--navy-2); box-shadow:0 0 0 3px var(--navy-0); }
+.A .cap{ font-size:11px; color:var(--gray-6); line-height:1.4; margin:6px 2px 0; }
+.A .list{ margin-top:8px; border-top:1px solid var(--gray-2); }
+.A .item{ border-bottom:1px solid var(--gray-2); }
+.A .line{ display:flex; align-items:center; gap:10px; min-height:31px; font-size:12.5px; cursor:default; }
+.A .line .k{ color:var(--gray-7); }
+.A .line .v{ margin-left:auto; display:flex; align-items:center; gap:6px; font-weight:500; text-align:right; }
+.A .line select.plain{ font-weight:500; font-size:12.5px; text-align:right; text-align-last:right; max-width:170px; }
+.A .sub{ font-size:11px; color:var(--gray-6); margin:-6px 0 8px; line-height:1.35; }
+.A .chipbtn{ display:inline-flex; align-items:center; gap:6px; border:0; background:none; cursor:pointer; padding:0; font-weight:500; font-size:12.5px; }
+.A .dot{ width:14px; height:14px; border-radius:4px; box-shadow:0 0 0 1px rgba(0,0,0,.18); }
+.A .grid{ display:grid; grid-template-columns:repeat(9, 16px); gap:7px; justify-content:center; padding:2px 0 10px; }
+.A label.line{ cursor:pointer; }
+.A .foot{ display:flex; align-items:center; gap:8px; margin-top:10px; }
+.A .keys{ font-size:10.5px; color:var(--gray-5); }
+.A .del{ border:0; background:none; color:var(--danger-9); font-size:12px; font-weight:500; padding:4px 6px; margin-left:-6px;
+         border-radius:var(--r-sm); cursor:pointer; }
+.A .del:hover{ background:var(--danger-0); }
+.A .save{ margin-left:auto; border:0; background:var(--navy-6); color:#fff; font-size:12px; font-weight:600; height:26px;
+          padding:0 12px; border-radius:var(--r-sm); cursor:pointer; }
+
+/* ---------- A2: A reordered (owner, 4 Nov 2026): Day, Stays with, every colour out, the view switch ---------- */
+.A2 .cname{ font-weight:500; color:var(--gray-7); }
+.A2 .pal10{ display:grid; grid-template-columns:repeat(10, 18px); gap:6px; justify-content:space-between; padding:1px 1px 11px; }
+.A2 .pal10 .swatch{ width:18px; height:18px; }
+
+/* ---------- B: text first, settings as chips ---------- */
+.B{ width:292px; padding:12px; }
+.B .when{ font-size:11px; color:var(--gray-6); margin:0 2px 6px; display:flex; gap:6px; }
+.B .when b{ color:var(--gray-9); font-weight:600; }
+.B textarea{ font-size:14px; border:0; padding:2px 2px 8px; line-height:1.45; min-height:46px; outline:none;
+             border-bottom:1px solid var(--gray-2); border-radius:0; }
+.B .cap{ font-size:11px; color:var(--gray-6); line-height:1.4; margin:6px 2px 0; }
+.B .chips{ display:flex; flex-wrap:wrap; gap:6px; margin-top:10px; }
+.B .chip{ display:inline-flex; align-items:center; gap:5px; height:26px; padding:0 9px; border:1px solid var(--gray-3);
+          background:#fff; border-radius:999px; font-size:12px; font-weight:500; cursor:pointer; white-space:nowrap; }
+.B .chip:hover{ background:var(--gray-0); }
+.B .chip.open{ border-color:var(--navy-2); background:var(--navy-0); }
+.B .chip svg.i{ width:13px; height:13px; color:var(--gray-6); flex:none; }
+.B .chip .dot{ width:12px; height:12px; border-radius:3px; box-shadow:0 0 0 1px rgba(0,0,0,.18); }
+.B .chip.off{ color:var(--gray-5); }
+.B .chip.off svg.i{ color:var(--gray-4); }
+.B .chip.danger{ color:var(--danger-9); border-color:#E9C6C4; }
+.B .chip.danger:hover{ background:var(--danger-0); }
+.B .menu{ margin-top:8px; border:1px solid var(--gray-2); border-radius:8px; padding:4px; background:#fff; }
+.B .opt{ display:flex; align-items:center; gap:8px; width:100%; border:0; background:none; text-align:left; padding:6px 8px;
+         border-radius:var(--r-sm); font-size:12.5px; cursor:pointer; }
+.B .opt:hover{ background:var(--gray-0); }
+.B .opt .ck{ width:12px; color:var(--navy-6); font-weight:700; }
+.B .opt small{ margin-left:auto; color:var(--gray-6); font-size:11px; }
+.B .menu .grid{ display:grid; grid-template-columns:repeat(9, 16px); gap:8px; justify-content:center; padding:8px 0; }
+.B .menu .note{ font-size:11px; color:var(--gray-6); padding:2px 8px 6px; }
+.B .keys{ font-size:10.5px; color:var(--gray-5); margin:10px 2px 0; text-align:right; }
+
+/* ---------- C: every choice a button ---------- */
+.C{ width:300px; padding:16px; }
+.C .head{ display:flex; align-items:baseline; gap:8px; margin-bottom:10px; }
+.C .head b{ font-size:14px; font-weight:600; }
+.C .head span{ margin-left:auto; font-size:12px; color:var(--gray-6); }
+.C textarea{ font-size:13px; border:1px solid var(--gray-4); border-radius:8px; padding:8px 10px; line-height:1.4; min-height:52px; outline:none; }
+.C textarea:focus{ border-color:var(--navy-6); box-shadow:0 0 0 3px var(--navy-0); }
+.C .sec{ margin-top:12px; }
+.C .k{ font-size:11px; font-weight:600; color:var(--gray-7); margin-bottom:5px; }
+.C .cap{ font-size:11px; color:var(--gray-6); line-height:1.4; margin-top:5px; }
+.C .cap.top{ margin-top:6px; }
+.C .segc{ display:flex; background:var(--gray-1); border-radius:var(--r-md); padding:3px; gap:2px; }
+.C .segc button{ flex:1; min-width:0; border:0; background:none; border-radius:var(--r-sm); padding:5px 3px; font-size:11.5px; font-weight:500;
+                 color:var(--gray-7); cursor:pointer; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.C .segc button.on{ background:#fff; color:var(--gray-9); box-shadow:var(--shadow-xs); font-weight:600; }
+.C .days{ display:grid; grid-template-columns:repeat(7, 1fr); gap:4px; }
+.C .days button{ border:1px solid var(--gray-3); background:#fff; border-radius:var(--r-sm); padding:3px 0 2px; cursor:pointer;
+                 display:flex; flex-direction:column; align-items:center; line-height:1.15; }
+.C .days button span{ font-size:10px; color:var(--gray-6); }
+.C .days button b{ font-size:12.5px; font-weight:600; }
+.C .days button.on{ background:var(--navy-6); border-color:var(--navy-6); color:#fff; }
+.C .days button.on span{ color:var(--navy-1); }
+.C .days button.we span, .C .days button.we b{ opacity:.65; }
+.C .pal{ display:flex; gap:7px; align-items:center; flex-wrap:wrap; }
+.C .more{ width:18px; height:18px; border-radius:50%; border:1px dashed var(--gray-5); background:#fff; font-size:12px; line-height:1;
+          color:var(--gray-6); cursor:pointer; padding:0; }
+.C .pal + .pal{ margin-top:7px; }
+.C .swr{ display:flex; align-items:center; justify-content:space-between; margin-top:14px; font-size:13px; cursor:pointer; }
+.C .foot{ display:flex; align-items:center; gap:8px; margin-top:14px; padding-top:12px; border-top:1px solid var(--gray-2); }
+.C .del{ border:0; background:none; color:var(--danger-9); font-size:12px; font-weight:500; padding:4px 6px; margin-left:-6px;
+         border-radius:var(--r-sm); cursor:pointer; }
+.C .del:hover{ background:var(--danger-0); }
+.C .ghost{ margin-left:auto; border:1px solid var(--gray-3); background:#fff; font-size:12px; font-weight:500; height:28px; padding:0 12px;
+           border-radius:var(--r-sm); cursor:pointer; }
+.C .save{ border:0; background:var(--navy-6); color:#fff; font-size:12px; font-weight:600; height:28px; padding:0 14px;
+          border-radius:var(--r-sm); cursor:pointer; }
+
+.compare{ margin-top:18px; background:#fff; border:1px solid var(--gray-2); border-radius:12px; overflow-x:auto; }
+.compare table{ width:100%; border-collapse:collapse; font-size:12.5px; min-width:900px; }
+.compare th, .compare td{ text-align:left; padding:8px 12px; border-bottom:1px solid var(--gray-2); vertical-align:top; }
+.compare th{ font-size:10.5px; text-transform:uppercase; letter-spacing:.06em; color:var(--gray-6); font-weight:600; }
+.compare tr:last-child td{ border-bottom:0; }
+.compare td:first-child{ color:var(--gray-7); white-space:nowrap; }
+.pick{ margin:14px 0 0; font-size:13px; color:var(--gray-7); max-width:920px; }
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="page-head">
+    <h1>The note editor: cleaner looks</h1>
+    <p>Today's editor next to three overhauls of it. Each holds exactly the same settings, nothing added or taken away, and
+      each look is drawn for every kind of note editor, the waterfall's and the month view's. Everything is live: type, pick
+      a colour, change Stays with, flip the switch.</p>
+  </div>
+  <div class="bar">
+    <span class="lbl">Which editor:</span>
+    <span class="seg" id="kind">
+      <button type="button" data-k="wf" aria-pressed="true">Waterfall note</button>
+      <button type="button" data-k="mvday" aria-pressed="false">Month view note</button>
+      <button type="button" data-k="mvwf" aria-pressed="false">Month view: a waterfall line</button>
+      <button type="button" data-k="mvhol" aria-pressed="false">Month view: holiday</button>
+      <button type="button" data-k="mvauto" aria-pressed="false">Month view: Auto-Note</button>
+    </span>
+    <button class="reset" type="button" id="reset">Reset</button>
+  </div>
+
+  <div class="cols">
+    <section class="col"><div class="col-head"><h2><span class="tag today">Today</span>As it is <span class="h" data-h="T"></span></h2>
+      <p>Seven parts stacked. Small grey labels, a sentence of hint under Stays with, 18 colours always open, and a line of
+        keyboard help.</p></div><div class="stage" data-v="T"></div></section>
+    <section class="col"><div class="col-head"><h2><span class="tag">A</span>One tidy list <span class="h" data-h="A"></span></h2>
+      <p>The same parts as one aligned list: the name on the left, the value on the right, a hairline between. Colour folds
+        into one row that opens the palette. A Save button.</p></div><div class="stage" data-v="A"></div></section>
+    <section class="col"><div class="col-head"><h2><span class="tag">A2</span>A, reordered <span class="h" data-h="A2"></span></h2>
+      <p>Look A in the order you asked for: Day first, then Stays with, then every colour out as chips (one click, as
+        today), then the view switch. The month view's editors have no Day, so they start at Stays with.</p></div><div class="stage" data-v="A2"></div></section>
+    <section class="col"><div class="col-head"><h2><span class="tag">B</span>Text first, chips <span class="h" data-h="B"></span></h2>
+      <p>The note's text is the editor. Its settings are a row of chips under it, each one showing its value and opening its own
+        short menu. The smallest by far.</p></div><div class="stage" data-v="B"></div></section>
+    <section class="col"><div class="col-head"><h2><span class="tag">C</span>Every choice a button <span class="h" data-h="C"></span></h2>
+      <p>Nothing hidden in a dropdown: Stays with as two buttons, the day as seven, ten colours in a row with + for the other
+        eight. Cancel and Save. The clearest, and the tallest.</p></div><div class="stage" data-v="C"></div></section>
+  </div>
+
+  <div class="compare">
+    <table>
+      <tr><th></th><th>Today</th><th>A, one tidy list</th><th>A2, A reordered</th><th>B, text first, chips</th><th>C, every choice a button</th></tr>
+      <tr><td>Height (this editor)</td><td data-h2="T"></td><td data-h2="A"></td><td data-h2="A2"></td><td data-h2="B"></td><td data-h2="C"></td></tr>
+      <tr><td>Width</td><td>248 px</td><td>272 px</td><td>272 px</td><td>292 px</td><td>300 px</td></tr>
+      <tr><td>Change the colour</td><td>1 click</td><td>2 clicks (open, pick)</td><td>1 click</td><td>2 clicks (open, pick)</td><td>1 click (2 for the tints and greys)</td></tr>
+      <tr><td>Change Stays with</td><td>2 clicks (a dropdown)</td><td>2 clicks (a dropdown)</td><td>2 clicks (a dropdown)</td><td>2 clicks (a chip menu)</td><td>1 click</td></tr>
+      <tr><td>See every setting at a glance</td><td>yes, small</td><td>yes, one per line</td><td>yes, one per line, colours always out</td><td>yes, as chip labels</td><td>yes, large</td></tr>
+      <tr><td>Save</td><td>Tab, Ctrl/Cmd-Enter or click away</td><td>the same, plus a Save button</td><td>the same, plus a Save button</td><td>the same (no button)</td><td>the same, plus Cancel and Save</td></tr>
+      <tr><td>More than two phases in a week</td><td>the dropdown grows</td><td>the dropdown grows</td><td>the dropdown grows</td><td>the menu grows</td><td>the two buttons become a dropdown</td></tr>
+    </table>
+  </div>
+  <p class="pick"><b>Picked: A2</b> (owner, 4 Nov 2026), with the automatic note's editor titled <b>Auto-Note</b>. A2 is A with your order: the day, then what it stays with, then the colour, then where it shows.
+    Keeping every colour out makes the colour one click again, as it is today, for about 50 px more height than A.</p>
+  <p class="pick"><b>My first pick was A.</b> It changes the least about how the editor works (every control is where today's is, in
+    the same order), and it is the one that reads cleanly at a glance: one column of names, one column of values. B is
+    the neatest but hides each choice one click away. C is the easiest for someone new but grows to about the height of the
+    grid's visible weeks. Whatever you pick, both note editors get it, the waterfall's and the month view's, and so do the
+    month view's holiday and automatic-note editors.</p>
+</div>
+
+<script>
+(function(){
+  'use strict';
+  const esc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  // The note palette, as every note editor draws it (MV_NOTE_PALETTE): the standard ten, then No fill, tints, greys.
+  const PAL = [
+    ['Dark red', '#C00000'], ['Red', '#FF0000'], ['Orange', '#FFC000'], ['Yellow', '#FFFF00'], ['Light green', '#92D050'],
+    ['Green', '#00B050'], ['Light blue', '#00B0F0'], ['Blue', '#0070C0'], ['Dark blue', '#002060'], ['Purple', '#7030A0'],
+    ['No fill', '#FFFFFF00'], ['Pink', '#F7C1D9'], ['Lavender', '#D5C8EC'], ['Peach', '#FCCB9E'], ['Pale blue', '#BBDCF7'],
+    ['Light grey', '#D9D9D9'], ['Grey', '#A6A6A6'], ['Dark grey', '#595959']
+  ];
+  const nameOf = c => (PAL.find(p => p[1] === c) || ['Purple'])[0];
+  const isNoFill = c => c === '#FFFFFF00';
+  const CHEV = '<svg class="chev" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 6.5 8 10l3.5-3.5"/></svg>';
+  const ICON = {
+    link: '<svg class="i" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 9.5l3-3"/><path d="M7 4.6l1-1a2.8 2.8 0 0 1 4 4l-1 1"/><path d="M9 11.4l-1 1a2.8 2.8 0 0 1-4-4l1-1"/></svg>',
+    day: '<svg class="i" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="3.5" width="11" height="10" rx="1.5"/><path d="M2.5 6.5h11M5.5 2v3M10.5 2v3"/></svg>',
+    eye: '<svg class="i" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M1.5 8S4 3.5 8 3.5 14.5 8 14.5 8 12 12.5 8 12.5 1.5 8 1.5 8z"/><circle cx="8" cy="8" r="2"/></svg>',
+    eyeoff: '<svg class="i" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6.6 6.6a2 2 0 0 0 2.8 2.8"/><path d="M11.3 11.3A6.6 6.6 0 0 1 8 12.5c-2.9 0-5-2-6.5-4.5.8-1.4 1.8-2.5 2.9-3.3M6.7 3.6A6.3 6.3 0 0 1 8 3.5c2.9 0 5 2 6.5 4.5-.5.9-1 1.6-1.6 2.3"/><path d="M2 2l12 12"/></svg>'
+  };
+
+  // ---------- the five editors, as the app has them (plus the plan's Stays with) ----------
+  // Week 5/9/33 is Production wk 2, so its weekdays are shoot days 6-10.
+  const WEEK_DAYS = ['Mon 5/9', 'Tue 5/10', 'Wed 5/11', 'Thu 5/12', 'Fri 5/13', 'Sat 5/14', 'Sun 5/15'];
+  const KINDS = {
+    wf: { title: 'Note', when: 'Week of 5/9/33', todayTitle: 'Note · 5/9/33', text: 'Stunt rehearsal', color: '#7030A0',
+          stays: { opts: ['Week of 5/9/33', 'Production wk 2'], short: ['Week of 5/9', 'Production wk 2'], sel: 1,
+                   caps: ['Stays on the week of 5/9/33.', 'Moves when Production moves.'] },
+          day: { sel: null }, view: { label: 'Show in month view', short: 'Month view', on: true },
+          keys: 'Tab or Ctrl/Cmd‑Enter to save · Esc to cancel', placeholder: 'Note text (multi-line OK)' },
+    mvday: { title: 'Note', when: 'Wed 5/11/33', todayTitle: '5/11/33', text: 'Costume fitting', color: '#00B0F0',
+          stays: { opts: ['Wed 5/11/33', 'Production · Day 8'], short: ['5/11/33', 'Production Day 8'], sel: 0,
+                   caps: ['Stays on 5/11/33.', 'Moves when Production moves.'] },
+          day: null, view: { label: 'Show in waterfall', short: 'Waterfall', on: false },
+          keys: 'Up to 3 lines · Tab or Ctrl/Cmd‑Enter to save · Esc to cancel', placeholder: 'Note text — Enter for a new line, up to 3' },
+    mvwf: { title: 'Waterfall line', when: 'Mon 5/9/33', todayTitle: '5/9/33', text: 'Stunt rehearsal', color: '#7030A0',
+          stays: { opts: ['Week of 5/9/33', 'Production wk 2'], short: ['Week of 5/9', 'Production wk 2'], sel: 1,
+                   caps: ['Stays on the week of 5/9/33.', 'Moves when Production moves.'] },
+          day: null, view: { label: 'Show in waterfall', short: 'Waterfall', on: true },
+          keys: 'Tab or Ctrl/Cmd‑Enter to save · Esc to cancel', placeholder: 'Note text (multi-line OK)' },
+    mvhol: { title: 'Holiday', when: 'Mon 5/30/33', todayTitle: '5/30/33 · Holiday', text: 'Memorial Day', color: '#C00000',
+          stays: null, day: null, view: null,
+          cap: 'Renames this holiday wherever it shows. Colour is for the month view.',
+          keys: 'Enter to save · Esc to cancel', placeholder: 'Clear to go back to “Memorial Day”' },
+    mvauto: { title: 'Auto-Note', when: 'Mon 5/2/33', todayTitle: '5/2/33 · Auto Note', text: 'Start Principal Photography', color: '#7030A0',
+          stays: null, day: null, view: null, hide: 'Hide Auto-Note',
+          cap: 'Renames it wherever it shows. Its date follows the schedule. Colour is for the month view.',
+          keys: 'Enter to save · Esc to cancel', placeholder: 'Clear to hide this auto note' }
+  };
+
+  let kind = 'wf';
+  let ST = {};
+  function st(v){
+    const key = v + ':' + kind;
+    if(!ST[key]){
+      const k = KINDS[kind];
+      ST[key] = { text: k.text, color: k.color, stays: k.stays ? k.stays.sel : null, day: k.day ? k.day.sel : null,
+                  view: k.view ? k.view.on : null, menu: null, palOpen: false, more: false };
+    }
+    return ST[key];
+  }
+  const swatch = (c, cur) => `<button type="button" class="swatch${isNoFill(c) ? ' nofill' : ''}${c === cur ? ' sel' : ''}" data-color="${c}" title="${esc(nameOf(c))}" style="background:${c}"></button>`;
+  const dayLabel = i => WEEK_DAYS[i] + (i < 5 ? ' · Day ' + (6 + i) : '');
+  const dayShort = s => s.day == null ? 'Mon' : WEEK_DAYS[s.day].split(' ')[0];
+
+  // ---------- Today ----------
+  function T(k, s){
+    let h = `<div class="title">${esc(k.todayTitle)}</div><div class="box">`;
+    h += `<textarea rows="2" placeholder="${esc(k.placeholder)}">${esc(s.text)}</textarea>`;
+    if(k.stays){
+      h += `<div class="row"><span class="newdot"></span><span>Stays with</span><select class="link" data-f="stays">${k.stays.opts.map((o, i) => `<option value="${i}"${i === s.stays ? ' selected' : ''}>${esc(o)}</option>`).join('')}</select></div>`;
+      h += `<p class="cap">${s.stays === 0 ? esc(k.stays.opts[0].replace('Week of ', 'Stays on the week of ')) + ', whatever the phases do.' : 'Moves when Production moves. Stays on its ' + (kind === 'mvday' ? 'shoot day 8.' : 'week 2.')}</p>`;
+    }
+    if(k.day){
+      h += `<div class="row"><span>Day</span><select data-f="day"><option value=""${s.day == null ? ' selected' : ''}>${s.stays === 1 ? 'First day (default)' : 'Mon (default)'}</option>${WEEK_DAYS.map((d, i) => `<option value="${i}"${s.day === i ? ' selected' : ''}>${esc(dayLabel(i))}</option>`).join('')}</select></div>`;
+    }
+    h += `<div class="pal">${PAL.slice(0, 10).map(p => swatch(p[1], s.color)).join('')}</div>`;
+    h += `<div class="pal">${PAL.slice(10).map(p => swatch(p[1], s.color)).join('')}</div>`;
+    if(k.view) h += `<label class="sw"><span>${esc(k.view.label)}</span><input type="checkbox" class="tog" data-f="view"${s.view ? ' checked' : ''}></label>`;
+    if(k.hide) h += `<button type="button" class="del">${esc(k.hide)}</button>`;
+    h += `</div><div class="hint">${esc((k.cap ? k.cap.replace(/\. /g, ' · ').replace(/\.$/, '') + ' · ' : '') + k.keys)}</div>`;
+    return h;
+  }
+
+  // ---------- A: one tidy list ----------
+  function A(k, s){
+    let h = `<div class="head"><b>${esc(k.title)}</b><span>${esc(k.when)}</span></div>`;
+    h += `<textarea rows="2" placeholder="${esc(k.placeholder)}">${esc(s.text)}</textarea>`;
+    if(k.cap) h += `<p class="cap">${esc(k.cap)}</p>`;
+    h += '<div class="list">';
+    if(k.stays){
+      h += `<div class="item"><div class="line"><span class="k">Stays with</span><span class="v"><select class="plain" data-f="stays">${k.stays.opts.map((o, i) => `<option value="${i}"${i === s.stays ? ' selected' : ''}>${esc(o)}</option>`).join('')}</select></span></div>`
+        + `<div class="sub">${esc(k.stays.caps[s.stays])}</div></div>`;
+    }
+    if(k.day){
+      h += `<div class="item"><div class="line"><span class="k">Day</span><span class="v"><select class="plain" data-f="day"><option value=""${s.day == null ? ' selected' : ''}>${s.stays === 1 ? 'First day' : 'Monday'}</option>${WEEK_DAYS.map((d, i) => `<option value="${i}"${s.day === i ? ' selected' : ''}>${esc(dayLabel(i))}</option>`).join('')}</select></span></div></div>`;
+    }
+    h += `<div class="item"><div class="line"><span class="k">Colour</span><span class="v"><button type="button" class="chipbtn" data-act="pal"><span class="dot${isNoFill(s.color) ? ' nofill' : ''}" style="background:${s.color}"></span>${esc(nameOf(s.color))}${CHEV}</button></span></div>`;
+    if(s.palOpen) h += `<div class="grid">${PAL.slice(0, 9).map(p => swatch(p[1], s.color)).join('')}${PAL.slice(9).map(p => swatch(p[1], s.color)).join('')}</div>`;
+    h += '</div>';
+    if(k.view) h += `<div class="item"><label class="line"><span class="k">${esc(k.view.label)}</span><span class="v"><input type="checkbox" class="tog" data-f="view"${s.view ? ' checked' : ''}></span></label></div>`;
+    h += '</div>';
+    h += `<div class="foot">${k.hide ? `<button type="button" class="del">${esc(k.hide)}</button>` : '<span class="keys">Esc to cancel</span>'}<button type="button" class="save">Save</button></div>`;
+    return h;
+  }
+
+  // ---------- A2: A reordered ----------
+  // The owner's order (4 Nov 2026): Day on top, then Stays with, then the colour as all its chips, then Show in month view.
+  function A2(k, s){
+    let h = `<div class="head"><b>${esc(k.title)}</b><span>${esc(k.when)}</span></div>`;
+    h += `<textarea rows="2" placeholder="${esc(k.placeholder)}">${esc(s.text)}</textarea>`;
+    if(k.cap) h += `<p class="cap">${esc(k.cap)}</p>`;
+    h += '<div class="list">';
+    if(k.day){
+      h += `<div class="item"><div class="line"><span class="k">Day</span><span class="v"><select class="plain" data-f="day"><option value=""${s.day == null ? ' selected' : ''}>${s.stays === 1 ? 'First day' : 'Monday'}</option>${WEEK_DAYS.map((d, i) => `<option value="${i}"${s.day === i ? ' selected' : ''}>${esc(dayLabel(i))}</option>`).join('')}</select></span></div></div>`;
+    }
+    if(k.stays){
+      h += `<div class="item"><div class="line"><span class="k">Stays with</span><span class="v"><select class="plain" data-f="stays">${k.stays.opts.map((o, i) => `<option value="${i}"${i === s.stays ? ' selected' : ''}>${esc(o)}</option>`).join('')}</select></span></div>`
+        + `<div class="sub">${esc(k.stays.caps[s.stays])}</div></div>`;
+    }
+    h += `<div class="item"><div class="line"><span class="k">Colour</span><span class="v cname">${esc(nameOf(s.color))}</span></div>`
+      + `<div class="pal10">${PAL.map(p => swatch(p[1], s.color)).join('')}</div></div>`;
+    if(k.view) h += `<div class="item"><label class="line"><span class="k">${esc(k.view.label)}</span><span class="v"><input type="checkbox" class="tog" data-f="view"${s.view ? ' checked' : ''}></span></label></div>`;
+    h += '</div>';
+    h += `<div class="foot">${k.hide ? `<button type="button" class="del">${esc(k.hide)}</button>` : '<span class="keys">Esc to cancel</span>'}<button type="button" class="save">Save</button></div>`;
+    return h;
+  }
+
+  // ---------- B: text first, chips ----------
+  function B(k, s){
+    let h = `<div class="when"><b>${esc(k.title)}</b><span>${esc(k.when)}</span></div>`;
+    h += `<textarea rows="2" placeholder="${esc(k.placeholder)}">${esc(s.text)}</textarea>`;
+    if(k.cap) h += `<p class="cap">${esc(k.cap)}</p>`;
+    h += '<div class="chips">';
+    if(k.stays) h += `<button type="button" class="chip${s.menu === 'stays' ? ' open' : ''}" data-menu="stays" title="Stays with">${ICON.link}${esc(k.stays.short[s.stays])}${CHEV}</button>`;
+    if(k.day) h += `<button type="button" class="chip${s.menu === 'day' ? ' open' : ''}" data-menu="day" title="Day">${ICON.day}${esc(s.day == null ? (s.stays === 1 ? 'First day' : 'Mon') : dayShort(s))}${CHEV}</button>`;
+    h += `<button type="button" class="chip${s.menu === 'color' ? ' open' : ''}" data-menu="color" title="Colour: ${esc(nameOf(s.color))}"><span class="dot${isNoFill(s.color) ? ' nofill' : ''}" style="background:${s.color}"></span>${esc(nameOf(s.color))}${CHEV}</button>`;
+    if(k.view) h += `<button type="button" class="chip${s.view ? '' : ' off'}" data-act="view" title="${esc(k.view.label)}: ${s.view ? 'on' : 'off'}">${s.view ? ICON.eye : ICON.eyeoff}${esc(k.view.short)}</button>`;
+    if(k.hide) h += `<button type="button" class="chip danger">${ICON.eyeoff}${esc(k.hide)}</button>`;
+    h += '</div>';
+    if(s.menu === 'stays'){
+      h += `<div class="menu"><div class="note">Stays with</div>${k.stays.opts.map((o, i) => `<button type="button" class="opt" data-pick="stays" data-val="${i}"><span class="ck">${i === s.stays ? '✓' : ''}</span>${esc(o)}<small>${i === 0 ? 'never moves' : 'moves with it'}</small></button>`).join('')}</div>`;
+    } else if(s.menu === 'day'){
+      h += `<div class="menu"><button type="button" class="opt" data-pick="day" data-val=""><span class="ck">${s.day == null ? '✓' : ''}</span>${s.stays === 1 ? 'First day' : 'Monday'}<small>default</small></button>${WEEK_DAYS.map((d, i) => `<button type="button" class="opt" data-pick="day" data-val="${i}"><span class="ck">${s.day === i ? '✓' : ''}</span>${esc(d)}${i < 5 ? `<small>Day ${6 + i}</small>` : ''}</button>`).join('')}</div>`;
+    } else if(s.menu === 'color'){
+      h += `<div class="menu"><div class="grid">${PAL.slice(0, 9).map(p => swatch(p[1], s.color)).join('')}${PAL.slice(9).map(p => swatch(p[1], s.color)).join('')}</div></div>`;
+    }
+    h += `<div class="keys">${esc(k.keys.replace('Tab or Ctrl/Cmd‑Enter to save', 'Tab to save').replace('Up to 3 lines · ', ''))}</div>`;
+    return h;
+  }
+
+  // ---------- C: every choice a button ----------
+  function C(k, s){
+    let h = `<div class="head"><b>${esc(k.title)}</b><span>${esc(k.when)}</span></div>`;
+    h += `<textarea rows="2" placeholder="${esc(k.placeholder)}">${esc(s.text)}</textarea>`;
+    if(k.cap) h += `<p class="cap top">${esc(k.cap)}</p>`;
+    if(k.stays){
+      h += `<div class="sec"><div class="k">Stays with</div><div class="segc">${k.stays.short.map((o, i) => `<button type="button" class="${i === s.stays ? 'on' : ''}" data-pick="stays" data-val="${i}" title="${esc(k.stays.opts[i])}">${esc(o)}</button>`).join('')}</div><div class="cap">${esc(k.stays.caps[s.stays])}</div></div>`;
+    }
+    if(k.day){
+      h += `<div class="sec"><div class="k">Day</div><div class="days">${WEEK_DAYS.map((d, i) => { const [w, md] = d.split(' ');
+        return `<button type="button" class="${s.day === i ? 'on' : ''}${i > 4 ? ' we' : ''}" data-pick="day" data-val="${s.day === i ? '' : i}" title="${esc(dayLabel(i))}"><span>${w.slice(0, 2)}</span><b>${md.split('/')[1]}</b></button>`; }).join('')}</div>`
+        + `<div class="cap">${s.day == null ? (s.stays === 1 ? 'No day picked: Production\'s first day that week.' : 'No day picked: Monday.') : esc(dayLabel(s.day).replace(' · ', ', shoot ')) + '.'}</div></div>`;
+    }
+    h += `<div class="sec"><div class="k">Colour</div><div class="pal">${PAL.slice(0, 10).map(p => swatch(p[1], s.color)).join('')}<button type="button" class="more" data-act="more" title="${s.more ? 'Fewer colours' : 'No fill, tints and greys'}">${s.more ? '−' : '+'}</button></div>`;
+    if(s.more || PAL.slice(10).some(p => p[1] === s.color)) h += `<div class="pal">${PAL.slice(10).map(p => swatch(p[1], s.color)).join('')}</div>`;
+    h += '</div>';
+    if(k.view) h += `<label class="swr"><span>${esc(k.view.label)}</span><input type="checkbox" class="tog" data-f="view"${s.view ? ' checked' : ''}></label>`;
+    h += `<div class="foot">${k.hide ? `<button type="button" class="del">${esc(k.hide)}</button>` : ''}<button type="button" class="ghost">Cancel</button><button type="button" class="save">Save</button></div>`;
+    return h;
+  }
+
+  const R = { T, A, A2, B, C };
+  function draw(){
+    document.querySelectorAll('.stage').forEach(stage => {
+      const v = stage.dataset.v, s = st(v);
+      stage.innerHTML = `<div class="ed ${v === 'A2' ? 'A A2' : v}" data-v="${v}">${R[v](KINDS[kind], s)}</div>`;
+    });
+    // Heights, measured live (reading the box forces layout, so no frame wait: a background tab never runs one).
+    document.querySelectorAll('.ed').forEach(ed => {
+      const h = Math.round(ed.getBoundingClientRect().height) + ' px tall';
+      document.querySelector(`[data-h="${ed.dataset.v}"]`).textContent = h;
+      document.querySelector(`[data-h2="${ed.dataset.v}"]`).textContent = h.replace(' tall', '');
+    });
+  }
+
+  // ---------- one set of listeners for every editor ----------
+  const edOf = el => el.closest('.ed');
+  document.addEventListener('input', e => {
+    const ed = edOf(e.target); if(!ed) return;
+    if(e.target.tagName === 'TEXTAREA') st(ed.dataset.v).text = e.target.value;
+  });
+  document.addEventListener('change', e => {
+    const ed = edOf(e.target); if(!ed) return;
+    const s = st(ed.dataset.v), f = e.target.dataset.f;
+    if(f === 'stays') s.stays = +e.target.value;
+    else if(f === 'day') s.day = e.target.value === '' ? null : +e.target.value;
+    else if(f === 'view') s.view = e.target.checked;
+    else return;
+    draw();
+  });
+  document.addEventListener('click', e => {
+    const ed = edOf(e.target); if(!ed) return;
+    const s = st(ed.dataset.v);
+    const sw = e.target.closest('.swatch');
+    if(sw){ s.color = sw.dataset.color; if(ed.dataset.v === 'B') s.menu = null; if(ed.dataset.v === 'A') s.palOpen = false; draw(); return; }
+    const menu = e.target.closest('[data-menu]');
+    if(menu){ s.menu = s.menu === menu.dataset.menu ? null : menu.dataset.menu; draw(); return; }
+    const pick = e.target.closest('[data-pick]');
+    if(pick){ const val = pick.dataset.val; s[pick.dataset.pick] = val === '' ? null : +val; s.menu = null; draw(); return; }
+    const act = e.target.closest('[data-act]');
+    if(act){
+      if(act.dataset.act === 'pal') s.palOpen = !s.palOpen;
+      else if(act.dataset.act === 'view') s.view = !s.view;
+      else if(act.dataset.act === 'more') s.more = !s.more;
+      draw();
+    }
+  });
+  document.querySelectorAll('#kind button').forEach(b => b.addEventListener('click', () => {
+    kind = b.dataset.k;
+    document.querySelectorAll('#kind button').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
+    draw();
+  }));
+  document.getElementById('reset').addEventListener('click', () => { ST = {}; draw(); });
+  draw();
+  if(document.fonts && document.fonts.ready) document.fonts.ready.then(draw);
+})();
+</script>
+</body>
+</html>

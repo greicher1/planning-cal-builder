@@ -168,6 +168,41 @@ export function IconCalendarRange(props) {
   )
 }
 
+// The Hiatus preferences card (HIATUS-RIPPLE-PLAN.md §5): the pause bars the All-phase hiatus card's own header draws.
+export function IconPause(props) {
+  return (
+    <svg {...base} {...props}>
+      <path d="M6 4v8M10 4v8" />
+    </svg>
+  )
+}
+
+// The toolbar's More button (owner, 16 Nov 2026: on a narrow window the rarely used tools fold into one menu). Three
+// dots, filled, as every "more" button draws them; the stroke family's round caps would read as dashes at this size.
+export function IconDots(props) {
+  return (
+    <svg {...base} {...props} stroke="none" fill="currentColor">
+      <circle cx="3.5" cy="8" r="1.4" />
+      <circle cx="8" cy="8" r="1.4" />
+      <circle cx="12.5" cy="8" r="1.4" />
+    </svg>
+  )
+}
+
+// Build Around's icon on a narrow toolbar (owner, 16 Nov 2026: "the build around icon looks like a location pin - make
+// it a hammer/wrench symbol"). A hammer: the head across the top and the handle down, drawn upright and turned 45° so
+// the handle runs to the lower left; the shift puts the turned ink back in the middle of the box.
+export function IconHammer(props) {
+  return (
+    <svg {...base} {...props}>
+      <g transform="translate(-1 1) rotate(45 8 8)">
+        <path d="M4.5 2.6h5.2l2.3 1.4v1.6H4.5a.9.9 0 0 1-.9-.9V3.5a.9.9 0 0 1 .9-.9Z" />
+        <path d="M8 5.6v8.6" strokeWidth="2.1" />
+      </g>
+    </svg>
+  )
+}
+
 export function IconCalendarPlain(props) {
   return (
     <svg {...base} {...props}>
@@ -233,6 +268,16 @@ export function IconPlus(props) {
   return (
     <svg {...base} {...props}>
       <path d="M3.5 8h9M8 3.5v9" />
+    </svg>
+  )
+}
+
+// Open. The recent calendars on an empty start (StartRecents.jsx): the "Open" on the last calendar's card, and the
+// arrow a recent row shows on hover.
+export function IconArrowRight(props) {
+  return (
+    <svg {...base} {...props}>
+      <path d="M3 8h10M9 4l4 4-4 4" />
     </svg>
   )
 }

@@ -29,11 +29,11 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
-### Unreleased — date boxes take and show a two-digit year: 01/04/26 (4 Nov 2026)
+### Unreleased — date boxes take and show a two-digit year: 01/04/26 (21 Nov 2026)
 
 Owner, 4 Nov 2026: *"you can type 26 instead of 2026"*, and the box *"should read 01/04/26"*.
 
-- **Every date box in the sidebar, and the toolbar's two (Anchor To, Rebuild From), shows the year as two digits:**
+- **Every date box in the sidebar, and the toolbar's two (Shift's To a date, Build Around's), shows the year as two digits:**
   01/04/26, and an empty box reads mm/dd/yy.
 - **Typing 26 means 2026.** Any year under 100 becomes 20xx once you finish it: when you leave the box, press Enter or
   Tab, or press any key but a digit. Four digits still work, and 2, 0, 2, 6 still types 2026.
@@ -42,6 +42,7 @@ Owner, 4 Nov 2026: *"you can type 26 instead of 2026"*, and the box *"should rea
   three-digit year left in the box (a typo) is still refused and ringed, as before.
 - A snapped start still shows its Monday, and an Ends box its Friday, exactly as for a typed 2026; one undo takes the
   edit back.
+- What's New tells users: "Type a two-digit year".
 
 The box still holds the full date (2026-01-04), so saved files, the grid and every export are unchanged; the two
 digits are paint only (`legacy.css` clips Chrome's year field to its last two digits, with tabular figures so 2011
@@ -49,9 +50,4029 @@ reads 11, not 011). The typing half is `holdUnfinishedYear` / `finishTypedYear` 
 document so the Monday snap, the Ends boxes and the tools all see 2026. No frozen code. New leg `twodigityear` 13/13
 (red on a no-expansion mutant: Y2, K1, K2, B1, B2); `snapbox`, `datepick`, `endsdate`, `prodends`, `calrange`,
 `snaptools`, `builtindates`, `badyear`, `snapoff`, `undokeys` green; `npm run check` 40/40; real keystrokes in the
-browser pane (0 1 0 5 2 6 then Enter → 2026-01-05, no refusal while typing).
+browser pane (0 1 0 5 2 6 then Enter → 2026-01-05, no refusal while typing). Built 4 Nov; re-checked on 21 Nov after
+merging `main`: `npm run check` 46/46, the legs above plus `panelstale`, `buildaround`, `anchorside`, `finishbefore`
+green, and real typing beside the phase cards' ▲ / ▼.
 
-### Unreleased — Compare: the holiday chip is on Wrap only, in words (4 Nov 2026)
+### Unreleased — Shift keeps every phase's distance from the wrap (20 Nov 2026)
+
+The owner asked that, when a shift moves Production and its new dates change how long the shoot takes, the phases
+around the wrap keep their distance from it, instead of leaving a week's gap or overlap. A shoot can grow or shrink
+on its new dates because a holiday falls in it or drops out, or because a day marked Off or a weekend marked as a shoot
+day lands differently. Now, after Shift (the arrows, By weeks, To a date) or a hiatus ripple moves Production, every
+phase tied to the wrap that the move also moved (one starting after the wrap day, or one running alongside whose last
+working day is in the wrap week) moves by the extra working weeks too (`shiftWithWrapFollow`, `wrapFollowBefore`,
+`wrapFollowAfter`), stepping over held hiatuses as the shift itself does. A phase left unticked stays, a phase straddling the wrap stays,
+and Production's own ▲ / ▼ stay one-phase-only. The result line names the cause and the follow ("Wrap 9/14/26: Labor
+Day falls in the shoot now. Post and Localization were also pushed 1 wk to keep their distance from the wrap.").
+To a date with Production "ends by" now searches back a week at a time until the wrap is on or before the date. One undo
+step, nothing saved changes shape, and no output moves for a calendar whose shoot keeps its length (the reference
+calendar's own shifts are unchanged). Verified: new leg `shiftwrapfollow` 14/14, 21 related shift, build and ripple legs,
+`npm run check` 46/46, and the full gate, whose every baseline comparison is identical.
+
+### Unreleased — Four harness checks re-premised for Show info's field order (20 Nov 2026)
+
+`hidewf` F1 + F3, `phasesui` P1 and `hiatusripple` R0 had been red on `main` since `368f9e2` (19 Nov 2026, Show info's
+fields in the order each mode is filled in). All four compare a Save's `fields.byId` with a file saved earlier, and that
+commit moved `#num-episodes` / `#shoot-days-per-ep` after `#num-blocks` / `#days-per-block` in the markup, so the four
+keys are written in a new order. Measured on all 46 `phasesui` fixtures: the four keys' order is the ONLY difference,
+every id and value identical. Nothing reads the order (`applyStateSnapshot` sets each value with no event; Date Last
+Edited hashes sorted keys; the undo base is a fresh capture), so the reorder was intended and harmless, and the checks,
+not the app, were re-premised: `T.showInfoOrderEra()` (t/lib.js, inlined in `hiatusripple.mjs`) puts those four ids of
+an older fixture or baseline in today's order and leaves every other id where it was. No fixture or baseline file
+changed, no app code changed. **Verified:** `hidewf` 19/19, `phasesui` 8/8, `hiatusripple` 19/19 (each alone, on
+`dist/`), `npm run check` 46/46.
+
+### Unreleased — The whole toolbar fits on a 13" MacBook Air (19 Nov 2026)
+
+The owner asked whether a 13" MacBook Air shows the calendar toolbar in full; it did not (the line needed about 1,690 px,
+and the Air's window is 1,470, or 1,440 on an M1, so Fill Gaps, Side Boxes and Header went into the ••• More menu). On
+"Make it fit" the owner was shown two mockups and picked "Option B": at 1,700 px and narrower the toolbar is drawn a
+little tighter (button padding 8 px, the text style buttons 26 px, the gap between items down to 8 px, the calendar's side
+margins 12 px). The sidebar narrows only as far as the toolbar needs (owner, 20 Nov 2026, after a first build narrowed it
+at every width up to 1,700 px, which wrapped Production's shoot-days line there): as before from 1,513 px up, 320 px at
+1,470 (was 353), 290 at 1,440, 280 from 1,430 down (was 320). Above 1,700 px nothing changes. Every control now shows on
+one line from 1,430 px up, and every narrower window folds later than before
+(the view toggle keeps its labels at 960). The Header button re-measures its fixed width when the window crosses
+1,700 px. `src/styles/legacy.css` ("THE LAPTOP TOOLBAR", the `.form-panel` rule), `src/chrome/PreviewToolbar.jsx`.
+Leg `toolbarfit` moved to the new fold widths (F0 also holds 1,470 and 1,440 unfolded; F6 reaches step 5 with a forced
+420 px sidebar, since no window does on its own now). Verified: see HANDOFF's 19 Nov entry.
+
+||||||| 2ef16d26
+
+### Unreleased — The template editor opens on variables, not a Manual header's plain text (19 Nov 2026)
+
+The owner asked that, when the template editor opens, the default auto header's lines be the variables rather than plain
+text. Taking the header over (Manual) bakes every auto line into words, and the editor used to open on those words, so
+"10 Episodes" stopped following the episode count. Now Manual -> Template (opening the editor, or the mode menu's
+Template) turns every line still in an auto line's form back into its variable (`hdrAutoLinesAsTokens()`, in both
+views): the text the default template prints now, or, for the lines that carry a date or a count, the auto line's shape
+("Principal Photography 6.29.26 / Wrap: 10.20.26" from before the shoot moved, a date frozen last week, "v2"), in any
+slot. A line the user wrote stays exactly as typed, an emptied line stays empty, and the title lines change only when they
+still read exactly what Auto would print. One undo step, as before; nothing saved changes shape and no output moves for a
+calendar that does not switch. Verified: `hdrtemplate` (new step 11, two new gate checks), `hdreditor`, `hdrpreset`,
+`hdrfile`, `hdrverload`, `hdrcontrols` 12/12, `mvhdroff` 9/9, `seasons` 15/15, `lastedited` 22/22, `npm run check`
+46/46, and in the browser in both views.
+
+### Unreleased — Post's "Final Delivery" note starts on for new calendars (19 Nov 2026)
+
+The owner asked for the Final Delivery note to be enabled by default. A NEW calendar (the first launch, New, Reset All)
+now starts with Post's end note ticked in both views, so "Final Delivery 9/24/27" shows in Post's last week as soon as
+Post is dated (`newCalendarAutoNotesOn()`, read at the boot and by `resetAll()`, colReuse's pattern). It stays an opt-in
+kind: a calendar saved without it ticked, every file before today included, opens exactly as it did, with the note off,
+so no saved plan changes and no export of one moves. A new calendar's file now carries `autoNotesOn: {postEnd: true}`;
+no key or version changed. The test harness keeps it off for every leg but its own (localhost-only
+`sptcal.finalDeliveryTest`, set by `t/lib.js`), so the reference calendar and every baseline cut from it are untouched.
+New leg `finaldelivery` (boot on, Save writes the key, a file without it opens off, New turns it back on); verified:
+`finaldelivery` 4/4, `autonotephases` 27/27, `autonoteview` 18/18, `autonotekinds` 16/16, `autonoterename` 25/25,
+`autonote` 9/9, `loadsparse` 8/8, `firstrun` 22/22, `noresetall` 5/5 and `npm run check` 46/46 on the build. No full gate: nothing frozen, no saved key. What's New
+(`src/whats-new.js`, `2026-11-19-4`) tells users.
+
+### Unreleased — Build Around's "ends by" picks a Friday, or any weekday for Production (19 Nov 2026)
+
+The owner: *"build around - end by a date - why can i only select mondays? that doesnt make sense. it should be only
+fridays except for production which should be any weekday"*. The pop-out date picker read Build Around's date by the
+START's rule on both edges, so with "ends by" a snapped phase's last day could only be set to a Monday.
+`fieldKind()` in `src/chrome/DatePop.jsx` now reads the edge: on "ends by", a phase that runs whole weeks (Snap to
+Monday on, or on Ends) offers Fridays only (the picker's existing `friday` kind, as an Ends phase's end), and
+Production, or a Days, Dates or unsnapped phase, offers any weekday (a new `weekday` kind: weekends greyed, its own
+hint). "starts on" is unchanged, and so is the engine: Build Around already read any date as a deadline. Shift's To a
+date "ends by" is unchanged (any day). Verified on the build: leg `datepick` 21/21 (new E1-E4: Fridays only on a
+snapped phase, weekdays on Production and on an unsnapped phase, a picked Wednesday is written), `buildendsby` 21/21,
+`buildaround` 36/36, `npm run check` 46/46.
+
+### Unreleased — The wrap-date picker has no "only shoot days" line (19 Nov 2026)
+
+The owner asked to delete "The shoot wraps on a shoot day, so only shoot days can be picked." from under Production's
+Wraps date picker. The picker still offers only shoot days (weekends, holidays and Production's own hiatus greyed); only
+the sentence is gone (`src/chrome/DatePop.jsx`). The other pickers' hints (Mondays, Fridays, a hiatus's Monday) stay.
+Leg `prodends` E5 now expects no hint line; verified: `npm run check` 46/46, `prodends` 8/8 on the build.
+
+### Unreleased — "Colour" reads "Color" everywhere a user sees it (19 Nov 2026)
+
+The owner asked for "Colour" to be "Color" in all places. Every user-facing spelling changed: the swatches' "Change
+color" tooltips (phase, Prep, Tandem, custom phase and hiatus squares), the note editors' **Color** row and "Color is for
+the month view." hints in both views, the header editor's Text / Highlight color, the Reset Notes and Reset Month Notes
+questions, Paste notes' hint and its "can't read the color" error, the toolbar's Text style and side-box tooltips, the
+Holidays card's hint, and the Help window. ⛔ Left as they were on purpose: code names, CSS classes (`note-colour-item`,
+`note-colour-name`, `hiatuscolour`…), comments, docs, and every saved-file key, so no file, leg selector or output
+moves. Paste notes still reads any colour word it read before. Legs `notelook`, `hiatuscolour` and `notesreset` were
+updated to the new words; verified: `npm run check` 46/46, the built file carries no user-visible "colour", and those
+three legs plus `mvnotes` pass on the build.
+
+### Unreleased — The note editor's Day list starts on "Default (Monday)" (19 Nov 2026)
+
+In the waterfall's note editor the Day list's empty choice read "No date" (since 17 Nov 2026). The owner pointed out that
+was true of the waterfall, where no date is added to the note, but wrong about the month view, where the note still sits
+on its week's Monday. It now reads **"Default (Monday)"**, and the "Mon 7/6/26" entry under it stays, because the two do
+different things: the default adds no date and the note moves with its week, while picking Monday adds "7/6/26" to the
+note and keeps it on that date when the calendar shifts. On a note that stays with a phase the default names the day the
+note is drawn on, the phase's first day that week, and follows the Stays with choice: in a week whose Monday is a
+holiday, a note staying with Production reads "Default (Tuesday)". That day comes from the same rule that places the note
+(`phaseWeekFirstDay()`, taken out of `placePhaseNotes()` unchanged), so the label and the month view cannot disagree.
+Words only: nothing saved, placed or exported changes. Verified against the build: `phaselink` 15/15 (R1 re-expected, new
+R1b for the holiday week), `notedates` 18/18 (N0 re-expected), `phasenotes` 21/21, `phasemonth` 21/21; `npm run check`
+46/46; tried in the browser (an empty cell opens on "Default (Monday)", Labor Day week on Production reads
+"Default (Tuesday)").
+
+### Unreleased — Show info's boxes have no grey "e.g." examples (19 Nov 2026)
+
+The owner asked to remove the grey examples inside Show info's boxes ("e.g. Show Title", "e.g. 10", "e.g. 8", "e.g. 3",
+"e.g. Winnipeg", and in Blocks mode "e.g. 5" / "e.g. 20"). They are gone from `src/chrome/Sidebar.jsx`; every box is
+blank until typed in. Tandem Days keeps "None" (it is a value, not an example) and Season keeps "—". The phase cards'
+own "e.g. 12" / "e.g. 10" week and day boxes are untouched (not asked). No id, value or saved field changes. Verified:
+the build has none of the seven, the Show info tab screenshotted blank in headless Chrome, `npm run check` 46/46.
+
+### Unreleased — The waterfall headings' top line no longer splits in two after a scroll (19 Nov 2026)
+
+The owner saw the thick black line over the waterfall's column headings turn into a double line (dark, a white hairline,
+dark) after scrolling down and back up. That line is two 2 px rules from two painters: the table's collapsed top border
+and the sticky heading row's inset shadow. Once the grid has scrolled, Chrome gives the sticky row its own compositor
+layer and rounds its position on its own, so where the grid sits at a fractional pixel the row lands a device pixel below
+the border and the table's white background shows between them. A heading cell cannot paint over the border (its outer
+shadow and anything outside its padding box are not drawn in collapsed-border mode), so the table's background now
+carries a 4 px ink strip across its top, under the heading row: hidden at rest, and the only thing a shifted row can
+uncover. An owner-approved frozen-surface edit (the owner's "Yes, fix it"), screen only (`@media screen`, `#table-wrap`):
+no cell, width or height moves, the print fallback keeps its border, and the workbook and both PDFs read no CSS.
+Verified: the seam reproduced in the browser by forcing the heading row onto its own layer at 190% (3 dark, 1 light,
+3 dark rows), gone with the strip at every column across the width; the line at rest and the stuck heading row
+unchanged; `npm run check` 46/46; against the build, `base` (clipped cells 0 / 2, as its baseline), `calzoom` 26/26,
+`hdrrow` 40/40.
+
+## v1.23.0 — New notes stay with their phase week; the update bar on every update and a What's New window; "Final Delivery" on Post's last day (19 Nov 2026)
+
+Cut so that every installed copy sees the blue bar for these changes: a copy on the build before v1.23.0's update
+check reads version numbers only, and the bar-and-What's-New release went out still numbered 1.22.1. Its What's New
+entry is `2026-11-19-2` (it replaces `2026-11-19`, live for under an hour, which lacked "New notes stay with their
+phase"; the window now shows the version beside the date). `releases/v1.23.0.html` is cmp-identical to the build;
+fixture `v1.23.0-saved.sptcal` a real Save. No full gate: the version strings and the What's New list only, and
+everything in it was checked with its own legs when it went live.
+
+### The waterfall's Notes "+" shows only while you point at its cell (19 Nov 2026)
+
+The owner asked for the "+" in the waterfall's Notes column to appear only on hover, as the month view's does. Every
+empty Notes cell used to show a light grey "+"; now it is hidden until you point at that cell, when it shows in the
+same purple as before (the cell's light purple hover fill is unchanged). Double-clicking an empty cell still adds a
+note. Only the cell pointed at shows its "+", not the whole row: a waterfall row runs across every year block, so a
+row-wide glow would light the Notes cells of other years' weeks. Two ADDED screen rules in `legacy.css`
+(`#table-wrap td.sheet-note-cell .note-add-hint` opacity 0, and 1 on `:hover`) under the two frozen `.note-add-hint`
+rules, which are not edited: opacity only, so no cell, column or export moves, and print already hid the "+". New leg
+`noteplushover` 7/7 (red on H0-H2 without the change), in `gate.sh`. Verified: `npm run check` 43/43, `softlines` 6/6 (dayoverrides) and 6/6 (halfmarks), `notelook` 13/13, `wfnoteeditor` 14/14, `noteviews` 15/15, `textfit` g=small 5/5 and g=wf 2/2, `forcedcolors` (control) 7/7,
+and tried in the browser (fixture `carry-rich`: all 45 empty cells hidden, the hovered one shown in purple,
+double-click opens the editor).
+
+### "Enter a week count" waits for Enter (19 Nov 2026)
+||||||| parent of 5c31a38 (The waterfall headings' top line no longer splits after a scroll (owner))
+### Unreleased — "Enter a week count" waits for Enter (19 Nov 2026)
+
+The owner asked for the red "Enter a week count to include this phase" under a phase card to show only when asked for.
+It used to appear the moment a start date was typed, while the length was still to come. Now it shows only after Enter
+is pressed in that card, or after a click on its ↳ Start after or ↳ Finish before; typing a length clears it, and the
+next start typed on that card waits again. Finish before on an empty card (which leaves it on Ends with no length) now
+says it too, where it used to say nothing. The other lines ("of 1 or more", a missing start date, Production's) are
+unchanged. The line is written by the frozen renderer and hidden from outside; nothing saved, nothing frozen edited.
+Verified: new leg `weekprompt` 8/8, `finishbefore` 16/16, `npm run check` 46/46.
+### A new note stays with its phase week by default (19 Nov 2026)
+
+Owner: *"New default, notes should stay with their specifc phase week and not the specific actual week"*, then the
+pickers *"First in the list"*, *"Leave them on their week"*, *"Yes, both editors"*, *"Yes, pasted notes too"*.
+
+- **The waterfall note editor:** in a Notes cell that holds no note of the user's yet, "Stays with" now opens on the
+  first phase it offers (the left-most phase cell of that row, e.g. "Production wk 4") instead of "Week of …". Saving
+  with it left alone links the note to that phase week, so it moves when the phase moves. "Week of …" is still in the
+  list. A week where no phase runs has no row, and its note stays on its week as before.
+- **The Month view's "+"** opens "Stays with" on the first phase too (on a shoot day, "Production · Day N").
+- **Text pasted into an empty Notes cell** is linked the same way (`wfLinkNewNote`). Pasting over a week note keeps it a
+  week note.
+- **Notes pasted into the Month view** (owner: *"do it also for pasted month notes"*): ⌘V onto a day and the Paste notes…
+  box link each note to that day's first phase (`mvLinkPastedNote`), as a "+" saved with the row left alone does: that
+  weekday, Production's shoot day on a shoot day, hidden from the waterfall, its colour kept. A day no phase runs on keeps
+  it as the day's own note.
+- **A note made in the Month view shows no date there** (owner's picker *"Drop the date"*): a linked note hidden from
+  the Waterfall is drawn "Rig check", not "Rig check 7/8/26" (`placePhaseNotes`), as a Month note always was. One the
+  Waterfall also shows keeps its date in both views, as a Waterfall line does.
+- **A line added to a cell whose note stays with a phase joins that note** (owner, 20 Nov 2026: *"yeah do the case 3
+  thing"*): the editor says "Stays with Production wk 4" for the whole cell, so the added line moves with it. Until now
+  it was left as a week note, and the next move split the two. Pick "Week of …" to keep a line on its week.
+- **Only into a free phase week:** a phase week holds one linked note, so a second new note there (another day of the
+  same prep week, say) starts on "Week of …" / "This day" instead of joining the first and taking its day and colour.
+- **Nothing already saved changes:** a cell that holds a week note opens on "Week of …", so old notes keep their week.
+- **Found on the way:** renaming a cell's automatic note and adding a line in the same save now keeps the rename (the
+  automatic line's edits are worked out before the new line is linked, `preEdits`). No save-format change, no frozen
+  code.
+- **Verified:** new leg `notephase` 17/17 (in `gate.sh` beside `notedates`). The harness (`t/lib.js`) picks "Week of …"
+  / "This day" for a new note in the legs written before this, and paste checks were re-expected to the new behaviour.
+  First full gate: every baseline identical; its 66 failures were those premises and load timeouts, each green alone
+  after the fixes. Final full gate: every baseline identical again, its 21 failures load timeouts, each green
+  alone.
+
+### The update bar on every update, and a What's New window (19 Nov 2026)
+
+Owner: *"Whenever theres a new update to the app, lets add the blue update bar to the top as we've done previously. When a
+new update launches lets add a quick dialogue that explains what new features/updates were added. But only for things the
+user would actually care about"*; then *"the what's new dialogue should come before the "recover unsaved work" dialogue"*.
+
+- **The blue bar shows on every update again.** It compared version numbers only, and most changes since v1.22.1 went
+  live without a new number, so nobody was told. The build now stamps a hash of itself into the page
+  (`<meta name="sptcal-build">`) and into `version.json` (`tools/build-stamp.mjs`), and the bar shows when the live stamp
+  differs too: "An update to SPTCal is available. Reload to get it." A push that changes only docs or tests builds the
+  same bytes and stamp, so it shows nothing; a rollback (an older live version) never shows it. `deploy.yml` no longer
+  copies the root `version.json` into `dist/` (the build writes it, with the stamp).
+- **What's New.** After an update a short window lists what changed that users would care about, once per machine,
+  then never again for those changes. The list is `src/whats-new.js`; a release with nothing worth telling adds nothing
+  and gets the bar alone. It opens before "Recover unsaved work", which follows when it closes. A first-ever launch
+  stays quiet. Clicking the version under the SPTCal name opens it again. Shown in the installed app only (on localhost,
+  `?whatsnew=1` previews it).
+- **The first list:** scenario tabs show their version; Tandem days in Show info; Finish before on an empty card; zoom
+  just the calendar; "Final Delivery" on Post's last day.
+- ⚠️ This first time, no machine has a record yet, so the window shows only to someone who presses the bar's Reload or
+  has changed a setting before. From the next update on it works for everyone.
+- **Verified:** new leg `whatsnew` 12/12 on the build (9 red on `releases/v1.22.1.html`, the 3 controls green on both);
+  `cfmove` 9/9; `cspproof` 15/15; `npm run check` 46/46 (3 new: the stamp, `dist/version.json` agrees, entry ids);
+  two builds give one stamp; tried in the browser, including the order with a real recovery question. No frozen code,
+  no saved-file change.
+
+### Post's end note reads "Final Delivery 9/22/28" (19 Nov 2026)
+
+The owner asked for the automatic note on the last Friday of Post's last week to read "Final Delivery" and its date.
+Post's end note (kind `postEnd`, off until ticked in Settings › Automatic notes) now reads "Final Delivery 9/22/28"
+instead of "Post Ends 9/22/28", on the same day as before: the last day the month view draws Post's bar, the Friday of
+its last week. The wording is fixed, so it no longer follows a renamed Post; a name typed for the note still wins. The
+card's tooltip for that box reads "Post Final Delivery". The kind word is unchanged, so saved ticks and names keep
+working; a typed note that already carried "Post Ends …" keeps the words it was saved with. Verified: `autonotephases`
+27/27 (P0-P9 re-expected: the waterfall, Excel, both PDFs and the month view carry the new words), `autonoteview`
+18/18, `autonoterename` 25/25, `autonotekinds` 11/11, `npm run check` 43/43; tried in the browser (Post wk 13 of
+9/18/28: waterfall and month view both show it on Fri 9/22/28).
+
+### Dragging a scenario tab shows where it will drop (19 Nov 2026)
+
+The owner asked for markers between the scenario tabs while one is dragged to reorder them. A short line in the app's
+primary colour now sits in the gap where the tab will land: before a tab, or after the last one. The whole strip takes
+the drop, so the 2 px between tabs and the room after the last tab work too (before, only a drop ON a tab moved it, and
+it took that tab's place whichever half the pointer was over). A spot either side of the dragged tab would not move it,
+so it shows no line and the drop does nothing. Chrome only (`ScenarioTabs.jsx`, `legacy.css`); nothing saved, nothing
+frozen. Verified: `scenversion` 11/11 (new V10 drives the drag: the line's place, none where nothing would move, the
+order after two drops, the line cleared after), `scenarios` 23/23, `scenlist` (real time) 9/9, `npm run check` 43/43;
+tried by hand in the browser.
+
+## v1.22.1 — Scenario tabs show their Version; "+ Duplicate Scenario B" at the far right; Tandem Days and the field order in Show info; Finish before on an empty card; calendar-only zoom (19 Nov 2026)
+
+### "Reset hiatus bands" is gone (19 Nov 2026)
+
+The owner removed the button at the foot of the All-phase hiatus list. It reset only how the bands LOOK (their label,
+colour, size and text styles, all-phase and per-phase at once) and never removed a hiatus, but its name and place read as
+if it cleared the hiatuses. Everything it did is covered elsewhere: Undo for a recent change, a hiatus's own card for its
+band's name and colour (typing the name also takes over a band typed by hand in an older file), the text bar for size and
+style, New for a fresh calendar. Removed with it: its React host, its click handler and its two mentions in Help. Nothing
+saved changes and nothing frozen was touched. Verified: `hdrcontrols` 12/12 (N4 rewritten: no button, the card ends with
++ Add hiatus period, naming the row takes over a hand-typed band), `phiatusnum` 18/18, `sharecopy2` (the host may not come
+back), `npm run check` 43/43.
+
+### The scenario "+" says which tab it copies: "+ Duplicate Scenario B" (19 Nov 2026)
+
+The owner asked whether "+" should copy the right-most tab instead of the one on screen, and whether a copy of an
+earlier tab should be offered the next version. On the analysis (it already offers the highest version on any tab + 1,
+and the caret menu already has Duplicate), "+" keeps copying the tab on screen; the owner picked the one addition, *"Yes,
+add the name"*. It went out first as a tooltip (`590fd5b`); the owner: *"i thought the button was going to dynamically
+change and have text, not just a hover text"*. The button now READS "+ Duplicate Scenario B", the tab on screen, and
+follows every switch and rename; a long name is cut with "…" at 120 px (`.sc-add-name`), and the tooltip keeps it whole.
+The button's `aria-label` stays "Duplicate this scenario" (legs find it by that). Chrome only, nothing frozen, nothing
+saved. Verified: `scenversion` V9 (new) 10/10, `scenarios` 23/23, `npm run check` 43/43; in the build the label follows
+the tab on screen and a 32-character name is cut.
+
+### A new scenario goes at the far right of the strip (19 Nov 2026)
+
+Owner, asked whether a copy made from a tab that is not the last should go at the far right rather than just right of
+the tab it copies: *"Yes, far right"*. The "+" now always puts the copy LAST (`duplicateScenario`, a `push` where it
+was a splice beside the source). Why it matters: the copy's name (the next unused letter) and its offered version (the
+highest on any tab + 1) both continue from the last tab, so copying v1 of v1 v2 v3 used to read v1 v4 v2 v3. A drag
+still reorders. The strip's keep-in-view scroll (`ScenarioTabs.jsx`) now also runs when the name box and "→ vN" open,
+a render after the copy becomes current: without it, in a strip that scrolls, the new tab's "→ vN" sat 13 px under the
+right-edge fade. Chrome + scenario engine, nothing frozen, no saved key.
+Verified: leg `scenversion` V7 now copies the FIRST tab and expects it at the far right (red on the old splice), 9/9;
+`scenarios` 23/23, `scenariofacts` 12/12, `scenlist` (real time) 9/9, `changessince` 15/15, `comparebreaks` 10/10,
+`exportnames` 12/12, `comparehiatus` 8/8, `lastedited` 22/22; `npm run check` 43/43. In the browser at 800 px, six
+tabs, a copy of the first lands sixth with "→ v6" fully in view.
+
+### The waterfall note editor's grey prompt is gone (19 Nov 2026)
+
+Owner: *"delete this text in waterfall"*, pointing at "Note text (Shift+Enter for a new line)" inside an empty note's
+box. The waterfall note editor's box now has no placeholder; a hiatus band's "Hiatus label" and the month view's note
+editor are unchanged. Chrome only (`openNoteEditor`'s markup), nothing frozen and nothing saved. No leg reads the text.
+Verified in the build: the editor's textarea carries no `placeholder` attribute, and an emptied box shows blank.
+
+### Finish before on an empty card before a dated phase (19 Nov 2026)
+
+- **What.** An empty phase card (no dates) with a dated phase after it in the chain now offers **↳ Finish before <next
+  phase>** even when nothing is on Ends. If nothing before it has a date, Finish before replaces Start after (which had
+  nothing to chain to). If there's a dated phase on each side, the card shows both. Clicking it on an empty Weeks card puts
+  the card on Ends, ending the Friday before the next phase, and moves the cursor to Length. On an empty Dates card it
+  writes the last day (the last weekday before the next phase) and moves the cursor to the start. Cards that already have
+  dates are unchanged.
+- **Why.** Owner, with a screenshot of a calendar where only Production had a date: *"when you give a start date to a
+  later phase, previous phases should allow you to click Finish before"*. Until now Finish before showed only before a
+  phase on Ends (R1), so starting a calendar from Production's date and building back needed Ends first. Ruling R5.
+- **Verified.** `finishbefore` 16/16 (new R5a-R5d: the swap, the click on an empty Weeks card through to its length, both
+  buttons between two dated phases, an empty Dates card); `endsdate` 17/17, `prodends` 14/14, `spancounts` 10/10,
+  `overrides` 20/20, `snaptools` 14/14, `builtindates` 19/19 live and restored; `npm run check` 43/43; tried in the
+  browser by the owner. No frozen code, no save-format change, no new id.
+
+### Scenario tabs show their Version, and a copy is offered the next one (19 Nov 2026)
+
+The owner asked whether, once the first scenario has a Version, a new scenario should be named after it or the Version
+shown in the bar at the bottom; then for the copy to offer the next number, *"as a suggestion, not force them"*. Five
+layouts were mocked (`mockups/scenario-version-*.html`, `scenario-name-version.html`, `scenario-new-tab-card.html`);
+the owner picked layout C of `mockups/scenario-version-layouts.html`, *"lets see with version c looks like in the app"*,
+and then asked that the offer can be brought back later.
+
+- **Every scenario tab shows its Version** as a small badge after its name, as the header prints it ("v3"); a tab with
+  no Version shows none. Tab names are never changed.
+- **A copy is offered the next version.** After **+**, a copy whose Version is a number shows **→ v4** beside its badge,
+  there while its name box is open too. One click puts 4 in Show info's Version box through the box's own handler, so it
+  is an ordinary edit: the header, the band and the file name follow, and ⌘Z takes it back. The number is the highest
+  version on any tab, whole, plus one (v3 and v3.1 both offer v4; a second copy of v3 offers v5 once one tab is v4).
+  Ignoring it keeps the version; it goes on the next edit, a tab switch, another copy, Keep only, or a load.
+- **Clicking a number badge brings → vN back**, on that tab (switching to it first), and a second click puts it away.
+  A text Version kept from before 18 Nov ("Blue") has no next number, so its badge is plain.
+- **The key facts band ends with a Version tile** (dimmed when every tab has the same one). Its value was already in
+  `scenarioFacts()`; the band did not show it. Show info's Version box now refreshes the band as it is typed.
+- Nothing new is saved: the offer is session UI, and a scenario file's tabs are still `{id, name, snapshot}`.
+- Code: `app.js` (`tabVersionLabel`, `nextScenarioVersion`, `askScenarioVerOffer`, `takeScenarioVerOffer`,
+  `scenarioVerOffer`, dropped in `markDirty()` once the calendar differs from when it was offered), `ScenarioTabs.jsx`
+  (the badge and `→ vN`, whose mousedown keeps the name box's focus), `legacy.css` (`.sc-tab-ver`, `.sc-ver-bump`).
+- Verified: new leg `scenversion` (V1-V8 + E0, 9/9 on the build, red on v1.21.0). Legs that matched a tab by its
+  whole text now read `.sc-tab-name` (scenarios, scenariofacts, recoverfail, retiredplaces, comparebreaks), and
+  scenariofacts F3 / F4 expect the Version tile; scenarios 23/23, scenariofacts 12/12, and every other leg that reads the strip or the band
+  (scenlist, comparebreaks, exportnames, filenamelist, comparehiatus, retiredplaces, recoverfail, loadsparse,
+  changessince) green. `npm run check` 43/43. No full
+  gate (chrome and scenario engine only, no frozen code, no save-format change).
+
+### Show info's fields in the order each mode is filled in (19 Nov 2026)
+
+Owner: *"When scheduling by Episode the order should be Schedule by, then Number of Episodes, then shooting days per
+Ep+tandem days then Version, then production region, then location. When scheduling by Block, the order should be Number
+of blocks, then shooting days per block + tandem, then number of episodes (it can still be optional but remove that it
+says so)"*.
+- **Episodes:** Schedule by, Number of Episodes, Shooting Days per Episode + Tandem Days, Version, Production Region,
+  Location. **Blocks:** Schedule by, Number of Blocks, Shooting Days per Block + Tandem Days, Number of Episodes, Version,
+  Production Region, Location.
+- Number of Episodes no longer says "(optional)" in Blocks mode; it still is (a Blocks calendar schedules without it).
+- One `#num-episodes` serves both modes (its id is the save format): the Blocks-only rows sit before it and the
+  Episodes-only row after it, so the DOM order, and Tab, is right in each mode. Nothing saved changed. ⚠️ *Corrected
+  20 Nov 2026:* the KEY ORDER of `fields.byId` changed (it is built in document order), so every Save since writes
+  `num-blocks, days-per-block, num-episodes, shoot-days-per-ep` where it wrote `shoot-days-per-ep, num-episodes,
+  num-blocks, days-per-block`. Same ids and values, and nothing reads the order, but it turned `hidewf` F1/F3,
+  `phasesui` P1 and `hiatusripple` R0 red (next entry).
+- **Verified:** `doubleups` SI8 (both orders as shown), `labelsetup` B1u re-premised (plain label; B1 still holds the
+  count optional), `blocks`, `restore` (gate 5's key set), `npm run check`.
+
+### Tandem Days in Show info, beside the shooting days (19 Nov 2026)
+
+Owner: *"add double-up/tandem days in the Show Info section. To the right of the Shooting days per episode should be a big
+plus symbol and then to the right of that another box to add the double up/tandem days"*; after the mockup
+(`mockups/show-info-tandem.html`, main checkout): a smaller plus, all on one line, no line of text under it.
+- **Show info** reads `Shooting Days per Episode + Tandem Days` on one line (`Shooting Days per Block` in Blocks mode).
+  The box is the Tandem card's **Default tandem days** a second time: type in either and the other follows, one undo step.
+  Nothing new is saved: the count is still `doubleUps.days`.
+- ⛔ The box has **no id** (a plain `<input>`, the Region mirror's pattern): a Mantine `Input` inside `Input.Wrapper` took
+  the wrapper's minted id in the built page, which `collectFieldValues()` would have saved into every calendar.
+- The days label runs over the plus column, so it stays on one line in the narrowest sidebar (280 px: 142 of 146 px);
+  "Whole days only" sits under the row so the boxes stay in line.
+- **Verified:** `doubleups` LIVE run SI0-SI7 (one line in both modes, no id, both directions, Undo, Save adds no field,
+  Load, the whole-days ring); the leg's other runs, `restore` (gate 5's key set), `loadsparse`, `firstrun`, `numclamp`;
+  `npm run check`. No full gate: chrome and a sidebar listener only, nothing frozen.
+
+### Pinch, Ctrl-scroll and ⌘+ / ⌘− zoom the calendar, not the app (18 Nov 2026)
+
+Owner: *"Allow trackpad pinch and related mouse zoom buttons to control the viewport of the waterfall and month view
+rather than just zooming in the entire UI of the app"*.
+- **A trackpad pinch** (Mac, and Windows precision touchpads) now drives the calendar zoom, the slider bottom right, in
+  the waterfall and the month view, and zooms about the pointer: what is under it stays under it. The sidebar, header and
+  toolbar never zoom. **Ctrl + a mouse wheel** (and a mouse zoom button, which mouse software sends the same way) steps
+  10% a notch, as the slider's buttons do. **⌘+ / ⌘−** (Ctrl on Windows) step the calendar too; **⌘0** puts the
+  calendar back to 100% and also lets Chrome reset the app's own zoom, so a window zoomed before this change has a way
+  back.
+- Same clamp (25–200%), same per-view preference, same settle as the slider (`setCalZoom`); nothing frozen changed, and
+  the exports cannot see a zoom. With a dialog up, the gesture is swallowed and nothing zooms.
+- **Verified:** new leg `pinchzoom` (20/20, in `gate.sh` beside `calzoom`): the cancel, the pointer anchor within 1.5 px
+  in both views, the notch and key steps, ⌘0, the dialog, no dirty mark or undo step. `calzoom` 26/26, `zoomresize`
+  40/40, `npm run check` 43/43. Synthetic events cannot show Chrome's own page zoom being refused; a real pinch was not
+  tried in an installed window.
+
+## v1.22.0 — Snap to Monday in the date picker, Hide in waterfall in the card's corner; New leaves the File menu; the app opens filling the screen (18 Nov 2026)
+
+### Phase cards lose their switch rows: Snap to Monday in the date picker, Hide in waterfall in the corner (18 Nov 2026)
+
+The owner: *"what do you think about putting snap to monday slider inside the mini calendar pop up box, at the bottom
+where the message currently is?"* (*"Yes, build it"*), then *"mockup a few ways the 'Hide in waterfall' functionality
+could be moved to the top right corner of each phase in a clean way and integrate with the 'Month view only' tag"*
+(four options in [`mockups/hide-in-waterfall-corner.html`](mockups/hide-in-waterfall-corner.html); *"Build A"*, then
+*"lets go with fix 1"*). A built-in phase card is now its head, Starts and Length, "Start after…" and Hiatus.
+
+- **Snap to Monday is switched in the phase's Starts picker**, at its foot where "Snap to Monday is on, so only Mondays
+  can be picked." used to be. Flip it and the calendar above changes at once (Mondays only, or any day). Shown on a Weeks
+  phase's Starts and Production's; not on a hiatus (always a Monday), an Ends date, a Days or Dates phase, a custom
+  holiday or Build Around's date, which keeps its line. The card's row is hidden.
+- **Hide in waterfall is an eye in the card head's top right corner.** Click it and it becomes the blue
+  **"Month view only"** tag in the same spot, an icon the eye's size (its words on hover); click the tag to put the phase
+  back. Episodic Prep and Double-ups show the same icon, not clickable. A custom phase's × joins the corner, so the
+  dates under the name keep the card's full width. The body's row is hidden. Works on a folded card.
+- **Nothing in a saved file changes.** Both controls drive the card's own `#snap-<key>` box and `.phase-hidewf-cb` tick,
+  which stay in the page, hidden: `fields.byId`, `phaseHidden`, the one undo step and every older file are as before.
+  The new controls carry no id.
+- **One behaviour kept on purpose:** a Wednesday picked with Snap off stays when Snap is switched back on, as it did with
+  the card's switch (switching Snap off again gives it back). In the picker the box keeps focus, so the switch sends the
+  box the focusout the card's click used to, before it flips (`flipSnap`); without it, leaving the box rewrote the
+  Wednesday to its Monday.
+- Engine: `DatePop.jsx` (`snapBoxOf`, `flipSnap`); `app.js` `MVONLY_TAG`, `phaseHeadHtml` (the floated
+  `.phase-head-corner`), `reflectPhaseHidden` (the eye) and a delegated click on the corner; `legacy.css`. The grid, the
+  exports and the frozen surface are untouched.
+- Tests: new legs `snappicker` and `wfcorner`; `datepick`, `builtindates`, `customunits`, `hidewf`, `phasesui` and
+  `endsdate` read the picker's switch and the corner instead of the card rows.
+- Verified (port 8483, the build, 18 Nov 2026): `snappicker` 8/8 (S5 red on a build without `flipSnap`'s focusout),
+  `wfcorner` 8/8, `datepick` 17/17, `hidewf` 19/19, `phasesui` 8/8, `endsdate` 17/17, `customunits` and `builtindates`
+  live and restore, `snapbox` 12/12, `snapoff` x3, `snaptools` 14/14, `prodends` 14/14, `buildendsby` 21/21,
+  `dayfirstwf` 11/11, `simpostdays` 14/14, `anchorside` 39/39, `buildalongside` 8/8, `phasearrows` 26/26, `overrides`
+  20/20, `mvmenu` 81/81, `wfmenu` 39/39, `phiatuspick` 12/12, `finishbefore` 12/12, `phasefold` 11/11, `phasecolors`
+  10/10, `loadcarry`, `swapnewphase`, `dlgkeys`, `phiatusnum`, `autonotephases`, `phasenotes`, `phasemonth` green;
+  `npm run check` 42/42. Tried by hand in the app.
+- **Full gate** (port 8491, merged with v1.21.0, 18 Nov 2026): 5,791 PASS / 16 FAIL. Six were `phasesmore` M1/M5/M8 at
+  both window sizes, which still counted the moved rows: re-expected (Snap in the picker, Hide in waterfall as the
+  corner's eye or tag), then 6/6 at both sizes. The other ten pass alone: `phasesui` P1 and `offweek` R12 (+ six R13
+  checks behind it) were the "loaded file's name" load timeout v1.21.0's gate also hit; `monthexport`
+  (colswap-simpost-refuse) X6 9/9; `sideboxes` (no result in the gate) 78/78. Every baseline identical.
+
+### The app opens filling the screen (18 Nov 2026)
+
+The owner: *"when you first download/open the app, its opening with a smaller window - it needs to open as wide such
+that it fills the users screen"*. A web app's manifest cannot ask for a window size: Chrome opens a newly installed app
+at its own default size, then remembers whatever size the user leaves it at.
+
+- `src/index.html`, the install gate's script (the first script that runs): the FIRST time SPTCal runs in an installed
+  app window it moves to the top left of the screen it is on and takes that screen's whole usable area
+  (`screen.availWidth` / `availHeight`, so never under the Dock, menu bar or taskbar), before the app paints, with one
+  retry at load if Chrome had not applied it. Once only (`localStorage 'sptcal.windowFilled'`): after that the window is
+  the user's and Chrome reopens it at the size they left it. Never in a browser tab or fullscreen; with storage blocked it
+  does nothing rather than resize every launch.
+- Everyone already installed gets it once, at their next launch, since no one has the flag yet.
+- Nothing saved, exported or frozen is touched.
+- Verified on the build: `pwagatelogic` 15/15 (new W1-W5 drive `window.__fillAppWindow` with a stand-in window, since
+  headless Chrome has no app window), `pwagate` green, `npm run check` 43/43. Not yet seen in a real installed window.
+
+### New is gone from the File menu (18 Nov 2026)
+
+The owner: *"remove the new button from here"* (the File menu's dropdown). New was put above Load… for audit WIN-2
+(Chrome on Windows keeps Ctrl+N for a new window), but the header's **New** button, right beside the File menu, already
+does the same thing with the same unsaved-work question. The menu now opens on Load…, then Changes since last save….
+
+- `Header.jsx`: the `data-action="new"` item is gone, and the File menu button's hover hint reads "Load and recent
+  calendars". `app.js`: the delegated handler's `new` branch is gone. Help's Windows/Linux line now says to use the
+  **New** button at the top, instead of New in the File menu.
+- Nothing saved, exported or frozen is touched. ⌘N on a Mac is unchanged.
+- Verified on the build: `firstrun` 22/22 (M3 now asserts the menu has NO New and drives the header button), `oskeys`
+  10/10 on Windows, Mac and Linux (H2 re-expected for the new Help line), `npm run check` 43/43.
+
+## v1.21.0 — SPTCal moves to sptcal.pages.dev, behind a sign-in (18 Nov 2026)
+
+### A new address behind a sign-in; "SPTCal has moved" on the old one; no more working copies of the app
+
+The owner asked to make the repo private and put a password in front of getting the app. Planned, tested and ruled in
+[`CLOUDFLARE-ACCESS-PLAN.md`](CLOUDFLARE-ACCESS-PLAN.md) (the owner's pickers, 18 Nov 2026):
+
+- **The app's new address is `https://sptcal.pages.dev/`**, a Cloudflare Pages project behind **Cloudflare Access**: a
+  user types their work email and gets a one-time code by email. Only the emails the owner lists get in; a sign-in
+  lasts a month. `deploy.yml` publishes the same checked build there as well as to GitHub Pages (after it, so a
+  Cloudflare failure cannot hold back the old address), through two repository secrets.
+- **The install gate and the installed identity follow it.** `GATE_HOSTS` gains `sptcal.pages.dev`; the manifest's
+  `related_applications` id is `https://sptcal.pages.dev/`, alone. Everyone installs SPTCal once more, from the new
+  address; saved calendar files are unaffected. Recent files, unsaved-work backups, preferences and saved header
+  presets live in the browser per address and do not carry over.
+- **The old address says SPTCal has moved**, for the two-week switch-over window: a browser tab there gets a new
+  **moved** screen in the install gate ("Go to the new SPTCal"); the installed app there shows the strip "SPTCal has
+  moved to sptcal.pages.dev…", whose button opens the new address in Chrome and leaves the work on screen.
+- **The update check keeps going when a sign-in has run out.** It used to count the sign-in redirect as a failure and
+  stop checking for the session.
+- **Export App With Data is gone** (it wrote a whole working copy of the app into one file, which runs anywhere and so
+  gets around the sign-in). Save on an older **.html** calendar now asks and saves a new **.sptcal** through the
+  picker, leaving the .html as it is; autosave pauses on such a file and the status line says so; the download used
+  where a browser cannot save in place gives a .sptcal. Every copy and .html calendar already sent still opens.
+
+**Verified:** `npm run check` 43/43 (the new address in the manifest and the gate, the moved screen, the allowed link);
+a new leg **cfmove** 9/9 (the moved strip and its button, Save's question on an .html calendar, the .sptcal written
+and nothing written to the .html, Cancel, autosave paused, no visible Export App control); **pwagate** 14/14 with the
+moved screen's approved words; **settingswin** 21/21 without the App card; pwagatelogic, nofsa, loadcarry,
+legacyparse, backuplinkstale and firstrun unchanged and green. The full gate on this build: 5,807 PASS; its 4 FAILs were
+timeouts during a machine-wide load spike, and all four legs pass run alone (simpostname 14/14, layoutrules r23 6/6,
+pilldrag 30/30, phaseedge 23/23). Release copy cmp-identical; fixture `v1.21.0-saved.sptcal` a real Save. Before the build, the route
+was proven end to end from a private test repo, by the owner and a coworker on Mac and Windows (plan §2).
+
+## v1.20.1 — one Size for the month view's bars and notes: Standard, Large, Extra Large (18 Nov 2026)
+
+### One Size for the month view's bars and notes: Standard, Large, Extra Large (18 Nov 2026)
+
+The owner: *"lets make the phase bar size and notes size one size adjuster - and the unit should be Standard, Large,
+Extra Large"* (and, asked whether a fourth step was wanted, *"lets just stick with 3 sizes"*). Settings › Preferences ›
+Month view had two dropdowns of 10-14 px, Phase bar size and Note size. They are now one, **Size**: Standard is 10 px
+phase bars, hiatus bands and notes, Large 12 px, Extra Large 14 px, on screen and in the month PDF. One pick is one
+Undo step and dirties the file, as before.
+
+- **No file changes shape.** The pick writes the two keys a calendar has always carried, `mvBarSize` ('large' / 'xl',
+  as since v1.9.0) and `mvNoteSize` ('12' / '14'), so a calendar saved at Large or Extra Large opens in every older
+  version too, and every older file opens drawn exactly as it was.
+- **A calendar saved with a pair the three do not name** (Large bars with 10 px notes, from the Phase bar size days, or
+  11 / 13 px anything) shows **Custom** in the dropdown, an option that appears only then, so the control never names a
+  size the calendar is not drawn at. Picking Standard, Large or Extra Large replaces it.
+- A note's own size from the text style bar still overrides the calendar's. Help and the "prints very small" message
+  say Size.
+- Engine: `setMvSize()` writes both stores; `setMvBarSize` / `setMvNoteSize` and the ids `#pref-mv-barsize` /
+  `#pref-mv-notesize` are gone (`#pref-mv-size`, inside `.prefs-card`, so `fields.byId` does not move). The month
+  renderer, the writer and the frozen surface are untouched.
+- Tests: `mvbarsize` and `mvnotesize` pick the Size dropdown; the 11-14 px notes and 11 / 13 px bars they also hold are
+  reached by loading a calendar saved at that size (N1, N5), and both legs hold Custom. The harness's `?barsize=` /
+  `?notesize=` now write the size into the `?state=` fixture (`srv.js`), as a saved file carries it, since no control
+  sets one alone.
+- Verified (port 8797, the build): `mvbarsize` on mvnotes 13/13 and hiatus-blanklabel 12/12; `mvnotesize` on mvnotes
+  12/12 and month-dense60 12/12; through the new hook path `monthemit` mvnotes barsize=11 16/16 and month-dense60
+  notesize=12 16/16, `monthwriter` month-dense60 notesize=13&barsize=11 12/12, `textfit` textfit-dense
+  g=date&notesize=12 3/3; `npm run check` 42/42. Tried by hand in the app: Custom on a Large-bars calendar, Extra Large
+  then 14 px bars and notes, one Undo back to Custom, Large 12 px.
+
+||||||| bf6e235
+## v1.20.0 — export file names with the WRO date, a File name list in Export PDF, and the Version's "v" (18 Nov 2026)
+
+### Export file names: the WRO date, "a.o." date, and a File name list in Export PDF; the Version gets its "v" back (18 Nov 2026)
+
+The studio's executives (17 Nov 2026) asked for the Writers' Room Open date in every file name: show title, season, WRO
+date, then the file date. The owner then set the default, after several rounds on a working build:
+**"Test Show S3 Planning Calendar v3 WRO 1.4.27 - a.o. 11.18.26.pdf"**.
+
+- **The parts, in order:** the show title, the season, the calendar's words ("Planning Calendar", "Month Calendar"), the
+  Version, **WRO** and the day the Writers' Room opens (the day the header's "Writer's Room Opens" line names, written
+  the same way, day first on a DD/MM calendar), the scenario, and **a.o.** ("as of") with the date the calendar was last
+  edited. The scenario and the date are set off by " - " wherever they sit; every other part is joined by a space. The
+  scenario is **off by default**. With no Writers' Room date there is no WRO. Each scenario names its own WRO.
+- **Every export follows:** the workbook, the waterfall PDF, the month PDF and Compare ("… Scenario Comparison - a.o.
+  10.5.26", without WRO, Version or scenario, since its tabs differ). Save's `.sptcal` name is unchanged. **No frozen
+  edit**: the workbook's and the waterfall PDF's frozen name lines already call `exportFileName()`.
+- ⚠️ The edited date was year first (2026-11-12); written month first, a folder sorted by name no longer lists revisions
+  in date order.
+- **Export PDF's File name section:** the name in a text box (a name typed there names that one PDF and is never
+  remembered; characters a file name can't hold become "-"), and under it a list, one row per part: click a row to tick
+  it in or out (the show title too; with every part out the name is "Planning Calendar"), drag a row by its six-dot
+  handle to move it, or Alt+Up/Down. **Put all back** returns to the default. The ticks and the order are kept **on this
+  computer** (`sptcal.prefs`, `fileNameOff` / `fileNameOrder`), not in the calendar, and every export's name follows
+  them. The window is sized once when it opens, for the longest name its parts can make, and never moves or resizes
+  while the name changes; a longer typed name scrolls in the box.
+- **The Version box takes a number and the "v" is added** (owner: *"if they leave out the v in version number it should
+  auto add it"*, then *"the Show info box should also be changed back to enter a number only"*). 3 prints v3 in the
+  header, the workbook, both PDFs, the file names and Compare. This **reverses** the 3 Nov 2026 "exactly as typed"
+  ruling. The box drops anything but digits and dots as it is typed; a calendar saved with "v3" opens as 3 and prints v3
+  as before; one saved 3–18 Nov with a bare "3" now prints v3; text that is not a number ("Blue") still prints as saved
+  until edited. `versionAsTyped` is written only for such text, so a number saves as an older build expects. No
+  SNAPSHOT_VERSION bump.
+- **Verified:** every step tried in the app with real clicks, drags, typing and keys; `exportnames` re-expected (12/12,
+  X11 a DD/MM calendar and X12 no Writers' Room date new); `filenamelist` new (11 checks: default, scenario tick, handle
+  drag, title off, the PDF and the workbook named as the box, a typed name for one export, the window holding still,
+  all off, Cancel, Put all back; it found two bugs, fixed before release: the window grew 1 px when Put all back
+  appeared, and two quick row clicks kept only the second); `hdrversion` / `hdrverload` re-expected for the number rule
+  (54 checks); `npm run check` 42/42; the full gate on the build merged with v1.19.0, 5,848 PASS / 0 FAIL with every
+  baseline identical, and after merging v1.19.1-v1.19.2 the legs above plus `monthexport` and `pdfdialog` again, all green.
+
+## v1.19.2 — a crowded month shrinks in the installed app too (18 Nov 2026)
+
+### A crowded month shrinks in the installed app too (18 Nov 2026)
+
+Right after v1.19.0 went out the owner opened a crowded calendar in the installed app, and its month was still drawn
+full size in a card taller than a page, after several hard reloads. The app was v1.19.0. What differed was the page's
+fonts: something on that Mac (a browser extension, by the look of it) adds dozens of faces named Inter to every page,
+and in the app they never load (some are never used, the rest are blocked by the app's Content-Security-Policy). The
+shrink waited until EVERY face called Inter had loaded, so on that machine it never ran, and the month fell back to
+the old look. The test runs never saw it: headless Chrome has no extensions.
+
+Now it waits only while an Inter face is still loading, and goes once one has loaded; a face that never loads, or
+failed to load, holds nothing back. With only the app's own face, as in every test run, the answer is exactly what it
+was, so no output and no fitting month can change.
+
+**Verified:** new case `monthpage` W adds two foreign Inter faces (one never used, one whose source fails), pages away
+and back, and requires the shrunk month's factor unchanged: red on v1.19.0 (the factor went from 0.61 to 1, full size),
+green on this build. Reproduced by hand the same way on a crowded test calendar. The month-view legs on this build
+(`monthpage` on all ten of its gate runs, `monthrowlimit`, `mvnotesize`, `monthlanes`, `autonoterename`, `softlines`),
+gate 13's written month PDF and gate 10's print document on the reference calendar: see HANDOFF. `npm run check` 42/42.
+
+## v1.19.1 — the version under the SPTCal name (18 Nov 2026)
+
+### The version under the SPTCal name (18 Nov 2026)
+
+The owner: *"in small grey text, add v1.19 or whatever the current version of the app is right below the SPTCal
+header in the top left corner of the app. Mock it up before you build it"* (`mockups/header-version-label.html`; the
+owner's picks: the full number, "v1.19.0", and "Hide with the name" in a narrow window).
+- The header's top-left corner now reads **SPTCal** with **v1.19.1** under it in small grey text (11 px, Mantine
+  gray-6). Below 1200 px wide, where the name already hides so no button label is cut, the version hides with it.
+- The number is never typed into the header: `Header.jsx` imports it from `package.json` at build time, and
+  `npm run check` already holds `package.json` = `version.json` = the engine's `APP_VERSION`. So the label cannot
+  disagree with the update check or the PDFs' "Made with SPTCal" mark, and every version cut updates it.
+- The name and version share the icon's 30 px (17 + 13 px lines), so the header stays 63 px tall and `--header-h`
+  does not move. Nothing in the grid, the exports or the save file changes.
+- Verified: on the build at 1440 px the label reads the version and the header is 63 px; at 1100 px it is hidden and
+  the header is still 63 px. `npm run check` 42/42; a partial gate (the waterfall PDF and workbook against their
+  baselines, `pdfmark`, `monthexport` and gate 13, `toolbarfit`, `laptopfit` at its three windows): see HANDOFF.
+
+## v1.19.0 — a crowded month shrinks on screen like its PDF; a day in the Month view holds 10 lines (18 Nov 2026)
+
+### A crowded month shrinks on screen exactly as its PDF does (17 Nov 2026)
+
+The owner, with a month PDF and a screenshot of the same crowded month side by side: *"the live viewer still looks
+different and is changing the height and stretching the whole calendar"*, then *"I think id rather the live view look
+like it will in the pdf"*. The month PDF shrinks a month with too much in it to fit one Letter page; the screen kept it
+full size in a card taller than the page (the 16 Nov ruling "Full size, taller page"), so its notes wrapped differently
+and the card's height changed from month to month. Three pickers: **Shrink like the PDF**, **Approve with that gate**
+(one frozen edit), **Stay one page**. The plan is [`MONTH-SHRINK-PLAN.md`](MONTH-SHRINK-PLAN.md).
+
+- **The card is one page at every month.** A crowded month is drawn at the PDF's own factor (one factor for every week,
+  a whole number of 64ths): its bars, notes, day numbers and lines are smaller by exactly what the PDF takes off, and
+  its weeks are the PDF's rows.
+- **Notes wrap where the PDF wraps them**, so each note has the PDF's lines.
+- **Stay one page.** A blank line added to a week of a crowded month (the row's "+") does not make the card taller;
+  the line sits below the week's edge when there is no room for it. In a month that fits, it still opens the week.
+- **The zoom still enlarges it**, and a month that fits is drawn exactly as before.
+- **Nothing is saved and no output changes.** The PDFs, the workbook and the print rollback are byte for byte what they
+  were.
+
+**How it is built.** The month PDF writer is asked, never copied: the app draws the month as the export does and takes
+the writer's own fit of it. The sizes are a screen-only block of CSS that applies only while the month on screen is
+shrunk. One frozen edit, approved by the owner (SK1): on screen, in a shrunk month, a note's lines are counted at the
+smaller size. It is inert at full size and while printing. The page's PDF fonts are now decoded the first time a month
+is drawn, never in a waterfall-only session; until they arrive (a few ms), a crowded month is drawn at full size.
+
+**Known differences.** Chrome draws type at sizes cut to a hundredth of a pixel, so a note within about 0.16% of its
+box can draw one line fewer than the PDF inside the same space (1 of 42 on the `monthscale` test month). Zoomed out, a
+1 px border takes a whole screen pixel, so a few notes can take a line more and that month's card grows; nothing is
+cut. Chrome breaks a line after a hyphen and the PDF only at spaces (as before, at every size).
+
+**Verified.** `monthpage` holds every month's weeks to the written PDF's rows within 0.1 px, a shrunk one too, on eight
+calendars and a small window, and adds three cases: the factor on screen is the PDF's (T), a shrunk month's notes are in
+the PDF's boxes (N: 42, 60 and 25 notes on the three test months, every one in the PDF's lines), and Stay one page (K).
+Six more tests that the shrink broke were re-premised: `mvnotesize` judges a shrunk month at its factor, `monthlanes`
+reads the full-size lanes from the print document, `monthexport` takes its font out before the app boots, and the
+three writer guards (`monthemit`, `monthwriter`, `monthlayout`) allow exactly the writer names the screen's fit uses.
+Each re-premised case is red on a mutant of the build: the frozen edit off, the CSS off, the factor never set, Stay one
+page off, an eighth writer name, the month-view-only font guard dropped, the 60-lane cap put back. Gates 10 and 13 (the
+print rollback's document and the written month PDF) are byte-identical, as the owner's approval required.
+
+**Full gate:** 5,731 pass, 14 fail, with gates 10 and 13 byte-identical (11 of 11 print documents, 24 of 24 written
+month PDFs) and every one of the 14 a slow-machine timeout that passes alone; the next entry has the detail, since
+both changes were gated together.
+
+### A day in the Month view holds 10 lines (17 Nov 2026)
+
+The owner, looking at a month where one week took most of the page: *"there reall should be a max limit on how tall a
+calendar row can be"*. Until now only the week's own "+" strip had a limit (6 blank lines). Notes typed onto a day,
+automatic notes and holidays had none, so one week could grow to dozens of lines and the whole month shrank to fit
+its page. Five pickers settled it: **Stop adding notes** (not a "+N more" collapse: nothing is ever hidden),
+**10 lines in a week**, **No new notes until under**, **Never refused**, **Short message by the day**. The plan is
+[`MONTH-ROW-LIMIT-PLAN.md`](MONTH-ROW-LIMIT-PLAN.md).
+
+- **The rule.** A day's lines are the lowest line any phase bar, hiatus band or note covering it ends on. A day that
+  already reaches its 10th line takes no new note added by hand in the Month view. A week is as tall as its tallest
+  day, so this caps the row: 10 lines is about 230 px, a bit over a third of the page.
+- **What is refused**, each with the Month view's short message by the day, *"This day is full (10 lines). Delete or
+  move a note to add another."*:
+  - a "+" on a full day opens no editor;
+  - ⌘V lands the copied notes one by one while the day has room, then says *"This day is full (10 lines). 1 of 3
+    notes were pasted."*; onto a full day it lands none and makes no undo step;
+  - Paste notes… lists a full day's row as *"11/3/26 is full (10 lines)"*, counting the rows above it in the same
+    box, and Add stays off until the row is removed, as for any other row it cannot read;
+  - a note dragged onto a full day goes back where it was.
+  - **Never silent.** A paste goes to the day last clicked, which may have been scrolled out of view since. Then
+    there is no day on screen to put the message by, so it shows at the top of the calendar and names the date:
+    *"7/3/26 is full (10 lines)…"*.
+- **What is never refused.** Editing a note that is already there, however it wraps, and its colour, style and
+  "Stays with"; anything typed, pasted or dragged in the Waterfall; notes that stay with a phase; automatic notes and
+  holidays; phase bars and hiatus bands; Shift, Build Around and every other moving tool; Load, recovery and Undo.
+  They all show, and they count toward the day's 10 lines.
+- **A calendar already over the limit** opens exactly as before and shows everything. Its over-full days take no new
+  note until enough notes are deleted or moved.
+- **The check is at the door.** It asks whether the day is full before the note is added. A note being typed is
+  saved whole, so a row can end a line or two past 10.
+- **Counted at full size.** A month the page shrinks re-wraps its notes smaller on screen, so a day there can show
+  fewer than 10 lines and still be full. Counting at full size means a day is full or not whichever month page it is
+  seen on.
+- **Nothing is saved and no output changes.** There is no setting and no new key in a calendar file. The limit only
+  keeps a new note out, so the workbook and every PDF are what they were.
+- ⚠️ **A full day's "+" still appears on hover.** It is drawn by the frozen month renderer, and hiding it would be a
+  frozen edit the owner has not been asked for. A click on it says the day is full.
+
+**How it is built.** No frozen line changed. The count is asked of the frozen renderer, never copied:
+`mvMonthLines()` has `renderMonthView` draw the month as the export does (`printingCursor` set and put back,
+synchronously) and reads the place the renderer writes on each bar. The check sits at four places outside it:
+`openMvNoteEditor` (a "+"), `mvNotesPaste`, the Paste notes… box's preview, and the note drag. The week's "+" strip
+and its 6-line cap are untouched.
+
+**Verified.** New leg `monthrowlimit`, three runs (the four doors on the standard calendar, 17 cases; the over-limit
+fixture `month-lanecap`, 3; a shrunk month, 3), all green. On the build before the change the refusals are red, and
+ten mutants each turn their own cases red: the limit raised to 99, the check removed from each door in turn, the
+count taken as the screen draws it, an edit refused, Waterfall lines dropped from a full day, notes past the 10th
+dropped on load, the out-of-view message taken out. Before any test was written, the waterfall PDF, the written
+month PDF, the workbook (all 16 parts) and the print rollback's document were compared byte for byte with the build
+before the change on `mvnotes`, `notewrap`, `monthscale` and `month-dense60`: identical. `npm run check` 42/42.
+
+**Full gate, 17–18 Nov 2026, of this change and the month-shrink build together (v1.17.0 merged in): 5,731 pass,
+14 fail, and every byte-for-byte output check identical to its baseline.** Gates 1–3 (the waterfall's cells, the
+waterfall PDF, every workbook part), the restore and its 77 saved field ids, gate 10 (the print path's month
+document, all 11 calendars) and gate 13 (the written month PDF, all 24 runs: 20 in the gate, and the 4 whose runs
+wrote no file, rerun alone, each byte-identical). This change's own `monthrowlimit` is 23 of 23 across its three
+runs. The 14 failures were all runs that timed out or stopped early under a machine load of up to 60 from other
+sessions (the gate took 11 h 45 min instead of about one), and each passes alone on the same build: `monthexport` on
+`mvheader`, `dayoverrides-onhalf`, `monthnotes`, `shootorder` and `mvnotesize-mixed` (9 of 9 each), `phasesui` 8/8,
+`datetoday` in Tokyo 6/6, `dblclickdlg` 14/14, `hoverchipreal` 8/8.
+
+An earlier full gate (17 Nov, before the shrink build's tests were finished) was 5,530 pass, 81 fail, every
+byte-for-byte check green. 80 of those failures were the shrink build's tests, which still described the old
+full-size month; they were rewritten for the shrunk month (see the entry above). 1 was a run that stopped early
+(`phasefill`, green alone). 1 was this change's: `textfit`'s "lines" run added its second note to a day that already
+holds 10 lines on its crowded fixture, and the limit refused it, so the test now uses a day with room. The out-of-view
+message (12 lines of chrome) was added between the two gates; the second covers it.
+
+**The release gate, 18 Nov 2026: v1.19.0** (the two changes on top of `origin/main`'s v1.18.0, Finish before and the
+note editor's "No date"): **5,834 pass, 1 fail**, with gates 1–3, the restore, gate 10 (11 of 11) and gate 13 (24 of 24)
+byte-identical. The one failure is `scenariocompat` on `releases/v1.2.0.html`, the frozen v1.2.0 app opening a
+scenarios file: in three runs in a row (the gate's and two alone) v1.2.0 never drew its File menu, then it passed three
+times alone with nothing changed. It runs only that old file and unchanged test files, and it was one of v1.17.0's
+known flakes.
+
+An earlier gate of the same two changes on v1.17.5 (5,772 pass, 5 fail, gates 10 and 13 byte-identical) turned up
+`epnames` N5, red once more when run alone. The cause is in the test, not the app: after a Load it waited a fixed time
+instead of for the load itself, and once in a while a Load lands up to 2 s late, so N5 read the previous calendar's
+episode list. The same slow load was caught on v1.17.5, the build that was live (1 load in 20 at 1.97 s). The test now
+waits for the File menu to name the loaded file, as `autonoterename` does; 80 loads in a row on both builds were read
+correctly, one of them 1.69 s late, and `epnames` passed in the v1.19.0 gate.
+
+## v1.18.0 — Finish before: build a calendar backwards from a phase on Ends; the note editor's Day says "No date" and a typed date works like a picked one (18 Nov 2026)
+
+### Finish before: build a calendar backwards from a phase on Ends (18 Nov 2026)
+
+At the executives' review (17 Nov 2026) they said they often work back from a delivery date (a fiscal year end, say),
+and asked for the "Start after previous phase" button to work the other way, obvious without training. The owner
+ruled it by picker on 18 Nov 2026 (R1-R4, HANDOFF "Finish before").
+- **It depends on where the card sits (R1).** While a later phase is on **Ends** (its end held), every phase card
+  before it shows **↳ Finish before <next phase>** in place of ↳ Start after. Phases after it keep Start after, and the
+  Ends phase itself shows neither, unless a phase after it is on Ends too. With every phase on Starts nothing changes.
+  Writer's Rm gains the button; custom phases, which are not in the chain, have none, as with Start after.
+- **What a click does (R4).** The card goes on Ends. Its end is the last working week before the next phase starts,
+  stepping back over an all-phase hiatus, so the two never overlap. Production's wrap is the last shoot day before the
+  next phase (the same search a typed wrap uses). From then on the end holds: an episode that gains days moves
+  Production's start earlier instead of running into Post. A built-in phase on Dates, which has no Ends, keeps its
+  length and moves. One click is one undo step, and Production's day marks travel by shoot-day number.
+- **Holding a delivery date (R3) is not automatic.** When a phase grows, the phases before it stay where they are.
+  Build Around pinned to Post's "ends by" rebuilds them all in one run, and is what the training will show; an
+  automatic pull gets its own plan after the training.
+- No frozen edit and no save-format change: a click writes the existing Ends stores (`phaseEnds`, `productionEnds`,
+  `end-<key>`). Frozen `render()` writes Start after's label, so Finish before's is written after it, by `update()`.
+- Verified: new leg `finishbefore` 12/12 (the rule on Starts and with one or two phases on Ends, a renamed phase,
+  Production and a Weeks phase, undo and redo, the end holding while Production grows, a Dates phase, both kinds
+  stepping back over the hiatus, custom phases, no console errors), `endsdate` 17/17, `prodends` 14/14, `snaptools`
+  14/14, `overrides` 20/20, `builtindates` 17 + 15, `npm run check` 42/42. Tried by the owner on localhost first
+  ("Looks good, finish it").
+
+
+### The note editor's Day says "No date", and a date you type works like one you pick (17 Nov 2026)
+
+The owner, 17 Nov 2026: *"In waterfall view, the default, for Day should be "No date" rather than Mon (default)"*;
+*"When you do select a date and ALSO have stays with set to a week of a phase ... when you shift the phase/calendar the
+date should auto-change to the same day of the week but in whatever new week its in"*; *"what if you hand type 7/29/25
+as 7/29 or 7-29-25 or 7-29. All should be recognized"*; *"Yes, plain notes too"*. Tried on localhost, then *"Finish it"*.
+
+- **"No date".** The waterfall note editor's Day list opens on "No date" (it read "Mon (default)", or "First day
+  (default)" on a note that stays with a phase). Only the words changed: a note left on it still sits on its week's
+  Monday in the Month view (a linked one on its phase's first day that week).
+- **A note that stays with a phase keeps its weekday.** A day PICKED from the list already did (saved as the note's
+  weekday, `dow`, and drawn fresh). A date TYPED at the end of the note did not: it stayed in the note's words, so after
+  a Shift, a ▲ / ▼ or a new start date the note sat in its new week still reading the old date. Now a date typed at the
+  end of the note, on a day of that week, is its Day: taken out of its words and drawn on the same weekday wherever the
+  phase lands.
+- **Typed dates in every form.** 7/29, 7-29, 7-29-26, 7/29/26 and 7/29/2026 are all read (29/7 and 29-7 on a DD/MM
+  calendar, and a date written month first still found there), but only when it is a day of that note's week, so
+  "Scenes 12-14" or a wrong year stays words. As you type it, Day shows the day; delete it and Day goes back. A short
+  form is saved the way the Day list writes a date (7/29/26), so the Month view places it; a full 7/29/26 stays exactly
+  as typed. Picking a day after typing one replaces it rather than adding a second.
+- **On a plain note it is the note's Day too**, as if picked (owner's picker, *"Pin it"*): the Month view places it,
+  Shift keeps it on its date, and switching Dates between MM/DD and DD/MM leaves it on the day it was typed for. Until
+  now a full date typed by hand gave the note no Day, so a Shift moved the note a week and left the old date in its
+  words, a four-digit year (7/29/2026) put it on Monday in the Month view, and a date typed day first went back to
+  Monday once Dates was MM/DD. ⚠️ **Except in a note of several lines** whose other lines have no date of their own ("Studio Cut
+  Due" above "Network Cut Due 9-11"): a Day there would carry the undated lines onto that day in the Month view. Such a
+  note keeps every line where it was (the dated one on its day by its date, the rest on Monday) and Day stays "No
+  date"; picking a day from the list still pins it, as it always did.
+- A short date typed over an automatic note's own date ("Start Shooting 6-29") is a rename, as "6/29/26" is; another
+  day ("6-30") makes it a note, as "6/30/26" did.
+- **Fixed on the way:** dragging a waterfall line to another day of its week in the Month view now takes the note's Day
+  with it. It rewrote the line's date and kept the old Day, so once the date could not be read (a Dates switch), the
+  note went back to the day it was dragged from. Found by `dayfirstwf` M1 once typed dates pinned.
+
+Notes already saved with a stale typed date are not repaired: open and save them once. No frozen code, no save-format
+change (the Day is the `date` / `dow` a picked one has always written).
+
+**Verified:** new leg `notedates` 18/18 (in `gate.sh`; 14 of its cases red on `releases/v1.16.0.html`). Re-expected for
+intended changes: `phaselink` R1 (the label), `dayfirstin` W4 and F1 and `dayfirstwf` M1 (typed dates pin, the owner's
+picker). Related legs on the build and the gate: see HANDOFF.
+
+## v1.17.5 — pick the Tandem colour (17 Nov 2026)
+
+### Pick the Tandem colour (17 Nov 2026)
+
+The owner: *"Allow me to change the color of tandem"* (DOUBLE-UP-DAYS-PLAN.md R23).
+- The Tandem card's colour square now opens the colour picker, like every phase's. The first swatch, **Follow
+  Production**, is the automatic darker shade of Production's colour (what tandems used until now); any other swatch
+  colours every tandem pill, on screen and in the month PDF, and stays put when Production is recoloured.
+- Saved in the existing phase-colour map, only once a colour is picked, so a calendar that never picks one saves byte
+  for byte as before.
+- Verified: `doubleups` 66/66 (live 11, restore 50 with three new colour checks, half 3, blocks 2), `phasesui` 8/8,
+  `npm run check` 42/42.
+
+## v1.17.4 — drag a tandem's ends to change its days (17 Nov 2026)
+
+### Drag a tandem's ends to change its days (17 Nov 2026)
+
+The owner: *"i should be able to extend tandem day just like any other phase"*, and by picker, a grip on both ends
+(DOUBLE-UP-DAYS-PLAN.md R22).
+- Point at a tandem pill in the month view and a grip shows on each end, as on every phase bar. **Drag the end** to add
+  or remove tandem days: the start stays put, so a tandem joined to its episode's shoot bar stays joined. **Drag the
+  start** to change the days while the end stays put; the tandem then sits on its own, as a moved one does.
+- The days it gets are that episode's own count, shown in bold in the Tandem card. An edge never goes onto its own
+  episode's days, the first episode's days or before the shoot: it stops at the last day it may take. One undo per drag,
+  and Esc during a drag puts it back.
+- Verified: `doubleups` 63/63 (live 11, restore 47 with five new grip checks, half 3, blocks 2), `npm run check` 42/42.
+
+## v1.17.3 — the Tandem card is called just "Tandem" (17 Nov 2026)
+
+### The Tandem card is called just "Tandem" (17 Nov 2026)
+
+The owner, after v1.17.2: *"Call the phase just \"Tandem\""*. The card's heading reads **Tandem** (it read "Tandem days"),
+the same word its pills start with ("Tandem 101"); Help names it the Tandem card. The day counts keep their unit:
+*Default tandem days*, "7 tandem days · 6 episodes". A heading typed as "Tandem days" also reads as the default, so
+nothing is stored. Verified: `doubleups` 58/58, `npm run check` 42/42.
+
+## v1.17.2 — double-up days are called Tandem days (17 Nov 2026)
+
+### Double-up days are called Tandem days (17 Nov 2026)
+
+The owner asked whether calendars really say "double-up" or "tandem", and on hearing that every real calendar and
+dailies record in their additional-units write-up says tandem, ruled *"Yes, use Tandem"* (DOUBLE-UP-DAYS-PLAN.md R21).
+- A pill nobody named reads **"Tandem 101"** ("Tandem Block 1"), and the card is **Tandem days**: its head, its
+  *Default tandem days* box, its summary ("7 tandem days · 6 episodes · 302–305"), the right-click *Remove tandem days*,
+  the drag's refusals, the Rename box and Help all say tandem.
+- Only words changed. The saved keys keep "double-up", so every calendar keeps opening; one whose pills had the default
+  name now reads Tandem, and a name someone typed (even "Double-up") stays as typed.
+- Verified: `doubleups` 58/58 (live 11, restore 42, half 3, blocks 2), `monthwriter` + `monthab` on `doubleups` and
+  `doubleups-blocks` (the written PDF reads "Tandem 301", "Tandem Block 1"), `monthexport` 9/9, `npm run check` 42/42.
+
+## v1.17.1 — no double-up during the first episode (17 Nov 2026)
+
+### No double-up during the first episode (17 Nov 2026)
+
+The owner, after v1.17.0 went live: *"there also shouldnt be double up days at the beginning of the 1st episode"*, and
+by picker, none during episode 1 at all (DOUBLE-UP-DAYS-PLAN.md R20).
+- A double-up can no longer be dragged onto any of the first episode's (or first block's) days, in shooting order: it
+  snaps back with "Double-up 104 can’t go on the first episode’s days: it has no double-ups.", and while dragging those
+  days are greyed. The earliest one can start is the second episode's first day. Defaults never landed there.
+- A calendar saved by v1.17.0 with a double-up already moved onto episode 1 still opens: that double-up is drawn at its
+  default day, and the saved move is kept.
+- The one exception (owner's picker): a show with a single episode or block keeps its double-up on its own last days.
+- Nothing changes for a calendar without double-ups. Verified: `doubleups` live 11, restore 42 (5 new R20 checks), half
+  3, blocks 2; `npm run check` 42/42.
+
+## v1.17.0 — double-up days: "10+1", a second crew's day on the next episode's shoot (17 Nov 2026)
+
+### Double-up days: "10+1", a second crew's day on the next episode's shoot (17 Nov 2026)
+
+Executives asked for double-up days: "10+1" is ten first-unit days plus one double-up day, a second crew shooting one
+episode while the first unit shoots the next. Two crews, one day, so it is an **overlap**: it never makes Production
+longer, and it is not a half day (`.5`, one crew splitting a day, which is built already). The owner ruled all of it on
+17 Nov 2026 (R1–R17, [`DOUBLE-UP-DAYS-PLAN.md`](DOUBLE-UP-DAYS-PLAN.md); the mockup is
+[`mockups/double-up-days-ui.html`](mockups/double-up-days-ui.html)).
+- **A Double-ups card** in the Phases tab, directly under Production, month view only like Episodic Prep's. Its name box
+  is the default pill name ("Double-up"), and *Default double-ups* a number box, as every phase's counts are; the list
+  gives each episode (shooting order) or block its own name and its own number box (blank = the default, 0 = none), bold
+  when it is its own. (It was a − / + until the owner tried it: "lets do open text boxes like all other phases use".) The last episode or block has none by default; given
+  one, it sits beside its own last days. The colour square is a darker shade of Production's colour and follows it.
+- **The month view and the month PDF.** A double-up comes out of the end of its episode's shoot pill on the same line,
+  joined flush (square corners where they meet), in the darker shade, reading "Double-up 102" or the episode's own name
+  ("Tandem 102", "Double-up Block 1"). The next episode sits on the line below for that week. Drag the whole pill onto
+  another episode's days or after wrap (never its own days, never before the shoot; its own default days put it back);
+  a moved one is kept by shoot-day number, so Shift, a hiatus or a day count carries it with the shoot. Right-click:
+  Rename…, Put back on its default days (a moved one), Remove double-up. Double-click: the card at that episode's row.
+  With a half day (9.5 + 1) the double-up starts on the first full day after the switch.
+- **Nothing else moves.** Production's days, shoot-day numbers, prep, wrap and every main-unit date ignore double-ups;
+  the waterfall, Excel and the waterfall PDF do not show them (proven byte for byte with them on and off).
+- **Where they meet, one faint line** (R18, the owner's pick after trying the first build): the shoot pill loses its
+  outline on that side and the double-up's edge is a single 1 px line in its own ink at 40%, so the two read as one
+  shape instead of two dark rings side by side. Nothing moves; the month PDF draws the same line.
+- **Frozen edit DU1** in `renderMonthView`, owner-approved (R16): a double-up run's colour, its `data-ph="doubleUp"` /
+  `data-du` marker, the flush-join CSS, and the lane hints that keep it on its episode's line and the next episode
+  below. Inert on a calendar without double-ups: gates 10 and 13 byte-identical (all 11 print documents, all 24 written
+  PDFs). The month-PDF writer reads the join and the lanes back (`mvlDuJoins`, `mvlPackLanes`).
+- **Save format:** `doubleUps` {days, name, moved} at the top level and `doubleUpDays` / `doubleUpName` on an episode or
+  block, each written only when set, so a calendar with no double-up saves byte for byte as before. No id on any card
+  control (fields.byId unchanged); no SNAPSHOT_VERSION bump.
+- Verified: new leg `doubleups` (live, restore, half, blocks; 58 checks), `monthwriter` / `monthab` and `monthexport` on
+  the three new fixtures, gates 10 and 13 byte-identical, and the full gate: 5,681 PASS, the 10 failures one intended
+  card-count change (`hidewf`, re-expected) and nine load timeouts or known flakes, each green when re-run alone.
+
+## v1.16.0 — wave 4: day marks and a break's own notes stay put when a hiatus ripples, Changes since last save, keys named for your computer, a month note no longer cut off on Windows, a contrast theme keeps the calendar's colours, long titles fit a file name, the season beside the title in export names; plus everything since v1.15.0: the month view on screen is the month PDF's page, a toolbar that keeps its size, folds, and stays on one line while the window is resized, a click outside closes Shift, the recents as cards, every phase switch on show again (16 Nov 2026)
+
+### A very long show title is cut to fit the workbook's and the waterfall PDF's file names too (16 Nov 2026)
+
+The owner's picker, 16 Nov 2026: *"Cut long titles"* (audit WIN-5). Windows refuses a file name over 255 characters.
+Audit item W.2 (its own entry below) already cuts a show title over
+150 characters, at a word, in every name the app builds outside the frozen exporters (Save, Save As, the shareable
+copy, a scenario saved alone, the month PDF, Compare). The workbook and the waterfall PDF name themselves inside frozen
+code, so a 400-character title still reached their names.
+
+- **What you see.** A show title over 150 characters is cut the same way in the workbook's and the waterfall PDF's names
+  ("<first 150 characters, back to a word> Planning Calendar 2026-11-16 – Plan B.xlsx"); the date, the Version, the
+  season and the scenario stay whole. A title of 150 characters or fewer is named exactly as before.
+- **How, with no new frozen edit.** Since audit 2.10's edits S1b / S2b the two frozen name lines hand their own safe title
+  to `exportFileName()`, which is not frozen. It now passes that title through `fileNameTitle()`, the cut every other
+  name takes. W.2's proposed S1b / S2b patch (editing the two frozen lines again) was therefore not needed and is not
+  applied.
+- **Verified.** `exportnames` 10/10 on compare-send: new X9 (a 200-character title: both names carry the 149-character
+  cut and the whole rest) is red on the build without the cut; new X10 (a title of exactly 150 characters is kept whole).
+  The workbook's and the waterfall PDF's bytes are unchanged: 0 clipped cells, the waterfall PDF and every Excel part identical to their baselines, the seam check green, and all
+  24 written month PDFs byte-identical (gate 13), with the printed month document unchanged on all 11 calendars (gate
+  10): a partial gate cut from gate.sh's own sections, 368 PASS / 0 FAIL, on the build carrying all three of today's
+  frozen edits. `npm run check` 42/42.
+
+### A Windows contrast theme keeps the calendar's colours (frozen-surface edit FC1, 16 Nov 2026)
+
+The owner's picker, 16 Nov 2026: *"Keep colours (contrast)"* on audit item W.2's frozen proposal FC1 (WIN-5). With a
+Windows contrast theme on (Settings > Accessibility > Contrast themes), Chrome paints every background in the theme's
+own colours, so the waterfall and the month view lost every phase fill, hiatus band and coloured note, and the colours
+are the calendar's information.
+
+- **What you see.** Under a contrast theme the calendar keeps its own colours, in both views, and so do the swatches
+  that show them (the phase map, the phase cards' colour buttons, the side boxes' colour keys), so the key and the
+  calendar never disagree. The rest of the app follows the theme as before. Without a contrast theme nothing changes.
+- **How.** One block at the end of `legacy.css`: `@media (forced-colors: active){ #table-wrap, .month-map, .side-col,
+  .pc-sw{ forced-color-adjust:none } }`. `#table-wrap` is the frozen container, hence the owner's sign-off; CLAUDE.md
+  lists it as the seventh owner-approved exception. Outside forced-colors mode it matches nothing; the workbook and both
+  written PDFs read no paint, and `#print-root` is not in it.
+- **Verified.** New leg `forcedcolors`, in the gate: `rtleg.mjs` emulates the contrast theme over CDP when the query holds
+  `forced=active` (no page can switch it on for itself). Forced: 7/7, every one of 72 coloured waterfall cells and the
+  coloured month bars keep their fills, and with the block deleted the theme paints them black (so the emulation bites
+  and the block is what keeps them); the block opts out the calendar and the phase map only. Control (no theme): 7/7, the
+  block changes nothing. On the build before FC1 the forced run is red at B0, F1, F3 and F4. Gates 1-3 (base section) and
+  gate 13 by hand: 0 clipped cells, the waterfall PDF and every Excel part identical to their baselines, the seam check green, and all
+  24 written month PDFs byte-identical (gate 13), with the printed month document unchanged on all 11 calendars (gate
+  10): a partial gate cut from gate.sh's own sections, 368 PASS / 0 FAIL, on the build carrying all three of today's
+  frozen edits. `npm run check` 42/42.
+
+### A month note is no longer cut off on Windows (audit item W.1, owner-approved frozen look, 16 Nov 2026)
+
+The owner's picker, 16 Nov 2026: *"Approve the fix"* on audit item W.1 (WIN-1). On Windows the month view showed
+"Writer's Room Opens 1/5/26" (an automatic note, with its ↻) as one line and lost its date; a Mac showed it whole. It
+was never the font. A month note's lanes are decided when the month is drawn, from the width of the day column on
+screen at that moment, and the month can then be drawn in a different column: on Windows the month view's scroll bar
+comes and goes with the month's height (15 px over seven columns), a month reached from the Waterfall is measured from
+an estimate about 1.45 px too wide, the box a note is drawn in is 6/7 px narrower than the one it was measured in, and
+counts were remembered by the whole pixel. A note whose wrap point fell in that gap got one lane too few.
+
+- **What you see.** In the month view, on screen, a note gets the lanes its text needs: after paging between a
+  four-week and a five-week month on Windows (or on a Mac set to always show scroll bars), in the first month shown
+  after the Waterfall on every computer, and for a note marked ↻ or ⚑ at any window width. Where a note was cut it is
+  whole, and the week under it moves down by the lane it gained. Nothing changes in the month PDF, the print rollback,
+  Excel, the Waterfall or any saved file.
+- **How.** A month whose column moved between measuring and drawing is drawn once more, in its own column (an observer
+  beside the month paging; nothing frozen is edited, but it changes the frozen look, hence the owner's sign-off). A
+  marked note is measured in the box it is drawn in, at an exact width (frozen edit W1, one line in the note symbol's
+  NS1). The column is watched on the month's first day cell, not on `#table-wrap` as the proposal had it: watching
+  `#table-wrap`, which sits beside the toolbar row at the same depth, made Chrome log "ResizeObserver loop completed
+  with undelivered notifications" now and then (the gate's `monthexport` E0: red in 3 of 4 reference runs of a hand-run
+  gate and in 3 of 16 runs by hand; 0 of 13 on the day cell). Unmarked notes at 10 px keep the last two gaps: closing them changes the print rollback, and is left for the
+  owner.
+- **Verified.** `autonoterename` 25/25 at the harness's 1600 px window and at Windows' 1584 px page width (S2, the
+  Windows cut, and S5, four Windows column widths reached from the Waterfall and from February: no note cut). Gate 10 by
+  hand (the printed month document identical to its baseline, one sheet per month, all 11 calendars) and gate 13 by
+  hand (all 24 written month PDFs byte-identical): the PDFs did not move. `softlines` 6/6 on dayoverrides and halfmarks.
+  The nearest month legs: `mvnotes` 30/30 and on mvnotes 14/14, `mvnotesize` on mvnotes and month-dense60 12/12 each,
+  `mvkeys` g=pick 24/24 and g=enter 16/16. `npm run check` 42/42. On real Windows (GitHub's Windows runner, run 44028047067,
+  from the test branch `windows-test-wave4`): `autonoterename` at the default window and at 1584 x 1200, and `softlines`,
+  green; all 48 month-PDF runs (`monthexport`, `monthwriter`) green, so the PDFs did not move there either.
+- ⚠️ **Since the month page (below, 17 Nov 2026, merged into this release) most of this no longer applies.** No note
+  carries ↻ or ⚑ (the owner removed them), so frozen edit W1 never runs, and the day column is the page's 141.07 px at
+  every window, so it cannot move between measuring and drawing. What remains is the observer, which still draws a
+  month reached from the Waterfall once more in its own column; the month page draws it again too, which is harmless.
+
+### Keys are named for your computer, Load lists older .html calendars, and a long title fits a file name (audit item W.2, 16 Nov 2026)
+
+The November audit's Windows review, item W.2 (WIN-3, WIN-5). On Windows the app named a Mac's keys: Undo's hint read
+"Undo (⌘Z)", Redo's "Redo (⌘⇧Z)", the Ripple Hiatus hint said ⌘Z, and Help named every shortcut with ⌘ under one line
+asking Windows users to read Ctrl. Windows' Load dialog listed only `.sptcal` files, so an older `.html` calendar looked
+missing; and a 420-character show title made a Save As name of 438 characters, past the 255 Windows allows.
+
+- **Keys.** On Windows and Linux every key the app names reads Ctrl: "Undo (Ctrl+Z)", "Redo (Ctrl+Shift+Z)", Ctrl-click,
+  "Ctrl+Enter to add" under Paste notes, "press Ctrl+V instead" when the clipboard is refused, and Help throughout. The
+  "On Windows, use Ctrl where these say ⌘" line and the "⌘S or Ctrl+S" pairs are gone. Off a Mac, Help offers New no
+  key (Chrome keeps Ctrl+N for a new window) and points to New in the File menu; its paragraph about the Mac menu bar
+  shows on a Mac only. On a Mac two hints change words: Redo reads ⇧⌘Z (Apple's order, as Help writes it; it was ⌘⇧Z)
+  and Paste notes says ⌘-Enter (it was ⌘/Ctrl-Enter). The keys that work did not change.
+- **Load… lists `.html` calendars.** Its first file type takes `.sptcal` and `.html` together, so Windows' dialog, which
+  applies one type at a time, shows an older calendar with no change of "Files of type"; the two single types follow.
+- **A long title fits a file name.** A show title over 150 characters is cut back to a word in every name the app builds:
+  Save, Save As, the shareable copy, a scenario saved alone, the month PDF and Compare; the workbook and the waterfall
+  PDF follow (the long-titles entry above). The date and the extension stay; a title of 150 characters or fewer is
+  named as before.
+- **How.** One helper, `src/chrome/keys.js`, reads the platform once and names the keys; Help's keys carry their spec
+  (`data-keys`) and are rewritten at launch, and its two platform lines show by `data-os`. No save-format change: no
+  snapshot key, no id. The contrast-theme half of W.2 was split out for the owner's sign-off (FC1, its own entry above);
+  a "ResizeObserver loop" console error the audit saw on Windows did not reproduce here and is not touched.
+- **Verified.** New leg `oskeys` on halfdays, once per platform, the platform faked before the app starts: 10/10 for
+  Windows, Mac and Linux. On the build before, Windows was red at H1, H2, T1, T2, N1, O1 and L1, and Mac at H1, H2, T1,
+  N1, O1 and L1. Re-expected: `firstrun` H1 (Help's New line is one of two, by platform) and `showfolder` P (Load offers
+  three types). Green: `firstrun` 22/22, `filekeys` 16/16, `showfolder` 7/7, `wfmenu` 39/39, `mvmenu` 81/81, `dlgkeys`
+  16/16, `undokeys` 11/11, `nofsa` 7/7, `mvkeys` 24/24. On real Windows (GitHub's Windows runner, run 44028047067)
+  `oskeys` and every `win-*` leg were green but `win-keys` K5, red since 14 Nov: Chrome keeps Ctrl+N for a new window,
+  which Help now says. `npm run check` 42/42.
+
+### File ▸ Changes since last save… lists what moved, ready to paste into an email (audit AUD2-103, idea I.3, 16 Nov 2026)
+
+The owner: *"work on it now"* (16 Nov 2026). A studio coordinator sending this week's calendar had to work out by eye
+what had moved since last week's file, and type it into the email.
+
+- **What you see.** File ▸ **Changes since last save…** (under Load…) opens a small window: since when ("Since you
+  loaded “Show.sptcal” at 9:40 AM", or "Since you saved …"; with two or more scenarios, "In “Plan B”, since …"), the
+  changes as plain lines, and **Copy** and **Done**. Copy puts the lines on the clipboard, one per line. They use
+  Compare's own values and the Pushed / Pulled wording:
+  - Title now “Test Show Revised” (was “Test Show”)
+  - Production: first shoot day pushed 2 wks, wrap pushed 3 wks (now 9/28/26 – 2/10/27)
+  - Hiatus 10/19/26 – 10/23/26 added (1 wk)
+  - Post now ends 4/16/27 (pushed 1 wk)
+
+  and Episodes, Blocks, Shoot days, Location and Version as "now X (was Y)", a phase added or removed, a hiatus moved or
+  resized. An edit none of those names (a note, a colour, a setting) is the one line "Notes, formatting or settings
+  changed", written only when no other line is. A value typed back the way it was lists nothing.
+- **Since when.** Save, Save As and Load set the starting point, one for each scenario tab; a tab not yet shown is read
+  the first time it comes on screen. Autosave does not move it, so the list stays "since I opened last week's file". New
+  and a crash recovery clear it, and the window then says there is no saved version to compare with.
+- **How.** The starting point is kept in memory only (`savedBaseline`), never in the file: no snapshot key, no id, the
+  save format unchanged. Nothing frozen was touched, and no export prints the list.
+- **Verified.** New leg `changessince` 15/15, on the synthetic `changessince.sptcal` loaded through the real Load: the
+  three edits above listed exactly and in that order, Copy, Save moving the starting point, a value typed back, a
+  date-format change as the one settings line, a phase whose end alone moved, the saved file gaining no key, and two
+  scenarios each measured from its own saved values (red before: there was no such item). Nearest legs green:
+  `startrecents`, `firstrun`, `filekeys`, `lastedited`, `scenarios`, `scenariofacts`, `comparehiatus`, `recoverfail`
+  (scen), `nofsa`, `backuplink`, `conflict`. Green on real Windows too (run 44028047067). `npm run check` 42/42.
+
+### Ripple Hiatus leaves day marks and a break's own notes on their dates, and says so (audit item 2.5: AUD2-016, AUD2-037, 16 Nov 2026)
+
+The owner's decision D2 = b, 16 Nov 2026: *"marks stay on their dates when a hiatus is edited ... the result line says
+so, and warns when a mark lands under the break. Notes stay; one Undo"*. With Ripple Hiatus Periods on (the default), a
+hiatus edit pushes or pulls every phase after it, and two things went wrong. A ripple from a break inside the shoot left
+Production's Off, worked and half days on their dates while the notes after the break moved, and the line under the
+hiatus named only the phases, so a mark that now fell on another shoot day, or under the break, went unmentioned
+(AUD2-037). And a note typed inside the break moved with everything after it: onto the work week before the break when
+the break was shortened or switched off, deeper in when it was lengthened, out of it when it was re-dated (AUD2-016).
+
+- **Day marks.** Production's Off, worked and half days stay on their dates, and the line under the hiatus says "Day
+  marks stay on their dates" whenever a mark is on or after the edit, and names each mark a hiatus now covers that it did
+  not before ("Off day Fri 9/4/26 is now under a hiatus"), even when nothing else moved. When the edit moves Production
+  itself (a break before the shoot), the marks still go with their shoot days (ruling R2) and the line does not say they
+  stay.
+- **Notes.** A note written inside the edited break stays on its date; one the edit pulls onto the same week joins under
+  it, as a shift's notes do. Notes after the break move as before.
+- **One Undo** still takes back the change and its push (AUD2-038). Help's Ripple Hiatus Periods paragraph says all of
+  this.
+- **How.** `rippleAfterHiatusEdit` puts the marks back on their dates after the shoot-day bracket whenever Production's
+  start did not move (so a second unlocked break the same ripple pushes cannot carry them either), and lifts the notes in
+  the weeks the break covered before the edit out of the week-keyed note stores for the steps, putting them back on their
+  own weeks after (`rippleHoldBreakNotes` / `rippleReturnBreakNotes`). No frozen code, no save-format change, no new id.
+- **Verified.** New leg `ripplemarks` 35/35 on the synthetic `ripplemarks.sptcal`: the Summer break's Weeks, Starts and
+  removal; Production's own hiatus shortened, switched off, lengthened, and typed 1 then 10; a break before the shoot;
+  each with ONE Undo back to the calendar exactly as it was. Red at 14 of the 35 on the build before (every
+  note-inside-the-break case and every line case). Green: `hiatusripple.mjs` 19/19, `rippleundo` 29/29,
+  `phasearrowsripple` 10/10, `hiatusdrag.mjs` 14/14, `mvdragcarry` 15/15, `overrides` 20/20, `snaptools` 14/14,
+  `halfworked` 24/24, `hiatussidebar` 16/16; green on real Windows too (run 44028047067). `npm run check` 42/42.
+
+### The season sits beside the title in every export's name (16 Nov 2026)
+
+The owner's picker, 16 Nov 2026: *"Work on it now"* on audit item 2.10's frozen edit (AUD2-025), which puts the season
+right after the show title in export names. v1.15.0 gave every export a season, a Date Last Edited and a Version, but the
+season came after the words: "Harbor Lights Planning Calendar S3 2026-11-12 v3 – Plan B.pdf". It could only be added at
+the end, because the line that names the workbook and the waterfall PDF sits inside the two frozen exporters. It now
+reads as the header's title line does, and as Help's older example did: "Harbor Lights S3 Planning Calendar 2026-11-12 v3
+– Plan B.pdf".
+
+- **What changes.** Every export that names a file: the workbook and the waterfall PDF ("Harbor Lights S3 Planning
+  Calendar …"), the month PDF ("Harbor Lights S3 Month Calendar …") and Compare's PDF and workbook ("Harbor Lights S3
+  Scenario Comparison 2026-11-12"). Two seasons read "S3 & S4", as the header does. The date, the Version and the
+  scenario stay where they were; a calendar with no season, title or Version leaves nothing behind for it. Save, Save As
+  and Export shareable copy keep a save's name (the title and today's date), which never carried the season.
+- **How.** Owner-approved frozen edits S1b and S2b: the name line in `exportExcel` and `exportWaterfallPdfDirect` now
+  calls `exportFileName(<its own safe title>, 'Planning Calendar', ext)`. Both lines run after the writer has made its
+  bytes and set only the download's name, so neither file changes by a byte. `exportNameHead()` puts the season beside
+  the title, `exportNameMarks()` no longer carries it, and `scenarioFileSuffix()` is gone. The month PDF and Compare use
+  the same helpers. Help's two examples read "Show Title S1 Planning Calendar 2026-11-12 v3.xlsx". CLAUDE.md lists the
+  edit beside the other owner-approved exceptions to the freeze.
+- **Verified.** `exportnames` 8/8: X1-X5 and X7 re-expected to the new order, and X8 new (Season 3 and 4 ticked in the
+  Season dropdown: "Harbor Test S3 & S4 Planning Calendar …"). 7 of the 8 fail on the v1.15.0 build (X6 has no season,
+  so its name is the same either way). Gate.sh's base section by hand: 0 clipped cells, the waterfall PDF identical to
+  its baseline, the Excel parts identical (gates 1-3). Its monthexport and gate 13 section by hand: `monthexport` green
+  on all 24 calendars and on the real clock, and every written month PDF byte-identical to its baseline (gate 13), so
+  neither writer's bytes moved. Re-expected for the new order, each red on the v1.15.0 build only where the name is
+  checked, and green now: `monthpick` 10/10 (M2), `scenarios` 23/23 (S16, S17) and `monthexport` 9/9 (X2, X7, now also
+  requiring the season when the calendar has one). `pdfdialog` 15/15, `firstrun` 22/22, `npm run check` 42/42.
+
+### On a DD/MM calendar the month view's own reader reads a typed note's date day first (frozen edit D3, 16 Nov 2026)
+
+Audit item 2.4 (AUD2-066, the owner's decision D3 (a): *"typed or pasted dates are read day first too"*) left one
+frozen edit unapplied: the owner's picker on 16 Nov 2026 said *"Work on it now"*. Nothing a user sees changes. v1.15.0
+already put "Table read 17/7/26" on 17 July in the month view, but through a stand-in. This edit does it in the frozen
+code itself.
+
+- **Before.** Frozen `notesForWaterfallDate` places each line of a typed waterfall note on its trailing date, and it
+  read that date month first. So v1.15.0 wrapped it in `wfLinesOnDay`: on a DD/MM calendar it handed the frozen
+  function a rewritten copy of the week's note for one call, with each day-first line pinned to its own day.
+- **Now (frozen edit D3).** The typed-line loop reads the date with `slashDateInWeek()`, 2.4's own helper, in place of
+  the three lines that built it month first. On DD/MM a date is read day first, and one that reads inside its week only
+  month first (typed before the switch) still places its line. `wfLinesOnDay` is gone, and the month view, both month
+  PDFs and the holiday tint call the frozen reader directly again. On a month-first calendar the helper returns exactly
+  the date the old lines built, or nothing where they fell through to the pinned day or Monday, so nothing changes there.
+- **Verified.** New leg `dayfirstwf` 11/11 on a DD/MM/YY calendar: one dated line, three lines in one note, a
+  month-first line beside a day-first one, a typed holiday line and its tint, each on its own day; re-dated by
+  Production's start (the typed note's automatic line follows), by the month drag inside its week and into another
+  week's note, with one Undo; and the month-first control. It is green on v1.15.0 too (the stand-in did the same job).
+  A v1.15.0 mutant with neither the stand-in nor D3 is red at 10 of the 11, so the leg holds D3 alone.
+- **Month-first calendars unchanged byte for byte.** Gates 1-3 (`base` with 0 clipped cells, the waterfall PDF, its
+  seams, the workbook), gate 10 (11 calendars) and gate 13 (all 24 runs), run by hand from `gate.sh`'s own sections:
+  334 PASS / 6 FAIL, every baseline identical. The six are `monthexport`'s timed dialog cases X4-X6 at a load average
+  of 18 (a known flake); the four runs that had them are 9/9 re-run alone. Also `dayfirst` 14/14, `dayfirstin` 13/13,
+  `wfnotelines` (all six groups) 32/32, `autonotefollow` (all four) 24/24, `softlines` 6/6 on both its calendars,
+  `npm run check` 42/42.
+
+### The month view on screen is the month PDF's page (17 Nov 2026)
+
+The owner: *"I think the viewport for the month view calendar needs to work like the waterfall calendar where it
+maintains consistent proportions despite the window width or height. It should reflect whatever is as close as how
+it will appear when exported to pdf"*, then, with the first build on screen: *"phase bar size and note size should
+also reflect the export exactly. essentially the live viewer should look just like what it will look like in the pdf
+export"*. Five pickers settled the rest.
+
+- **One fixed size.** The month is drawn 1027.5 px wide, the PDF page's width, at every window: a day column is 141 px,
+  as in the PDF. Before, the month took the panel's width (743 px at a 1100 px window, 2064 px at 2560), so a day column
+  ran from 100 to 289 px and the same note wrapped to one, two or three lines depending on the window.
+- **A smaller window scrolls** (picker "Scroll, like waterfall"); a larger one leaves the spare room on the right. Below
+  about a 1440 px window the page scrolls sideways at 100%.
+- **The page's height** (picker "Full page shape"). The month is at least a Letter landscape page tall, and the weeks
+  share the height by the PDF writer's own rule, so each week is the height it prints.
+- **Bars and notes at the height they print.** A Standard phase bar or hiatus band is 19 px (the screen squeezed it to
+  17), a note is 13 px a line plus 6, and neither stretches over empty lines any more.
+- **A crowded month stays full size** (picker "Full size, taller page"). The PDF shrinks a month that will not fit its
+  page; on screen it keeps its size in a taller card, and the export still warns.
+- **Soft Lines stays** (picker "Leave colours apart"): soft grey 1 px lines on screen, black 2 px in the PDF.
+- **The note symbols are gone** (picker "Remove the symbols"): no ↻ before an automatic note or ⚑ before a holiday.
+  The PDF never had them, and a marked note was measured 10 px narrower, so it could take one more line on screen.
+- **The zoom** scales the page and nothing else.
+- **How.** Screen only: `#table-wrap`'s own grid track, a block of CSS in the app shell's `@media screen` block ("THE
+  MONTH PAGE"), and `fitMonthPage()`, which reads the month after each render and writes each week's share on
+  `#table-wrap`'s own style. No frozen function and no frozen rule is edited; the note symbol's frozen edit NS1 is
+  left in place, inert.
+- **Things that draw over the month still land on it.** The fit runs before anything else that measures a freshly
+  drawn month (its observer is the first one made on the calendar's container): the first full gate caught the
+  waterfall menu's "Show this day in the month view" ring 8 px taller than its day, drawn before the weeks took their
+  page heights.
+- **A month's first drawing is measured for the page too.** Coming from the waterfall, or at load, there is no day
+  cell on screen for the frozen measurer to read, and its fallback guessed from the window. Such a month is now
+  rendered a second time, in the same task, once its days are there and its typeface has loaded (a count taken in
+  the fallback face was being cached and found again by every later render).
+- **The print fallback changed, for the better.** The rollback print path sizes each note from the live day column,
+  which is now the page's at every window, so its document no longer depends on the window. Its baseline (gate 10) was
+  re-cut on the owner's picker, *"Re-cut all eleven"*: on every test calendar one note gets room for two lines instead
+  of one, and nothing else moves. The PDF that Export PDF writes (gate 13) is unchanged, byte for byte.
+- **Still different, and why.** A note whose text is within about 0.1 px of its box's width can wrap one line more or
+  less on screen than in the PDF: Chrome measures text on screen and the PDF writer reads the font's own tables, and
+  the two differ by hundredths of a pixel. Seen on two notes in the test calendars. No width change closes it.
+- **Verified.** New leg `monthpage`, on five calendars, a small window and no calendar: on every month that fits a
+  page, every week's height on screen is the written PDF's row within 0.1 px; the card is the page in every month;
+  printed bar and note heights; no symbol; the zoom; a line added to a week stays inside it. Red on the build before
+  at seven of its ten cases, and its first-drawing case red without the second render. `calzoom`, `mvbarsize`, `mvnotesize`, `autonoterename`, `mvkeys`, `mvtextstyle` S3, the writer
+  guard F0 in `monthemit` / `monthwriter` (the screen fit may read `mvlFitNumbers`, and nothing else) and the gate's
+  two-window check on notewrap were re-premised to the new rules (each says what it held before). Two full gates were run. The
+  first (5,418 passed, 41 failed) found the two bugs above and the tests to re-premise. The second, on the corrected
+  build, 5,464 passed and 1 failed: `scenariocompat` on the v1.2.0 release (an old build opening a scenarios file, no
+  file of which is touched here), which passed in the first gate and 3 of 3 times alone afterwards. The waterfall PDF
+  and the written month PDF are byte-identical to their baselines, the workbook's parts unchanged, gate 10 green
+  against its re-cut. `npm run check` 42/42. Not run: a third gate for an unbroken pass.
+
+### The toolbar no longer drops to a second line for a moment while the window is resized (17 Nov 2026)
+
+The owner, resizing the window: *"There's a CSS wrap glitch as i change the size of the window"*, then *"at width 1258 px
+and several other 1 pixel gaps"*.
+
+- **What it was.** The toolbar spaces its buttons so the first line exactly fills the row (16 Nov 2026), and it applied
+  the new spacing one frame after the window changed size. So while a window was dragged narrower, each frame was drawn
+  at the new width with the old spacing: the line was a pixel too long, More and Undo / Redo dropped to a second line,
+  and the calendar under them jumped 44 px, then went back. It happened at every pixel of the two bands of window width
+  where the spacing is solved rather than capped: 1247 to 1271 px and 1293 to 1317 px. Nothing stayed wrapped once the
+  window was still.
+- **Fix.** A window resize is fitted inside the resize event itself, which fires before that frame is laid out and
+  drawn (`useToolbarFit`, `PreviewToolbar.jsx`). The observers and the font load keep their zero timer, which exists
+  so a ResizeObserver callback never changes the row's height.
+- **The spacing is rounded down.** It was written with two decimals, rounded to nearest, which rounds up half the time
+  and left the line as little as 1/64 px to spare (measured at 1258 px). It is now rounded down to a whole 1/64 px
+  (Chrome's layout unit) with one 1/64 kept in hand, and the row is measured in fractions rather than whole pixels, so
+  a browser zoom cannot round it up either. The fold levels change at the same window widths as before.
+- **Verified.** New case F9 in `toolbarfit.mjs` (waterfall and month view): a real window narrowed from 1330 to 1236 px
+  one pixel at a time, then widened in 9 px jumps and narrowed in 31 px jumps, with every painted frame logged. On the
+  code before the fix it is red, with wrapped frames at 52 widths, 1258 among them; now no frame wraps and every
+  settled width is one line. `toolbarfit.mjs` 14/14, `stylebarplace` 15/15, `monthmap` 20/20, `sharecopy2` pass,
+  `npm run check` 42/42. A scratch probe also swept 1800 to 960 px in both views, a pixel at a time and in 7 and 43 px
+  jumps, with no wrapped frame. The owner tried it on localhost: *"Yes, gone"*. Chrome only
+  (the toolbar): no grid, workbook, PDF or save-path code; no id changed. Not run: the full gate.
+- **Not covered:** a change in the toolbar's width that is not a window resize (a notice strip appearing, side boxes
+  added) still goes through the timer, so one frame can be drawn before the re-fit. That is a single event, not a drag.
+
+### Every phase card shows all its switches again: "More options" is gone (16 Nov 2026)
+
+v1.15.0 (audit item 2.14, AUD2-036) hid each phase card's rarely used switches (Snap to Monday, Number weeks, Hide in
+waterfall, Hiatus and, on Production, Simultaneous Post) behind a "More options" line at the bottom of the card. The
+owner asked first for it to read "More Options" and open in place, saw it built, then decided: *"Nevermind get rid of
+the entire hiding menu - leave the options as they were before"*.
+
+- **Every switch shows on every card, on or off, as before v1.15.0.** No More options line, no hidden switch.
+- **The help reads as it did before v1.15.0** for Phase hiatus and Hide in waterfall (byte for byte), and its More
+  options item is gone.
+- **Kept:** the all-phase hiatus cards still open folded to their one-line head on New, launch, Load and recovery
+  (AUD2-036's other half). The owner's words named the phase cards' menu only.
+- **Verified.** `phasesmore` re-premised to the opposite rule (M1 every switch on show and no More options line, M5 a
+  switch stays on show when turned on and undone, M8 the same on a loaded calendar; M3 and M6 keep the hiatus folds),
+  red on v1.15.0 at M1, M5, M8 and green now at the default and 1280 x 800 windows. The legs that opened More options
+  first (`hidewf`, `undokeys`, `endsdate`, `builtindates`, `hiatusripple.mjs`) no longer do, and stay green, as do
+  `hiatusfold` and `phasesui` (all 46 fixtures' Phases-card ids and `fields.byId` unchanged). `npm run check` 42/42. Chrome only (the sidebar): no grid, workbook, PDF or save-path code; no id changed.
+
+### The toolbar keeps its laptop size and folds on narrow windows; the app never stacks (16 Nov 2026)
+
+The owner: *"Ok we really need to work on UI scaling at differnt screen sizes. Its mostly an issue with the tool bar.
+It only looks right on a normal sized laptop screen ... When the screen is made larger/on a big monitor, the tool bar
+should stay the same size and just have extra space on the sides rather than adding a bunch of space between the
+buttons. On smaller screens, its also not scaling down right. Also the left side bar (show, phases, settings) should
+always stay on the left, I never want the UI to start stacking up and down."* Four pickers settled the details. It
+also covers audit 3.12 (AUD2-065, a half-screen window).
+
+- **Wide windows.** The toolbar stays at its laptop size with the spare room after Undo / Redo (the gap between
+  buttons stops at 14 px; on a 2560 px window it used to be 116 px).
+- **Narrow windows.** The toolbar is always one line. Short of room it gives up width in steps, least-used first:
+  Fill Gaps shows its switch and Header its icon; then Fill Gaps, Side Boxes and Header (the month stepper in the
+  month view) move into a ⋯ More menu; then Build Around shows a hammer; then the text style buttons fold behind an
+  Aa button; at the narrowest, Waterfall and Month show their icons. Every folded button names itself on hover. Until
+  now the text style buttons dropped to a second line and, below about 1150 px, the rest wrapped to a third.
+- **The More menu's menus cascade, as on a Mac.** Side Boxes and Header show an arrow; resting on one (or clicking it)
+  opens its menu beside the panel, the arrow pointing the side it opens. Choosing, Escape or a click elsewhere closes
+  everything.
+- **The sidebar always stays on the left.** At 960 px and below the sidebar used to go full width above the calendar
+  and the page scrolled; at 960 px (half of a 1920 monitor) the toolbar ran off screen and the calendar started below
+  the fold. Now the app is the same at every width and stops shrinking at 960 px; a narrower window scrolls sideways.
+  The sidebar between 1230 and 1280 px no longer grows as the window narrows.
+- **Nothing frozen changed.** No grid, workbook or PDF code; the print paths never see the shell (screen media only).
+
+- **Found on the way:** a scrollbar on the preview panel, drawn for a moment while fonts load on systems with
+  full-width scrollbars (Windows), took 15 px from the toolbar and wrapped it for a moment on a 1280 px laptop. The
+  panel's own scrollbar now takes no width (it still scrolls by wheel or trackpad).
+
+Verified: a new `toolbarfit.mjs` (in the gate: real window widths from 2560 to 820 px and real mouse input, both views)
+12/12; `stylebarplace` re-expected 15/15; `monthmap` ×3, `laptopfit` ×3 (1280 × 800 included), `hdrcontrols`,
+`fillspace`, `textstyle`, `phasesmore` ×2, `hdrrow`, `mvhdroff`, `buildaround`, `anchorside`, `sharecopy2` green;
+`npm run check` 42/42; the gate's export sections (grid clipping, the waterfall PDF and its seams, the workbook, the
+v1.0.0 restore, `fields.byId`'s 77 ids) identical to their baselines. Red here on untouched `origin/main` too, so not
+this change: `settingswin` W10 and `sideboxes` S12 (a classic scrollbar's 15 px), and one of `calzoom` M1 / M3 (which
+one depends on whether the month's box has a scrollbar at 100%; the one-line toolbar gives the month 44 px more height,
+so here it is M1 that trips).
+
+### A click outside closes the Shift or Build Around panel, unless you dragged it somewhere (16 Nov 2026)
+
+The owner: *"universal rule at any window size...shift tool and build around menus should hide when you click anywhere
+outside of them EXCEPT when a user has dragged them to any custom spot."* Since 11 Nov neither panel closed on a click
+outside, so a panel left where it opened stayed over the calendar until its ✕.
+
+- **What you see.** Left where it opened, either panel closes on a click anywhere outside it: the grid, the sidebar,
+  Undo, the view switch. The click still does what it does there (a grid click selects the cell). Dragged by its grey
+  title bar to a spot of your own, it stays open while you work, as before, until its ✕, its button, Esc or the other
+  tool. The same at every window size.
+- **What does not count as outside:** the panel itself, its tool's own buttons (Shift, Build Around, ← 1 wk, 1 wk →),
+  the date picker it opens, and a press that started inside it (dragging down its list and letting go over the grid).
+  A panel the app floats by itself on a short window has not been dragged, so it closes like any other.
+- **How it works.** Chrome only: one capture click listener in the engine beside `closeAllPops()`. "Dragged" is the
+  drop spot the panel already remembers until it closes, so nothing new is stored and nothing is saved. Help's
+  paragraph on the two tools now says how they close and how to keep one open.
+- **Verified.** Tried in the browser with real clicks at 1024 px, 820 px and a 1100 x 560 window, both panels.
+  `paneldrag` 12/12 with three new cases (N1-N3); N1 fails on `releases/v1.15.0.html`. `panelstale` now drags Shift
+  aside before it clicks the sidebar (16/16). Every other leg that opens these panels is green (38 runs; HANDOFF lists
+  them). `npm run check` 42/42.
+
+### The recent calendars on an empty start are two cards (16 Nov 2026)
+
+The owner, on a screenshot of the list v1.15.0 put under the empty preview: *"this recent calendars UI is ugly. Mockup
+some alternatives that fit in better with the UI and look more elegant and natural."* Seven versions were mocked up
+(`mockups/start-recents.html`). The owner asked to *"combine 2 and 3"*, then picked the two-card take: *"Build 7, two
+cards"*.
+
+- **What you see.** The calendar you had open last gets its own card: "Pick up where you left off", its name, "Last
+  opened today at 9:40 AM", and Open. The rest follow in a second card, "Other recent calendars", with Load… in its
+  title row and two lines per calendar: the name, then when it was last opened ("Yesterday at 4:15 PM", "Thursday, Nov
+  12", with the year once it is another year's). A row tints and shows an arrow on hover. With one recent calendar, its
+  card is followed by "Load another calendar…". With none, one card says where they will show up, with Load….
+- **Names.** ".sptcal" is dropped, since every calendar saved since v1.1.0 is one. An older ".html" calendar keeps its
+  extension, faintly. Hovering shows the whole file name. The File menu is unchanged.
+- **How it works.** Chrome only: `StartRecents.jsx` and its CSS, outside `#table-wrap`. The engine now also sends each
+  file's `savedAt`, which Save and every load already set. A click still goes through the File menu's own handler, so
+  the unsaved-work question comes along. Help's Getting started names the two cards.
+- **Verified.** New leg `startrecents` 10/10: the last calendar's card, the second card in order with Load…, the ninth
+  file left out, the names, the when-lines, no ids, a row's click loading it, New bringing the list back with that file
+  on top, one file, none, and no console errors. 7 of the 10 fail on `releases/v1.15.0.html`. `firstrun` 22/22 (its
+  Help check now looks for the two cards' names), `nofsa` 7/7, `npm run check` 42/42. Tried in the browser with eight,
+  one and no recent files, in both views.
+
+### The note editor's Day and Stays with no longer draw a box when clicked (16 Nov 2026)
+
+The owner, on a screenshot of the waterfall note editor: *"fix this - why do these boxes show up"*. Clicking the Day or
+Stays with dropdown drew a dark 2 px rounded box around it. The box stayed until focus moved (re-picking the same choice,
+or closing the list, does not move it), and its bottom edge ran through the "Stays on the week of …" line under Stays
+with.
+
+- **Why it happened.** v1.15.0's cleaner note editor gave the two dropdowns a keyboard-focus outline. Chrome treats a
+  mouse click on a dropdown as keyboard focus too, so the outline drew on every click. It sat 1 px outside the dropdown,
+  and Chrome drew the dropdown 30 px tall in a 31 px row, with the hint tucked 5 px up under the row.
+- **The fix (chrome only, both note editors).** No outline. A focused dropdown shows the same soft grey as on hover,
+  inside its own edges. The dropdowns are 22 px tall, and the hint sits 4 px under its row instead of 5, so the dropdown
+  ends above the hint. Nothing else in the editor moves.
+- **Verified.** `notelook` gains S1 (focus each dropdown in both editors: no outline or ring, and Stays with ends above
+  its hint). It fails on v1.15.0 (outline drawn, dropdown 4.5 px into the hint) and passes on the fix: 13/13. Tried in
+  the browser with a real click in both editors. `npm run check` 42/42. The legs that drive these dropdowns are green
+  on the fix: `phaselink` 14/14, `phasemonth` 21/21, `wfnotelines` (link 4, link2 4, day 5), `dayfirst` 14/14,
+  `dayfirstin` 13/13, `mvkeys` (pick) 24/24.
+
+## v1.15.0 — the rest of the November audit: typed Notes cells follow the calendar, a cleaner note editor, Enter saves a note and the month view takes Delete / Copy / Paste, day-first dates everywhere, choose the months a month PDF prints, Compare shows breaks, swaps that hold, crash recovery that says when, a first-run and laptop tidy-up, and fixes for text cut off in print (16 Nov 2026)
+
+### on a laptop: a toolbar that holds still, one notice strip at a time, tool panels that fit, a shorter Phases tab (audit item 2.14, 13–16 Nov 2026)
+
+The November audit's item 2.14, "laptop clutter" (AUD2-034, AUD2-035, AUD2-036, and WIN-4 from the Windows review). No
+decision was needed; built on the audit's defaults. The owner's 10–11 Nov toolbar layout is unchanged: same order, one
+gap, the month stepper in Fill Gaps' slot.
+
+- **The toolbar holds still between the views (AUD2-034).** At 1280 px the month stepper made its slot wider than Fill
+  Gaps and Side Boxes, so the toolbar's first line wrapped in the month view only: Shift, Header and Undo / Redo jumped
+  when Month was clicked, and again as the month's name changed length. The stepper now adds no width to its slot and
+  reads "Sep 2027" where "September 2027" does not fit (the full name stays for screen readers). Below about 1150 px,
+  where the tools themselves wrap, the text style bar takes a line of its own in both views.
+- **One notice strip at a time, one line each (AUD2-035).** The strips above the calendar are one line each (a long one
+  offers Details / Less) and only one shows at a time; the column-layout question never shows in the month view. On a
+  1280 x 800 page the month grid's first week now starts at 487 px with one strip up (about 550 with two before) and
+  451 px with none. On 16 Nov the four strips added since (a double-clicked file's "Save writes back to that copy", a
+  removed column heading, unsaved work kept for another calendar, and "this browser isn't keeping SPTCal's backup")
+  joined the same rule (owner's picker: *"Yes, same rule"*). The two about work at risk come first: the kept unsaved
+  work, then the backup the browser is not keeping; then 2.14's order, with the double-clicked file's strip beside the
+  old-format file's and the removed heading's beside the column-order strip.
+- **Shift and Build Around fit a short window (WIN-4).** On a 657 px page (a 1080p Windows laptop at 150%) or a 697 px
+  one (1366 x 768), Build Around's pin date and Build, and Shift's To a date and Go, sat below the preview panel's edge.
+  An open panel is now fitted to the window: its phase list gives way (never under three rows), and a panel still cut
+  off floats where it is. Only above 960 px; a panel that fits is untouched.
+- **A shorter Phases tab (AUD2-036).** A phase card's rarely used switches (Snap to Monday, Number weeks, Hide in
+  waterfall, Hiatus, Simultaneous Post) show only while set away from a new phase's value; the rest wait behind a
+  "More options" line. All-phase hiatus cards open folded to their one-line head on New, launch, Load and recovery; one
+  the user adds opens unfolded. Help says so.
+- **Save format:** unchanged (every id stays in the document; no key, no id'd control). Nothing frozen was touched.
+- **Proof.**
+  - New legs `laptopfit` (on `laptopstrips`, at 1280 x 800, 1366 x 768 and 1280 x 943 windows) and `phasesmore` (at the
+    default window and 1280 x 943), both now in `gate.sh`. On the build before, `laptopfit` was red at T1–T8 at 1280 x 800
+    and T4–T8 at 1366 x 768, and `phasesmore` at M1. T9 and T10 (16 Nov: all eleven strips raised come one at a time, in
+    that order; two at once show only the kept-work strip, one line, Details shows the rest and folds back, its x brings
+    the next) were red before that change. Now `laptopfit` 11/11 at all three sizes (T1–T8 also green at 1100 x 800 and
+    1024 x 768) and `phasesmore` 9/9 at both.
+  - Re-expected for the approved behaviour (a user now opens More options or a hiatus card first): `hiatusfold` H1, H9,
+    H10; `hiatusripple.mjs`'s setup; `hidewf`; `phasesui` P7; `endsdate` E1; `builtindates`; `undokeys` K1; and, on this
+    release, `snapoffbreak` P1.
+  - The nearest legs green (about sixty, listed in the item's commit), with gates 5 and 13 and the waterfall PDF bytes by
+    hand; after the 16 Nov change `launchtemp`, `savegone`, `headingsfollow` (both), `backupswept`, `backupblocked`,
+    `launchrecover`, `sharecopyguard`, `backuplive` and `nofsa` green. `npm run check` 42/42.
+  - The owner tried the 16 Nov strips; the rest shipped on the owner's *"combine all and push"* (16 Nov 2026).
+
+### text that printed too small or was cut off: a small-type warning, dated month lines keep their date, a fourth line is kept, a two-holiday week gets its row (audit item 3.1, 14–16 Nov 2026)
+
+The November audit's item 3.1 (AUD2-043 to AUD2-046), built to the owner's decision D4 (a): keep "No floor" (every month
+fits one sheet) and the two-line limit on larger notes, warn at export, and close the two cut-off cases with two small
+frozen edits, each approved on its own measurement (owner's picker, 14 Nov 2026).
+
+- **The month PDF says when type prints small (AUD2-043).** A dense shooting month fitted its sheet at 3 to 4 pt and
+  nothing said so. Export PDF now stops before the Save dialog on "Some months print very small", naming each month whose
+  notes and bars print below 6 pt and its size, and "With fewer notes on their busiest days, they print larger" (", or
+  a smaller Note size," when the calendar has one); Cancel, or Export anyway. The file is the same either way.
+- **A holiday's or automatic note's date is no longer cut off at note sizes 11 to 14 (AUD2-045).** Above 10 px a month
+  note shows two lines, and a dated line's date was what the cut took ("Day After / Thanksgiving…"). The month PDF's
+  writer (not frozen) now draws every line of a waterfall line that ends in a date. On screen and in the print rollback
+  that is **frozen edit D1** (*"Month notes keep date"*): such a line may take 3 or 4 lanes instead of 2. A typed day note
+  is still cut at two lines with "…". Nothing at 10 px and below changes.
+- **A fourth line pasted into a month note is kept (AUD2-046):** it joins the third with a space, as Paste notes and a
+  waterfall line made into a month note already did. It used to be dropped without a word.
+- **A week showing two holidays gets the row they need (AUD2-044).** Thanksgiving and the Day After in one waterfall
+  Notes cell shrank both lines to the floor and still cut the second through its middle, on screen, in Excel and in the
+  waterfall PDF. **Frozen edit R4** (*"Two-holiday rows grow"*): a row nobody sized by hand whose Notes cell is only two
+  or more holiday lines is 23 px (17.25 pt) instead of 20. Nothing is stored, and a dragged row still wins.
+  - Fixed 16 Nov (owner's picker *"Fix it, update refs"*): R4 remembered its answer against the calendar's schedule, and
+    ticking a holiday's Waterfall box redraws that same schedule, so ticking those holidays on left the row at 20 px,
+    both lines squeezed and the second cut, until the next edit. The screen, Excel and the waterfall PDF depended on the
+    order things were done in (a DD/MM calendar switched back gave a different waterfall PDF). The answer is now worked
+    out afresh on every redraw and after every edit.
+- **Save format:** unchanged. The two frozen edits are recorded in CLAUDE.md as owner-approved exceptions.
+- **Proof.**
+  - New leg `textfit` on three of the audit's synthetic calendars (`textfit-shared`, `-dense`, `-heavy`), every group now
+    in `gate.sh`: g=small S1–S4, g=date D1–D2 at 12 and 14 px, g=lines L1–L3, g=screen V1 (frozen edit D1's acceptance
+    check: of 21 dated lines, 0 cut at 14 px in 1600 x 1200 and 1280 x 800 windows and at 12 px in 1100 x 800), g=wf W1
+    (R4's: vertically clipped Notes cells 2 → 0) and g=tick K1–K5 (the 16 Nov fix: both boxes ticked, the row is 23 px on
+    screen at once, 17.25 pt in the workbook, a 23 px row in the waterfall PDF, the same PDF as after a fresh schedule,
+    20 px again when ticked off). Red before: S1, S2, D1 at 12 and 14 px, L1, L2, V1, W1; g=tick 1/6 on the build before
+    the 16 Nov fix, 6/6 after.
+  - Gate 13: `mvnotesize-14` and `mvnotesize-mixed` re-cut on the owner's yes (14 Nov 2026, *"Accept them"*): their dated
+    lines print their dates where "…" was, and rows on those pages shift by at most 1.5 / 2.9 pt; the other month PDFs
+    byte-identical (`tests/baselines/2026-10-05-monthwriter/README.md`). Gates 1–3: since the 16 Nov fix the reference
+    calendar's Thanksgiving row is 23 px and nothing else moved; baselines re-cut
+    (`tests/baselines/2026-08-29-stage-7/README.md`). Gate 10 (reference, month-lanecap, mvnotes) unchanged.
+  - Re-expected: `monthemit` and `monthwriter` F0 (the writer's new small-type entry point), `monthemit` X4 and
+    `monthwriter`'s sized-note model (a dated line takes three lanes), `monthexport` (it answers "Export anyway").
+  - Green: `softlines` (both), `hdrrow`, `wfnotecolors`, `holidayrename`, `notelook`, `mvkeys` (both groups), `dayfirst`
+    14/14 (its R2 was red until the 16 Nov fix). `npm run check` 42/42.
+
+### the month view's Export PDF asks which months: All, This month or a Range (audit item 2.11, 13–16 Nov 2026)
+
+The November audit's AUD2-026 (item 2.11), built to the owner's decision D8 (c). The month view's Export PDF wrote every
+month of the calendar (16 pages on the reference calendar), so a show printing this month for the crew cut pages out in
+Preview.
+
+- **Now** it opens a small dialog first, the month twin of the waterfall's Export PDF dialog: **Months: All / This month
+  / Range** (From … to), opening on All. The owner renamed "Some months" to "Range" on trying it (16 Nov 2026). The months
+  offered are the ones the PDF prints. Each month is fitted on its own, so a chosen month's page is the all-months file's
+  page, and All writes exactly the file it always did. A calendar with one month to print gets no dialog, as before. The
+  file's name does not change with the choice.
+- **Owner-approved defaults:** All by default; nothing saved (it opens on All every time, no snapshot key); the print
+  rollback is not asked and prints every month.
+- **Save format:** unchanged. Nothing frozen was touched.
+- **Proof.** New leg `monthpick` (M0–M8, E0), now in `gate.sh`: red on the unchanged build (no dialog; 16 pages with July
+  on screen), 10/10 after; its default file is byte-identical to gate 13's reference baseline. Gate 13 by hand: all 24
+  month PDFs byte-identical. `pdfdialog` D10 re-expected (the month view opens the month dialog, never the paper one),
+  `cspproof` M2 answers it, and on this release `monthpick` M2 follows item 2.10's export names. `monthwriter`,
+  `mvnotes`, `pdfdialog`, `cspproof`, `prefs`, `cmdprint`, `dlgkeys`, `exportrefused`, `filekeys`, `mvhdroff` and
+  `pdfmark` green; `npm run check` 42/42.
+
+### scenario tabs you can always reach, a double-click that no longer shuts a window, the whole "Expand?" chip clickable (audit item 3.10, 14 Nov 2026)
+
+The November audit's item 3.10 (AUD2-060, AUD2-061, AUD2-062). No decision needed; nothing frozen, no save-format change.
+
+- **Every scenario tab can be reached (AUD2-060).** With 20 scenarios the strip showed 7 and hid its scrollbar, so the
+  rest were reachable only by a blind scroll. Now, only while a tab is cut off, the cut edge fades and an **All
+  scenarios** list button after the tabs names every scenario in tab order, the one on screen ticked; a click switches to
+  it and brings its tab into view. With every tab in view neither shows. Compare and the strip's other items no longer
+  shrink (20 tabs had squeezed Compare to its icon).
+- **A double-click no longer opens and shuts a window (AUD2-061).** The second press landed on the dialog the first had
+  just opened and closed it: Export PDF made no PDF and said nothing, Compare flickered, and New on an edited calendar
+  raised and dropped its question. Every app dialog, and Help, now ignores a click outside it for 500 ms after opening.
+  Escape, Cancel and a later click outside work as before.
+- **The middle of "Expand?" / "Pull back?" works (AUD2-062).** Over a blank two columns wide the chip's centre sat on a
+  column boundary, where the column-resize handle beat it. The chip now has its own layer above the handles, still
+  clipped below the sticky heading row. The resize handles are untouched.
+- **Proof.** Three new legs, now in `gate.sh`: `scenlist` (real time, on the synthetic `scenlist-20`) 9/9, red before at
+  L2 (no list button; 2,780 px of tabs in 860); `dblclickdlg.mjs` (trusted input) 14/14, red before at D2, D3, D5, D8 and
+  D11; `hoverchipreal.mjs` (trusted input) 8/8, red before at C2, C3, C5 and C6, and C7 red with the heading clip removed.
+  Green: `scenarios`, `scenariofacts`, `comparehiatus`, `pdfdialog`, `dlgkeys`, `undokeys`, `hoverexpand`, `hoverhiatus`,
+  `centrepullback`, `phasefill`, `stickycols`, `fillspace`, `noswapbtns`, `colsreset`, `swapholds`, `stintbtn`,
+  `wfkeysreal`; `npm run check` 42/42. Shipped on the owner's *"combine all and push"* (16 Nov 2026).
+
+### Single Column Mode keeps every year's column swaps, and a swap a new phase pauses says so (audit item 3.9, 14 Nov 2026)
+
+The November audit's item 3.9 (AUD2-058, AUD2-059), built to the owner's decision D5 (b): keep swapping, and a swap holds.
+
+- **Single Column Mode shows every year's swaps (AUD2-058).** A column swap is stored under its year, and Single Column
+  Mode (one block, labelled with the first week's year) read only that year. So a swap made in a later year never showed
+  there, and every swap vanished the moment the first week crossed New Year (← 1 wk from 1/6/31, or an earlier Writer's
+  Room): on screen, in Excel and in the PDF, with nothing said and the file still holding it. Now, in Single Column Mode
+  only, the block's own year comes first (every swap that showed still shows), then every other year's, earliest first.
+  One column cannot follow two orders: a later year asking for a different order of the same phases is refused and
+  named, unless it names the same phases or its order holds anyway. Nothing is rewritten: with the mode off every year
+  shows its own swaps, and Swap Column in Single Column Mode edits the year a showing swap came from.
+- **A paused swap says so (AUD2-059).** A phase added into one of a swap's two columns undid the swap silently. The
+  purple strip now says what happened and what to do: "Column order paused for Pre-Prep and Prod Prep: Scout now runs
+  in a column the swap needs (5/5/31). Swap Column again to take Scout along, or the swap comes back by itself once Scout
+  moves." The new phase is not moved (the finding's default). Help has a paragraph on both.
+- **Save format:** unchanged (same store shape, no key, no id'd control). Nothing frozen was touched.
+- **Proof.** Four new legs, now in `gate.sh`: `swapsingleshift` (`swap-holds`) 10/10, red before at S1–S3 and S5–S7 (the
+  workbook and the waterfall PDF included); `swapsingleyears` (`stintswap-chained`) 8/8, red at Y1, Y2, Y4, Y5;
+  `swapnewphase` (`swap-holds`) 12/12, red at N1–N4, N7, N8; `swapsingleorders` (new synthetic `swapsingle-orders`)
+  6/6, red at O2. The first three began as the audit's repro legs. A partial gate of the swap and layout sections:
+  487 / 0. On this release `swapsingleshift` S6–S8 reach their first year by ← 1 wk rather than a typed Writer's Room
+  start, because v1.14.0's sticky columns remember a typed start (HANDOFF). Shipped on *"combine all and push"*.
+
+### your unsaved work: recovery says when, stops asking after two No's, never offers another open window's work, and speaks up when the browser keeps no backup (audit item 3.7, 14 Nov 2026)
+
+The November audit's item 3.7 (AUD2-056, AUD2-074, AUD2-075, AUD2-076). No decision needed; nothing frozen, no
+snapshot key.
+
+- **The recovery question says when (AUD2-056).** It names the backup's day when it is not today's ("Sun 8 Nov, 2:45
+  AM"; today's keeps the time alone) and says Cancel keeps it. A declined backup came back at every launch; each No is
+  now counted on the backup itself, and after the second the launch stops asking. The File menu gains an **Unsaved
+  work** section (only when there is some) listing every kept backup: click to recover (asking first over unsaved work),
+  x to discard (asks). Without the File System Access API there is no File menu, so there the question keeps coming. A
+  question swept away by another dialog is not a No.
+- **A second window is never offered the first window's live work (AUD2-074).** Each window holds its own backup while
+  it is open, and recovery and the list leave out a backup that is still held.
+- **When the browser keeps no backup, a strip says so (AUD2-075):** "This browser isn't keeping SPTCal's backup of
+  unsaved work, or its list of loaded files. Save often."
+- **A double-clicked file's backup is offered (AUD2-076).** The file loads first; then its own kept backup is asked about
+  with the launch question, and another file's is named in an amber strip with Recover (its x counts as a No).
+- Review repairs (14 Nov): a shareable copy carries no text of the new strips, and the File menu's Unsaved work redraws
+  however the menu is opened, from the keyboard too.
+- **Proof.** Six new legs, now in `gate.sh`, each red on the unfixed build: `backupdecline` 6/6 (three launches),
+  `backuplive` 7/7, `launchrecover` 7/7, `backupblocked` 6/6 (its K3, a double-clicked file loading with site data
+  blocked, was already green: that part of AUD2-075 did not reproduce), `backupswept` 4/4, and `backuptwowin.mjs` 5/5
+  (real Chrome, two windows of one profile). Kept green: `recoverfail` (four runs), `backupslots`, `backuplink`,
+  `backuplinkstale`, `launchopen`, `nofsa`, `showfolder`, `dlgkeys`, `undokeys`, `filekeys`, `conflict`, `loadfail`,
+  `sharecopy2`, `cspproof` (zero violations); `npm run check` 42/42. Shipped on *"combine all and push"*.
+
+### Swap Column: a part-column swap holds when a phase moves, refusals in plain words, a plain click and Alt+arrow, no move that changes nothing (audit item 2.12, 14 Nov 2026)
+
+The November audit's item 2.12 (AUD2-027, AUD2-028, AUD2-041, AUD2-042), built to the owner's decision D5 (b): keep both
+kinds of swap, make the part-column swap hold when a phase moves, with a preview and plain-English refusals. AUD2-029
+(the button selects before it swaps) the owner rejected; it is unchanged.
+
+- **A part-column swap holds when one of its phases moves (AUD2-041).** After a per-week swap, moving one of the two
+  phases (an arrow, Shift with one phase ticked, the ripple, an earlier typed start) made it zigzag between the two
+  columns on screen, in Excel and in the PDF. Now, when a swapped phase moves and the swap covered every week of the
+  overlap it sat in, the swap covers exactly the weeks the two share after the move (same store shape). A swap of only
+  part of its overlap, and an old file saved with its halves apart, are left as before. Known limit: a phase moved to
+  start before its partner trades places again, consistently.
+- **No move that changes nothing (AUD2-027).** Swap Column showed on Production running alone, offering "Move Production
+  into the free column", which changed nothing on screen but saved a hidden override that reshaped later phases. A move
+  that would draw the block exactly as it is is now refused, so the button does not show there.
+- **Refusals in plain words (AUD2-028).** A per-week swap that cannot be done names the phases, the weeks and the
+  reason, and points to Swap Column where it would swap the whole column ("… can't swap just the weeks
+  11/30/26-12/14/26: other weeks would shift by more than one column. Swap Column, at the top of Pre-Prep, swaps its
+  whole column."). The amber preview of other weeks a per-week swap changes shows on selection. Help: a click works, and
+  weeks can widen or narrow.
+- **A plain click, then Alt+← / →, swaps (AUD2-042).** It uses the highlighted phase cells, as a Cmd-click would; a
+  highlight with no phase cell says "Select a phase cell first, then swap its column." The keys are claimed only for a
+  highlighted grid cell, so elsewhere they stay the browser's (Alt+← is Back on Windows).
+- A shareable copy no longer carries the purple column-order strip, which named the sender's phases and weeks.
+- **Save format:** unchanged (no key, no id'd control, `PHASE_COLOR_OPTIONS` untouched). Nothing frozen was edited.
+- **Proof.** New legs, now in `gate.sh`, red on the build before: `weekswapholds` (`colswap-widened` 11/11,
+  `weekswap-apart` 3/3), `swapnoop` (`swapnoop-three` 6/6, `swapnoop-alone` 5/5), `swapplain` (`colswap-gesture` 8/8),
+  `swapwords` (`swapnoop-three` 5/5, the reference calendar 3/3), `swapsharenotice` (`colswap-simpost-refuse` 5/5; S2,
+  S3 red before). New synthetic fixtures `swapnoop-three`, `swapnoop-alone`, `weekswap-apart`. `mvdragcarry` O1 and P1
+  re-expected (a one-phase move now leaves the one-week swap covering every week the two share). gate.sh's swap and
+  layout sections run as one: 458 / 0. Shipped on *"combine all and push"*.
+
+### the note editors' new look: one list under the box, every colour in view, a Save button, "Auto-Note" (layout A2, 13–14 Nov 2026)
+
+The look the owner picked on 4 Nov 2026 (layout A2 of `mockups/note-editor-look.html`: *"yes A2, but its an
+"Auto-Note""*; PHASE-LINKED-NOTES-PLAN.md §4.4), built for both note editors, the waterfall's and the month view's.
+
+- **The heading** is the editor's name ("Note", "Holiday", "Auto-Note", "Waterfall line", "Hiatus"), then its day in grey
+  ("Week of 11/2/26", "Tue 10/20/26"). It read "AUTO NOTE · 10/20/26" in small grey capitals. The one action button
+  (Delete Note, Hide Auto-Note, Hide Holiday) stays at the top right.
+- **Under the text box, one list**, a name on the left and its value on the right: Day (waterfall only), Stays with,
+  Colour (the colour's name, all 18 swatches in view), Show in month view / Show in waterfall, and in the waterfall the
+  cell's automatic notes and holidays with their Hide. A single automatic note's or holiday's line ("Renames it wherever
+  it shows. Its date follows the schedule.") sits under the box.
+- **A Save button** in the foot (AUD2-040 named the missing one). The month view's holiday and Auto-Note editors keep
+  "Enter to save · Esc to cancel" (owner, 12 Nov 2026); a typed note's editor has no keys line, and Esc keeps typed text
+  (item 2.8). 272 px wide (was 248). The column heading editor keeps its look. Help says "Auto-Note" and describes the
+  list and the Save button.
+- **Nothing frozen:** both editors are panels over the grid, never inside it; no cell, width, wrap or export changes.
+  **Save format:** unchanged (no key, no id).
+- **Proof.** New leg `notelook` (12 cases, on `autonoterename.sptcal`), now in `gate.sh`: red on the build before (10 of
+  12), 12/12 after. Re-expected for the new heading text only: `wfnoteeditor` E1, `autonoterename` A1 and O1,
+  `holidayrename` R1, `monthnotes` N6, `wfkeys` K24, `noteviews` W1 / D1 / C1, and on this release `dayfirst` E1. About
+  thirty neighbouring note, keys and month legs green; `npm run check` 42/42. Shipped on *"combine all and push"*.
+
+### the first five minutes: recent calendars on an empty start, Production names the missing Season, a File menu with keys, Help brought up to date (audit item 2.13, 13 Nov 2026)
+
+The November audit's item 2.13 (AUD2-030 to AUD2-033) and WIN-2 from the Windows review, on the approved defaults.
+
+- **Recent calendars on an empty start (AUD2-030).** An Untitled calendar with nothing to preview lists the recent
+  calendars (up to 8) and Load… in the preview panel; a click takes the File menu's own path, unsaved-work question
+  included. Nothing reopens by itself. A shareable copy carries the list empty and hidden, so the sender's file names
+  never travel.
+- **Production says what it is waiting for (AUD2-031).** The Season rule stays. Production's card no longer says "Enter
+  a shooting day count" (there is no such box): it reads "Pick a Season in Show info to schedule Production", or names
+  the Show info fields still empty. The sentence is rewritten from outside the frozen renderer.
+- **A File menu that behaves like one (AUD2-033).** Esc closes it wherever focus is, and it shuts when a dialog opens
+  over it; Cmd/Ctrl+O is Load… (the unsaved-work question first); Cmd/Ctrl+Y redoes. **New** is in the File menu
+  (WIN-2); Help gives New's key on a Mac only and points Windows at File ▸ New.
+- **Help brought up to date (AUD2-032).** Corrected: Shooting Days per Episode sets the length; no Today button; the
+  header names; Reset Waterfall Notes / Reset Columns / Reset Month Notes / Reset Bar Order; four header modes; file
+  names; Settings ▸ Region ▸ Holidays; six default phases; the backup "in this browser"; Export App With Data in
+  Settings ▸ Preferences; Sim Post's Swap Column; Export PDF's paper. Added: Getting started, Schedule by Blocks,
+  Calendar range, Hide in waterfall, Episodic Prep, Date Last Edited, Date format, the month day menu (Full day / Off /
+  Work this day, half days), Month view settings, Scenarios and Compare, Cmd+O / Cmd+Y / Esc. On this release the swap
+  paragraphs keep two of these corrections that item 3.9's Help text had overwritten (Production's column can be moved
+  with Simultaneous Post on; a phase may widen into a column a swap frees).
+- **Save format:** unchanged (no key, no id'd control; gate 5's 77 ids identical). Nothing frozen was touched.
+- **Proof.** New leg `firstrun` 22/22, now in `gate.sh`: 21 of its cases red before; its C1 caught a mutation that
+  dropped the shareable-copy clean-up, and its H1 (Help states nothing stale) caught the lost swap corrections on this
+  release. `labelsetup` B4, B5, B6u, B7 re-expected (the unscheduled message is now Show info's). Green: `filekeys`,
+  `dlgkeys`, `undokeys`, `launchopen`, `backuplink`, `backuplinkstale`, `showfolder`, `noresetall`, `simpostlabel`,
+  `restore` (gate 5), `sharecopy2`, `exportrefused`, `seasons`, `nofsa`, `newtab`, `settingswin`, `hdrcontrols`,
+  `calrange`, `monthmap`, `blocks`, `sideboxes`, `cspproof`; Esc and Cmd+Y tried with real keys. `npm run check` 42/42.
+  Shipped on *"combine all and push"*.
+
+### Compare shows the breaks and names its Baseline; every export's name carries the season, the Date Last Edited and the Version (audit item 2.10, 13 Nov 2026)
+
+The November audit's item 2.10 (AUD2-023, AUD2-024, AUD2-025), built to the owner's decision D8 (c) on the approved
+defaults.
+
+- **Compare shows the all-phase hiatuses (AUD2-023).** A longer or an added break showed only as a later wrap. Compare
+  now has an **All-phase hiatus** row before "Weeks, first phase to last": one line per hiatus ("12/21/26 - 1/1/27, 2
+  wks"), a chip where it differs ("1st hiatus longer by 1 wk", "Pushed 1 wk", "1 more hiatus"), and no row when no
+  column has one. A phase's own hiatus is not in it (the approved default). Copy table and both exports carry the row.
+  The key facts band and the saved file are unchanged.
+- **The reference column is the Baseline (AUD2-024).** The exports and Copy table head it "Baseline: <name>", never "On
+  screen"; the window keeps its "On screen" tag. The PDF's column names wrap at one size (up to four lines, stepping down
+  together only if one cannot fit, never below 6 pt), instead of each shrinking alone with the tag drawn over it.
+- **Every export's name says which plan it is (AUD2-025).** The season, the Date Last Edited (yyyy-mm-dd) and the Version
+  as typed come before the scenario: "Harbor Test Planning Calendar S3 2026-10-01 v2 - Scenario A.pdf" (and .xlsx), the
+  month PDF "Harbor Test Month Calendar S3 2026-10-01 v2 - Scenario A.pdf", Compare's "Harbor Test Scenario Comparison S3
+  2026-10-05.pdf" (the newest tab's date). The shareable copy keeps its save-style name. Help's two example names follow.
+  No frozen edit: the writers' name step already calls non-frozen code. ⚠️ The optional frozen edit that would put the
+  season BESIDE the title ("Harbor Test S3 Planning Calendar …") was proposed and NOT applied.
+- **Save format:** unchanged (no key, no id). No writer's bytes move.
+- **Proof.** New legs `comparebreaks` 10/10 and `exportnames` 7/7 (on the new synthetic `compare-send`), now in
+  `gate.sh`, red on the build before (`comparebreaks` B1–B4, N1, N2, N4, N5; `exportnames` X1–X7). Re-expected for the new
+  names only: `scenarios` S16/S17, `monthexport` X2/X7, `cmdprint` P3, `filekeys` K10, `pdfdialog` D10, `cspproof` M2,
+  and on this release `monthpick` M2. On this release the hiatus row also follows a DD/MM calendar's date order (where
+  2.10 meets 2.4). Green: `scenariofacts`, `comparehiatus`, `monthexport`, `monthemit`, `monthwriter`, `cmdprint`,
+  `pdfdialog`, `filekeys`, `cspproof`; `npm run check` 42/42. Shipped on *"combine all and push"*.
+
+### on a DD/MM calendar every date reads day first, and typed and pasted dates are read day first (audit item 2.4, 13 Nov 2026)
+
+The November audit's item 2.4 (AUD2-012, AUD2-066), built to the owner's decision D3 (a), 13 Nov 2026, which **reverses
+the 20 Oct 2026 ruling "automatic notes keep 1/6/25"** for day-first calendars.
+
+- **What it was.** On a calendar whose Dates setting is DD/MM only the Date column changed: one printed page said
+  30/3/2026 beside "Good Friday 4/3/26", under a title block reading "Writer's Room Opens: 1.5.26". Typed and pasted
+  dates were read month first: a waterfall line "Table read 17/7/26" sat on its week's Monday in the month view and month
+  PDF, and Paste notes put 06/07/2026 on 7 June with no warning.
+- **Now**, on DD/MM, every date the app writes follows the order: holiday and automatic note lines, the title block (the
+  auto header and its tokens), the sidebar, the Shift and Build Around lists, the note editors, every message, Compare and
+  the key facts band. Only the ORDER follows: years stay two-digit in notes and the header. Every date read from text (a
+  typed line's trailing date, the Day list, the month editor, a month drag's re-dating, Paste notes) is read day first; a
+  date that reads outside its week is read month first when that falls inside it (a line typed before the switch), never
+  a guess. Paste notes' hint and errors give 20/10/26.
+- Changing the order re-dates the automatic lines inside typed notes (item 1.1), in the same undo step. Text the user
+  typed stays as typed.
+- **Month-first calendars are unchanged**, byte for byte.
+- Where 2.4 meets other items on this release: a month line re-dated inside its week in a DD/MM Notes cell moves its
+  note (item 2.3), and Compare's All-phase hiatus row follows the order (item 2.10).
+- **Frozen:** untouched. The month view's frozen note reader reads a typed line's date month first, so for the one call
+  on a DD/MM calendar it is handed the week's note one line per entry, a day-first line already pinned to its day
+  (sanctioned pattern 2). The optional frozen edit that would replace that stand-in was written up and not applied.
+  **Save format:** unchanged.
+- **Proof.** New legs `dayfirst` (output: notes, title block, sidebar, Shift, editor, workbook, PDF, month view, undo, back
+  to MM/DD/YY byte for byte, band and Compare; 10 of 14 red before) and `dayfirstin` (input: typed lines, Day list, month
+  editor, Paste notes, the month-first control, month PDF; 8 of 13 red before), now in `gate.sh`: 14/14 and 13/13. New
+  synthetic fixture `tests/fixtures/dayfirst.sptcal`, the calendar to try it on by hand. gate.sh's base and gates 2, 3,
+  10 and 13 by hand: 341 / 0 (the waterfall PDF identical bar the date stamp, Excel parts identical, 24 month PDFs
+  byte-identical). Item 1.1's legs, `hdrrow` (D2 "MM/DD/YYYY keeps 1/6/25" unchanged) and about twenty note and header
+  legs green; no leg re-expected. On this release `dayfirst` E1 reads the A2 heading whole, and its R2 (back to MM/DD/YY,
+  the PDF byte for byte) was red until item 3.1's 16 Nov row fix. Shipped on *"combine all and push"*.
+
+### the date picker's "today" is your own day, in every time zone (13 Nov 2026)
+
+The November audit's AUD2-007 (Batch 1, item 1.5, P1). The pop-out date picker worked out "today" as the date in UTC
+rather than on the user's own clock. So every afternoon from 16:00 Pacific (19:00 Eastern; an hour later in summer) it
+ringed TOMORROW as today, and a click on the ring entered tomorrow's date. On a month's last afternoon an empty date
+field opened on NEXT month (on New Year's Eve, on next January). In Tokyo and Auckland it ringed yesterday every morning.
+
+- **Now** "today" is the user's local calendar day, for both the ring and the month an empty field opens on
+  (`todayUtc()` in `src/chrome/DatePop.jsx`), as the header date and the save name already were.
+- **Unchanged:** a field that already holds a date opens on that date's month, as before. No stored, saved, printed or
+  exported date was ever affected, and none moves. Nothing frozen was touched, and the save format did not change.
+- **Proof.**
+  - New leg `datetoday` (in `gate.sh`, four runs, each under its own `TZ` with the local clock faked): Los Angeles 17:30
+    on 30 Nov, Tokyo 08:00 on 1 Dec, New York 20:30 on 31 Dec, and Los Angeles at noon as the control. Before the fix
+    the picker opened on the wrong month, ringed the wrong day and a click on the ring wrote it, in the first three; the
+    control was green. Now 6/6 in all four.
+  - The audit's own repro (`audit-vtz-journey`, kept with the audit): its picker check red in Los Angeles and Tokyo
+    before, green after in Los Angeles, Tokyo and Auckland.
+  - Related legs on this build, run on a real Los Angeles evening: `datepick` 17/17, `phiatuspick` 12/12, `snapbox`
+    12/12, `endsdate` 17/17, `prodends` 14/14.
+  - Tried in the browser at 18:18 Pacific on 13 Nov (already the 14th in UTC): an empty Starts box rings Fri 13 Nov.
+    The owner was handed this build on localhost and said "Yes, finish it".
+  - Not run: the full gate (one run is planned for the whole audit batch).
+
+### a crafted-file hardening fix (13 Nov 2026)
+
+A crafted-file hardening fix from the November audit (Batch 1, item 1.3, finding AUD2-013). It takes a file crafted on
+purpose; no file the app writes can trigger it.
+
+- **Where it applies:** File ▸ Load (`.sptcal` and legacy `.html`), a shareable copy opening itself, crash recovery,
+  scenario tabs and header presets (`.spthdr`).
+- **For a user:** nothing changes. **Save format:** no key added, renamed or removed. Nothing frozen was touched.
+- **Proof.**
+  - The `hostile` leg has four new inert fixtures and runs twice in `gate.sh`, the second time from the startup path.
+    Red on the build before the fix; 18/18 after, from both starts.
+  - The audit's own repro: red before, green after (kept with the audit, not committed).
+  - 27 saved calendars (every release fixture v1.0.0 to v1.13.0, the legacy `.html` files, scenarios, blocks) load
+    and save byte for byte the same before and after, with the same grid.
+  - 24 related legs green: `loadfail`, `loadcarry`, `restore` (against its baseline), `sharecopy2`, `legacyparse`,
+    `cspproof`, `textstyle`, `mvtextstyle` x2, `hdrpreset`, `scenarios`, `autonoteview`, `phasenotes`, `hdroverrides`,
+    `hdrrow`, `sideboxes`, `recoverfail` x4, `loadsparse` x3, `backupslots`, `backuplink`, `mvorder`. `npm run check`
+    42/42.
+  - Tried in the browser by the owner ("Finish it").
+
+### the Excel and Outlook keys on notes: Enter saves, Esc keeps what you typed, and a picked month note takes Delete, Copy, Cut and Paste (13 Nov 2026)
+
+The November audit's AUD2-021 and AUD2-040 (Batch 2 item 2.8), built to the owner's decision D6 (a): *"Enter saves a
+note, Shift+Enter or Alt+Enter starts a new line; a picked month note takes Delete, Copy, Cut and Paste. No new
+right-click items."*
+
+- **Enter saves a note, in both note editors (AUD2-040).** Plain Enter used to add a line, and since the keys line went
+  (12 Nov 2026) nothing said that Tab or Ctrl/Cmd+Enter saved. **Now** Enter saves and closes the editor, as the app's
+  holiday, automatic-note and heading editors already did; **Shift+Enter** or **Alt+Enter** starts a new line (a month
+  day note still holds three). Tab and Ctrl/Cmd+Enter still save; an input method's Enter (choosing a word) never does;
+  Enter on the editor's Day list or a button is still theirs. The placeholders say "Shift+Enter for a new line".
+- **Esc keeps what you typed (AUD2-040).** Esc threw away whatever had been typed, a new note included, and Undo could
+  not bring it back. **Now** Esc saves a note whose text changed (the finding's "keep the typed text"); on a note left as
+  it opened, or one whose box was emptied, Esc just closes it and writes nothing, so Esc can never delete a note. The
+  key that opened the editor (typing on a picked or highlighted note adds it at the end) counts as what it opened with,
+  so a stray key and Esc still leave the note as it was; type on, and Esc keeps it all. A colour picked with no text
+  changed is still dropped by Esc. The month view's holiday and automatic-note editors keep
+  "Enter to save · Esc to cancel", as their hint says (the owner's ruling of 12 Nov 2026 left those lines).
+- **A picked month note takes the waterfall's keys (AUD2-021).** It ignored Delete and the clipboard, so a note was
+  deleted by double-click and Delete Note and copied only by typing it again. **Now**, with a note picked (one click):
+  **Delete** or **Backspace** does what its editor's Delete Note does (a day's own note, a Waterfall line, a note that
+  stays with a phase), several picked notes in one undo step; a holiday and an automatic note stay (their editors have
+  Hide), as a bar does. **⌘C / ⌘X** copy or cut the notes, as plain text for Excel or an email plus SPTCal's own data
+  with each note's colour and month style. **⌘V puts them on the day you clicked last** (a note, a bar, a "+" or the
+  day's number; with the day menu open there, the paste closes it): each a new note of that day with its colour and
+  style, and a date in it naming its old day becomes the new day's, as the month drag does. **A holiday or an automatic
+  note keeps its own day** (the waterfall's rule, item 2.3, AUD2-014): picked with typed notes it stays out of the copy
+  or cut, and a pick of nothing else copies nothing, the grid saying "Holidays and automatic notes stay on their own
+  dates" (repaired on review, 14 Nov 2026: a picked holiday went on the clipboard and the paste re-dated it into a new
+  day note, "Independence Day (Observed) 7/15/26"). Text from anywhere else
+  pastes as one note. The same data crosses views: a month note pasted into the Waterfall's Notes column brings its
+  colour, and a copied Notes cell pastes here as its typed text. **No right-click item was added** (D6 (a)). The keys
+  are the browser's again whenever an editor, a field or a dialog has focus, or the day clicked is not on screen.
+- **Help:** the note-editor keys sentence and the month view's note paragraph are rewritten for the new keys (and the
+  stale "A click that doesn't move still opens the note": a click picks it, a double-click opens it). Its holiday
+  sentence now says what is true: Delete leaves holidays and automatic notes, and a copy or cut leaves them out.
+- **Save format:** no key added, renamed or removed; no id; nothing frozen touched. The clipboard's SPTCal data gains a
+  month note's `fmt` and `day` (session data, never saved).
+- **Proof.** New leg `mvkeys` (in `gate.sh`, `g=pick` 22 checks and `g=enter` 16): on the build before the fix P1, P3,
+  P4, P5, P6, P8, P9, P10, P12, P13, P15, M1, M3, M4, M5, M9, W1, W2, W3, W5 and W6 were red; all green after; the
+  controls (P0, P11, P14, M6, M7, M8, W4) green on both. The review's repair (14 Nov 2026) added P16 (the reported cut
+  and paste with a holiday picked), P16b, P17 (a holiday alone) and P18 (an automatic note alone): P16, P17 and P18 red
+  on the reviewed build, 22/22 and 16/16 after. A second repair (14 Nov 2026) fixed two slips in that message chip:
+  a shareable copy exported in its 4.2 s carried it as a permanently visible element (the copy's strip list named
+  `.month-sel-box`, not the chip: `.month-sel-chip` added), and leaving the month view and coming back inside the
+  4.2 s redrew it (it even stayed over the waterfall): a view switch now clears it. P19 and P20 hold both, red before
+  the repair, `g=pick` 24/24 after. New `mvkeysreal.mjs` (TRUSTED keys and clipboard over CDP, `wfkeysreal.mjs`'s month twin, in
+  `gate.sh`): 0/8 before the fix, 8/8 after; it also showed a real Alt+Enter inserting nothing natively, which is why
+  the editors insert the line themselves. New fixture `tests/fixtures/mvkeys.sptcal` (synthetic, minted by `mvkeys
+  g=mint`). Re-expected: `wfnoteeditor` E4, which typed in the box and pressed Esc expecting nothing saved; it now puts
+  the box back as it opened before its Esc. Nearest legs green (HANDOFF lists them); `npm run check`. Not run: the full
+  gate (one run for the audit batch); not tried by hand in a browser.
+
+### editing a Notes cell no longer changes another note's line: the Day, a linked or month note's rename, Cut and Paste, and the drag (13 Nov 2026)
+
+The November audit's AUD2-011, AUD2-014 and AUD2-015 (Batch 2 item 2.3), fixed with their approved defaults. A Notes
+cell can show, besides your own lines, an automatic note's line ("Start Principal Photography 6/29/26"), a holiday's, a
+month note shown in the waterfall ("Table read 7/15/26") and a note that "Stays with" a phase. Each has its own date or
+home, and the waterfall's editor and keys treated them as your typed text:
+
+- **The Day picker re-dated the wrong line (AUD2-011).** It stamped the box's last line. With a month or linked note in
+  the cell that line was never yours: the month note was doubled in the month view, the linked note had the date frozen
+  into it and showed it in other weeks. With your line above the start note, "Start Principal Photography" printed the
+  picked day in every output. **Now** the Day goes on the last line you typed; the others keep their dates. A box of
+  their lines only stamps nothing.
+- **A rename with a line added was read as a delete (AUD2-015).** Change a linked note's words and add a line in the
+  same save, and the note lost its link (it stayed on the old week after the phase moved); a month note stayed in the
+  month view beside its edited copy. **Now** both matchers align the box by content, as the automatic lines' matcher
+  already did: a changed line pairs with the line in its place (or, where lines were added there, the one that reads as
+  an edit of it: it keeps its date, or shares a word). Unrelated lines typed in its place still delete it, as before.
+- **A month line re-dated in its own week (AUD2-015's default):** the month note **moves** to that day. A date outside
+  the week still takes the line out of the waterfall, as before.
+- **Cut and Paste, and the drag, doubled notes (AUD2-014).** They carried month, holiday and automatic lines along as
+  typed text, with their old date, so the month view and its PDF showed the event twice. **Now** (the approved
+  defaults): a Cut leaves a month note in the month view as before, and a paste leaves month, holiday and automatic
+  lines out of what it writes, saying "Holidays, automatic notes and month notes stay on their own dates" (the clipboard
+  keeps the whole cell for Excel; a copy pasted back onto the very cell it came from is unchanged). A paste of a cell
+  that is only such lines writes nothing and leaves the week as it was. A **drag** moves a month note itself to the same
+  weekday of the new week, never as a copy; a holiday stays where it is ("Holidays stay on their own dates"; a cell that
+  is only a holiday does not move); an automatic note's line lands dated in its new week, as the month view's drag has
+  always done. A block dragged over its own place lands a note on a cell whose holiday stays: the note lands **beside**
+  the holiday, which stays shown, and a holiday-only cell of the block is not asked about (repaired on review, 14 Nov
+  2026: the landing hid the holiday from the waterfall while the grid said it stayed).
+- **Save format:** no key added, renamed or removed; nothing frozen touched (notesForWaterfallDate's N1/N2 untouched).
+  The clipboard's own SPTCal data gains an `own` text (session data, never saved).
+- **Proof.** New leg `wfnotelines` (in `gate.sh`, six runs, `g=day|link|link2|month|cut|drag`): 15 checks red on the build
+  before the fix, 29/29 green after, the controls green on both. The review's repair (14 Nov 2026) added `g=drag` R6 (the
+  reported block drag), R6b and R7 (a holiday-only cell in the block): R6 and R7 red on the reviewed build, 32/32 after. The audit's own repro legs (`audit-r3a-mwf`,
+  `audit-r3a-link`) on this build: every case reads once, on its own day, in the waterfall and the month view. The
+  nearest legs green (HANDOFF lists them), `base` identical to its baseline, `npm run check` 42/42. Re-expected:
+  `wfkeys` G17, a dragged "Start Principal Photography" now reads 7/6/26 in week 7/6 (it read 6/29/26 there). Not run:
+  the full gate (one run for the audit batch); not tried by hand in a browser.
+
+### one bad saved preference no longer leaves a blank window; a backup is kept only while there is unsaved work (14 Nov 2026)
+
+The November audit's item 3.13: AUD2-078, and a shareable-copy hardening fix. Both on their audit defaults; no frozen
+code, no save-format change.
+
+- **What it was (AUD2-078).** Preferences (`sptcal.prefs`, on this computer) were checked only for being an object. A
+  header preset whose name was not text reached the Settings window's preset list, React threw while drawing it, and
+  with no error boundary the whole chrome unmounted: no header, no sidebar, no grid, on every launch, because the value
+  stays. Calendars were safe on disk but could not be opened.
+- **Now** each preference this build knows is held to the type it writes when it is read (`loadPrefs`), and a value of
+  another type is left out; a key it does not know is kept. A stored header preset needs a text id; a number name reads
+  as its digits and any other non-text name as "Unnamed preset"; a preset with no usable header, a second one under
+  the same id, or one using Default's id is left out. The next preference written repairs the store. And the chrome
+  has an error boundary: if it ever fails to draw, the window says "SPTCal could not start" with a **Reset
+  preferences** button (no id) that clears this computer's preferences and reloads, instead of going blank.
+- **A backup of unsaved work is kept only while there is some.** Loading another calendar over unsaved work (after
+  "Your unsaved changes will be lost") now deletes this window's backup, so the discarded calendar is no longer offered
+  back as "Recover unsaved work" at the next launch; and a window that closes with nothing unsaved deletes its own.
+  Unsaved work is still backed up, and kept through a close or a crash, as before.
+- **Proof:** two new legs, `prefsguard` (7 cases, all red on the build before: a 101-character blank window, React
+  error #31) and `sharecopyguard` (6 cases on a calendar opened as a shareable copy opens; C1 and C2 red before), both
+  in gate.sh. Kept green: prefs, hdrpreset, hdrfile, calzoom, hostile, settingswin, sharecopy2 and the backup and load
+  legs (HANDOFF lists them); `npm run check` 42/42.
+
+### rare set-ups no longer print a wrong or missing line: a range in the Christmas break, Snap off beside a hiatus, a Writer's Room typed into a break, a custom phase removed under a range (14 Nov 2026)
+
+The November audit's item 3.6, four P2 findings, each needing an unusual set-up. No decision was needed for any of them.
+
+- **A calendar range that ends in a held break no longer grows after a shift (AUD2-055).** Limit the waterfall to the
+  calendar year (1/1/26 to 12/31/26) and press the toolbar's 1 wk later, then 1 wk earlier: every phase came back, but
+  the range end went 12/31/26, 1/14/27, 1/7/27, so the waterfall, Excel and both PDFs gained the week of 1/4/27. The
+  step-over pushed a date inside the locked Christmas break out of it before moving it. **Now** a range with a date on
+  a held break's week stays where it is, both dates, as the break does; a range with neither date in a held break moves
+  as before. Holding only the date in the break (the first try) let the other date keep moving, so the window narrowed a
+  week per press and, pressed far enough, turned inside out (11/2/26 - 12/31/26 read 1/18/27 - 12/31/26 after nine
+  presses and the waterfall fell back to every week). Letting that date follow its partner keeps the width but cannot
+  come back: after +1 it sits in an ordinary week, and -1 cannot tell it came from the break.
+- **A Weeks phase with Snap to Mon off beside a hiatus delivers its whole weeks (AUD2-071).** The phase's weeks were
+  counted in 7-day steps from the typed day, and each step was judged by its first day only, so a step straddling the
+  break's first or last Monday counted as all worked or all paused. Post typed Wed 12/23/26 into the Christmas break for
+  2 weeks read "→ 1/19/27" and drew three week cells, in the grid and in Excel; 12/18 x 1 ended 12/24, inside the break;
+  11/25 x 4 ended 12/22 having worked 18 of its 20 days. **Now** a phase starting off a Monday counts its days, seven a
+  week, skipping each day a hiatus covers: 12/23 x 2 works 1/4 to 1/15/27 in two cells, 12/18 x 1 ends Thu 1/7/27,
+  11/25 x 4 ends Tue 1/5/27. With no hiatus in the way nothing changes, and a Monday start is counted as before. Two
+  movers follow the same rule: Shift (and the toolbar arrows, the ripple) moves a start typed inside a held break from
+  the Monday it works from, and the hiatus ripple puts such a start on the Monday after the break, not its weekday.
+- **A Writer's Room typed to start inside a break opens on its first worked day, everywhere (AUD2-072).** Typed
+  12/21/26 x 4, the room is paused by the break and works from 1/4/27, but "Writer's Room Opens" was dated 12/21: the
+  waterfall has no Notes cell on an all-phase hiatus row, so it was missing from the waterfall, Excel and the waterfall
+  PDF, the month view put it on a hiatus day, and the header read "Writer's Room Opens: 12.21.26". **Now**, when the
+  typed start is inside a hiatus, the note is dated on the first day the room's bar is drawn (as each phase's Begins note
+  already was) and the header names that day. Any other start prints exactly what it did, so a room typed on a Saturday
+  with Snap to Mon off keeps its note on that Saturday, in the row with its first week.
+- **Removing a custom phase under a calendar range keeps the week's automatic note (AUD2-073).** A custom phase's linked
+  note in a week the range cut from the waterfall became a plain note on removal, built on what the waterfall's rows
+  said the week held: nothing, since the row was cut. So that week's "Start Principal Photography" was erased from the
+  month view and the month PDF, for good. **Now** that lookup reads the whole calendar; for a week the waterfall shows
+  the answer is the same as before.
+- **Save format:** unchanged (no key added, renamed or removed; no new id'd control). Nothing frozen was touched.
+- **Proof.**
+  - Four new legs in `gate.sh`, beside the second audit's: `rangeheld` (R1, R2 and C2 red before the fix; W1, F1 and
+    W2 red on the first try), `snapoffbreak` (S1 to S5 and X1 red before), `wropensbreak` (W1 to W6 red before; C2 red
+    on the first try) and `unlinkrange` (C2 red before); 35 checks, all green after.
+  - The nearest legs, green on the final build: listed in HANDOFF.
+  - Gates 1 to 5, 10 and 13 run by hand (336 checks): the reference waterfall PDF and workbook, the v1.0.0 restore, the
+    month print document on 11 calendars and the written month PDF on 24 runs, all unchanged.
+  - Not run: the full gate (one run for the whole release train).
+
+### the emergency rollback redeploys the previous release, never the v1.2.0 legacy app (13 Nov 2026)
+
+The November audit's AUD2-006, closed by the owner's decision D7 (a) ("stay" on the current address; the rollback becomes
+"redeploy the previous release"). No app code changed.
+
+- **What it was.** The documented way to pull a bad release (the header of `.github/workflows/deploy.yml`, CLAUDE.md,
+  HANDOFF) was to switch Settings › Pages › Source to "Deploy from a branch", which serves the root `index.html`: the
+  v1.2.0 legacy app, eleven versions back. Measured by the audit: it does not know the Region, so every Production wrap
+  date moves (10/20/26 to 10/16/26 on the reference calendar); its Save writes 28 top-level keys instead of 82 and drops
+  every later setting and every scenario but one, permanently; and it has no install gate, no Content-Security-Policy
+  and no snapshot sanitizer. It has never been used.
+- **Now** "Build and deploy" takes a `release` when run by hand on `main` (Actions › Build and deploy › Run workflow,
+  release `v1.12.1`, say). The deploy job then publishes `releases/<that version>.html`, the byte-identical copy every
+  version cut keeps, as the site, with a `version.json` naming it, and builds nothing, so it works when `main` itself
+  will not build. It refuses a name that is not a version, a release that is not in the repo, a file that does not state
+  that version, and anything before v1.4.1 (no install gate). A push to `main` and a plain re-deploy work exactly as
+  before. The old Pages-source flip is written down as never to be used.
+- **Docs:** the rollback note in `deploy.yml`, CLAUDE.md's Project note and two HANDOFF passages now say the same thing.
+- **Proof:** the workflow parses (Ruby's YAML); its rollback step run locally against the real release copies publishes
+  `v1.12.1` byte for byte with `{ "version": "1.12.1" }`, and refuses `v1.2.0` (no version literal), `v1.3.1` (no
+  install gate), `v9.9.9` (no file) and two injection attempts. Not run on GitHub: that needs a push, and the batch
+  goes out together. ⚠️ Pushing a workflow file needs the GitHub token's `workflow` scope (HANDOFF).
+
+### a Notes cell you have typed in keeps its holiday and Start / Wrap lines in step with the calendar (13 Nov 2026)
+
+The November audit's three P0 findings, AUD2-001, AUD2-002 and AUD2-003, fixed by the owner's decision D1 (a) ("yes":
+the holiday and automatic lines in a typed cell always follow the calendar). Typing in a Notes cell froze the week's
+automatic lines as text, because the editor opens on them. From then on they no longer followed the calendar, on screen,
+in Excel, in both PDFs and in the month view, with no warning:
+
+- **A line that arrived was swallowed (AUD2-001).** Move Production onto a week with a typed note (the card's ▼, Shift,
+  Build Around, the ripple, a typed date) and "Start Principal Photography" was printed nowhere. Tick holidays into the
+  waterfall after typing notes, and Labor Day and Thanksgiving left the waterfall, Excel, the waterfall PDF, and even the
+  month view and the month PDF, which had shown them a moment before.
+- **A line that changed or left stayed printed (AUD2-002).** Add "Cast arrives" under the start note, then type a new
+  start or change the episode count: both the old and the new Start and Wrap lines printed. Switch a holiday off, change
+  the Region, remove a custom holiday, or untick an automatic note: its line stayed printed, alone and plausible.
+- **A line under the user's own was never re-dated (AUD2-003).** Put "Table read" above the start note and Shift the
+  calendar a week: every output printed only the old start and wrap dates.
+
+**Now** every typed note is rebuilt after each change from the note as you left it, against the automatic lines its
+week showed then and shows now, matched by what each line is (its kind, or its holiday), wherever it sits in the note:
+
+- a line still in the week is re-dated (or renamed) in its place;
+- a line that has left (moved, switched off, hidden from the waterfall, removed, another Region) is taken out;
+- a line that has arrived (moved in, ticked into the waterfall, switched on) is added among the week's other automatic
+  lines, or at the top;
+- a line you took out of the note stays out, and your own lines stay exactly as typed, on their week.
+
+It is rebuilt from the note as left, never from the last step, so typing a date (which passes through other dates on
+the way) or a drag out and back lands exactly where it started. One Undo takes back the change and its notes together.
+This is AUTONOTE-FOLLOW-PLAN.md's hook, ruled on 19 Oct 2026, built and widened.
+
+- **What changes for a user, on purpose:** switching an automatic note off in Settings › Preferences › Automatic notes
+  now also takes its line out of a cell you typed in (and ticking it back brings it back); a milestone or a waterfall
+  holiday that moves into a typed week now shows beside your text. Help's Notes paragraph says so.
+- **Limits:** nothing is rewritten when a calendar is loaded, so a stale line already saved in a file stays until you
+  delete it. A note stored in a legacy shape (a bare string, or an old multi-note list) is left as before.
+- **Save format:** no key added, renamed or removed; the memory is session only. Nothing frozen was touched: every
+  reader (the screen, both writers, the month view's frozen notesForWaterfallDate) reads the same note text it always did.
+- **Proof.**
+  - New leg `autonotefollow` (in `gate.sh`, four runs, `g=a|c|e|g`): 12 checks red on the build before the fix, 22/22
+    green after. `g=m` mints `tests/fixtures/autonotefollow.sptcal`, a synthetic calendar to try it on.
+  - The audit's own repro legs on this build (not committed; kept with the audit): the start note, holidays, switched-off
+    and removed holidays, another Region, a typed date, an episode count, and a user line above the milestone, each read
+    back from the waterfall, the month view, Excel, the waterfall PDF, the month PDF and the saved file: all right.
+  - Re-expected for D1 (a), each a leg that had held the old behaviour: `autonotekinds` A3, A4, A9, A12 (a switched-off
+    kind's line now leaves a typed cell; ticking it back is still byte-identical), `phasekeys` C1 and `hiatusripple` R1
+    (the wrap moved into a typed or pasted note's week now shows beside it).
+  - ~55 related legs, 903 checks, green on the final engine (`8774f0d8…`; two that timed out while another run shared
+    the machine are green alone), the note editors, the month notes, every mover and drag, the ripple, renames,
+    per-view automatic notes, linked notes, undo and Load among them (HANDOFF lists them). A first run found one real gap,
+    fixed: a line renamed in the waterfall editor stopped following (`autonoteview` T5).
+  - Tried by hand in the browser: Production's ▼ on the minted calendar moves the start out from under "Table read" and
+    in above "Dailies review"; the owner tried it ("Yes, finish it").
+  - Not run: the full gate (one run is planned for the whole audit batch).
+
+### Recover can no longer blank a saved file, and a file that leaves fields out opens with its own values (13 Nov 2026)
+
+Two data-safety fixes from the November audit, findings AUD2-004 and AUD2-005. Both are rare: neither can be reached
+with a file or a backup this version of the app wrote itself. Both ended with wrong data written into a saved file and
+nothing on screen saying so.
+
+- **Recover unsaved work, when the backup cannot be opened.** At launch the app offers to recover work a closed window
+  left unsaved. If that backup could not be applied (it was written by a newer version and the app was then rolled
+  back, one of its scenario tabs was damaged, or applying it failed partway), Recover carried on as if it had worked.
+  The screen kept the blank calendar the app starts with, and that blank calendar was linked to the backup's file,
+  marked unsaved, and backed up in place of the real work, which was deleted. Ten minutes later autosave wrote the
+  blank calendar over the saved file (measured: 5,170 bytes over a 6.3 KB calendar), with no click where Chrome still
+  held permission to write.
+  - **Now** Recover says so, in one of two messages: *"That unsaved work was saved by a newer version of SPTCal, so
+    this version can't open it. It has been kept: update the app, and it will be offered again."* or *"That unsaved
+    work couldn't be opened. It may be damaged. Nothing was changed, and the backup has been kept."* The backup is
+    kept, no file is linked, nothing is marked unsaved, and nothing is written.
+  - `restoreSavedState()` now returns what happened, and `offerBackupRecovery()` stops unless that is `'ok'`.
+- **A calendar file that leaves fields out.** A file written by a tool outside the app, repaired by hand or damaged,
+  or a scenario tab that names only some fields, kept whatever the calendar before it had left in memory wherever
+  the file was silent. Loaded after another show, it took that show's all-phase hiatuses (so its own dates moved:
+  measured, Production wrapping 11/3/26 for 10/20/26), its phase dates, Simultaneous Post, Production's own break,
+  episodes, extra month lanes, view and sidebar tab, and the next Save wrote the mix into the second file.
+  - **Now** a file opens with its own values or a default, the project's own rule ("a missing key falls back to a
+    default, never to whatever is in memory"), which had been applied one feature at a time. Every saved field the
+    file does not name gets a new calendar's value (`savedFieldDefault()`, over exactly the fields the save sweep
+    saves, `isSweptField()`). A file with no hiatus list has no all-phase hiatus; with no episode list, the episodes
+    its Show info gives; with no view or sidebar tab, the waterfall and Show info.
+  - ⚠️ **One thing opens differently in a fresh window:** a file with NO hiatus list. It used to keep a new
+    calendar's four default winter breaks (they were simply still on screen), and now opens with none. Everything
+    else about a fresh-window load is byte for byte what it was. Every file the app has ever written carries its
+    hiatus list and names every field, so no saved calendar, release fixture or shareable copy opens differently.
+- **Save format:** no key added, renamed or removed. Nothing frozen was touched.
+- **Proof.** Two new legs, both in `gate.sh`, both red on the build before the fix.
+  - `recoverfail`, four runs: a backup one version ahead, a damaged scenario tab, an apply that throws partway, and a
+    good two-tab backup as the control. Before: no message, the backup deleted, the blank calendar written over the
+    file after one autosave tick. Now 7/7, 7/7, 8/8 and 3/3.
+  - `loadsparse`, six runs: one file loaded fresh, then again after a calendar with almost every store in use
+    (`carry-heavy.sptcal`) and with every saved field on the page changed in between; fields, hiatus rows, phase lines
+    and the Save text must match to the byte. Without a hiatus list, with a null one, without the six keys the load
+    path used to restore only when present, a six-field generated file (`sparse-generated.sptcal`), a file naming no
+    field at all (it must open as a new calendar's fields: the guard for a field added later with no default), and
+    a two-tab file whose parked tab is the six-field one. Now 8/8 in each of the first five and 7/7 in the last.
+    A mutation run backs the last guard: with one default deleted (`phiatus-weeks`), the `bare` run is red at N1.
+  - 22 real files, each loaded through the real Load on the build before the fix and on this one: the seventeen
+    saved-release fixtures (v1.0.0 to v1.13.0) and `show-a`, `blocks`, `carry-rich`, `scenarios-3`, `customunits`.
+    What each saves and its grid are identical on the two builds, and on this build each saves the same after
+    `carry-heavy.sptcal` as loaded fresh.
+  - Existing legs on this build (sha256 `ea9bd9cf…`): `restore` matches its baseline (rows, cells, width, bytes, grid
+    signature, the 77 field ids); `loadcarry` 6/6, `loadfail` 6/6, `hiatusblank` 4/4, `hostile` 13/13, `sharecopy2`,
+    `legacyparse` 7/7, `backupslots` 5/5, `backuplink` 5/5, `backuplinkstale` 3/3, `conflict` 9/9, `filekeys` 16/16,
+    `undokeys` 11/11, `nofsa` 7/7, `newtab` 6/6, `noresetall` 5/5, `autonote` 9/9, `numclamp` 6/6, `cmdprint` 6/6,
+    `hdroverrides` 4/4, `retiredplaces` 8/8, `regionlock` 14/14, `regionmirror` 9/9, `lastedited` 22/22, `seasons`
+    15/15, `phiatusnum` 18/18, `calrange` 18/18, `hidewf` 19/19, `phasefold` 11/11, `hiatusfold` 11/11,
+    `comparehiatus` 8/8, `snapoff` x3, `rowheight` 7/7, `caps` 5/5, `dlgkeys` 16/16, `prepreptitle` 7/7, `mvhdroff`
+    9/9, `hdrrow` 40/40, `labelsetup` 41/41, `settingswin` 21/21, `scenarios` 23/23, `scenariofacts` 12/12,
+    `sideboxes`, `hiatuscolour` 14/14, `hiatussidebar` 16/16, `simpostname` 14/14, `customunits`, `builtindates`.
+    `stintcollide`, `stintgroup` and `stintmulti` (their fixtures have no episode list) give the same result on both
+    builds. `npm run check` 42/42.
+  - `launchopen` was 12/13 once, in that batch: its read-only launch step timed out while other work was running on
+    the machine. Alone it is 16/16 three times on this build, and 16/16 on the build before the fix.
+  - Tried in the browser on the built app with a real IndexedDB backup one version ahead: the message shows, the
+    backup is still there, the file menu still reads Untitled.
+  - Not run: the full gate (one run is planned for the whole audit batch), and a real window's close and reopen (the
+    legs stand in a fake file handle and an in-memory IndexedDB, as `backuplink` does).
+
+## v1.14.0 — the November audit's first fixes: one Undo for a hiatus change and its push, the notes resets ask first, Save explains a missing file, Excel export fetches its library again, episode and block counts apply when you leave the box, a view switch is not an unsaved change, rolling a season forward, the moving tools keep your dates, columns that stay narrow; plus everything since v1.13.0 (15 Nov 2026)
+
+### Export to Excel tries again when its Excel library hasn't loaded, and says why plainly (audit item 3.11, 14 Nov 2026)
+
+November 2026 audit, item 3.11 (AUD2-063, AUD2-064), under the owner's decision **D7 (a)**: SPTCal stays an online app
+(no service worker, no offline cache) and says so. Export to Excel needs one library that SPTCal downloads from the
+internet (ExcelJS, from `cdn.jsdelivr.net`), by one tag fetched once at launch. If that one fetch was refused, cut off or
+only slow, Export to Excel said *"failed to load from the CDN … ask IT to allow that domain"* at once (also for a library
+that arrived two seconds later), Compare's workbook said *"Check the internet connection"* on a computer that was online,
+and every press after said the same until SPTCal was relaunched, the network back or not: nothing fetched it again.
+
+- **Now** a press of Export to Excel, or of Compare's Export to Excel, with the library missing downloads it again, from
+  the launch tag's own address, integrity hash and settings (so the Content-Security-Policy is unchanged and no new
+  server is reached), and waits for it with the button busy, up to 15 s. It arrives: the workbook is written from that
+  same press. It fails: *"Export to Excel couldn't download its Excel library from cdn.jsdelivr.net. Try the export
+  again. If it keeps failing, this network may be blocking that address, and IT can allow it."* The computer is
+  offline: it says so and asks to connect. Still on its way: *"still downloading … try again in a moment"*, and the
+  next press waits on the same download. A shareable copy exported while one is on its way does not carry it.
+- **Help** says SPTCal needs an internet connection to start, and how Export to Excel gets its library.
+  `PROJECT-CONTEXT.md` no longer calls the app "fully offline-capable".
+- Not frozen: `exportExcel` and the workbook are untouched; the retry lives in the two click paths before it
+  (`loadExcelLib` / `ensureExcelLib`). No save-format change.
+- **Proof:** new CDP driver `tests/harness/excelretry.mjs` (in `gate.sh`, after `cspproof`), 10/10 on the build under the
+  real policy, the library refused, held and offline through CDP; red on the build before it at F1, F2, L1, L2, O1, C1
+  and C2; its S1 goes red with the copy's strip taken out. `cspproof` 15/15; `exportrefused` 5/5, `xlsxlimits` 5/5,
+  `xlsxdates` 5/5, `scenarios` 23/23, `hdrexcel` all green, `base` matches its baseline with the Excel parts identical;
+  `npm run check` 42/42.
+
+### Rolling a season forward a year: the new year's holidays show, Shift says which breaks it left behind, and typed headings and widths move with the year (14 Nov 2026)
+
+The November 2026 audit, item 3.3 (AUD2-050, AUD2-051, AUD2-052; each reproduced here before the fix).
+
+- **A holiday that comes into the calendar follows your choice.** With every holiday shown in the waterfall, rolling
+  the season forward a year (Shift, To a date or By weeks 52) or making the plan longer brought the new year's holidays
+  in as month-view-only, so Independence Day, Labor Day and Thanksgiving 2027 were missing from the waterfall, Excel and
+  the PDF while 2026's still showed. Now, while every holiday in the calendar is shown in a view, a holiday that comes
+  in is shown there too. Untick one and new ones come in as before. Nothing new is saved: each newcomer gets the same
+  choice its own tick gives it, and Undo takes it back with the move.
+- **Shift's line says "working weeks" and names the breaks it left behind.** Shift counts working weeks and steps over
+  locked hiatuses (the 5 Nov 2026 ruling, unchanged), so a season moved to Writer's Room 1/4/27 read "Shifted 49 weeks
+  later" and a locked summer break stayed in 2026 with nothing said. It now reads "Shifted 49 working weeks later. 5
+  locked hiatuses held. Hiatus 8/10/26 and Hiatus 12/21/26 stayed on their dates, so no phase pauses for them now. …"
+  "Working" appears only when a phase stepped over a held break; a break is named only when a moved phase ran through
+  it before and no phase runs through it now. How a new hiatus starts (locked) is unchanged.
+- **Typed headings, their styles, column widths and hidden Notes columns move with the year when the columns do.**
+  They belong to their year's columns, and a shift moved only dates, so after By weeks 52 the 2027 columns (now
+  Writer's Room to Post) read last year's "POST" and the 2026 heading's bold red style and width were left on a year
+  that was gone. Now, when moving every phase leaves each year's columns exactly as they were, just a whole number of
+  years later or earlier, all of them move by that many years. It is the columns that decide, not the number of weeks
+  moved: in Single Column Mode, whose one block is named by its first week's year, a few weeks across New Year
+  qualifies too. Any other move that changes the years leaves them, and the line says so: "The column headings,
+  column widths and hidden Notes columns you set stayed on 2026 and 2027."
+- **Review repair (same day):** the widths of the layout not on screen (Single Column's while it is off, the year
+  columns' while it is on) moved with the rest but were left out of that sentence, so with Single Column on a 40- or
+  60-week move left them on 2026 and 2027 and the line said nothing. They now count as "column widths" there. And the
+  words above, the code's comments and HANDOFF said "a whole-year move", which the rule never was; they now say what
+  it does. Behaviour otherwise unchanged.
+- Nothing frozen, no new saved key, no new id.
+- **Proof:** new legs `seasonroll` (17 cases, on `v1.13.0-saved`) and `yearroll` (9, 11 with the repair), red on item
+  3.2's build (`ef873c6d`: seasonroll H1-H4, R1, L1-L3; yearroll K1, K2, K5) and green on this one. The repair's A2
+  (Single Column on, only the other layout's widths, By weeks 40) was red on `d021506` and is green; A1 (By weeks 52
+  moves them) was already green. `shiftheld` re-expected at S4 for
+  the new wording ("Shifted 4 working weeks earlier."). The nearest legs green (listed in HANDOFF.md), and the gate's
+  base section by hand; `npm run check` 42/42. Not yet through the full gate.
+
+### The moving tools leave phases where you put them: open panels keep your date and new phases, Dates phases stay Mon–Fri, and Shift says what a moved hiatus did (14 Nov 2026)
+
+The November 2026 audit, item 3.2 (AUD2-049, AUD2-068, AUD2-069; each reproduced here before the fix). AUD2-047 and
+AUD2-048 were rejected by the owner and are untouched.
+
+- **A panel left open keeps the date you typed.** Build Around's date box, and Shift's To a date box, were refilled
+  from the calendar after any edit underneath (a sidebar field, the grid, Undo), so Build then built around the OLD
+  date: typed 9/7/26 for Production, changed Post's weeks, pressed Build, got 6/29/26. A typed (or picked) date now
+  stays until you pin another phase or pick another landing phase, switch starts / ends by, close the panel, or run the
+  tool. Each of those refills it from the calendar, as before.
+- **A phase dated while Shift is open is ticked when every phase is.** The ticks were fixed when the panel opened, so
+  a new phase came in unticked ("6 of 7 move") and 1 wk later quietly became a part move that left it, its notes and
+  the range behind. Now a panel with every phase ticked ticks it too ("7 of 7 move"); a set you picked by hand keeps it
+  unticked.
+- **Build Around keeps a Dates phase's weekdays.** A custom phase given by Dates, built before the pin, ended the
+  calendar day before the next phase (a Sunday) and kept its calendar span, so Mon 12/7/26–Fri 1/15/27 built before a
+  Monday became Wed 3/3/27–Sun 4/11/27; built after the pin it became Tue–Sat. It now keeps its number of weekdays
+  (Mon–Fri): before the pin it ends on the last weekday before the next phase (Mon 3/1/27–Fri 4/9/27), after it, or as
+  the pin, it ends that many weekdays after its start. No end lands on a weekend. Holidays and hiatuses don't shorten
+  it: a Dates phase is its two dates.
+- **Shift's result line says what a carried hiatus did.** Moving some phases carries an unlocked all-phase hiatus inside
+  their weeks (as ruled), and that hiatus also pauses the unticked phases running through it. The line said those
+  "stayed where they were". It now ends: "1 hiatus moved with it, so Music now ends 12/25/26 (pulled 2 wks) and Titles
+  now runs 1/18/27 to 2/12/27 (pushed 2 wks)", and the "stayed" list keeps only the phases that really stayed. A move
+  that carries no hiatus reads exactly as before.
+- Nothing frozen, no new saved key, no new id.
+- **Proof:** new legs `panelstale` (16 cases), `builddates` (9) and `shiftbandline` (10), red on item 2.2's build
+  (`894ae9f1`: panelstale A1-A4, D1, D2, B1-B3; builddates B2, F2, P1, P2; shiftbandline L1-L4, G1, P1) and green on this
+  one. `customunits` and `builtindates` re-expected for the new rule (a Dates phase built back from a Monday now ends Fri
+  2/26/27, not Sun 2/28/27; built forward, Fri 5/7/27, not Sun 5/9/27). The nearest legs green (listed in HANDOFF.md);
+  `npm run check` 42/42. Not yet through the full gate.
+
+### a waterfall adjusted in the app no longer grows wider, and typed headings follow their phase (14 Nov 2026)
+
+Audit item 3.8 (Nov 2026 audit, findings AUD2-057 and AUD2-077), built with the findings' defaults.
+
+- **Only a phase you move on its own keeps its column.** Sticky columns (rulings K1–K5) remembered a column for every
+  phase whose start or end changed: each length typed while a calendar was built, every phase on a whole-calendar Shift,
+  a phase a break lengthened. A calendar typed into the app ended with nearly every phase remembered, and after an
+  ordinary edit its waterfall carried an extra, narrower column per year that the same dates laid out fresh did not (the
+  audit's ten-phase calendar: 2026 in six columns against four). Now a phase is remembered only when its own start moved
+  and no other phase's did: its ▲ / ▼, dragging its bar, a re-typed start, a Shift of that one phase. A length, a break
+  (Ripple Hiatus pushing one phase across it included), Build Around or a Shift of several phases remember nothing.
+- **Every remembered column gives way when it costs a column.** The owner's "Give way" (K5) covered a column of the
+  phase's own; a remembered predecessor always won. Now any memory is ignored for a layout when ignoring it leaves fewer
+  columns, and kept on a tie, so a nudge that costs nothing still holds. Files that already remember many phases lay out
+  in the fewest columns again; nothing is removed from them.
+- **Typed column headings follow their phase** when Update layout or Reset Columns rearranges a year's columns, on
+  screen, in Excel and in the PDF. Before, they stayed on their positions, so a heading typed over one phase printed over
+  another, and one whose column went away stayed in the file, never drawn. A heading is removed only when two TYPED
+  headings land on one column: the one over the phase that leads it (else the one with more weeks there) stays, and
+  the other is named in a one-line strip above the calendar; Undo brings it back. A heading whose column merges with
+  columns that hold nothing typed simply moves with its phase, with no strip. *(Repaired after review, 14 Nov 2026:
+  the first build picked a collision's winner by which phase leads the new column even when the other positions held
+  nothing typed, so a heading typed over one phase alone could vanish; and a shareable copy exported while the strip
+  was up carried the sender's removed headings in the strip's hidden text. The copy now empties it.)*
+- Nothing frozen changed; no new or renamed save-file key. The help's "Where a phase goes" and "Column headings" say so.
+- **Proof:** new legs `keepcols` 9/9 (red on `2089aa5` at KC0–KC7) and `headingsfollow` on two calendars (8/8 on
+  `keepcols-heavy`, 5/5 on `swap-holds`; red on `2089aa5` at H1, H2, H4 and H1, and the review repair's H5a, H5b, H6
+  red on the first build `0afa1ca`), both in `gate.sh`; `stickycols`, `colsreset`, `swapholds`, `phasefill`, every `layoutrules`
+  fixture, `colreuse`, `hdrrow`, `hdrcontrols`, `simpostbeside`, the swap legs, the movers and `hiatusripple` /
+  `hiatusdrag` green; gates 1–3 by hand (the waterfall PDF and every Excel part identical to the baseline);
+  `npm run check` 42/42. Not merged, not pushed: waits for the release train's one full gate.
+
+### the notes resets ask first, and each clears the notes its own view shows (14 Nov 2026)
+
+Audit item 3.5 (AUD2-054, AUD2-070), approved on the tracker. **Reset Waterfall Notes** and **Reset Month Notes** sit in
+the app header beside Export PDF, and one press cleared every note at once with no word (44 waterfall notes to 4 on
+the audit's calendar), while New, Load, Delete scenario and Reset holidays all ask first. Autosave then wrote the wiped
+calendar ten minutes later. And a note linked to a phase from the Month view ("Stays with: Production", shown there
+only) was deleted by Reset Waterfall Notes, where it never showed, and left behind by Reset Month Notes.
+
+- **Now** both ask first, as Reset holidays does (a red Reset, Cancel focused), naming how many notes go: "Reset 2
+  waterfall notes to automatic text, colour and size? This clears them in the Month view too. Undo brings them back.",
+  "Delete 2 notes added in the Month view? Waterfall notes stay. Undo brings them back.", or, with only month colours
+  and places to clear, "Return 1 note in the Month view to automatic colours and places? Nothing is deleted."
+- **With nothing to clear** the press asks nothing and does nothing. Before, a press on an empty calendar still marked
+  the file "Unsaved changes".
+- **Each reset clears the linked notes its own view shows:** a note linked to a phase that shows in the Month view
+  only goes with Reset Month Notes; every other linked note with Reset Waterfall Notes, as before.
+- An open note editor is saved first, as any click away saves it, so Cancel keeps what was typed. One Undo still brings
+  a reset back. The hiatus bands' reset is unchanged. Help updated. Nothing frozen, nothing saved differently.
+- **Proof:** new leg `notesreset` (13 cases), red on `2089aa5` at Q0 W1 W2 W3 W4 M1 M2 M4 and green on the build;
+  re-expected because the click now opens a question (each answers Reset and holds it): `hdrcontrols` N1/N2,
+  `regionlock` L3, `autonoterename` R1, `mvtextstyle` K2. On the build: `hdrcontrols` 12/12, `regionlock` 14/14,
+  `noresetall` 5/5, `dlgkeys` 16/16, `autonoterename` 24/24, `mvtextstyle` 23/23 and 6/6, `phasenotes` 21/21,
+  `phasemonth` 21/21, `sharecopy2` pass; `npm run check` 42/42. No full gate yet (the release train's).
+
+### One Undo takes back a hiatus change and its push together (audit AUD2-038, 14 Nov 2026)
+
+Owner's decision D2 = b on the November audit: *"the edit and its push are one Undo"*. With Ripple Hiatus Periods on
+(the default), every hiatus change banked TWO undo steps: the change, then the push of the phases after it. So the
+first Cmd/Ctrl+Z took back only the push. After dragging a break in the month view and answering Keep, that first press
+changed nothing you could see when the break had been dropped on a phase's first week (the break stayed where it was
+dropped). After the month day menu's Add hiatus, it put Post back while the new break stayed, so Post started while
+Production was still shooting, a plan that never existed. A second press was always needed.
+
+- **Now** a hiatus change and its push are ONE step, wherever the change is made: the month view's band drag (Keep),
+  the month and waterfall day menus' Add hiatus (all phases or one phase) and Remove hiatus…, the sidebar's ×, its
+  Weeks box and its Starts box, and a phase's own Hiatus switch. Redo brings back both. The drag question's own Undo
+  button is unchanged (it already put back everything).
+- **What changes for you:** one Cmd/Ctrl+Z used to mean "keep my hiatus change, but don't push the rest this time".
+  It now takes back the whole change. To change a hiatus without moving anything else, switch Ripple Hiatus Periods off
+  first (Settings › Preferences › Hiatus). The switch's "i" and the help say so.
+- How: `bankRippleWithEdit()` replaces `bankStepAt()` in the undo section. If the change is still waiting to be banked
+  (a Weeks change pushes at once), one push banks both; if it was already banked (a typed date with a pause, or the day
+  menus, which bracket their change), the push joins that step (`foldIntoBankedStep`). The month drag's Keep banks the
+  press-to-push state as one step. No frozen code, no save-format change, no new id.
+- AUD2-016 and AUD2-037 (what a ripple does with day marks and notes, the rest of D2) are untouched: undecided.
+- **Proof:** new leg `rippleundo` (in `gate.sh`, on `rippleundo.sptcal`, the audit's synthetic fixture), nine edits each
+  held to one Cmd+Z = the calendar before (as saved, byte for byte), Shift+Cmd+Z = after: 29/29 on the build, every run;
+  on the build before, all 18 undo / redo cases red, each needing exactly one more Cmd+Z.
+  `hiatusripple.mjs` 19/19 with R2, R3, R5, R11 and S2 re-expected for the one step (all five red on the build before,
+  the other 14 green). Green: `hiatusdrag` 14/14, `undokeys` 11/11, `dlgkeys` 16/16, `monthdragundo` (one step),
+  `phasearrowsripple` 10/10, `hiatussidebar` 16/16, `mvmenu` 81/81, `wfmenu` 39/39, `settingswin` 21/21, `snapbox`
+  12/12, `phiatuspick` 12/12; `npm run check` 42/42. Not merged, not pushed: it waits for the release train's one gate.
+
+### Build Around keeps a moved phase's own break, and "ends by" no longer lands two weeks early before Christmas (13 Nov 2026)
+
+The November 2026 audit, item 2.2 (AUD2-009, AUD2-010; both reproduced by a second agent, and again here before the
+fix).
+
+- **A phase's own hiatus now travels with it.** Build Around wrote each phase's start and nothing else, so a moved
+  phase's own break stayed on its old dates. Carried past it, the break vanished from the waterfall and the workbook and
+  the phase ended a week early, with nothing said (Post 2/15/27 with its 4/5/27 "Spring break", re-pinned behind a
+  shoot moved to 1/4/27: Post started 5/3/27, lost the break and ended 8/20/27 instead of 8/27/27). Now each phase the
+  build places takes its own break along by the weeks its start moved, with everything keyed to it: the band's label,
+  colour and size, its phase-cell text styles, its hand-widened cells and its column swaps. The same mover the phase
+  card's ▲ / ▼ use, in the build's one undo step. The solvers place a phase with its break where it will land, so a
+  phase built back from the next one ends where that one starts, and the phase after it starts from its real end.
+- **Typed notes stay on their weeks**, as documented (link a note to its phase to have it follow). The result line now
+  says how many: "6 typed notes stayed on their weeks."
+- **"Production ends by" with Snap to Mon on** (the default) now finds the latest Monday whose last shoot day is on or
+  before the date. It searched start days while every trial snapped to its Monday, and just before the Christmas break
+  it stopped two weeks short: ends by Fri 12/18/26 started the shoot 8/10/26 and wrapped it 12/2/26, where 8/24/26
+  wraps 12/16/26 (Shift's own "ends by" gives that). Snap off still lands to the day.
+- Nothing frozen, no new saved key, no new id.
+- **Proof:** new legs `buildcarry` (17 cases, on `tests/fixtures/buildcarry.sptcal`, the audit's fixture plus three
+  Post-keyed stores) and `buildendsby` (21 cases), both red on the audited build (`2089aa5`: buildcarry A1-A5, B1, C1,
+  C2, D1, D2, F1; buildendsby B0, B1) and green on this one; the nearest legs green (listed in HANDOFF.md); `npm run check`
+  42/42. Not yet through the full gate.
+
+### when the linked file is gone, Save says so and offers Save As; a double-clicked calendar says where Save writes (13 Nov 2026)
+
+The November 2026 audit, item 2.6 (AUD2-039, AUD2-017; both reproduced here on the build before the fix).
+
+- **The linked file is gone** (moved, renamed or deleted in Finder, renamed by a sync app, a share no longer connected,
+  a mail app emptying its attachment folder). Autosave already said "Autosave failed — click Save", but Save then showed
+  the browser's own words on every click ("Something went wrong saving the file: A requested file or directory could
+  not be found…") and never offered anywhere else to put the work. Now Save says *"“Harbor Lights.sptcal” can’t be
+  found. It may have been moved, renamed or deleted, or the drive it was on isn’t connected. Your changes are still
+  here. Use Save As to keep them in a file you choose."* with **Save As…**, which suggests the file's own name. The
+  dead file leaves the recent files list and is no longer the linked file, so after a Cancel the calendar is Untitled,
+  the status line says autosave needs a file, and the next Save opens the Save dialog.
+- **Write permission taken away:** a Save is a click, so it asks Chrome for permission once and writes. Refused, it
+  says *"SPTCal isn’t allowed to change …"* and offers Save As; that file stays linked and listed.
+- **A recent whose file is gone:** picking it says so (*"… so it’s been taken off your recent files"*) and removes it.
+  A file that can't be read for another reason (a lock) keeps its entry and the old message.
+- **A calendar opened by double-click** (from an email attachment, say) still saves straight back into that file with no
+  extra dialog, as before. A strip now says so once per such load: *"<file> was opened from another app, and Save
+  writes back to that copy. If it came from an email, that copy may be temporary: use Save As to keep your own."* with
+  **Save As…** and ×. It goes when anything else is loaded, on New, or after any Save As. Chrome never tells a page
+  where a file is, so the strip cannot name the folder. A shareable copy exported while it shows carries it hidden,
+  with its text emptied, so the copy never names the file the sender double-clicked. The strip's Save As does nothing
+  while a Save is still writing, as Save itself does (both repaired on review, 14 Nov 2026).
+- Nothing frozen, no saved-file change: the strip is buttons only, no new saved key.
+- **Proof:** new legs `savegone` (14 cases: autosave, Save's message, Recents, Cancel, Save As with the file's name, the
+  new file linked, permission asked once / refused, a gone recent, a locked recent) and `launchtemp` (14: the strip,
+  no extra dialog on the first Save, ×, once per launch, the shareable copy, Load and New, the strip's Save As, the
+  purge then Save As; this said 13 when it had 12, and the review of 14 Nov 2026 added L5b, the copy's strip text
+  emptied, and L9, the strip's Save As still while a Save writes, both red on the reviewed build), grown from the
+  audit's repro legs. Red on the build before at `savegone` G1, G2 and
+  `launchtemp` L1; green now. Nearest legs green: `launchopen` 16, `loadfail` 6, `backuplink` 5, `backuplinkstale` 3,
+  `backupslots` 5, `conflict` 9, `sharecopy2`, `showfolder` 7, `legacyparse` 7, `nofsa` 7, `filekeys` 16, `dlgkeys` 16,
+  `hostile` 13, `lastedited` 22; `cspproof` 15/15; `npm run check` 42/42. Not verified: a real double-click launch, a
+  real mail app's folder, and Chrome's real permission prompt (headless Chrome has none of them; the legs stub them).
+
+### Switching between the Waterfall and the Month view no longer marks a file "Unsaved changes" (13 Nov 2026)
+
+The November 2026 audit, item 2.9 (AUD2-022; reproduced here before the fix). Open a saved calendar, click Month view
+(or Month and back), and the status read **Unsaved changes**: closing the window asked "Leave site?", and ten minutes
+later autosave rewrote a file nobody had edited, which could then raise "File changed on disk" for a colleague working
+in it. Paging months, a sidebar tab, Settings and Excel export never did this; only the view switch did, because the
+view is part of the saved calendar and the switch re-drew it through the same path as an edit.
+
+- **Now** (the audit's default, approved by the owner): a view switch on a calendar with nothing unsaved is not an
+  edit. The status stays as it was, there is no leave warning, no crash backup is written, autosave has nothing to
+  write, and Load or New does not ask about unsaved changes. The Date Last Edited never moved for a switch, and still
+  does not.
+- **The view is still saved with the next real save**: Save, Save As, or an autosave after any real edit records the
+  view on screen, as before. ⚠️ So a calendar that was **only** switched to the other view and then closed reopens in
+  the view it was saved in.
+- With unsaved work already on the page, a switch behaves exactly as before (the crash backup records the view).
+- Engine only, in `setViewMode` (the view buttons and both "Show this … in the …" menu items): nothing frozen, nothing
+  saved differently, no new setting.
+- **Proof:** new leg `viewclean` (7 cases: V1, V2 and A1 red on `2089aa5`, the audited build; green after), in the
+  gate's audit-fix list; nearest legs green on the build (listed in HANDOFF); `npm run check` 42/42.
+
+### Number of Episodes and Number of Blocks apply when you leave the box (13 Nov 2026)
+
+Audit item 2.1 (AUD2-008, owner-approved). Both boxes acted on every keystroke, so typing 12 over 10 passed through
+"1": at that keystroke every episode after the first was dropped (their names, day counts, prep days and shooting order),
+new episodes were made at "12", Production's length and wrap moved, and the panel said the count had been lowered. In
+Blocks mode the new episodes all landed in the last block and nothing was said. Typing 10 blocks over 5 did the same to
+a block's own day count.
+
+- **Now** a count you type is applied when you press Enter or leave the box (Tab, or a click anywhere else). While you
+  type, the calendar stays as it is. Typing 12 over 10 keeps all ten episodes as they were and adds 211 and 212; in
+  Blocks mode every block keeps its episodes and the two new ones join the last block.
+- Arrow keys in the box apply the same way, so the box and the calendar can no longer disagree.
+- Lowering the count for real still removes the episodes past it and names any you had edited; Undo brings them back,
+  and the line goes away on Undo or Redo.
+- A Save made while a count is still being typed saves the calendar on screen.
+- Nothing saved differently: no new key, no new control with an id. Nothing frozen touched.
+- **Proof:** new leg `epcount` (16 cases, `blocks.sptcal`), 16/16; on the build before it B1, B2, B4, E1, E2, E4, E7
+  and E8 were red. Nearest legs green: `numclamp`, `caps`, `wholenum`, `halfdays`, `undokeys`, `dlgkeys`, `filekeys`,
+  `labelsetup`, `buildaround`, `mvtextstyle`, `autonotekinds`, `seasons`, and gate sections `blocks`, `wrapdate`,
+  `epnames`, `episodeprep`, `scenarios`; `npm run check` 42/42. Typed with real keys in the browser on localhost.
+
+### Renaming an auto note keeps its popup an Auto Note popup (12 Nov 2026)
+
+Owner: *"when you start editing an auto note, the regular note editor menu opens up - why?"* In the waterfall, the first
+keystroke in a cell's one automatic note (or one holiday) brought up **Day**, **Stays with** and **Show in month view**,
+the rows for a note you type yourself. The editor showed them whenever a line in the box was not, word for word, a line
+the cell already held, so any rename counted. Save never agreed: one line typed over one line is a RENAME
+(`wfLineEdits`), and those rows do not apply to it. Picking a Day there could stamp a second date onto the note's line,
+which is why they were hidden in the first place (WATERFALL-NOTE-EDITOR-PLAN D4).
+
+- **Now** they stay hidden while the box is one line over the cell's single automatic note or holiday, with or without
+  its date, and while the box is emptied to retype it (`renameOfSingle`, beside `typedIn` in the editor). A line ending
+  in ANOTHER date, or a second line, is typed text, as Save reads it, and brings them as before.
+- Popup only: nothing frozen, nothing saved differently. The month view's Auto-Note editor never showed them.
+- **Proof:** tried in the browser on `autonoterename.sptcal` (five cases; a saved rename reopens as "Auto Note" with Hide
+  Auto-Note); new case `wfnoteeditor` E4; on the build: `wfnoteeditor` 14/14, `autonoterename` 24/24, `autonoteview` 18/18, `holidayrename` 14/14, `noteviews` 15/15, `wfnotecolors` 14/14, `phaselink` 14/14, `wfkeys` 84/84; `npm run check` 42/42.
+
+### the note editors no longer show the keys line (12 Nov 2026)
+
+Owner: *"Delete this text in all places"*, of "Up to 3 lines · Enter for a new line · Tab or Ctrl/Cmd‑Enter to save ·
+Esc to cancel" and "Tab or Ctrl/Cmd‑Enter to save · Esc to cancel".
+
+- **Gone from three editors:** the waterfall's note editor, the month view's day-note editor, and the month view's editor
+  for a waterfall line or a note that stays with a phase. Where nothing else was on that line, the line itself is gone
+  (no empty margin under the last control). The keys still work exactly as before.
+- **Kept:** a single automatic note's or holiday's line saying what saving does in the waterfall ("Renames it wherever
+  it shows · Its date follows the schedule", "Renames this holiday wherever it shows"), now without the keys. The
+  placeholder "Note text — Enter for a new line, up to 3" is unchanged.
+- **Kept on purpose (owner: *"No, leave it"*):** "Enter to save · Esc to cancel" on the month view's automatic-note and holiday
+  editors and on the column-heading editor, and Paste notes' "⌘/Ctrl-Enter to add · Esc to cancel".
+- **Verified:** `npm run check` 42/42; legs `wfnoteeditor` 13/13 (E1's expected hints updated), `mvnotes` 14/14,
+  `phasemonth` 21/21; both editors opened on localhost with no hint line. Chrome only (popovers), so no gate baseline
+  can move.
+
+### the Shift and Build Around panels can be dragged out of the way, and stay open while you use the grid (11 Nov 2026)
+
+Owner: *"shift popup covers the waterfall which can be annoying when you're trying to reference it but its covering dates
+or portions of the calendar"*. Of the options tried (a panel docked beside the grid, a panel that opened at the side), the
+owner picked: *"1+2 where it pops up like normal but you can drag it whereever you want. no put back button"*, and *"keep
+it open"*.
+
+- **Drag it anywhere.** The panel's title row is a grip (a small dotted handle, a grab cursor): drag it and the panel
+  floats where it is dropped, over the grid or the sidebar, and is kept on screen. The title row is a grey bar across the
+  panel's top (owner: *"make the bar at the top of the menus grey so its clear its a grabable window"*), a shade darker
+  under the pointer. It still opens under its button every
+  time; a drag lasts until the panel closes, which is the way back (there is no Put back).
+- **It stays open while you use the calendar.** A click or a scroll in the grid no longer closes it. It closes on its new
+  **✕**, on its button, on **Esc**, or when the other tool opens. Esc pressed in a field or a note editor belongs to that
+  field, so it no longer closes the Shift panel too.
+- **Its dates stay current.** While it is open it re-reads the calendar whenever the grid is redrawn (an edit, Undo, a
+  sidebar change), unless you are typing in it. This watches the grid from outside (CLAUDE.md's sanctioned pattern 3);
+  nothing in the grid, the exports or the save format changed.
+- **Tests:** a new leg, `paneldrag` (9 cases, in the gate's list): opens under the button, the title row, a drag over the
+  sidebar, a grid click and scroll, the refresh on 1 wk → and Undo, ✕ then reopen, the two kinds of Esc, Build Around kept
+  on screen. Thirteen legs that closed these panels with a click on the page now press the panel's ✕ (`T.closePops()` in
+  `lib.js`), and `buildaround` O1 reads the title without the close.
+
+### Holidays list: one list, a strip per counting phase (11 Nov 2026)
+
+Owner: *"mock up a version that looks like the original version (tho only holidays that need an enable button get one) but
+days during production have a green strip on the left side with the word production (written sideways)"*, then option 6 of
+`mockups/holiday-list-layouts.html` with both suggestions (a strip for a phase counted in Days too, a short label on a
+one-row strip). The Holidays list is one list in date order again, with no headings and no phase words. Every holiday inside
+a phase that counts days (Production, a phase counted in Days, episode prep) sits beside a strip in that phase's own colours
+with its name set sideways, weekend holidays in the shoot included, so Sat 7/4 sits with its "(Observed)" Friday. A strip one
+row tall reads "Prod" for Production; any other name is cut short with its full name on hover. Only the rows that can move a
+date have an Enable box. It replaces option 5 (phase headings, then Notes only), live earlier the same day. Nothing saved or
+frozen changes. `holidayenable` rewritten (S1–S3 on `anchorside`, D1–D2 on `customunits`, both runs in `gate.sh`).
+Verified: `holidayenable` 8/8 (anchorside) and 2/2 (customunits), `caholidays` 11/11, `mxholidays` 6/6, `settingswin` 21/21, `mvmenu` 81/81, `regionlock` 14/14, `wrapdate` PASS, `dlgkeys` 16/16, `mvnotes` 30/30, `holidayrename` 14/14, `autonoterename` 24/24, `hdrcontrols` 12/12, `holidays2031` 6/6, `npm run check` 42/42; tried in the pane on `anchorside`, `customunits` and a one-episode shoot ("Prod"). No full gate: nothing frozen, exported or saved changes.
+
+### Holidays list: phase headings, then Notes only (11 Nov 2026)
+
+Owner, after the grouped list went live: *"since phases overlap maybe we do need a differnt way to arrange them since this
+menu is getting confusing … avoid visual clutter at all costs"*, then option 5 of `mockups/holiday-list-layouts.html` (their
+own idea: *"lables by phase for phases that can move shoot days … keep the notes only section how it is"*). The holidays
+with an Enable box are listed under the phase that counts them (Production, a phase counted in Days, episode prep), one
+heading per phase in phase order, with no phase word on the row. Every other holiday is under one **Notes only** heading in
+date order, its phase as a single grey word on the date line ("1/19/26 · Writer's Rm", "12/25/26 · Hiatus"), its Enable
+cell empty (no dash). No heading repeats and no row says "also …". A weekend holiday in the shoot can move no date, so it is
+Notes only ("· Production"). Nothing saved or frozen changes. `holidayenable` G1/G2 rewritten for it. Verified: `holidayenable` 7/7, `caholidays` 11/11, `mxholidays` 6/6, `settingswin` 21/21, `mvmenu` 81/81, `regionlock` 14/14, `wrapdate` PASS, `dlgkeys` 16/16, `mvnotes` 30/30, `holidayrename` 14/14, `autonoterename` 24/24, `hdrcontrols` 12/12, `holidays2031` 6/6, `npm run check` 42/42; tried in the pane on `anchorside` and `customunits`. No full gate: nothing frozen, exported or saved changes.
+
+### Fill Gaps starts off on a new calendar (11 Nov 2026)
+
+Owner: *"I think fill gaps should be disabled by default"*. A new calendar, the one the app opens on and every New, now
+starts with **Fill Gaps off**: each phase keeps one even width per year instead of widening partway through its run.
+
+- **Saved calendars are untouched.** The setting is the saved key `fillSpaceOff`, written only as `true`, and absent still
+  means on, because every file without it was saved while on was the default. So every existing calendar, shareable
+  copy and fixture opens exactly as before; a new calendar writes `fillSpaceOff: true` from its first save. No format
+  change, no `SNAPSHOT_VERSION` bump, nothing frozen edited (the default is the engine's starting value and `resetAll()`).
+- **Help** now says a new calendar starts with it off, and how to switch it on.
+- **Verified:** `fillspace` 6/6, its S5 rewritten so New must turn a switched-on Fill Gaps OFF and the file must say so;
+  a fresh page starts with it off. `npm run check` 42/42. **Full gate: 4,515 PASS / 5 FAIL**, every export baseline
+  identical. One failure was this change: `colreuse` (live) reads each phase's column from its "wk 1" label cell in the
+  workbook, and with Fill Gaps off Mix is one even width from its first week, so its label sat a column left of Loc's
+  (the phase's column itself had not moved). The leg now switches Fill Gaps on, as every new calendar was when it was
+  written (its fixture was cut that way): 29/29 on both runs. The other four failed for time under load and are green
+  alone on this build: `stintbtn` 15/15, `mvhdroff` 9/9, `pilllabel` (carry-rich) 29/29, `scenariocompat` (v1.2.0,
+  an old release file this change cannot reach). The Help sentence was edited after the gate (text only).
+
+### Holidays list: no "also …" under a hiatus (11 Nov 2026)
+
+Owner: *"I dont think all phase hiatuses need to say Also Post or Also Writers Rm thats not necessary"*. A holiday under an
+all-phase hiatus heading no longer names the phases around it (the hiatus pauses all of them); "also …" stays under a
+phase heading. Leg `holidayenable` G2 now asserts its absence. Verified: `holidayenable` 7/7, `npm run check` 42/42,
+tried in the pane on `anchorside`.
+
+### Holidays: Enable only where it moves a date, grouped by phase (11 Nov 2026)
+
+Owner: *"Should the enable button even be there for holidays that do not occur during production? Maybe non-production
+holidays just have the note options"*, then *"make it more clear what phase each holiday is in"* (picked mockup C of
+`mockups/holiday-phase-label.html`, grouped by phase). Switching a holiday off only matters to a count that skips
+holidays: Production's shoot, a custom phase counted in Days, and episode prep. So the Holidays list (Settings › Region),
+its Toggle all and the month view's day menu now show Enable only on a weekday holiday inside one of those and outside
+any hiatus, or on a holiday that is already off (the way back on). Elsewhere a faint dash stands in, and the two note
+boxes are all a holiday needs. The list is grouped under a heading per phase in date order (a phase recurs after a
+break): an all-phase hiatus, else the phase the day falls in (Production, then a Days phase, then the earliest start),
+else "Outside the phases"; the other phases it falls in read "also …" on its date line. A Production holiday marked
+Work this day keeps its box and now says so: **Marked Working Day** (owner's wording). Nothing saved changes and nothing
+frozen is touched. New leg `holidayenable` (E1–E3, G1, G2, T1, O1; red on `main` but for T1); `caholidays`,
+`mxholidays`, `settingswin` and `mvmenu` (H5, V5: Christmas, inside the winter hiatus, has no Enabled now) updated.
+Verified: `holidayenable` 7/7, `caholidays` 11/11, `mxholidays` 6/6, `settingswin` 21/21, `mvmenu` 81/81, `wrapdate` PASS, `dlgkeys` 16/16, `mvnotes` 30/30 and 14/14, `holidayrename` 14/14, `autonoterename` 24/24, `regionlock` 14/14, `regioncaveat` 7/7, `holidays2031` 6/6, `hdrcontrols` 12/12, `npm run check` 42/42. No full gate: nothing frozen, exported or saved changes.
+
+### A phase's ▲ / ▼ step over a hiatus while Ripple Hiatus is on (11 Nov 2026)
+
+## v1.13.0 — notes that stay with a phase (in the Waterfall and the Month view), Delete Note and the note popups' top-right buttons, the auto header's Date Last Edited, a toolbar that never moves, Fill Gaps lets Prep use the Sim Post lane, MM/DD and DD/MM dates, a phase's ▲ / ▼ step over a hiatus with Ripple on, the header holds still between the views with Reset Bar Order, Sim Post reorders in the Month view, Shift opens on its list, layout rules 22 and 23 with Fill Gaps and sticky columns, Expand? / Pull back? on hover (a phase's own hiatus included), Build Around works like Shift, Swap Column only where a swap can happen, Ripple Hiatus in Settings, Compare from a phase's first working week (11 Nov 2026)
+
+### Date Last Edited no longer moves when nothing changed, and six tests are green again (11 Nov 2026)
+
+Found while gating this release: six legs were red on `main` since Date Last Edited went live (`1507204`, gated then only
+by a targeted run). An A/B on `origin/main` and this build gave the same failures on both, so none came from the release.
+
+- **A real bug, fixed (owner's picker, *"Fix it in v1.13.0"*).** Nudging Production ▼ then ▲, or dragging it and putting
+  it back, stamped the calendar "edited today" with nothing changed, and every undo back to that state then took the new
+  stamp. Production's marked days come back from a move in a different order (natural days first), and the check hashed
+  the calendar as written, so the same marks in a new order read as an edit. It now hashes the calendar with every
+  object's keys sorted (`lastEditedCanon`); arrays keep their order, since there the order is the content. Nothing is
+  saved differently: the hash lives only in the session.
+- **Five tests re-expected** for the stamp itself, which is by design: an edited calendar saves `lastEdited`, and a file
+  opened without one takes its file's time. `wfnotecolors` F1, `holidayrename` F1, `autonoterename` F1, `autonoteview`
+  V9 and `hidewf` F3 leave `lastEdited` out of their "nothing else new" / byte-for-byte checks, as `noteviews` already
+  did. `loadcarry` C2 gives each test file one fixed last-modified time: the fake picker had minted "a minute ago" at
+  every open, so one calendar opened twice got two stamps.
+- **Proof:** `phasearrows` 26/26 and `mvdragcarry` 15/15 with their tests unchanged (red before the fix: a diagnostic
+  copy showed `lastEdited` as the only difference, and Production's four marks back in another order); the five
+  re-expected legs and `loadcarry` green; `lastedited` 22/22, `buildaround` 36/36, `noteviews` 15/15, `undokeys` 11/11,
+  `scenarios` 23/23, `scenariofacts` 12/12, `phasekeys` 18/18, `phasemonth` 21/21; `npm run check` 42/42.
+
+### A phase's ▲ / ▼ step over a hiatus while Ripple Hiatus is on (11 Nov 2026)
+
+Owner: *"When ripple hiatus is on if you bump over a hiatus period, it should bump it right to the week before/after
+the hiatus"*. The phase card's arrows moved one calendar week a click by design, so a phase the week before a break
+went ▼ INTO it. Now, while Ripple Hiatus Periods is on (the default), a click is one WORKING week, as Shift and the
+toolbar arrows already count: ▼ from the week before an all-phase hiatus lands the week after it, ▲ from the week
+after lands the week before, locked break or not. The card's label counts the calendar weeks moved ("Pushed 3 wks"
+over a two-week break). With Ripple Hiatus off, the arrows move one calendar week as before. `nudgePhase` passes
+`stepHeld: hiatusRippleOn()`; nothing frozen, no save-format change. New leg `phasearrowsripple` (in `gate.sh` after
+`phasearrows`): 10/10 on the build, red on R1, R4, R6 without the fix (the phase lands inside the break). Neighbours on
+the build: `hiatusripple` 19/19, `shiftheld` 13/13, `anchorside` 39/39, `stalebandkey` 9/9, `npm run check` 42/42.
+⚠️ `phasearrows` 23/26 (N1, M1, F1) and `mvdragcarry` 11/15 (O2, K1, P1, F1) fail identically WITHOUT this change (both
+run with the ripple off, so it cannot reach them; Production's day marks): existing failures on `main`, not
+investigated here.
+
+### With Fill Gaps on, Prep fills the empty Simultaneous Post column (11 Nov 2026)
+
+The owner, with two screenshots: *"why is prod prep not filling when fill gaps is on but is filling when its off?"*,
+then, by picker, *"Prep fills the lane"*, and *"prep should fill the lane only when fill gaps is turned on"*. Since
+6 Nov 2026 (rule 15, frozen edit LR4 (a)) a phase sharing its row with another, such as Prod Prep beside Writer's Rm,
+was kept out of the Simultaneous Post column until the shoot ended. Fill Gaps off's one-width-per-year plan
+(`layoutEvenPlan`) never asked about that column, so it filled it. The switch therefore did the reverse of what it says.
+Now the lane is kept only with Fill Gaps OFF: frozen edit LR9 in `computePhaseRowLayout` turns `laneReserved` off while
+the switch is on, and `layoutEvenPlan` applies the same test to a run that shares a row. A phase alone still fills the
+column either way (rule 14).
+
+Verified: new leg `lanefill` on `layout-r9` (on: Prod Prep two wide all 14 weeks; off: one wide with the lane empty; on
+again: two wide), red on the build before it, in the gate's AFSPEC list. `npm run check` 42/42. The 15 reference
+pictures go from 98.1% to 94.3% with Fill Gaps on (62 width misses, all Pre-Prep / Prod Prep beside Writer's Rm in
+hand-02, -03, -04 and -09, which draw it one wide): the change the owner asked for. Full gate: see HANDOFF.
+
+### Dates offers MM/DD and DD/MM; Paper and Grid Lines leave Preferences (11 Nov 2026)
+
+Owner: *"remove these from preferences. Then make these the options for Dates: MM/DD/YYYY, MM/DD/YY, DD/MM/YYYY and
+DD/MM/YY"*. Settings › Preferences › Waterfall now holds Single Column Mode, Dates and Hidden Notes columns. Paper and
+Grid Lines in Exports are chosen only in the Export PDF dialog, which already set the same saved paper and the same
+grid-lines preference, so Export to Excel follows it as before. Dates lists the four formats in the owner's order,
+named by pattern; the output stays unpadded (owner's picker), so MM/DD/YY is still the default 1/6/25 and every
+existing calendar looks as it did. Day first reads 6/1/25 or 6/1/2025 on screen, in the PDF, and in Excel as real
+dates in `d/m/yy` / `d/m/yyyy`. Two new permanent `dateFormat` values, `d/m/yyyy` and `d/m/yy`; an older build drops
+them and opens the calendar month first. The legs that drove the removed menus now go through the dialog
+(`T.pdfDialogPick` in `t/lib.js`), and `hdrrow` gains D6–D8 for day first. Verified: `hdrrow` 40/40, `settingswin`
+21/21, `pdfdialog` 15/15, `notescols` 49/49, `papersize` 12/12 (its gate timeout raised to 1000 s: choosing a paper now exports a PDF), `prefs`, `sharecopy2`,
+`npm run check` 42/42. No full gate: nothing frozen, and the default output is unchanged.
+
+### Build Around sees the winter break on a new calendar's first run (11 Nov 2026)
+
+Owner's report: on a new file, Build Around with every phase ticked put Writer's Rm two weeks into Pre-Prep, but only
+the first time. The second time Writer's Rm opened unticked, and ticked and built again it chained correctly. The
+backward pass, which places the phases before the pin, read the all-phase hiatuses off the last computed schedule, and
+a calendar with no phase dated has no schedule. So the first run never saw the default 12/21/26 break: Writer's Rm got
+20 plain weeks before Pre-Prep (12/7/26), the break then paused it, and it ended 5/7/27. `hiatusRangesForSolve()` now
+reads the hiatus rows directly, by the scheduler's own rule, as it already did for each phase's own hiatus. "Ends by"
+shares the function and is fixed with it; Production was never affected (it runs the real scheduler). New leg
+`buildaroundfresh` (in the gate): Writer's Rm 20 wks before Pre-Prep 4/26/27 lands 11/23/26 → 4/23/27 on the first
+Build and the preview says so; red F1–F3 on the old build. Verified: `buildaroundfresh` 5/5, `buildaround` 36/36,
+`rebuildticks` 20/20, `buildalongside` 8/8, `anchorside` 39/39, `overrides` 20/20 and `snaptools` 14/14
+(`dayoverrides`), `customunits` and `builtindates` live and restored.
+
+### "Reset Notes" reads "Reset Waterfall Notes" (11 Nov 2026)
+
+Owner: *"make it say "Reset Waterfall Notes""*. The Waterfall's notes reset now names its view, as the Month view's
+"Reset Month Notes" does; what it clears is unchanged. The button keeps one width in both views (its hidden twin label
+updated), and the header still fits at 1100–1321 px with no overflow. Verified: `hdrcontrols` 12/12, `noresetall`,
+`calzoom`, `npm run check` 42/42.
+
+### The header holds still between the views; Reset Bar Order (11 Nov 2026)
+
+Owner: *"I also want this top menu not to shift around when you toggle between waterfall/month view"*. Export PDF, the
+notes reset and the last button now sit in the same box in both views: each view-dependent button is as wide as the
+wider of its two labels (a hidden `::after` ghost of the other label, so no label's text changes), and the Month view's
+Export PDF keeps its label at every width as the Waterfall's does. The Month view gets **Reset Bar Order** (the owner's
+name, picked from four) in Reset Columns' slot: every bar back in date order, the bar menu's "Back to date order", one
+undo step, grey while the bars are already in date order. The menu item and the button share one test
+(`mvOrderIsCustom()`). Verified: `mvorder` 31/31 with new case O9 (a real drag, a real click, one undo), `hdrcontrols`
+12/12 with N0 now comparing the three slots' boxes across views, `mvordersp`, `colsreset`, `noresetall`, `calzoom` and
+`npm run check` green; no header overflow at 1100–1440 px.
+
+### A toolbar that never moves: the month stepper in the toolbar, one equal gap (11 Nov 2026)
+
+The owner asked for the toolbar to stay put: *"the menu should be locked where it is and all buttons that are the same
+should stay exactly where they are"*, and *"I don't like the menu changing as you click around"*. Built from card 4b of
+`mockups/toolbar-month-parity.html` (kept in the repo) after several rounds there.
+
+- **The month stepper moves into the toolbar.** In the month view, ‹ October 2026 › sits where Fill Gaps and Side Boxes sit
+  in the waterfall, exactly as wide, so nothing to its right moves when you switch views. Its own line under the phase map
+  is gone (the month calendar starts about 44 px higher), and so is its Today button (owner: *"get rid of the today button
+  entirely and just make the stepper larger"*); the phase map's months still jump straight to any month.
+- **Fill Gaps, Side Boxes and Header are each their own grey button** again, no shared box.
+- **One equal gap.** Every gap on the first line is the same, Month to Shift and Redo to the edge included, and together they
+  fill the toolbar (about 14 px on a 1,720 px window; on a wider window they all grow together; never under 10 px).
+- **Nothing changes size as you click around.** Highlight is always in the text buttons, greyed until you pick a header or
+  side-box line; the Header button keeps the width of its longest label whatever its mode; Fill Gaps greys out where it
+  doesn't apply yet instead of disappearing.
+- **Header on Template, Manual or Off wears the navy outline** (owner: *"it should have the blue border around it"*),
+  replacing the purple.
+
+Below about a 1,700 px window the text buttons drop to their own line directly under the first, in both views.
+
+**Verified:** `stylebarplace` rewritten (14 cases: the order, eight equal gaps, nothing moving on a header-line pick, on
+Header Manual or between views, the stepper over the slot with no Today, the narrow fallback in both views, the looks),
+red on the build before it; `monthmap` C0 / C3, `textstyle` H1, `mvtextstyle` B1, `sideboxes` M1 and `fillspace` updated;
+the toolbar's neighbouring legs green (list in HANDOFF); `npm run check` 42/42; the fence against the build before, no difference. Measured by hand at 1,720 px: every gap
+14.2 px in both views, 0 px of movement across view switches, Header modes and picks.
+
+### Simultaneous Post reorders like any phase in the month view (11 Nov 2026)
+
+Owner: *"in month view, we should be able to reorder the position of phases including sim post, without sim post having
+to stick to production, it should be able to be reanarangged just like any other phase"*. Sim Post's month bar now has
+the six-dot reorder grip, and a drag puts it above, between or below the phases, in every week, on screen and in the
+month PDF; one undo, Escape and Back to date order behave as for any phase. It is named in the saved order
+(`mvPhaseOrder`) by the reserved key `simpost`. Frozen edit SO1 in `renderMonthView` (owner-approved by picker, *"Approve
+with that gate"*): Sim Post's bars are placed at its place in the order, or, where it was never moved, after every phase
+exactly as before; on screen only its bar carries `data-sp` for the grip. An older build keeps the key and draws Sim Post
+at the bottom. Verified: new leg `mvordersp` 11/11 (red on the build before the edit), gate 10 and gate 13 byte-identical
+on every month calendar (24 written PDFs, gate 10 print documents), `mvorder` and the Sim Post legs green.
+
+### The month bar's grey text is centred on its label (11 Nov 2026)
+
+Owner, with a screenshot of a Blocks bar: *"S2- production week 4...etc not centered properly"*, then *"Yes, PDF too"*.
+The grey tag beside a Production bar's label ("Block 1 · Production Week 4 · Ep. 201, 202") was pinned to the top of the
+bar's line with a shorter line of its own, so it sat above the label: 0.6 px at Standard and Large, 1.8 px at Extra
+large. A bar with a month text style size was already right, since it hands the tag its line as a length. Frozen edit
+**TC1** gives every tag the bar's own line height (`.mv-pill-block`, in em of the tag's size so a month shrunk to fit
+scales it; a first version in px grew the shrunk months' bars, caught by monthwriter A3/A4), on screen and in the print
+rollback, and the month PDF writer's `tagBase` now always takes the bar's line. Still `vertical-align:top` with a line no
+taller than the bar's, so no bar, lane or "…" moves. **Verified:** on screen the tag's middle is within 0.4 px of the
+label's at all five bar sizes, bar heights unchanged (17/20/22/23/25); the month sections of gate.sh green (gate 10
+identical, monthwriter A3 to 0.03 px) but gate 13 and the load-flaky monthexport X6; **gate 13 re-cut on the owner's
+yes**, 21 files, every change a grey-tag run 0.75 pt lower and nothing else (baseline README has the table);
+`mvnotesize-mixed` byte-identical.
+
+### Swap Column shows only where a swap can happen (11 Nov 2026)
+
+Owner, with a screenshot of the button on Production beside Simultaneous Post: *"this swap column button shouldn't
+show up at all here"*, then *"it shouldn't show up anywhere it doesnt make sense"*, e.g. *"places where theres only one
+collumn for a phase's entire span"*. The hover button was drawn whenever the year had a second column, and next to
+Production that column was Sim Post's own; a phase alone in its column for its whole run passed the same test. Now the
+button asks the swap knob's own evaluator, with the block selected, whether either direction would offer a swap
+(`stintOffers`, cached per block against the layout), so it appears exactly where its click leads to a knob. Found on
+the way: the knob itself offered *"Move Production into the free column, after Prep"* into Sim Post's column, and the
+move left Production where it was and swapped Design and Prep instead. Production now steps over its own Sim Post lane
+even when that lane is shared, and a move whose trial leaves the phase in its column is refused. One sentence in the
+Help. Verified: new leg `swapbtnwhere` 7/7 (W1, W2, W5 red on the build before); `calzoom` W6 now hovers a block that
+swaps and measures from its first cell, 26/26; the swap sections of `gate.sh` (colswap through stintreshape, onecol,
+colreuse, and the Sim Post / swap legs of the generic list) on the final build 371 / 1, the one `hoverexpand`, whose
+`load()` raced the file landing (red 1 in 4 on main too): it now waits for the file's name, 4/4; `npm run check`
+42/42; browser check with the real pointer.
+
+### the note popups: one action button at the top right, Delete Note, and the Day / Stays with boxes line up (10 Nov 2026)
+
+The owner, trying step 5 on 10 Nov 2026: *"allign these two boxes on their left edge"*, *"move the "Hide Auto-Note",
+"Hide Holiday" and add "Delete Note" button to the top right corner of each popup box"*, *"move "Day so the edge of the
+y is alligned vertically with the "h" in with"*, *"make the two selector boxes the same size"*.
+
+- **One action button at each note popup's top right**, beside its heading: Hide Auto-Note and Hide Holiday as before,
+  and a new **Delete Note** on a note that was typed. One undo brings it back.
+  - **Waterfall:** it deletes what was typed in the cell (its own text, notes that stay with a phase, month notes shown
+    there) and keeps the cell's automatic notes and holidays, which have their own Hide.
+  - **Month view:** it deletes the one note clicked (a month note, a waterfall line, a note that stays with a phase). A
+    new note (a "+"), a holiday and an automatic note have none.
+- **The waterfall editor's Day and Stays with rows:** the names are set right in one width, so "Day" ends where "Stays
+  with" does, and the two boxes start at one x and are one size (167 × 30 px in the default panel). The month editor's
+  Stays with row uses the same width.
+- **Help:** the note-editor paragraph says where the buttons are and what Delete Note keeps.
+- **Proof:** `phasemonth` B1–B3 (placement measured: in the heading row, last, centred on the title, within 16 px of
+  the popup's right edge); `wfnoteeditor` E1 now expects Delete Note on a typed cell.
+
+### notes linked to a phase, step 5: the Month view (10 Nov 2026)
+
+Plan §4.2, §4.6's last bullet, R8(a) and R10(a) (`PHASE-LINKED-NOTES-PLAN.md` §13). Until now a note linked to a phase
+left the Month view the moment it was linked: the month view reads a week's typed lines, and a linked note is not one.
+With this step the feature is whole in both views.
+
+- **Drawn:** each linked note shows on its day in the Month view and both month PDFs, after the week's own lines, in
+  its colour. That is its picked weekday, else its phase's first drawn day that week (for Production, its first shoot
+  day), and a shoot-day note's own shoot day. "Show in month view" off keeps it out.
+- **Its own editor.** Clicking it in the Month view edits that note: its line, its colour, **Show in waterfall** and
+  **Stays with**. It used to open as a waterfall line, and saving would have written it into its week's typed note,
+  where it stayed when the phase moved.
+  - **Stays with** is the waterfall editor's row, under the text box: "This day (Mon 7/6)", or a phase whose working
+    week this is. On a shoot day Production is offered by shoot day, "Production · Day 7", and the note follows that
+    shoot day wherever holidays, Off days or a new start put it.
+  - Every typed note's editor in the Month view has the row, so a month note or a waterfall line can be linked there.
+  - A phase week holds one note on one day. A second note linked to the same week joins the first on its day, and the
+    hint says so before you save: "… already has a note (“Tech scout”) on Wed. This one joins it there."
+- **Show in waterfall** (owner's picker, R10(a), *"Own switch per view"*): a linked note can be kept in the Month view
+  only. A note linked from the Month view starts with it off, as a month note starts out of the waterfall. Unlinked
+  ("This day"), dragged where its phase does not run, or left by a removed custom phase, such a note becomes a month
+  note of its day.
+- **The drag:** a linked note dragged to another day keeps its phase when the phase has a working week there
+  (re-linked, the new day as its weekday, or its shoot day for Production). Anywhere else it becomes a plain note of
+  that day, in its colour: a dated line of its week's waterfall note, or a month note when it was hidden from the
+  waterfall. One undo puts it back.
+- **Format:** `sheetHidden: true` is a new PERMANENT field word on a `phaseNotes` entry, the twin of `monthHidden`,
+  written only as `true`; any other value is dropped on Load and counted. No new key, no version bump.
+- **No frozen edit:** the month view and both month PDFs read `mvWfLinesFor`, and the colour goes through frozen edit
+  H1's existing `b.color`.
+- **Help:** two sentences after the waterfall's Stays with.
+- **Fixed while writing the leg:** a note hidden from the waterfall, dragged to a day its phase does not run, vanished.
+  The drag rebuilt that day's month notes without the one it had just written. It now takes its place among them, as
+  a dragged month note does.
+- **Proof:** a new leg, `phasemonth`, 21/21 on the build: drawing and both switches (P1–P3), the editor (E1–E6), the
+  drag (D1, DU, D2–D4), a removed custom phase (C1), the popup buttons (B1–B3), the file (F1, F2) and E0.
+  - **Full gate on the step-5 build (sha256 `ef674fbf…`): 4,226 PASS / 16 FAIL**, port 8957, 17:41–22:27 on 10 Nov
+    (4 h 46 min: four other sessions' partial gates overlapped it, and the machine then ran at a load average of
+    120–140 with Epic Games Launcher, a Time Machine backup and Spotlight indexing). ✅ Every baseline identical: the
+    waterfall PDF, every Excel part, the restore, `fields.byId` (77 ids), gate 10's print documents, and all 24 of gate
+    13's written month PDFs byte for byte. `phasemonth` 21/21 in it.
+  - The 16 are timeouts or legs that never reported. Re-run alone, nine cleared: `wfmenu` 39/39, `mvnotesize` 12/12,
+    `monthexport` (blocksoff) 9/9 and (halfdays) 9/9, `builtindates` 17/17, `episodeprep` 33/33 and (episodeprep) 25/25,
+    `weeknum` 6/6. ✅ The other seven, re-run on 11 Nov once the machine was quiet (load ~10): `onecol` 17/17
+    (the gate's own checks), `autonotephases` 27/27, `offweek` 5/5 and (offweek) 42/42, `hiatusdrag` 14/14,
+    `hiatusripple` 19/19, `wfkeysreal` 6/6, `scenariocompat` on v1.2.0 and v1.8.0. So every one of the 16 is green
+    alone. `offweek`'s Load wait is flaky on both builds: an A/B run gave this build 42/42 and the pre-step-5 build
+    (`0a3366d`) 41/42 (one Load timeout).
+
+### notes linked to a phase, step 4: Delete, copy, paste and drag (6 Nov 2026)
+
+Plan §4.6 (`PHASE-LINKED-NOTES-PLAN.md` §12). The waterfall's editing keys now know about linked notes. Until now a
+linked line survived Delete, and a drag copied it as typed text while the link stayed behind.
+
+- **Delete and Cut** delete the cell's linked notes too, with their look and row height. One undo brings them back.
+- **Copy, then Paste** lands as a plain note of the week it is pasted on. A copy that kept its link would be drawn back
+  on its phase week, not where you pasted it.
+  - It keeps the look the cell was drawn in, including a row height the note lent it, and the note's day (re-dated
+    to the same weekday).
+  - A copy pasted back onto its own cell changes nothing.
+  - Plain text pasted over a linked note replaces it, and the cell keeps the look the note gave it.
+- **A drag to another week:** each linked note keeps its phase when that phase runs in the drop week. It is re-linked
+  to that week's place in the phase ("Production wk 4"), keeping its look and day. Anywhere else it lands as a plain
+  note, re-dated to the same weekday. A shoot-day note follows by day: Day ten dragged two weeks on is Day 20. Typed
+  text in the same cell lands as the week's own note, as before.
+- **No change** for a cell with no linked note, nothing frozen edited, and no save-format change.
+- **Help:** one sentence in "Moving around, and moving notes".
+- **Proof:**
+  - A new leg, `phasekeys`, 18/18 on the build; 14 of its 18 fail on the step-3 build.
+  - Green on the same build: `phasenotes` 21, `phaselink` 14, `phaselook` 10, `wfkeys` 84, `noteviews` 15,
+    `wfnotecolors` 14, `wfnoteeditor` 13, `holidayrename` 14, `autonoterename` 24, `autonoteview` 18, `wfmenu` 39,
+    `wfkeysreal` 6/6, and `npm run check` 40/40.
+  - **Full gate: 4,235 PASS / 0 FAIL, GATE PASSED**, alone on port 8957, finished 16:34 on 6 Nov. Every baseline is identical: gates 2 and 3, the restore and `fields.byId`, gate 10's print documents, and gate 13's written month PDFs (byte for byte). `phasekeys` was in it, 18/18.
+- ⚠️ **Not for release on its own:** a linked note is not drawn in the Month view until step 5.
+
+### notes linked to a phase, step 3: a linked note's look travels with it (6 Nov 2026)
+
+Owner: *"Start step 3"*. Ruling R7(a) (`PHASE-LINKED-NOTES-PLAN.md` §11).
+
+- **What changed:** on a Notes cell that shows a linked note and no typed text of its own, styling now goes on the
+  note. That covers the text style bar (bold, italic, colour, alignment, size), dragging the row taller, and the note
+  editor's colour. Whenever the phase moves, the note arrives styled and in its tall row, and the old week keeps none of
+  it. Resetting the row height undoes it for good: a double-click on the row's handle or the right-click menu's Reset
+  row height.
+- **What didn't:** a cell with typed text of its own keeps its look on the week, as before.
+- **How:** the row drag and its double-click are frozen code (`installGridResizers`), so they are watched from outside
+  and the height moved onto the note afterwards. Nothing frozen was edited.
+- **Proof:**
+  - A new leg, `phaselook`, 10/10.
+  - Green on the same build: `phasenotes`, `phaselink`, `rowheight`, `rowmigrate`, `wfmenu`, `zoomresize`, `calzoom`,
+    `notewrap` and `textstyle`.
+  - **Full gate: 4,217 PASS / 0 FAIL**, every baseline identical.
+- ⚠️ **Not for release on its own:** a linked note is not drawn in the Month view until step 5.
+
+### notes linked to a phase, step 2: "Stays with" in the waterfall note editor (6 Nov 2026)
+
+Owner: *"can we start step 2"*. Rulings R1 ("Stays with"), R2(a) (one cell, one home), R3(a), R6(a) and R7(a), in
+`PHASE-LINKED-NOTES-PLAN.md` §4.4–4.5 and §10.
+
+- **The row:** under the Day picker, *Stays with* lists the week, then each phase that week shows ("Production wk 2").
+  A line under it says what will happen: "Moves when Production moves. Stays on its week 2." Choose a phase week and
+  the note moves whenever that phase does. Choose the week and the note stays put, as notes always have.
+- **What it opens on:**
+  - **A cell whose one note is linked** opens on that note's home and its day.
+  - **A cell with typed text and a linked note visiting** opens on the week. It names the visitor ("Also here:
+    “Visitor” stays with Production wk 6"), which keeps its link unless the choice is changed.
+  - **A note waiting on a phase's last week** says so in amber.
+- **Saving with a new choice gives everything typed in the cell that one home.** The cell's colour, size, style and
+  row height go with it. Automatic lines such as "Start Principal Photography" stay automatic. A day picked with the
+  Day dropdown becomes the note's weekday, so its date is drawn fresh after every move instead of being frozen into the
+  text.
+- **A colour picked on a linked note goes on the note.** So does "Show in month view".
+- ⚠️ **Not for release on its own:** a linked note is not drawn in the Month view until step 5.
+- **Proof:** a new leg, `phaselink`, 14/14. `phasenotes` 21/21. The note-editor legs `noteviews`, `wfnoteeditor`,
+  `wfnotecolors`, `holidayrename`, `autonoterename`, `autonoteview` and `wfkeys` are all green on the same build.
+- **Full gate (steps 1 and 2): 4,206 PASS / 1 FAIL, every baseline identical.** The one FAIL is a Load timeout in
+  `phasesui`, green alone.
+
+### notes linked to a phase, step 1: the engine (5 Nov 2026)
+
+Owner, 4 Nov 2026: *"we do need a way to link certain notes to certain weeks relative to a phase."* Rulings R1–R9 by
+picker on 5 Nov 2026, every one the recommendation (`PHASE-LINKED-NOTES-PLAN.md` §2). This is step 1 of 6 and has
+**no UI yet**. A linked note can only come from a file, so nobody sees a change until step 2 adds the editor's
+*Stays with* row.
+
+- **The store:** a new top-level save key, `phaseNotes`, keyed by the LINK: `<phase>@<n>`, the phase's n-th working
+  week, or `production@day<n>`, its n-th shoot day (R4(b)). Each entry is `{text, dow?, color?, size?, height?, style?,
+  monthHidden?, waterfall?}`. It is absent while empty, so every calendar without a linked note saves byte for byte as
+  before. No version bump (R9(a)): an older build opens the file without its linked notes.
+- **Placed every run:** `computeSchedule()` works out each note's week from the phase's own week numbers
+  (`placePhaseNotes`, on `schedule.phaseNotePlace`), as it does for the automatic notes. So typing a start, Build
+  Around, ▲ / ▼, the Shift form, an added hiatus and a Region change all carry a linked note, with no code in any
+  mover. A phase cut shorter keeps the note on its last week (R3(a)). A note with no day sits on the phase's first
+  drawn day that week (R6(a)).
+- **Drawn:** `effectiveNoteText()` draws a linked note after the week's own text and before its month notes. The
+  screen, Excel, the waterfall PDF, the widths and the row count all read that function, so all of them follow. Its
+  colour, size, style and row height travel with it (R7(a)), through the declarations `noteColorFor`,
+  `noteFontSizeFor`, `textStyleOf` and `syncRowHeights`. A week with typed text of its own keeps its own look. **No
+  frozen edit.**
+- **Kept safe meanwhile:** the waterfall note editor keeps, renames or deletes a linked line instead of copying it
+  into the week's typed text. Removing a custom phase turns its linked notes into plain notes where they were drawn
+  (§4.7). Reset Notes, New and Reset All clear the store, and the sanitizer drops hostile entries and counts them.
+- **Found on the way and fixed:** the row-height migration for files saved before 10 Sep 2026 treated any derived
+  height as an old file. The first build therefore "migrated" a linked note's height onto the week it had left
+  (`rowHeightsSynced`, `rowHeightsForFile`).
+- **Proof:** a new leg, `phasenotes` (fixture `phasenotes.sptcal`), 21/21 on the build. It covers every mover, both
+  exports, the Notes width, the editor, a custom phase removed, Save/Load, an older file, hostile entries and undo.
+  `npm run check` 40/40. Full gate: see HANDOFF.
+
+### A phase's own hiatus widens and narrows with the phase (10 Nov 2026)
+
+The owner: *"We need the expand and pull back to work with per phase hiatuses. And arguably, an entire phase, including
+its per phase hiatus should operate as one single block where the expand box would span the length of the entire phase
+including the hiatus"*.
+
+- **The hover prompt** now reads a phase's own hiatus band as part of the phase. Resting beside the band offers
+  **Expand?**, the dashed box runs through the hiatus weeks (one box from Test wk 8 through both Test Hiatus weeks to
+  wk 9, "these 4 weeks"), and the click widens the hiatus weeks with the rest. A widened band offers **Pull back?**.
+  Before, a blank beside a band offered nothing and the box stopped at the band.
+- **The double-click fill** widens the band too when the free column is on its left (⛔ frozen edit LR8 in
+  `computePhaseRowLayout`, owner sign-off by picker). Before, Test wk 8 and wk 9 went two wide and the two hiatus weeks
+  between them stayed one wide; a band could fill only to its right. Only a phase set to fill changes, and the screen,
+  the workbook and the waterfall PDF follow it together. Double-clicking the band itself still opens its editor.
+- **Expand? on both sides** (owner, trying it: *"once i expand one side, the box no longer pops up on the other side
+  empty space"*): a cell already widened to one side still offers Expand? on the blank on its other side, and the click
+  keeps the side it has. Before, the first Expand? took the other side's offer away.
+- Help: one sentence at the end of "How far a cell reaches". Nothing new is saved.
+
+**Verified:** new leg `hoverhiatus` 13/13 (red without LR8 and on the build before); the 15 pictured calendars lay out
+byte for byte as before; the waterfall PDF and the workbook identical to their baselines; the 20 layout fixtures,
+`phasefill`, `colsreset`, `fillspace`, `swapholds`, `stickycols`, `centrepullback`, `hoverexpand`, `phiatusnum`,
+`offweek` and `hiatusripple` green (five re-run alone after timing out under other sessions' load); `npm run check`
+42/42. No full gate (a partial gate of gate.sh's sections).
+### Ripple Hiatus Periods lives in Settings only (10 Nov 2026)
+
+Owner: *"Settings only"* — one global setting, which also removes clutter. It was already one preference; the switch
+rows at the top of the All-phase hiatus card and in every phase's Hiatus block were copies of it, and are gone. The
+switch is in Settings › Preferences › Hiatus. The result line under an edited hiatus stays; the month drag's question,
+the switch's title, the All-phase "i" and the help now name Settings. Verified: `hiatusripple.mjs` R0/R6/R9/R11
+rewritten for one switch, 19/19; `hiatusdrag.mjs` 14/14; `settingswin`, `hiatussidebar`, `phiatusnum`, `snapbox`,
+`badyear` green (73); browser check with the switch on and off; `npm run check` 42/42.
+### Compare dates a phase from the first week it works (10 Nov 2026)
+
+The owner, on a Compare window: two scenarios whose waterfalls were identical read Post as "12/20/27 – 8/11/28" and
+"1/3/28 – 8/11/28", with **"Start pushed 2 wks, end same"**. Post's typed start in the first was 12/20/27, the first
+week of the Holiday Hiatus. A hiatus PAUSES a phase rather than moving its start, so the grid's Post wk 1 was 1/3/28 in
+both, but Compare (and every `{<phase>.open}` header token, and the key facts band) read the typed date.
+
+- **The token is fixed, not just Compare** (owner: *"Fix the token"*): `phaseOpenDay()` steps a start that sits inside
+  an all-phase hiatus or the phase's own one forward, a week at a time exactly as the phase's weeks are counted
+  (`extendEndForHiatus`), to the first week it works. Production already did this (its first real shoot day). So
+  Compare, the band and any header line printing a phase's start now agree with the grid.
+- **"Weeks, first phase to last"** reads the same first working day, so a calendar whose first phase is typed into a
+  break no longer counts the break's weeks.
+- **Nothing else moves:** a start outside a hiatus prints exactly as before, no typed date is rewritten, and no default
+  header or test fixture prints a phase's start token, so no export baseline can change. The auto header's
+  "Writer's Room Opens" line still reads the typed field on purpose (it is held byte for byte).
+- **Verified:** new leg `comparehiatus` (8 cases on a synthetic three-scenario file; red on the build before the fix at
+  H1–H4 and H6), in `gate.sh`; a partial gate of `hdrtemplate`, `hdreditor`, `scenarios`, `scenariofacts` and
+  `comparehiatus`, 92 PASS / 0 FAIL; `npm run check` 42/42. In the browser, nine hiatus edits (a phase's own break
+  added, lengthened, at its start; an all-phase break moved and lengthened; Ripple Hiatus Periods on and off): Compare's
+  rows matched the grid's first and last weeks every time.
+
+### The toolbar in a new order, and Build Around spaced from Shift (10 Nov 2026)
+
+Two follow-ups from the owner on the regrouped toolbar ("The toolbar regrouped: one gap, grey wells…", further down):
+
+- **A new order** (*"Month/Waterfall - Shift tool/Build Around - Styling Menu - Fill gaps/side boxes/header -
+  undo/redo"*): after the view toggle come Shift and Build Around, then the text style buttons, then Fill Gaps / Side
+  Boxes / Header, with Undo / Redo back at the far right. Everything after the view toggle is still packed to the right.
+- **Build Around stands 12 px from Shift** (*"there should be MORE space between the right shift button and build around
+  so it matches the current spacing of the redo button and size button gap"*), not 2 px, so every neighbouring pair on
+  the bar is now the same 12 px apart.
+
+Every control kept its id and the engine did not change. On a window narrower than about 1,640 px (with Fill Gaps
+showing) the text buttons drop to their own line at the left, as before, and every other section stays on the first line.
+
+**Verified:** `stylebarplace` rewritten for the order (every gap 12 px, Shift to Build Around included), red on the build
+before it; `monthmap` C0 / B7 now expect the text buttons after Build Around; the toolbar's neighbouring legs green (list
+in HANDOFF); `npm run check` 42/42; the fence against the build before, no difference in any of its 511 values. Driven by hand: both popovers open under their
+buttons, Fill Gaps toggles and Undo undoes it from the far right, the Month view, the 1,440 px fallback.
+
+### Build Around: the Prior to / After buttons are gone (10 Nov 2026)
+
+**What changed.** The two buttons under Build Around's list, *Prior to X* and *After X*, are removed. The box now
+runs title, Phases, the list, the line that names a phase left unticked, *Pin to a date*, Build. It always builds
+both sides of the pinned phase, and what gets built is exactly what is ticked. It opens with the same ticks as before.
+To build only one side, untick the other: a box, or a drag down those rows. The Shift box keeps its own *Prior to* /
+*After*.
+
+- `src/chrome/PreviewToolbar.jsx`: the row is out of `#pop-solve` (`tool-solve-back` / `tool-solve-fwd` retired).
+- `src/legacy/app.js`: `solveDir`, `solveDirBtns` and their handler are gone; `solveDefaultOn()` lost its side
+  argument; `solvePressed()` became `solveIsDefault()`, so a new pin re-ticks only while the ticks are untouched. The
+  line that names an unticked phase lists every phase the rule left out, on either side.
+- `src/styles/legacy.css`: Build Around's list box carries the gap the row gave (10 px to *Pin to a date*).
+- Help (*Adjusting dates*): the sentence about the two buttons is replaced.
+
+**Why.** The owner, the day the redesigned box went live: *"Arguably using the build around tool is such a big change that i dont think we need the before and after buttons. I'd say just get rid of them entirly"*. Built to try in the
+browser first, then *"Yes, finish it"*.
+
+**Verified** on `dist/index.html` sha256 `233e3898…`: `npm run check` 42/42. Legs, 14 runs, 0 failures:
+`buildaround` 36/36 (O1 now holds that the buttons are gone and that Shift still has two), `rebuildticks` 20/20,
+`buildalongside` 8/8, `shiftheld` 13/13, `snaptools` 14/14, `overrides` 20/20, `anchorside` 39/39, `customunits`
+(both states), `builtindates` (both states), `datepick` 17/17, `lastedited` 22/22, `undokeys` 11/11. Five legs pressed
+the buttons and now reach one side by the ticks alone (`T.solveKeepSide(dir)` in `t/lib.js`, which `T.rebuildAll`
+uses too). On a build with the buttons put back (`3f99d989…`) the legs go red: `buildaround` O1, `rebuildticks` L2 and
+D1, `buildalongside` A6. In the browser: the box opens with 4 of 5 ticked and the Localization line, a row click
+pins, a box ticks, Build moves the ticked phases and one Undo restores them. ⚠️ No full gate was run: chrome only.
+
+**Re-checked after merging `origin/main`** (`6afd31d`, the hover prompt) on the merged build, sha256 `182b363b…`:
+check 42/42; the same legs green again, plus the merged-in work's own: `hoverexpand` 18/18, `noteviews` 15/15,
+`textstyle` (with its `carry-rich` fixture) 52 checks. ⚠️ `hoverexpand` timed out once waiting for the grid when run
+first in a batch of eight; green on two re-runs alone, so recorded as a flake under load, not a failure.
+
+**And again after `origin/main` moved to `fefe9dc`** (the toolbar regroup, which edits the same toolbar file; it
+merged without a code conflict). Merged build sha256 `a661415f…`: check 42/42 and 15 leg runs, 0 failures:
+`buildaround` 36/36, `rebuildticks` 20/20, `buildalongside` 8/8, `anchorside` 39/39, `shiftheld` 13/13, `snaptools`
+14/14, `overrides` 20/20, `datepick` 17/17, `stylebarplace` 13/13, `hdrcontrols` 12/12, `fillspace` 6/6, `textstyle`
+52 checks, `hoverexpand` 18/18, `lastedited` 22/22, `undokeys` 11/11.
+
+### The toolbar regrouped: one gap, grey wells, Undo first; Fill Space is Fill Gaps (10 Nov 2026)
+
+The preview toolbar's sections were told apart by gaps that were all different. The owner asked for about twenty
+mocked-up looks (`mockups/toolbar-variations.html`, kept in the repo), combined three of them, asked for Shift in white
+and for **one consistent spacing**, and picked **variation 27**, then took the grey box away from Shift and Build Around:
+
+- **The view toggle sits alone at the left edge; every tool is packed to the right**: Undo / Redo first (they were the
+  last thing on the bar), then the text style buttons, Shift and Build Around, then Fill Gaps, Side Boxes and Header.
+- **One gap between every section: 12 px**, from one value (`--tb-gap`). Build Around's extra 16 px margin is gone.
+- **Grey wells** like the Waterfall | Month toggle around Undo / Redo, the text buttons and the page tools, all the same:
+  2 px of padding, 2 px between buttons, corners that nest. Their buttons have no border until hovered or open, then show
+  as a raised white button; a pressed style (Bold on) is that raised button in purple. Shift and Build Around keep their
+  white ground and navy outline and have no well.
+- **Fill Space is now "Fill Gaps"** (owner). Words only: the button's id and the saved calendar key keep the old name,
+  so every saved file and everything wired to it is unaffected. The Help says Fill Gaps too.
+- Every control kept its id; the engine did not change.
+
+On a window narrower than about 1,640 px (with Fill Gaps showing) the text buttons drop to their own line at the left,
+as before, and every other section stays on the first line, still 12 px apart.
+
+**Verified:** `stylebarplace` rewritten for the new sections (P0 order, P2 the 12 px gaps on one line, P10 one well look
+and no well on the date tools, P11 the new name), red on the build before it; `textstyle` B2, `hdrcontrols` T1 and
+`fillspace` S1 updated; the toolbar's neighbouring legs green (list in HANDOFF); `npm run check` 42/42; the fence's
+computed styles inside `#table-wrap` against the build before: the only difference, the waterfall's scroll box 4 px shorter at 1,600 px, where the text well has its own line and is 4 px taller than the bare buttons were. Driven by hand: Shift, Build Around, Side Boxes and the
+Header menu each open under their own button; Fill Gaps toggles and Undo undoes it from its new place; Bold applies.
+
+### rest on empty space: "Expand?"; on a widened cell: "Pull back?" (10 Nov 2026)
+
+Owner, 6 Nov 2026: *"could the system recognise blank spaces ... draw a square around them on hover and ask Expand?"*,
+*"It also needs the reverse to unexpand"*; built 10 Nov on *"Yes, build it"*, with three corrections from the test
+files that day.
+
+- **What.** In the Waterfall of a calendar on the layout rules, resting the pointer on an empty slot beside a phase
+  outlines the weeks where that space sits beside it and shows **Expand?** in the middle of the outline; the click
+  widens the phase across the space in **those weeks only** (owner: *"it also expanded test wk 1"*, on a first build
+  that set the phase's fill wish instead). Resting on a widened cell outlines the space it took and shows **Pull back
+  this week?** or **Pull back?**: the click clears the dragged widths of that run, or turns a fill wish off. One undo
+  step each. Never with cells highlighted, in the Month view or on an unstamped calendar.
+- **Steady, and a little sooner** (owner, later that day: *"the expand box and button seem to disappear weirdly when
+  you move your cursor after they first pop up"*, *"a tiny bit sooner"*). Once up, the outline and chip stay while the
+  pointer is anywhere on them, across every week of the outline; the first live build redrew them on the next week.
+  They appear 200 ms after the pointer reaches a cell (300 ms before, and restarted by every small movement).
+- **Where the chip sits.** The very centre of the outline, both ways (owner: *"always sit in the very center of the
+  outlined box"*), except on the Swap Column button (*"ok except when these buttons collide"*): the button keeps its
+  place and the chip steps 4 px clear, inside the outline where there is room, else beside the button on the same row.
+- **How.** Chrome on a new overlay layer (`.grid-hover-layer`) inside `.sheet-grid-wrap`, beside the selection layer;
+  nothing frozen changed. Expand writes the per-cell width an edge drag writes (`cellSpans`); Pull back deletes those
+  or calls the fill wish's own setter. Nothing new is saved. Help: "How far a cell reaches".
+- **Verified.** New fixture `hover-expand.sptcal` and leg `hoverexpand` (16 checks, real pointer events) in the gate.
+  Targeted, on this build: `hoverexpand` 16/16; the pointer legs `centrepullback` 12, `phasefill` 13, `colsreset` 8,
+  `fillspace` 6, `swapholds` 8, `stickycols` 12, `noswapbtns` 7, `colswappartial` 8 + 8, `swapsplitreuse` 5, `notewrap` 16,
+  `undokeys` 11, `wfmenu` 39, `xlsxlimits` 5, `wfnotecolors` 14, `calzoom` and `zoomresize` pass, `noteviews` 15 (its F2
+  Load times out under load on this build and on the live one alike); the gate's whole swap section, `onecol` and
+  `colreuse` under the gate's own judges, 161 PASS / 0 FAIL; `npm run check` 41/41. No full gate: nothing frozen,
+  exported or saved changed.
+
+### Undo back to a never-edited calendar no longer logs a "value ignored" warning (10 Nov 2026)
+
+**What changed.** One line in `lastEditedForStep()` (`src/legacy/app.js`), the function that gives an undo or redo
+step the Date Last Edited its content had. A content first seen with no stamp (a new calendar before its first change)
+is remembered with `null`, and the function wrote that `null` onto the step as `lastEdited`. It now leaves the key off.
+
+**Why.** `sanitizeSnapshot()` counts a `null` there as a value the app does not write, so every undo back to a
+never-edited calendar logged *"1 value(s) in this calendar were not in a form the app writes, and were ignored"* on
+the console. Nothing a user sees was wrong: `applyStateSnapshot()` reads an absent key and an invalid one the same
+(never edited, the header reads today), and the dropped count is read nowhere. It was found by `buildaround`'s K0
+(0 console errors) the first time that leg ran on a build holding Date Last Edited (the merge of 10 Nov): 35/36.
+
+**Verified.** On the build with it (`dist/index.html` sha256 `52407af5…`): `npm run check` 42/42; `buildaround`
+36/36 (K0 green), `lastedited` 21/21, `rebuildticks` 20/20, `anchorside` 39/39, `buildalongside` 8/8, `shiftheld`
+13/13, `datepick` 17/17, `snaptools` 14/14, `overrides` 20/20, `hdrcontrols` 12/12, `undokeys` 11/11. In the browser:
+a new calendar, a title typed, Undo: the title is back to empty and the console is clean. ⚠️ No full gate was run.
+
+**The leg that holds it** (added the same day, on the owner's *"Yes, add it"*): `lastedited` N2. After New it types a
+title, presses Undo, and Saves As: the title is back, no "value ignored" warning was logged (counted before and after),
+and the saved file still has no `lastEdited` key. `lastedited` 22/22 on the live build (`52407af5…`); 21/22 with N2 red
+(1 warning) on a build with the guard taken out, which is byte for byte the pre-fix merged build (`c0bb3da5…`). Until
+N2, only `buildaround`'s K0 caught this, and only because that leg happens to undo back to its fixture.
+
+### Build Around works like the Shift box, and stops leaving the Writer's Room out by rule (10 Nov 2026)
+
+Build Around's box now has the Shift box's look and feel (owner, 9–10 Nov 2026: *"make Build Around match the same UI
+look and feel as the shift tool"*; a list of the differences, a mockup, a working build to try, then *"Yes, finish
+it"*; REBUILD-FROM-LENGTHS-PLAN.md §7, `mockups/build-around-like-shift.html`).
+
+- **The list first**, in the same box as Shift's: a header strip with a box that ticks every phase (and, once every
+  phase is ticked, shows a minus and clears them) and the count, in place of the column header.
+- **Click a row to pin that phase; its tick box ticks; drag to tick or clear a run.** A click on a row used to flip
+  its tick. Ticking never moves the pin.
+- **Prior to … / After …** under the list, in place of the *← Before · Both · After →* switch above it. There is no
+  Both button: the box at the top ticks everything (owner's ruling).
+- **Pin to a date** sits under the list, the phase directly above "starts on", as in Shift.
+- The hint opens upward and rows have no hover tooltips, so nothing floats over the list.
+
+**Which phases start unticked has changed.** Until now the Writer's Room and every custom phase were always left out.
+Owner: *"its just confusing if you click prior to pre prep and then writers room isn't selected"*, and *"writers room
+doesnt always overlap the next phases, only sometimes"*. Now a phase is left unticked **only when it runs alongside
+the phase it would be built against** (five shared days or more: built in line, it would be pulled away from it), and
+a line under the buttons says so by name: *"Writer's Rm left unticked: it runs alongside Pre Prep. Tick it to build
+it in line."* A Writer's Room that ends before Pre-Prep starts is ticked and built like any other phase. It applies
+to how the box opens and to Prior / After. A custom phase with no date yet still starts unticked.
+
+**Help** ("Adjusting dates") now describes Build Around: it still said "Rebuild From … Work backwards … Close all
+gaps", and held that paragraph twice.
+
+No frozen code, no writer and no save-format change: nothing new carries an id, everything is inside `.tools-menu`,
+and the solvers (`buildAround`, `trialBuild`) are untouched. Verified: `npm run check` 42/42 (a new check holds Build
+Around's hint opening upward); `buildaround` 36/36 (updated, with new cases for the order of parts, the header box,
+pinning by a click, the drag); `rebuildticks` 20/20 (updated: Casting beside Prod Prep left out and named, the room
+ticked, Localization out while it starts in Post's last week and ticked once it starts after it); new leg
+`buildalongside` 8/8 on a calendar where phases touch by two days (they stay ticked); the legs that use Build Around
+through its ids, unchanged, and the Shift legs green (21 runs, 0 failures). Three broken builds turn the legs red:
+one shared day counting as alongside (`buildalongside`), the old by-kind rule (all three), a row press that flips
+its tick (`buildaround` D1). No full gate: chrome only.
+
+### The text style buttons move into the toolbar (10 Nov 2026)
+
+The text style bar is no longer a boxed line of its own under the toolbar. Its buttons (Size, Bold, Italic, text
+colour, alignment, Clear, and Highlight when a header or box line is picked) now sit **on the toolbar's first line,
+just left of Shift**. The calendar gains that line's height. Built and adjusted in three passes with the owner trying
+each in the browser: *"move the styling bar to this blank space between Month and the left shift button. It should only
+be the buttons ... not the surrounding box, text, etc"*, then *"make the buttons tall enough to match the look and
+style of the other buttons in the menu"*, then *"the same size gap between the right edge of the styling menu and the
+left shift button as there is between build around and fill space"*, then the Size box's arrow moved in from the edge.
+
+- **Bare buttons**: no box, no "TEXT" label, no "Highlight any text…" line. That hint is now the buttons' tooltip
+  while nothing is picked.
+- **The toolbar's look**: every control is 30 px tall with the white ground, grey border and rounded corners of Undo
+  and Side Boxes; Bold, Italic, the colour and Clear are 30 px squares like Undo. The Size box draws its own arrow 8 px
+  in from its edge (the browser's sat against the border). The header editor's own copy of these controls is unchanged.
+- **The gap before Shift is Build Around's gap** (26 px): one shared value, so the two cannot drift apart.
+- **On a narrower window** (below about 1,690 px with Fill Space showing, about 1,580 px without; less in the month
+  view, which has no Side Boxes), the buttons cannot fit beside Shift, so they alone drop to their old line under the
+  toolbar, and in the month view share it with the month arrows as before. Shift and Undo never move to a second line.
+  The fit is measured (it counts the Highlight button as shown, so picking a header line never flips it).
+- Picking a header line adds the Highlight button on the left of the group; nothing else moves.
+
+Chrome only: nothing in the calendar, the exports or saved files changes. The month arrows keep their line in the
+month view. **Verified:** a new leg `stylebarplace` (11 cases: the markup, the 30 px controls and the Size arrow, the
+first-line geometry and the 26 px gap, the header pick, the narrow fallback in both views, no flip-flop, the tooltip,
+the shared value, the toolbar row left classless, no console error), red on the build before it in all 8 placement
+cases; `textstyle` B2, `hdrcontrols` T1 and `monthmap` C0 / B7 updated to the new place; the neighbouring legs green
+(list in HANDOFF); `npm run check` 41/41. The fence's computed styles inside `#table-wrap` against the build before:
+511 values, the only difference the waterfall's scroll box 4 px taller (789 → 793 px at 1600 × 1200), which is the
+grid fit giving the calendar the height the slimmer toolbar line freed.
+
+**Found on the way:** the first cut put its narrow-window class on the toolbar row, and `sharecopy2` caught it riding
+into every shareable copy's markup (the copy is a clone of the page that empties the row but keeps its attributes).
+The class lives on the bar's host instead, which leaves with the row's children.
+
+### the auto header's date is the Date Last Edited (9 Nov 2026)
+
+Owner: *"make the date in the top left corner for waterfall view (and top right corner for month view) be the last time
+the calendar was edited … basically anything that would change if it was exported to pdf or excel. Then add this 'Date
+Last Edited' variable to the template builder."* Until now that date was simply today, so a calendar printed a week
+after its last change claimed to be a week newer than it was.
+
+- **What.** The waterfall header's top left (M.D.YY) and the month header's top right (M.DD.YY), on screen, in Excel and
+  in both PDFs, read the last time the calendar changed. A new token, `{lastEdited}` (with `:long`, `:slash`, `:iso` and
+  `:dotpad`), is listed first among the dates in the template builder, in its own **Date Last Edited** group, each entry
+  showing its live value. The built-in Default template now uses it, so Template mode seeded from the Default matches
+  Auto. A header already in Template mode keeps whatever its lines say, `{today}` included.
+- **What counts as an edit.** The calendar's own content: everything a saved file holds, less the view, the sidebar tab
+  and the Holidays card's add-a-holiday boxes (a form until Add). Preferences are not in the file, so they never count.
+  Switching views, paging months, opening dialogs and exporting change nothing. Switching the header's mode does count
+  (it is a header setting), even when the printed text is the same.
+- **Undo puts the date back.** Each content the calendar has had since it was loaded remembers the time it was first
+  reached, so Undo, Redo, a drag answered Undo, or a value typed back the way it was bring back the date that content
+  had. Each scenario tab keeps its own date.
+- **Saved files.** A new permanent snapshot key, `lastEdited` (an ISO time in UTC), written only once a calendar has a
+  stamp, so a calendar never edited saves byte for byte as before; it is not in the undo history. A file with no stamp
+  (every calendar saved before today) takes the file's own last-modified time when it is loaded, and its next save
+  writes that down. A new calendar has none, and reads today until its first edit. `SNAPSHOT_VERSION` is unchanged:
+  an older build ignores the key and prints today, as it always did.
+- **Verified:** new leg `lastedited` (21 checks): the stamp in both headers and in Excel's header; a view switch, a
+  sidebar tab and the add-a-holiday box don't count; an edit shows today, Undo/Redo and a title typed back bring their
+  own dates; Save As writes the stamp; a pre-stamp file reads (and then saves) its file time; the template builder's
+  group and live values; Template mode's Default; scenario tabs; New. A targeted gate of the header, save, undo and
+  scenario legs (gate.sh's own judges): 281 pass, 3 fail, none from this change (two flakes green alone, one stale
+  prover that fails identically on `main`). The check costs about 0.2 ms per render against a ~20 ms render.
+  `npm run check` 40/40.
+
+### Shift: the list first (9 Nov 2026)
+
+The Shift box no longer asks *What moves* with three buttons. It goes from its title straight to **the list of
+phases**, and the ticks alone say what moves. Built from the owner's eight-point spec (*"build this"*, 9 Nov 2026) and
+three corrections made the same day while trying it in the browser (ANCHOR-TO-DIRECTION-PLAN.md §7.6).
+
+- **A header strip in the list**: a box that ticks every phase and, once every phase is ticked, shows a minus and
+  clears them all, with the live count ("4 of 6 move") beside it. "Phases" above the list is now just the word.
+- **Click a row to choose it; its tick box ticks.** A click on a row outlines it and leaves its tick as it was
+  (owner: *"could it just select it but keep the checkbox selected?"*; the first build cleared it). A click on the
+  tick box flips the tick.
+- **Drag to set a run.** Press on a row and drag up or down: every row between the press and the pointer takes one
+  value, on if the pressed row was off and off if it was on. Dragging back un-does an overshoot.
+- **Prior to … / After …**, two buttons under the list, name the outlined row. Prior ticks it and every phase above
+  it; After, it and every phase below it. Each replaces the ticks. A long name is cut with an ellipsis.
+- **To a date follows the list** (owner: *"when pre-prep is selected, it should be the default option under To a
+  date. The list should also be limited to only selected phases"*): the phase above "starts on" is the outlined one,
+  and only ticked phases are offered. Picking a phase there outlines its row. The phase that lands is no longer
+  pinned in place of its tick: every row keeps its box.
+- **Nothing floats over the rows**: the header strip sits above them, no row has a hover tooltip, and the box's
+  "i" hint now opens upward.
+- It still opens with every phase ticked, By weeks, so "2 wks, Later" moves the whole calendar as before (the owner
+  asked for the case for opening with none ticked, and kept it).
+
+**What a set of ticks moves** is unchanged in substance, and now depends only on the set: every phase is the old
+whole-calendar move; the top of the list down to one phase is the old Phase & before; the bottom of the list from one
+phase is the old Phase & after (Shift From); any other set takes the notes inside each ticked phase's own weeks.
+
+**A bug found while testing with real clicks, fixed before anything shipped:** the guard that swallows a press's own
+click was disarmed by a timer, and when no click followed the press it ate the next click instead, so "choose a row,
+press After" did nothing. The next press or key drops the guard now.
+
+No frozen code, no writer and no save-format change: nothing new carries an id, and everything is inside
+`.tools-menu`. Verified: `npm run check` 41/41 (a new check holds the hint opening upward, which a harness leg cannot
+hover); `anchorside` rewritten, 39/39 (each of the eight points and the three corrections has a case); the sixteen
+other legs that drive the Shift box or share its rows green, five of them ported from the old buttons to the list
+through new `T.shiftPress` / `T.shiftDrag` / `T.shiftSide` helpers. Three broken builds each turn `anchorside` red (a
+row click that flips the tick: M1, D4, W1; a To a date box that ignores the outline, or lists every phase: W1). No full
+gate: chrome only.
+
+### Ripple Hiatus steps over locked breaks, as Shift does (6 Nov 2026)
+
+Shift learned to step over a locked hiatus on 5 Nov (owner's ruling: count only working weeks, so the gaps between
+phases are kept). Ripple Hiatus still pushed by calendar weeks, so a push could carry a phase's start across a locked
+break, moving the break from one phase into the one before it: a week of overlap there and a week's gap after.
+Owner, by picker: *"Yes, plan it"*, then *"Build it"* and *"Distances only"* for the line (HIATUS-RIPPLE-PLAN.md §12).
+
+- **Now:** a hiatus change moves every later phase by the same number of WORKING weeks: a phase whose start crosses a
+  locked break moves the break's length further, and every gap and overlap is kept. The line under the hiatus already
+  shows each phase's real distance ("Pushed 4 wks: Prod Prep · Pushed 2 wks: Pre Prep, Post"); nothing is added to it.
+- **The hiatus being edited is not stepped over.** It stays where you put it, but it is the reason for the push, not an
+  obstacle to it: counted as one, lengthening a break 2 → 3 weeks would push the phase that started right after it 2
+  weeks. Notes in its weeks move with the work, as before.
+- **Unchanged:** when a ripple runs, the switch, the two undo steps, and every push that crosses no locked break.
+- **Verified:** new `ripplestep.sptcal` (synthetic) and `hiatusripple.mjs` S1–S4 (Writer's Rm's own hiatus pushing Prod
+  Prep over the locked Christmas break; undo; redo and the pull back over it; the edited-hiatus trap). `hiatusripple` **19/19** on the build; on the live code (`850d930`) S1, S3, S4 red (the crossing cases); on a build that
+  counts the edited hiatus as an obstacle (`stepOverHeld(n, hf.held)`) R4, R5, S4 red. The neighbouring set (base with
+  the waterfall PDF and Excel identical to the baselines, the hiatus legs, undo / dialog keys, `shiftheld`, `anchorside`,
+  `phasearrows`): 215 PASS, its only FAIL S3's expected line order, corrected in the test (pulls are listed smallest
+  first, as the line always has). `npm run check` 40/40. Help page: one sentence (Ripple counts working weeks, like Shift).
+
+### Ripple Hiatus: a Weeks change moves the phases after it at once (5 Nov 2026)
+
+The owner gave Writer's Rm a 2-week hiatus (which pushed everything after it), then changed it to 3 weeks and saw
+nothing move: *"when i try to adjust it from 2 weeks to 3 weeks it doesnt shift everything down"*. The push did come,
+but only once focus left the Weeks box or Enter was pressed, while the hiatus's own band grew at once. Offered a
+one-second pause; the owner: *"it should do it immediately not after a second"*.
+
+- **Now:** every number a hiatus's Weeks box takes (spinner, arrow keys, typing) pushes or pulls the phases after it at
+  once, cursor kept in the box, for all-phase and per-phase hiatuses alike. 2 → 3 → 4 is two pushes of 1 week, and one
+  ⌘Z still takes back the last push and keeps the number. An emptied box waits for the next number.
+- **Unchanged:** a start date typed by hand still waits until it is finished (Enter or leaving the box), because a year
+  typed digit by digit passes through real dates (0002, 0020, 0202); a date picked in the calendar pushes at once.
+- **Also fixed:** leaving the box right after a push no longer wipes the "Pushed 1 wk: …" line under the hiatus.
+- **Verified:** `hiatusripple.mjs` R1, R3, R5 rewritten and R8 extended with the owner's case (a phase's own hiatus,
+  Weeks 2 → 3 by arrow): 15/15 on the build, R1 / R3 / R5 / R8 red on the live code. Help page reworded. On the build
+  merged with v1.12.0: 212 checks of the neighbouring legs green (base with the waterfall PDF and Excel identical to the
+  baselines, the hiatus legs, undo and dialog keys, Shift's step-over, Shift, the phase arrows); `npm run check` 40/40.
+
+### a follow-on carries its predecessor's width (rule 22, 6 Nov 2026)
+
+[`LAYOUT-RULES.md`](LAYOUT-RULES.md) §0 rule 22. Owner, on a test calendar: *"i feel like its weird that the last 3 weeks
+of prod prep extend across"*, then a picture, *"this is how it should sort"*, and by picker *"Build it"* (the sign-off
+for a frozen edit).
+
+- **What was wrong.** Prod Prep followed a two-wide Pre-Prep but sat one wide, because a Casting phase would take the
+  third column before Prod Prep ended (rule 13). Then, alone for its last three weeks, it filled all three columns
+  (rule 14), right before Production and Sim Post began in two of them.
+- **What changed.** Frozen edit LR6 in `computePhaseRowLayout`, stamped calendars only: a phase that takes over a column
+  the week its occupant ends keeps the cell that occupant drew in its last week (counting a column rule 21 kept for
+  it), while those columns stay empty. Once one is taken, it keeps what it had less that column until it ends, and does
+  not spread again, even alone; never squeezed, it fills alone as before. A column already taken
+  in the follow-on's first week was never carried, so Production after a wide Prod Prep, with the lane beside it, is
+  unchanged. Help: one sentence in "How far a cell reaches".
+- **Fixed before commit.** The first test build measured the predecessor by its last week's even share only: a
+  Pre-Prep kept two wide by rule 21 beside Casting handed on nothing, and Prod Prep drew an upside-down T (*"wait why is
+  it still doing the upside down T pattern for prod prep"*). Its hold also handed back a freed column the phase had
+  spread into (a run that shrinks; found by the fewest-columns session). Fixtures `layout-r22b` and `layout-r22c`, red
+  on that build at R22Bc and R22Ca.
+- **Verified.** New fixture `layout-r22` (the owner's shape in 2031), 8/8, red on the build before at R22c and R22d.
+  Re-expected: `layout-r13` R13i (Delivery carries Post's two-wide cell until Marketing takes the column, then stays one
+  wide) and `layout-r3b` R3Bd (Prod Prep carries Pre-Prep's three-wide cell until Post arrives, then two wide).
+  `fill-intent` gained a three-week phase beside Writers' last weeks, so its Pre-Prep still starts one wide and
+  `phasefill` 13/13 and `colsreset` 8/8 keep testing the double-click wish (13/13 on the build before too). The 15
+  pictures score the same (98.1%, 31 column misses, 0 width misses): none narrows a run.
+
+### the waterfall uses as few columns as it can (rule 23, 6–9 Nov 2026)
+
+[`LAYOUT-RULES.md`](LAYOUT-RULES.md) §0 rule 23. Owner, two screenshots of a test calendar (today three columns, wanted
+two): *"We should always prioritize as few collumns as possible"*; by picker *"Yes, build it"*, *"Fewest columns"* over
+Post keeping the Sim Post lane, and *"Fill the width"* for a phase alone in its last weeks (no width change). Numbered
+23, not 22: the sticky-columns session's width rule (a follow-on carries its predecessor's width) took 22 the same night.
+Then, 9 Nov 2026, by picker in that session: *"Give way"*: a moved phase's column of its own gives way when it costs one.
+
+- **What was wrong.** The rules place one phase at a time and cannot look ahead. Prod Prep took Pre-Prep's handed-off
+  column, so Casting, starting beside it and not following on, could not sit left of it in Writers' free column (R-D)
+  and opened a third column. Had Prod Prep followed Writers into its column (freed three weeks before, rule 2's short
+  gap), Casting would have taken Pre-Prep's, and the year needs two.
+- **What changed.** Wherever the rules have a choice of column for a phase (a handoff, a short gap, right of everything
+  running, Production's free columns, Post's lane, or a new column), each allowed one is tried with the rest placed by
+  the rules, and the one leaving the fewest columns, summed over the year blocks, is kept. A tie keeps the rules' own
+  pick, so a calendar they already lay out in the fewest columns is unchanged. R-D still bounds the choices; a hand
+  move and a remembered predecessor (sticky columns) are not choices. A moved phase that remembers a column of its OWN
+  is: that new column against the rules' pick, the fewest columns winning and a tie keeping the own column, so a nudge
+  that cost nothing still holds (the owner's Casting, moved, had kept opening a third column beside two that would do).
+  Accepted consequences: Post may start under Production instead of
+  continuing the Sim Post lane when that saves a column, and a phase nobody moved can change column when another moves
+  far enough that the saving goes away. Help: one sentence in "Where a phase goes". Built on sticky columns (`dc8482b`).
+- **Verified.** New fixture `layout-r23` (the owner's calendar, shifted to 2031): two columns, red on the build before
+  (three). `layout-r3b`, `layout-r2g` (R2Gd) and `layout-r21` re-expected, each one column narrower;
+  new `layout-r21b` and `layout-r3c` keep rules 21 and 3 tested in shapes rule 23 cannot narrow (green on both builds).
+  New `layout-r23b` (the owner's calendar with Casting remembering a column of its own): two columns, the memory still
+  in the file, red without the give-way. All 17 layout fixtures, `stickycols`, `swapholds`, `phasefill`, `colsreset`, `centrepullback` and `simpostdays` green;
+  `npm run check` 40/40. The 15 pictured calendars were scored on the prototype (byte-identical layouts, 98.1% / 31 /
+  0); the owner waived re-scoring the final build.
+
+### Fill Space: a switch for one even width per phase (9 Nov 2026)
+
+Owner: *"a toggle to the left of side boxes button that turns on or off expand rows to fill empty space"*; then, on a
+first build that kept every phase one column wide: *"when i say fill space i mean collumsn that fill only a portion of
+the phase such that only some weeks are wider than others. The algorithm should always fill collumns as wide as they
+have space for if they are all uniform in width."* Rulings by picker: even within each year; a double-click fill wish
+still wins; the frozen edit (*"Yes, make the edit"*).
+
+- **What.** A **Fill Space** switch in the preview toolbar, left of Side Boxes, in the Waterfall of a calendar on the
+  layout rules. On (the default) is the layout as it was: a phase widens into the columns beside it from the week they
+  are free, so its width can step up partway through. Off, no partial fills: every phase has ONE width per year, the
+  widest that is free on every week of its run there, in the calendar, the workbook and the PDF. A double-click fill
+  wish still widens that phase week by week, a keep wish keeps it one wide, and a dragged exact width still applies.
+  Saved with the calendar (`fillSpaceOff`, written only when off), one undo step, back on with New. Reset Columns leaves
+  it alone: it is a setting, like Single Column Mode.
+- **How.** Frozen edit LR7 in `computePhaseRowLayout`, owner-approved, active only with the switch off: a phase with no
+  wish takes its run's planned width (`layoutEvenPlan`: right first, then left into what no overlapping run holds)
+  instead of the per-week walk, and rule 21's and R-E's passes leave it alone. The control is a toggle button with a
+  drawn switch, not a Mantine Switch, whose automatic input id the save sweep would have baked into every file.
+- **Fit.** Labelled above 1300 px; the switch alone from 1300 px down. It adds a second toolbar line only between about
+  1200 and 1230 px.
+- **Verified.** Leg `fillspace` 6/6 on `layout-r13` (on: Post 2031 two then three wide, Writers one then two; off: Post
+  two and Writers one all year, every phase one width per year, every cell kept, the file key, no new field id, a fill
+  wish still varying, undo, the Month view, New). With the switch on: the 15 pictures and the layout fixtures, numbers in
+  HANDOFF; the full gate's export baselines.
+
+### a phase you move keeps its column (sticky columns, 6 Nov 2026)
+
+[`STICKY-COLUMNS-PLAN.md`](STICKY-COLUMNS-PLAN.md), [`LAYOUT-RULES.md`](LAYOUT-RULES.md) §0 rule 10. Owner, three
+screenshots of a test phase nudged a week at a time around Production (right, LEFT in the week the two start together,
+right again): *"its not just about production i dont like how it does this for any phase"*; by picker *"Plan sticky
+columns"*, then rulings K1–K4 as recommended.
+
+- **What was wrong.** Rule 6's same-week tie gives a column that has just come free to the shorter of two phases
+  starting that week, so a phase nudged through that week jumped to the other side and back. Any fixed tie rule makes one
+  of the two jump (measured), and reversing it costs one of the 15 pictured calendars. The layout had to remember.
+- **What changed.** A phase the user MOVES (a typed date, ▲ / ▼, Shift, Build Around, a length, a hiatus that moved it)
+  remembers what its column held before it — the phase it followed, the Sim Post lane, or a column of its own — and keeps
+  that column whenever its new dates still fit there (K1, K3: even past rule 2's four-week gap). Where it can't fit, the
+  rules place it and the memory is kept, so it comes home when nudged back (K2). Phases never moved are placed by the
+  rules as before, except that the rules don't hand a remembered column to a phase that would still be in it the week
+  the moved phase starts, and in a same-week tie the moved phase is placed first. Nothing on screen marks it (K4); Reset
+  Columns clears it. Written only by `update()`, against a per-phase record of where the layout last placed each phase
+  (so a date typed through invalid years still reads as a move), never in a trial and never on a restore. Help: one
+  sentence in "Where a phase goes".
+- **The file.** New PERMANENT snapshot key `colKeep` (`{phase: '<phase it followed>' | '' | 'simPostLane'}`), sorted,
+  ABSENT while empty, so a calendar nobody moved a phase on saves byte for byte as before; sanitized to known phases;
+  restored unconditionally; cleared by New and Reset Columns; pruned with a custom phase. An older build ignores it.
+  Stamped calendars only.
+- **Verified.** New leg `stickycols` on fixture `sticky-cols` (the owner's shape in 2031), 12/12: Test nudged through
+  the tie stays right, Production nudged into Test's week stays left, an overlap and back, undo / redo, Reset Columns,
+  New, Load, and a typed date; red on the build before at K1, K3, K6, K8. `layoutrules` re-expected where a moved phase
+  now keeps its column: `layout-r2g` R2Gc (Test stays in Writers' column at five weeks) with R2Gd proving the rules after
+  Reset Columns, `layout-r2h` R2Ha (a moved Prod Prep stays right all six weeks) with R2Hb replaying the rules' sweep.
+  The 15 pictures re-scored unchanged (98.1%, 31 column misses, 0 width misses); every other layout fixture,
+  `colsreset` (now with `colKeep`), `phasefill`, `swapholds`, `simpostdays`, `centrepullback` and the swap legs green;
+  `npm run check` 40/40. Full gate 4,270 PASS / 2 FAIL, both load timing and green alone (`pwagate`, `scenariocompat`).
+
+### a phase a few weeks late still follows into the freed column (6 Nov 2026)
+
+[`LAYOUT-RULES.md`](LAYOUT-RULES.md) §0 rule 2, [`FILL-INTENT-PLAN.md`](FILL-INTENT-PLAN.md) §9. Owner, two screenshots of
+a test calendar: *"what is going on here?"*, then by picker *"up to 4 weeks"*.
+
+- **What was wrong.** A phase starting the week after another ended took over its column. One week later, it no longer
+  counted as following on, so rule 4 sent it right of everything still running: a new column, with the old one left
+  empty for weeks. Moving a phase a single week could reshape the whole year, and a column swap holding it was dropped.
+- **What changed.** When no column was freed the week before, a column freed up to four working weeks earlier counts as
+  following on, and the phase takes the one freed most recently. ⚠️ The first test build took the LEFTMOST of them, and
+  the owner caught it at once (*"this is terrible now. Its jumping back and fourth so many times"*): Prod Prep slid a week
+  at a time went right, left, left, right, right, left. Latest-freed changes once, at five weeks; fixture `layout-r2h`
+  replays the sweep (red on that first build). Five weeks or more is rule 4's "right of everything running", as ruled on 5 Nov 2026.
+- **Verified.** The 15 pictured calendars score the same at gaps of 1, 2, 4, 8 weeks and unlimited (98.1%, 31 column
+  misses, 0 width misses), so the pictures don't decide it; rule R-D's own fixture breaks from five, which set the
+  limit. New fixture `layout-r2g`: one, four and five weeks (red on the build before at one and four). All eleven
+  other layout fixtures, `swapholds`, `phasefill`, `colsreset` and `centrepullback` green; `npm run check` 40/40.
+
+### a column swap holds when one of its phases moves (6 Nov 2026)
+
+[`FILL-INTENT-PLAN.md`](FILL-INTENT-PLAN.md) §8. Owner: *"so if you swap a column then move one of those column up, it
+should maintain the position its in."*
+
+- **What was wrong.** A block swap was stored as "exchange these two columns". Move one of the swapped phases earlier
+  until it starts before the other, and the layout already puts it on the left, so the exchange put it back on the
+  right: the swap undid itself. Measured: Prod Prep swapped left of Pre-Prep held through three ▲ clicks and flipped
+  back on the fourth.
+- **What changed.** A swap now also records which side each phase took, and the app exchanges the two columns only
+  when the layout has them the other way round. Moving either phase, by typing a date or with the ▲ / ▼ arrows, keeps
+  the order you gave them. Swapping them back, or Reset Columns, lets the layout choose again.
+- **Saved calendars.** A swap saved before this has no side. On load the app writes its side down from what the swap
+  shows today, so every calendar opens exactly as it did and holds from then on. An older build ignores the new field.
+  A block pushed into the next year still takes that year's own order (ruling E5), and the week-by-week swap is
+  unchanged.
+- **Verified.** New leg `swapholds` 8/8 (red on the build before at the side record and the flip); the gate's whole
+  swap section, 115 checks, green; `noswapbtns`, `colswappartial` (both fixtures), `swapsplitreuse`, `colswapcache`,
+  `colsreset`, `phasefill` green; `npm run check` 40/40.
+
+### Reset Columns: every column back on the automatic layout in one click (6 Nov 2026)
+
+[`FILL-INTENT-PLAN.md`](FILL-INTENT-PLAN.md) §6. Owner, trying the fill wish: *"will there be a way to reset back to
+default algorithm?"* — then *"Add it"*.
+
+- **What.** A **Reset Columns** button in the app header, beside Reset Notes, in the Waterfall view. One click, one
+  undo step: every phase's fill or pull-back wish, every dragged cell and column width (both layouts, the Date and
+  Notes columns too), every swapped column and every phase moved by hand into a free column go back to the automatic
+  layout. Dates, notes, row heights, typed headings and their styles stay, and so does the layout stamp. It greys
+  while every column is already automatic, and the Month view hides it.
+- **Why.** Until now only one phase at a time could go back (the edge handle's double-click), or the whole calendar
+  through New.
+- **Header fit.** Labelled, it overflowed the header by 25 px at 1121 px wide, so it runs icon-only at 1280 px and
+  below, a rung before New and Save As. Swept 961–1440 px: no overflow, the header one row high.
+- **Verified.** New leg `colsreset` 8/8 (one of every column choice loaded, cleared in one click, note, row height and
+  stamp kept, a grey click adds no undo step, hidden in the Month view); `hdrcontrols` 12/12 with N0 re-expected to
+  the new header ending; `phasefill` 13/13, `centrepullback` 12/12, `noresetall` 5/5, `regionlock` 14/14,
+  `mvtextstyle` 23/23, `sharecopy2` passing; `npm run check` 40/40.
+
+### the double-click stores a wish on the phase, not a width on the cell (6 Nov 2026)
+
+[`FILL-INTENT-PLAN.md`](FILL-INTENT-PLAN.md). Owner, after seeing hand-set widths behave oddly once the calendar moved
+under them: *"so theres no way to automate the fix in the background?"* — then *"Yes, build it"*.
+
+- **What.** On a stamped calendar a double-click no longer writes a width on one cell. It marks the phase with a wish:
+  double-click a one-wide cell and the phase **fills the empty columns beside it**, every week from then on; double-click
+  a wide cell and the phase **keeps to its own column**, every week. The layout applies the wish fresh on every redraw,
+  so a filling phase narrows the week another phase moves in, widens again the week it leaves, and follows every shift
+  and length change with nothing to tidy. Double-click the cell's edge handle to let the layout decide again. A
+  highlighted run of cells does the same for every phase in it, and the label above the highlight says which. A drag
+  to an exact width is still a per-cell width (rule 19) and still wins for that cell. An unstamped calendar keeps the
+  old per-cell double-click, since its layout is frozen by the stamp rule.
+- **Saved as `phaseFill`** (`{key: true | false}`, absent while none; a PERMANENT key; an older build ignores it and
+  draws the automatic layout). Frozen edit LR5 in `computePhaseRowLayout`, behind the stamp. Setting a wish drops the
+  phase's per-cell widths, which said the same thing the old way. New clears it; a removed custom phase takes its wish
+  with it.
+- **Why:** a stored width is a guess about what you wanted once the schedule moves; a stored wish is not.
+- **Verified:** new leg `phasefill` on a synthetic calendar where Pre-Prep is one wide for six weeks under rule 13:
+  the double-click makes it two wide for five and one beside Production, the file carries the key and no new field id,
+  Production moved two weeks earlier narrows it on its own, undo one step each, a wide cell's double-click keeps it to
+  its column, the edge handle hands it back, an unstamped file keeps the per-cell double-click, Load applies the key
+  and New clears it (13/13); `centrepullback` re-expected to the phase level (12/12); the rest below.
+
+### Sim Post never steps aside; a phase fills the empty column to its right; Production goes to the leftmost free column (6 Nov 2026)
+
+Two owner rulings on the live v1.12.1, both in [`LAYOUT-RULES.md`](LAYOUT-RULES.md) §0 (rules 12, 13, 15, 20) and
+[`LAYOUT-BUILD-PLAN.md`](LAYOUT-BUILD-PLAN.md) §9; stamped calendars only, like the rest.
+
+- **Sim Post is on every shoot week, without exception.** Rule 20's give-way — Post, starting in the shoot's last week
+  or two, took the Simultaneous Post lane and the marker was not drawn there — is withdrawn: the owner moved Post up
+  two weeks and watched it eat two Sim Post weeks (*"thats not right"*). A short overlap now gets a column beside the
+  lane for those weeks, exactly as a three-week overlap always did (*"then when I move it up 3 weeks, it fixes it"*).
+  Placement is one pass again; the 2 Nov "exactly Production's weeks" ruling holds in full, and its leg says so again.
+- **A phase fills the empty column to its right** from the week that column is free for the rest of its run, whatever
+  runs beside it (*"notice how pre-prep also isnt filling its collumn"*): Pre-Prep beside Writers is two wide from its
+  first week when the third column is Post's months later. Until now rule 12's even share capped two phases in three
+  columns at one each; the share now governs only a spread to the left and hand-dragged widths. Against the owner's
+  15 calendars every trailing spare they keep empty is either the Sim Post lane or taken before the run ends, so **a
+  phase sharing its row does not spread into the lane column before the shoot ends** (rule 15 reworded; it used to be
+  excluded only while the marker ran; a phase alone still fills it, as one calendar draws). Frozen edit LR4 in
+  `computePhaseRowLayout`, behind the stamp. Also fixed on the way: rule 21's marker sentinel had shipped as a space
+  where the engine writes a NUL, so its share count read the marker as a phase.
+- **Production takes the leftmost free column, a running phase to its right or not** (later the same day; owner:
+  *"Yes, Production only"*). Without Sim Post and with Post starting before the shoot, Production had been handed Prod
+  Prep's middle column and sat one wide beside Post with Writers' free column empty on its left for the whole shoot,
+  because rule 4 keeps a column left of a running phase out of reach unless it is a handoff. Rule 3 now says Production
+  goes to the leftmost free column regardless, and rule 12 hands it the spare between it and Post. Production only:
+  the pictures keep Localization in its handoff column over a free column further left (hand-05, hand-08).
+- **Verified:** `layout-r20` re-expected (three columns, Production | Simultaneous Post | Post, Design two wide beside
+  Writers), 4/8 on v1.12.1 and 8/8 here; new `layout-r13b`, the owner's three-week calendar, 7/8 on v1.12.1 (Pre-Prep
+  one wide) and 8/8 here; new `layout-r3b`, the Production screenshot, 5/7 on the build before (Production one wide in
+  the middle) and 7/7 here; `simpostdays` 14/14 on its original expectations; `npm run check` 40/40; the rest below.
+
+## v1.12.1 — rule 21: a run never shrinks (6 Nov 2026)
+
+### rule 21: a run never shrinks (6 Nov 2026)
+
+The twenty-first layout rule ([`LAYOUT-RULES.md`](LAYOUT-RULES.md) §0; built as [`LAYOUT-BUILD-PLAN.md`](LAYOUT-BUILD-PLAN.md)
+§8); stamped calendars only, like the rest.
+
+- **What.** A column a phase has spread into stays its for the rest of the run while that column is free; the even
+  share of a later row takes nothing back. On the owner's screenshot Post, two wide while alone for 24 weeks, had been
+  pulled back to one for its last two weeks when Localization started beside it (placed to the right by rule 4; the
+  even share then gave each one column and the spare sat at the left edge, where rule 12 hands nothing over). Now Post
+  keeps both columns to the end, Localization sits one wide beside it, and fills the width when Post ends. Frozen edit
+  LR3 in `computePhaseRowLayout`, behind the stamp: a post-pass that gives a phase cell the columns rules 12 and 13
+  would have given it at an earlier row of its run, when they are empty here. Bands keep rule 16's own terms.
+- **Why:** rule 13 already said a width "only ever grows along a run, never grows and shrinks back"; as built that only
+  stopped a phase growing into a column taken later. The owner: *"why is this happening with post and localization?"*,
+  then *"Yes, build it"*.
+- **Verified:** fixture `layout-r21` (Post alone in the lane for 22 weeks, Localization overlapping its last two): Post
+  `0+2` throughout and Localization `2+1` then `0+3`, red on the v1.12.0 build (Post `1+1` for its last two weeks, the
+  screenshot's hole); none of the 15 study calendars draws a run that narrows, so the re-score is unchanged (figures
+  below); the eight other layout fixtures, the centre pull-back on widened cells, swap-split, the settings window, the
+  notes columns and Sim Post beside all green; `npm run check` 40/40; a full gate of **4207 PASS / 0 FAIL**, every baseline
+  byte-identical.
+
+## v1.12.0 — the twentieth layout rule (a column must earn its place), Shift steps over a locked hiatus, a phase's own hiatus picked inside the phase, Rebuild From is Build Around, a drag over expanded cells selects them and the double-click pulls them back, Shift's phase beside its date, a leftover band label stays, New opens on Show info (6 Nov 2026)
+
+### Shift steps over locked hiatuses, so the gaps between phases are kept (5 Nov 2026)
+
+Owner's bug report, with before and after screenshots: Phase & after Pre-Prep, to a date four weeks earlier, left a
+two-week gap between Prod Prep and Production. Cause: Shift moved every phase by calendar weeks while a locked hiatus
+stays on its dates. The Christmas break had sat in Prod Prep's last weeks; after the move it sat in Production's. So
+Prod Prep finished two weeks sooner, which opened the gap. And the shoot ran two weeks longer, so Post (moved four weeks
+like everything else) overlapped its last two weeks. Shift promises to keep the gaps, and it kept neither.
+
+- **Ruled (owner's picker, "Step over it", after asking why it is right):** Shift now counts only the weeks a held
+  hiatus does not cover. That is how the app already measures a phase: its length is working weeks, and a hiatus pauses
+  it (`extendEndForHiatus`). So a plan slid past a break that stays put is counted the same way. Checked against a
+  second route: the result is exactly what Build Around gives from the same phase on the same date (After), i.e. the
+  plan re-entered from scratch with the same lengths and gaps.
+- **What changes for the user:** a phase that crosses a held break moves that many extra calendar weeks. In the owner's
+  case, Production moves 6 weeks (to 11/30/26), Christmas falls inside the shoot, and Prod Prep → Production and the
+  wrap → Post both stay back to back. The result line says so: *"Production was pulled 6 wks to step over a held
+  hiatus."* The toolbar arrows do the same, and their readout says *"Production pulled 3 wks"* when one click carries a
+  phase over a break.
+- **Held** means the bands this move leaves where they are: locked ones, and on a part move the ones outside its week
+  windows. Unlocked hiatuses, a phase's own hiatus, the calendar range and every note keyed to a week move by the same
+  count, so a note on Production's week 4 is still on Production's week 4. Nothing moved lands inside a held break.
+- **To a date** counts working weeks too, so the phase lands on the date even with a break in between. A start date
+  typed inside a held break lands the week after it, and the line says why. The list under the form shows each
+  phase's real landing date ("Production 11/30/26, Pulled 6 wks").
+- **An Ends phase** (held by its end) has its END moved by the same count, so its start is re-solved correctly. Before,
+  its end moved by its start's calendar distance, which put Prod Prep's end on 12/11 instead of 11/27 in this case.
+- **A Dates phase** has both of its dates moved by the same count, so it keeps its working days and the gaps either
+  side. Its calendar span changes when a held break enters or leaves it: Pre-Prep Wed 2/10 – Tue 2/23 with a locked
+  week inside, shifted a week, is 2/24 – 3/2 (still 5 working days, still 3 days before Prod Prep). A first cut that
+  kept the span ended it 3/9, running into Prod Prep; the `builtindates` leg caught it.
+- **My calls, flagged in HANDOFF:** a note sitting under a held break stays with the break (it is about the break, and
+  the band covers it) instead of being pulled out from under it. The hiatus ripple and the phase card's ▲ / ▼ are
+  unchanged: the ripple sizes its own steps from the edited hiatus, and the arrows move one phase one week by design.
+- **Proof:** new leg `shiftheld` 13/13 (in `gate.sh` after `stalebandkey`), on a synthetic copy of the owner's
+  calendar. Red on the old engine at 9 of its checks (the gap, the overlap, the arrows, a date inside the break, the
+  Ends phase, All phases by weeks). Three legs that held the old arithmetic were updated to the new rule:
+  `snaptools` L14 (a note shifted onto a locked week now steps over it, so there is no "hidden under a hiatus" warning
+  to give), `customunits` and `builtindates` (a Dates and a Days phase over a locked week). See HANDOFF for the
+  neighbouring legs.
+
+### rule 20: a column must earn its place (5 Nov 2026)
+
+The twentieth layout rule ([`LAYOUT-RULES.md`](LAYOUT-RULES.md) §0; built as [`LAYOUT-BUILD-PLAN.md`](LAYOUT-BUILD-PLAN.md)
+§7), after v1.11.0's nineteen; stamped calendars only, like the rest.
+
+- **What.** On a test calendar Post started in Production's last week while Simultaneous Post still held its lane, so a third column opened for that one week and stood empty beside Writers + Pre-Prep, and beside Production + Sim Post, for the rest of the year. The owner asked not for a Post fix but for the algorithm to know *what looks right, with any phases*. Measured on the fifteen calendars: every column drawn by hand is used beside another phase for at least 5 weeks over its run, rule 6's Wrap column 3, and an earned column may stand empty (hand-02's third column, 6 weeks of Pre-Prep, then 14 empty beside two one-wide phases). So a column whose occupants run beside another column for **fewer than 3 weeks over their whole run** (the floor `LAYOUT_EARNED_WEEKS`), while another column in that year is used more, is a *phantom*: **the Sim Post marker steps aside** for a phase whose column would otherwise be one (the phase takes the lane from its first week, no marker is drawn on those rows, the marker resumes after a short one; the numbering and Post's continued count skip those rows as they skip a hiatus), and **where the column must exist** (two real phases need their cells) **it does not count toward the even share**, so the phase beside it spreads into it from the week it is free for the rest of the run (frozen edit LR2, behind the stamp; `markLayoutPhantoms` on the drawn rows marks each week row with its block's phantom columns, and the frozen branch reads them as it reads `col`). A phantom beside the lane stays empty: the lane never widens and Production cannot cross it; no picture shows the shape.
+- **Why:** the nineteen rules place phases one at a time and never look back at what the year came out like. The owner,
+  on the screenshot: *"its less about phase specific changes like that and more about the algorithm understanding
+  better what looks right and what doesnt with any phases"*; on the plain wording (*don't open a column for something
+  that is only there for a week or two*): *"build it"*.
+- **Verified:** fixtures `layout-r20` (the test calendar's shape: two columns, the overlap row reads Production | Post
+  with no marker, Post then fills two) and `layout-r20b` (a one-week Table Read beside Writers + Prep: its column
+  stays, Prep is two wide from the week after), both red on the build before rule 20; the six earlier layout fixtures
+  green; the fifteen study calendars re-scored byte for byte as before (98.1%, no width misses — a first cut that
+  counted a column's use per year, not per run, read hand-09's December lane as a phantom and cost 8 width misses,
+  caught by the re-score and fixed); on the branch a full gate of 4,012 PASS / 4 FAIL, every baseline byte-identical:
+  three the `simpostdays` leg meeting rule 20 (Post starting in Production's last week now takes the lane, so that one
+  working week has no marker — a deliberate exception to the 2 Nov "exactly Production's weeks" ruling; the leg
+  follows, 14/14), one the `phiatusnum` leg's own PDF reader trimming a Flate stream that happened to end in a
+  newline that day (`main`'s by-`/Length` reader fixes it). Merged into a release branch from `main` (owner: *"Yes,
+  merge and gate"*): a full gate of **4,175 PASS / 0 FAIL**, every baseline identical; with the phase-hiatus picker
+  commit merged in too, 4,079 / 15 under two other sessions' gates (every failure a timeout or a hit-test under load),
+  and all fifteen green re-run on their own (`hdrrow` 37/37, `retiredplaces` 8/8, `hiatuscolour` 14/14, `mvnotesize`
+  24/24, `hiatusdrag` 14/14, `hiatusripple` 15/15, `cspproof` 15/15, `textstyle` 51/51, `scenariocompat` on v1.2.0
+  twice); `npm run check` 40/40.
+
+### a phase's own hiatus is picked inside that phase (5 Nov 2026)
+
+Owner: *"the calendar popup for per phase hiatus periods should be limited to only dates/months that fall in the
+range of the phase. When you add a per phase hiatus and go to set the date, it should start on the first month of the
+phase."* Until now the picker opened on today's month and offered every Monday in every year.
+
+- **Only the Mondays the phase runs can be picked.** Every other Monday is greyed like the other days, and the month
+  arrows stop at the phase's first and last months. The hint reads "A hiatus always starts on a Monday, in a week
+  this phase runs."
+- **It opens on the phase's first month** when the date is empty, or holds a date outside the phase (one left behind
+  when the phase moved, say). A date inside the phase opens on its own month, as before.
+- **The weeks the hiatus itself adds are not offered.** A hiatus pushes its phase's end out, but a hiatus started in
+  those extra weeks would land after the phase had already finished and pause nothing. So the window is the phase's
+  span worked out WITHOUT its own hiatus (all-phase hiatuses still counted): Starts phases end where they would with
+  no hiatus; a phase held by its end opens where it would start with no hiatus; Production runs from its first week
+  to its wrap's week with no hiatus. One allowance: Production held by its wrap keeps its whole span, which can offer
+  a week or two that pause nothing, because finding its start a second time is a search.
+- A phase with no dates, and the all-phase hiatus, are not limited. Typing a date is untouched.
+- **How:** `computeSchedule()` gives each phase's segment a `hiatusWindow` (`{first, last}` Mondays; a new
+  `noOwnHiatus` argument on `simulateProductionSchedule`), `update()` pushes them to the picker as
+  `dateContext.hiatusWindows`, and `DatePop.jsx` greys and stops at them. Nothing is saved and no id was added; no
+  frozen code and no export changed.
+- **Proof:** new leg `phiatuspick` 12/12 (in `gate.sh` after `datepick`), red on the old picker (K1–K5); `datepick`
+  H2 updated for the window. See HANDOFF for the neighbouring legs.
+
+### Rebuild From is now Build Around: type lengths in the box, both sides in one run (5 Nov 2026)
+
+The owner asked whether Rebuild From was worth keeping, believing real calendars overlap more than they chain. Measured
+on the layout study's 15 real calendars: 46 of the 47 handoffs that don't involve the Writer's Room are back to back,
+none has a gap, and the room overlaps the next phase on every one. So the tool stays, redesigned
+([`REBUILD-FROM-LENGTHS-PLAN.md`](REBUILD-FROM-LENGTHS-PLAN.md), layout B of
+[`mockups/rebuild-from-lengths.html`](mockups/rebuild-from-lengths.html), every ruling the owner's):
+
+- **Renamed Build Around** (owner's picker). The toolbar button reads `Build Around ▾`, the box "Build around a phase".
+- **Type a length in the box.** Every row has a length box; type a number and the row ticks itself and shows where
+  the phase would land. Nothing changes until you press Build, which saves the lengths with the dates as one undo
+  step (ruling R2). This was the owner's ask: until now a phase couldn't be placed until its weeks were typed in the
+  sidebar, and on a new calendar the box offered nothing at all ("No phases scheduled yet").
+- **Production's length can't be changed here** (owner): it shows Show info's shoot days, or "Not set" with a line
+  saying to set it in Show info. The phases before the shoot still build; the ones after it wait.
+- **One list for both sides.** Every phase in the order it runs, the pinned phase in its place. `← Before · Both ·
+  After →` tick a side in one click, as Shift's buttons do, and it opens on Both, so building a calendar around the
+  shoot is one run instead of two.
+- **Pin a phase by its end** ("ends by", ruling R3): its last workday on or before the date, as Shift's "ends by".
+- **Writer's Rm starts unticked** (owner). Tick it and it is built like any other phase.
+- **Close all gaps is gone.** It started Pre-Prep when the room ended, so it pushed the whole shoot 3 to 45 weeks on
+  every one of those 15 calendars while closing no gap. Build Around from the first phase, After, does its job.
+- When nothing would move, the button reads **No changes**.
+
+Nothing new is saved in a calendar file: the ticks, the side and the typed lengths are the box's own, and a saved
+length is the phase's own field. The ids stay `pop-solve-*` / `tool-solve-*` (the legs and the engine reach them).
+
+Verified: new leg `buildaround` 33/33 (a new calendar built in one run from typed lengths, staged until Build and taken back by one undo; both sides in one run; the shortcuts; ends by; Production unset; "Save 1 length"; no box control in the saved state). Updated and green: `rebuildticks` 19/19, `overrides` 20/20 (its Close all gaps case now drives Build Around and lands on the same dates and day marks), `snaptools` 14/14. Unchanged and green: `anchorside` 29/29, `datepick` 17/17, `hdrcontrols` 12/12, `customunits` 23 + 28, `builtindates` 17 + 15. `npm run check` 40/40. Full gate 4,121 PASS / 6 FAIL, all six explained, none from this work: `scenariocompat` v1.2.0 (the known flake; it runs on the frozen v1.2.0 release, green alone); `papersize` (no result in the gate, 12/12 alone); `pilllabel` (halfdays) K1 (a Save timeout, green alone); `colreuse` (live) x2, the "Update layout" strip read before the Load raised it: a RACE IN THE LEG (its wait was already true of the calendar on screen), red 3 of 4 runs here, green on main's build 2 of 2; fixed in `t/colreuse.js` (`loadText` now waits for `#file-menu-label` to name the file), then 25/25 of the gate's own colreuse checks, twice; `phiatusnum` H4 (the waterfall PDF has no "Hiatus" text run its extractor can read) is RED ON MAIN TOO (`cf75104`, 17/18, run 5 Nov 2026): pre-existing and not documented before, not this work.
+
+### the test harness reads PDF text by each stream's length (5 Nov 2026)
+
+Test harness only: the app and both PDF writers are unchanged. Since v1.11.0 the `phiatusnum` leg's check H4 ("one
+text run each for Pre-Prep Hiatus wk 1-3 in the waterfall PDF") was red on the live build, and it found no text at
+all. The PDF was fine (`pdftotext` reads every run). The leg's own reader was wrong. Chrome's `DecompressionStream`
+refuses any byte after the compressed data, so the reader trimmed the line ending before `endstream`. But compressed
+data can itself end in a 0x0A or 0x0D byte, and the trim cut that byte off. The layout rules' new widths changed the
+waterfall PDF's bytes so that page 1's content stream (`/Length 1466`) ends in one. Inflation then threw, the reader
+swallowed the error, and the leg saw an empty PDF. `hiatuslabel` hit the same trap on 23 Oct 2026, through a header
+date, and was fixed alone. Sixteen legs carried a copy of the trimming reader, so any of them could go red the same
+way whenever a PDF's bytes moved.
+
+- **One reader now, in `tests/harness/t/lib.js`:** `T.pdfStreams(u8)` cuts each stream at its dictionary's own direct
+  `/Length` (never `/Length1`, never an indirect `12 0 R`), and only when `endstream` follows. It falls back to the
+  trim when there is no such length, steps over each stream's data, and skips the `endstream` keyword itself.
+  `T.pdfInflated(u8)` returns the inflated texts, and `T.pdfRuns(u8)` the `(text) Tj` runs. A `/FlateDecode` stream
+  that fails to inflate at a verified length now **throws** instead of reading as empty. The SPTCal mark's
+  uncompressed streams are cut and left alone, as before.
+- **Moved onto it:** the twelve legs named in the finding (`autonotekinds`, `autonotephases`, `autonoteview`,
+  `autonoterename`, `hidewf`, `mvhdroff`, `holidayrename`, `phasecolors`, `phiatusnum`, `simpostname`, `seasons`,
+  `wfnotecolors`), the three with the same trim under another variable name (`notewrap`, `prodspan`, `winansi`), and
+  `hiatuslabel`, which already cut by length. The other legs that read PDFs (`calrange`, `hdrrow`, `pdfdialog` and the
+  like) already cut at `/Length` first and are untouched.
+
+Verified on the build (`30bbfc2e…`, the live one): `phiatusnum` 17/18 with H4 red on the old reader and 18/18 on the
+new one. The other fifteen are green on the new one: `autonotekinds` 16/16, `autonotephases` 27/27, `seasons`
+15/15, `phasecolors` 10/10, `mvhdroff` 9/9, `hidewf` 19/19, `wfnotecolors` 14/14, `holidayrename` 14/14,
+`autonoterename` 24/24 (twice), `autonoteview` 18/18, `simpostname` 14/14, `notewrap` 16/16, `prodspan` 8/8, `winansi`
+7/7 and `hiatuslabel` 7/7. On their first pass, while another session's full gate ran, three timed out on a load or a
+save before reading any PDF; each was green alone. `npm run check` 40/40. A Node check of the helper on synthetic streams: the old reader finds 1 of 3 runs (it loses
+the streams that end in 0x0A and 0x0D) and the new one finds all 3; an indirect `/Length` falls back; a broken Flate
+stream throws. No gate.sh change: leg names and budgets are the same.
+
+### a drag over the expanded part of cells selects them, so the double-click pulls them all back (5 Nov 2026)
+
+Owner, trying the entry below once it was live: *"i tried highlighing a bunch of expanced cells and double clicking
+and it only pulled back the cell my cursor was on."* A drag selects phase cells by each cell's **own** column, not
+its whole width. That is deliberate (owner, 1 Sep 2026): a drag down one column must not also pick up another phase's
+full-width cells that straddle it. But an expanded cell's own column can be the far one. Bible wk 13–16 on
+`layout-r13` own the right of their three columns, so a drag down their left part touched no own column and
+selected **nothing**. Meanwhile the text style bar's highlight, built from the same drag, takes any cell it touches,
+and it outlined all four, so it looked selected. With no selection, the double-click acted on the one cell under
+the pointer.
+
+- **What changed** (`src/legacy/app.js`, the selection drag's membership): when a drag touches **no** cell's own
+  column at all, it selects the cells it touches, as the highlight does. When it touches any own column, the own-column
+  rule decides as before, so the 1 Sep ruling holds (a drag from Writer's Rm wk 18 down into the Bible rows still
+  selects only Writer's Rm wk 18–20).
+- **Verified:**
+  - By hand in the built app: the reported drag now shows "Double click to pull back cells", and the double-click
+    pulls all four back. The column-one drag still leaves the Bible cells out.
+  - `centrepullback` gains P9 (the reported drag) and P10 (the 1 Sep rule), 12/12 on the build. P9 is red on the live
+    build (`2daa5cde`, the pushed `854dbbe`), with exactly the reported result: one of four pulled back, no hint.
+  - The same targeted run of `gate.sh`'s sections as the entry below: 463 PASS / 2 FAIL. Both fails are
+    `colreuse (live)`'s "Update layout" strip checks, a timing flake while another session's full gate ran: the live
+    build fails them the same way, 2 of 3 runs, and each build passes 25/25 on other runs. `npm run check` 40/40.
+
+### a double-click on the middle of an expanded cell pulls it back (5 Nov 2026)
+
+Owner: *"just like how i can drag and select collumns then double click to expand them, i should be able to drag
+and select collumns and double click to unexpand them."* The pull-back existed (the hint even said "Double click to
+pull back cells"), but it never worked from the **middle** of an expanded cell. A cell two columns wide has the
+boundary between its columns down its centre, right under its label, and that boundary's column-resize handle
+(7 px, the table's full height) took the double-click. The rule "a handle owns its own band" then sent it to the
+column autofit, which does nothing to a column nobody sized. Only a double-click off the centre pulled back.
+Measured on `layout-r13`, Writer's Rm wk 15 (184 px, two columns): handles at 0–6, 7–13, **87–93**, 172–178 and
+179–185 px across it.
+
+- **What changed** (`src/legacy/app.js`, the multi-cell selection's double-click, not frozen code):
+  - A double-click on a column handle whose boundary runs **through** a phase cell, not along its edge, now acts on
+    the cell (`cellAcrossBoundary`). If the cell is selected, the whole selection expands or pulls back. If not, just
+    that cell does, as a double-click anywhere else on it always has.
+  - Every other handle keeps its band: a boundary that is a real cell edge (the column autofit, the heading row
+    included), a cell's own span handles, the row handles. Hiatus bands are left alone; their double-click edits.
+  - `batchFill(keys)` takes an optional set of cells, so one cell runs the same code as the selection.
+- **The catch it had to close:** each press also starts the frozen column drag, which saves a width on **any**
+  pointer move. A hand drifting a pixel mid-double-click would pin the column. Until now the handle's own
+  double-click (autofit) deleted that width again; taking the double-click away would have left it. So the
+  column's width at the first press is remembered, and the double-click puts it back when the presses moved the
+  boundary by 6 px or less. The pull-back stays one undo step.
+- **Verified:**
+  - By hand in the built app on `layout-r13`, with real double-clicks:
+    - the marquee batch pulls back from the centre, then expands again;
+    - each gesture is one undo step;
+    - a lone widened cell pulls back with nothing selected;
+    - a three-column cell pulls back from either inner boundary;
+    - a drifted press's width is put back;
+    - a real edge's autofit still refits a dragged column.
+  - New leg `centrepullback` (in `gate.sh`'s generic block, on `layout-r13`), 10 checks with pointer events at real
+    coordinates. It is red on the build before this change at P2, the reported bug. `noswapbtns` never caught it
+    because it dispatches its double-click on the cell itself.
+  - A targeted run of `gate.sh`'s own sections: **465 PASS / 0 FAIL** in about 10 min. It covered base (0 clipped
+    cells) + gates 2 and 3 (identical to baseline) + seam strips, colswapmove, colswapstale, stintbtn, stintmulti,
+    stintchain, stintreshape, onecol, colreuse, calzoom, zoomresize, textstyle, wfkeys + wfkeysreal, and the
+    generic legs noswapbtns, colswappartial ×2, swapsplitreuse, spanhint, spancounts, prodspan, undokeys, wfmenu,
+    layoutrules r13 + r17 and centrepullback. `npm run check` 40/40. No full gate.
+
+### Shift: the phase sits beside the date (5 Nov 2026)
+
+In the Shift box, **To a date** now names the phase that lands right above the date (owner, 5 Nov 2026, on a
+screenshot of All phases + To a date: *"is this confusing? when you switch from 'by weeks' to 'to a date' you then have
+to move your eyes back up to the phase selector box then move your eyes back down past the How far toggle and then
+understand that it means 'Shoot' starts on <date>"*; mocked first in `mockups/shift-date-row.html`, then *"I like it"*):
+
+- **All phases, or your own ticks, to a date:** the phase select sits directly under *How far*, so the box reads
+  top to bottom, "Shoot — 4/20/26 · starts on 04/20/2026 · Go". The row above the list is gone in this case.
+- **Phase & before / after, to a date:** the phase stays up top, where it says which side moves, and a line under
+  *How far* repeats it as text (*"Production — 6/29/26"*), so the date row has its subject without a look back up.
+- **By weeks:** unchanged.
+
+Chrome only: the new select is a mirror of the one the form has always read (`#tool-anchor-phase`), filled from it and
+written back into it on change, and carries no id, so nothing reaches a saved file. No frozen code, no writer. Verified:
+`npm run check` 40/40; `anchorside` 30/30 (W1 reads the rows; new J1 picks the landing phase on the subject row, sees it
+mirrored, the date prefilled, the row pinned, and Go land it); the nine other Shift legs green.
+
+### a leftover band label stays where it is (5 Nov 2026)
+
+A hiatus band's label, colour, size or style can be left on a week with no band, when the hiatus is later retyped to
+other dates. Such a leftover is never drawn, and it is never thrown away, so retyping the hiatus or an Undo brings it
+back. But the movers moved it: **▲ / ▼ on a phase card**, **the month view's bar drag** and **Shift From** (Phase & after)
+carried it a week. If the week it landed on was a band that stayed put, the label was lost, and its colour, size and
+styles were applied to that band instead (pressing ▼ on Post recoloured Summer Break). Found while building the month
+drag carry (PHASE-WEEK-ARROWS-PLAN.md §5a).
+
+- **Now a leftover goes by its week, as a note does.** It moves with All phases and inside the weeks a part move takes;
+  ▲ / ▼, the drag, and everything before Shift From's phase leave it alone.
+- **A band that moves takes every week's label with it**, even a week past the move's window: a band starting in the
+  last week of a Dates phase that runs on past it.
+
+Engine: `shiftCalendarDates` (steps 2 and 3) records the weeks of the bands that move beside those that stay, and
+`hiatusKeyStays` decides a plain band key by them, then by its week. The first idea, "a plain key stays outside the
+window", left a moving band's later weeks behind, so it was not used. No frozen code, no writer and no save-format
+change. New leg `stalebandkey` (9 cases, in gate.sh) on new fixture `stalebandkey.sptcal`: 5/9 on `origin/main`, 8/9 on
+the one-line version, 9/9 on the fix; `mvdragcarry` W1 now checks the band labels too (red on `origin/main`). Full
+gate: 4,053 PASS, 0 FAIL, every baseline identical; again with v1.11.0 merged in, 4,103 PASS and 2 FAIL, neither from
+this change (a load timeout green alone, and `phiatusnum` H4, red on v1.11.0 itself: its PDF reader trims a byte the
+new widths now end a stream with; the PDF is fine).
+
+### New always opens the sidebar on Show info (5 Nov 2026)
+
+Owner: *"when you click New the left bar should always be on the Show Info tab"*. New reset the calendar but never
+touched the sidebar's tab, so it kept whichever was up, usually Phases, and a blank calendar opened on a list of empty
+phase cards instead of the Show info it starts from. `newFile()` now calls `revealSidebarTab('show')`: the tab switches
+to Show info, and the Settings window, which lies over the sidebar's cards, closes, as it does whenever the app sends
+the user to a tab. It runs before the fresh undo history is taken, so that history's baseline holds Show and the first
+undo after New cannot flip the tab back. Load still opens on the tab the file was saved on (unchanged).
+
+Verified: new leg `newtab` (in `gate.sh`) clicks New from the Phases tab with nothing unsaved, with unsaved work
+("Start new"), and with the Settings window open, and checks Show info each time, the window closed, and Undo disabled
+with the tab still Show: 6/6 on the build, and N1–N4 red on the build without the fix (it stayed on Phases).
+`filekeys` 16/16 (⌘N), `settingswin` 21/21, `npm run check` 40/40. No full gate: no grid, export or save-format code
+changed.
+
+## v1.11.0 — the waterfall lays itself out (the layout rules; Reuse Empty Columns retires), ▲ / ▼ on each phase card, one Shift tool with a tick list, a hiatus change ripples, the note editor names a line, the month drag carries (5 Nov 2026)
+
+### the waterfall lays itself out: the layout rules, and Reuse Empty Columns retires (5 Nov 2026)
+
+The layout study ([`LAYOUT-STUDY-PLAN.md`](LAYOUT-STUDY-PLAN.md), 4–5 Nov 2026) scored fifteen of the owner's own
+calendars against today's column rules; the owner answered every difference "as pictured", and
+[`LAYOUT-RULES.md`](LAYOUT-RULES.md) §0 wrote the pictures down as nineteen plain-words rules. This builds them
+([`LAYOUT-BUILD-PLAN.md`](LAYOUT-BUILD-PLAN.md)), in three pieces.
+
+- **Where a phase goes (rules 1–10, not frozen).** A phase that starts the week another ends follows it into that
+  column (across a hiatus too); when two columns are handed off it takes the left one; Production takes the
+  left-hand free column, Simultaneous Post's lane is reserved directly right of it and Post continues that lane
+  afterwards; anything else goes to the right of whatever is still running, into the leftmost free column, so a
+  year never grows a column it does not need; a hidden phase takes no column; a drag into a free column still
+  wins. Within a year, columns run left to right by when the phase at the top of each started, so the same two
+  columns can sit on opposite sides in consecutive years (rule 9, through `stintOrderFor`, the one sanctioned seam
+  into frozen `computeBlockLayout`). Two things the pictures settled beyond the plain words: Production goes left
+  even when Writers' column had been free for weeks and only Prep's was handed off, and a same-week tie keeps the
+  columns' existing order.
+- **How wide a cell draws (rules 11–19, ONE frozen edit, LR1, owner sign-off 5 Nov 2026).** A phase widens into
+  the column beside it from the week that column is free for the *rest* of its run — not the whole run — so Post
+  fills the width the week a three-week phase beside it ends, and a width only ever grows along a run; a hiatus
+  week no longer splits a run; a spare column between two phases goes to the left one; in Single Column Mode
+  nothing widens. The even share, a lone phase filling the width, the Sim Post lane, bands and hand-dragged widths
+  are as they were.
+- **The switch retires.** The Reuse Empty Columns switch leaves Settings. Every new calendar lays out by the
+  rules; its saved key `colReuse: true` (unchanged, permanent) is now the layout **stamp**. **A calendar saved
+  without it keeps the columns and the widths it was saved with, byte for byte, forever**, and each time it is
+  loaded a strip above the calendar offers **Update layout** (one undo step; hand-dragged widths of the years whose
+  columns change are cleared, as the switch did) or **Keep as is**. Nothing moves on its own.
+- **Why:** the rules reproduce the owner's calendars where today's did not — 82.3% of phase-weeks with the
+  switch off and 71.6% with it on, against the figures below — and the switch asked users to know a mechanism
+  that the rules now carry.
+- **Verified:** fixtures `layout-r3`, `r6`, `r9`, `r7`, `r13`, `r17` (synthetic) and leg `layoutrules`, green and
+  each red on the build before; the fifteen study calendars re-scored with the stamp on: **98.1%** of phase-weeks
+  as pictured, no width misses, the rest ruled or explained (HANDOFF); the unstamped path unchanged on every seed
+  (82.3%); the reference calendar's waterfall PDF and Excel parts
+  byte-identical on the legacy path (the gate's `base` leg runs it there through the localhost-only
+  `?layout=legacy`, because a new calendar is stamped and rule 13 widens its Localization — by design); both month
+  PDFs byte-identical; `npm run check` 40/40; a full gate, 4,000 PASS / 1 FAIL (a month-PDF capture under contention,
+  green re-run alone).
+
+### the layout study's `?layout=` hook, localhost only (4 Nov 2026)
+
+**What:** on `localhost` / `127.0.0.1` only, `?layout={"production":0,…}` on the page URL forces every waterfall
+phase's column (phase key → column index). Read in `computeSchedule` where `col` is assigned, so the frozen layout
+takes it as data; ignored unless every waterfall phase is named; never saved. Off localhost, or absent, both
+placements run exactly as before. **Why:** the layout study ([`LAYOUT-STUDY-PLAN.md`](LAYOUT-STUDY-PLAN.md), owner
+ruling R6) draws candidate layouts — and a hand-made calendar's own layout — through the real grid, side by side with
+today's. **Verified:** in the browser pane a seed drew the forced columns; the study's `tools/layout-study/` (scrub,
+transcribe, compare, serve, the page) runs against the build. Leg `layouthook` and a full gate are still to run.
+
+### the month view's bar drag carries what the arrows carry (5 Nov 2026)
+
+Dragging a phase's bar in the month view now takes **its own hiatus** and **everything keyed to its weeks** with it:
+its hiatus band's name, colour, size and style, its cell spans, its column swaps and its text styles (Sim Post's with
+Production). Before, only its start date moved, so those stayed behind on the old weeks, while the phase card's ▲ / ▼
+and the Shift tool carried them. Owner's ruling D7 (4 Nov 2026, by picker: *"yes, as its own change, right after the
+arrows"*; PHASE-WEEK-ARROWS-PLAN.md §5).
+
+- **The same mover as ▲ / ▼**, so the two agree: a drag of one row is one ▼, snapshot for snapshot. Typed notes,
+  all-phase hiatuses, the calendar range and every other phase still stay; Production's day marks still move by
+  shoot-day number; edited automatic notes still follow.
+- **By the whole weeks the phase's run moved.** The drag still moves the date day by day; a day inside the same week
+  carries nothing, and an Ends phase carries by the weeks its end moved.
+- **Carried from the press on every step**, never step to step, so dragging out and back puts every store back
+  exactly, and the own hiatus moves live while the button is down. Still ONE undo step.
+
+Engine: `shiftCalendarDates` gains `opts.carryOnly` (with `part`: the phase keeps the date its caller wrote, and only
+what it carries moves); `carryPhaseDrag` beside `nudgePhase`. No frozen code, no writer and no save-format change, no
+new id. New leg `mvdragcarry` (15 cases, in gate.sh) on new fixture `mvdragcarry.sptcal` (`phasearrows.sptcal` plus one
+stale band label): red on `origin/main` on every carry case, and on two mutants (carried step to step; by days instead
+of the run's weeks). Full gate: 4,043 PASS, 1 FAIL (`scenariocompat` on the v1.2.0 release file, the known load flake,
+green alone), every baseline identical.
+
+
+### Shift: tick the phases that move (5 Nov 2026)
+
+Under the phase, the Shift box now shows **a list of the phases** (owner, 5 Nov 2026: *"would it make more sense ... if
+... you just selected every phase you wanted it to effect kinda like how it works in rebuild from"*, then *"is there
+anyway to have both?"*, then, from four measured layouts, *"ok lets go with A"*; ANCHOR-TO-DIRECTION-PLAN.md §7,
+`mockups/shift-tick-phases.html`):
+
+- **Rebuild From's rows:** a tick, the colour, the name, its date, and what happens to it: Moves or Stays by weeks,
+  the new date and Pushed / Pulled N wks to a date.
+- **The three buttons fill the ticks in.** All phases ticks every phase; Phase & before and Phase & after tick the
+  phase you pick and every phase starting on that side. Change any tick and it is your own set, and then no button
+  is pressed. So "everything except the Writer's Room" is one untick.
+- **Folded under All phases** behind *Choose phases…*, so the box opens as short as before (225 px, 2 px shorter).
+- **To a date** pins the phase that lands on your date; Whole schedule fixes every tick. The ticks are forgotten
+  when the box closes, as Rebuild From's are.
+- **Which notes move with your own set** (owner's picker, T2): a note moves when its week is inside a ticked
+  phase's run, even in a week an unticked phase shares. Unlocked all-phase hiatuses and the calendar range follow
+  the same rule. The shortcuts keep their window as before.
+
+Engine: `shiftCalendarDates`' `opts.part` is now `{phases, windows}`, a list of week windows: a shortcut's one, or one
+per ticked phase. No frozen code, no writer and no save-format change; the ticks carry `data-key` and no id, inside
+`.tools-menu`. The Help's "Adjusting dates" section gains the list. `anchorside` grows to 29 cases (the fold, a
+shortcut's ticks, a hand-picked set, T2 in a shared week and across a gap, nothing ticked, Whole schedule, the reset);
+a one-span build is red on C4.
+
+
+### a hiatus change moves the phases after it (4 Nov 2026)
+
+Owner, 4 Nov 2026: *"editing a hiatus (either all phase or per phase) can automatically ripple the whole calendar to
+adjust all the phases. It should be very clear how to turn it on or off"*. Plan and rulings: `HIATUS-RIPPLE-PLAN.md`.
+
+- **What it does.** A hiatus pauses the phases running through it, as before. Now, when a hiatus is added, removed,
+  lengthened, shortened or moved, every phase that starts on or after it also moves by the same number of weeks, so
+  the gaps between phases stay as they were. A moved hiatus counts as taken out where it was and put back where it
+  is: what it no longer holds up is pulled back, and what it now holds up is pushed. A phase's own hiatus moves every
+  other phase that starts on or after it. It is the Shift tool's move, run for you from the hiatus: notes and unlocked
+  hiatuses after it travel too, and locked hiatuses, holidays and notes with a date stay put.
+- **When.** Once you finish the edit: when you leave the hiatus's Starts and Weeks boxes, press Enter, pick a date in
+  the date popover, click its ×, switch a phase's hiatus on or off, use the right-click Hiatus items, or let go of a
+  month-view drag (its Keep / Undo question now says what was pushed). Never while you type: a year typed digit by
+  digit moves nothing until you leave the box. Opening a file, undo, New and the shift tools never trigger it.
+- **What you see.** A line under the hiatus, e.g. "Pushed 1 wk: Production, Post · Wrap 6/12/26". One ⌘Z takes back
+  the push and keeps your hiatus change; a second takes back the change.
+- **Turning it off.** One switch, **on by default**, kept on this computer (never in a file). It is "Ripple Hiatus
+  Periods" in Settings › Preferences › Hiatus and at the top of the All-phase hiatus card, and "Ripple Hiatus" in each
+  phase's Hiatus block (the owner's names); flipping any of them flips all three. Off, a hiatus only pauses, as before.
+- **Unchanged:** the grid, the exports, the save format (no new key, no new saved id). Every calendar opens and prints
+  as before; a push happens only on an edit.
+- **Verified:** new `hiatusripple.mjs` gate leg, 15 cases on real keyboard and mouse input (CDP), red on the build
+  before it and on six mutants (no hold on the edited hiatus, no inside-start rule, per-keystroke, no move rule, an id
+  on the sidebar switch, one undo step), each on its own cases. Every other leg runs with the switch off;
+  `settingswin` W13 lists the new card. Full gate on the build merged with the one Shift tool: 3,898 PASS / 12 FAIL,
+  every FAIL a stalled leg (or a check fed by one) or the rename, all 196 checks of them green on the renamed
+  build, the waterfall PDF and Excel parts identical to the baselines. R0 holds the switch's three names.
+
+### ▲ / ▼ on each phase card move that phase a week (4 Nov 2026)
+
+The owner asked for a way to move one phase up or down the waterfall: *"on the phases in the leftside column, above
+and below the date box, little up and down arrows appear allowing you to shift up or down by a week at a time.
+Waterfall only"*. They ruled on six layouts in
+[`mockups/phase-week-arrows.html`](mockups/phase-week-arrows.html) (*"lets go with D"*), and on the rest by picker
+([`PHASE-WEEK-ARROWS-PLAN.md`](PHASE-WEEK-ARROWS-PLAN.md) §7).
+
+- **Two small buttons stacked inside the date box, always shown in the waterfall:** ▲ moves that phase one week
+  earlier, ▼ one week later. Hover names them ("Move Prod Prep 1 week earlier"). In the month view the card has no
+  arrows. The layout is **C2** (owner: *"C2, but make sure the buttons aren't actually touching the top or bottom lines
+  of the box"*), chosen after layout D (two buttons beside the box) was built and all six were drawn on the real card
+  at three window widths: D widened the date column and stacked the card below a ~1450 px window.
+- **What moves with the phase:** its own hiatus, and what belongs to its cells: band names and colours, cell spans,
+  column swaps, text styles. Its automatic notes follow, since they're worked out from the dates. An edited automatic
+  note drops its standard line and keeps the lines you added on their week, as the month view's drag does.
+  Production's day marks keep their shoot-day numbers.
+- **What stays:** every other phase, typed notes, holidays, all-phase hiatuses (locked or not), the calendar range,
+  and the month the month view is on. The gaps either side change. To keep gaps, use Shift.
+- Snap-off phases keep their weekday. A phase held by its end moves its end Friday. A Dates phase moves both dates.
+  Production is scheduled again, so its wrap can move by more or less than a week around holidays.
+- **A burst of clicks is one undo step**, with a label on the card's caption line: "Pushed 2 wks", "Pulled 1 wk",
+  "Back where it was". A pause of 1.6 s or any other click or key ends the burst. Production's day marks stay bound
+  for the whole burst, so down then up inside one burst puts everything back exactly. A label can add what the move did
+  to a worked day ("· 1 worked day no longer on a day off").
+- **Keyboard:** Alt+↑ / Alt+↓ in the date box.
+- The Help's "Adjusting dates" section has a paragraph on them, after Shift.
+- While the arrows show, the card's boxes are 37 px tall instead of 30 (2 px clear above ▲ and below ▼), Length's
+  too so the two stay level. The card is 7 px taller and otherwise keeps its shape.
+
+Engine: the move is the Shift tool's own `shiftCalendar(dir, null, {part: {phases: [key], …}})` with an EMPTY week
+window (`fromWeek` after `toWeek`), so nothing week-keyed moves but what the phase owns; `opts.keepView` (the same
+name and line as the hiatus-ripple branch's) leaves the month view's cursor alone. `undo()` and `redo()` end a running
+burst first, so no snapshot is ever restored under a day-mark binding. The arrows, their holder and the label carry
+no id and no input. No frozen code, no writer and no save-format change. New leg `phasearrows` (26 cases, in gate.sh;
+its L1 / L2 hold the buttons inside the box with 2 px clear at sidebars of 280 to 440 px)
+on a new synthetic fixture `phasearrows.sptcal` (anchorside plus Post's own hiatus, four Post-keyed stores and an edited
+"Start Principal Photography" note). Found while building, and fixed before it shipped: with the marks bound per click,
+▼ ▲ inside one burst lost a worked holiday. `phasesui` 8/8, `npm run check` 40/40. Full gate on the branch: 3,981 PASS
+/ 3 FAIL with every baseline identical; the three were 10 s Load waits while another gate ran, each green re-run.
+
+### the waterfall's note editor says what a line is, and hides it (4 Nov 2026)
+
+The waterfall's note editor no longer calls every cell a "Note" (owner, 30 Oct 2026: *"why does this still show as
+Note in the waterfall"*), and it has the month view's Hide (owner, 4 Nov 2026: *"Should there be an equivalent hide
+auto note button in the waterfall view?"*). WATERFALL-NOTE-EDITOR-PLAN.md, ruled by picker:
+- A cell holding one automatic note opens as **Auto Note · 10/20/26** with **Hide Auto-Note**; one holiday, as
+  **Holiday · 9/7/26** with **Hide Holiday**. The box still holds the whole cell, so a line can be added.
+- A cell holding several lines lists its automatic notes and holidays under the box ("In this cell", with the month
+  view's ↻ and ⚑ marks), each with its own **Hide**.
+- Hide takes the note out of the Waterfall, Excel and the waterfall PDF only, at once: the month view keeps it (a
+  holiday stays a day off), anything else typed in the box is saved with it, and one undo brings it all back. On a note
+  the month view already hides, it switches the note off.
+- The Day picker and "Show in month view" appear only while the box holds a typed line (they do nothing for automatic
+  notes and holidays).
+- **Fixed:** renaming an automatic note or a holiday AND adding a line in one save lost the rename; taking a line out
+  while typing another left the note to come back after a schedule move. The editor now works out which line became
+  which by content, so both stick. Typing straight over one line still renames it (rename ruling 3). Where the box also
+  gained or lost lines at that spot, a line counts as renamed only if it keeps the note's date ("Labour Day 9/7/26");
+  lines typed afresh over a holiday's are the user's own text, and the holiday is left alone, as before.
+
+No frozen code (the editor is a body-level panel, outside the grid) and no saved-file change. New leg `wfnoteeditor`
+(13 cases, in gate.sh), red in 4 cases on a build with the old line matching. **The full gate caught a regression in
+the first build:** its base leg types two lines of its own over Labor Day's, and the first content matching read the
+first line as a rename, so Labor Day was called "Studio Cut Due" everywhere (the waterfall PDF, the workbook's strings
+and the grid signature all moved). Hence the date rule above, and case R4. After the fix the base leg is identical to
+its baseline again, and a second full gate on the fixed build is 3,920 PASS / 2 FAIL (two timeouts, each green alone)
+with every baseline identical. Neighbours green: noteviews, notewrap, holidayrename, wfkeys, wfmenu, autonoterename, autonoteview,
+autonotekinds, autonotephases, hdrcontrols, wfnotecolors, dlgkeys, regionmirror, hdrrow, mvmenu, monthnotes, textstyle.
+`npm run check` 40/40.
+
+### one Shift tool: Shift From and Anchor To fold into Shift (4 Nov 2026)
+
+The toolbar has two tools now, **Shift** and **Rebuild From** (owner, 4 Nov 2026: *"Ok im going to vote we go with C,
+one master shift tool"*; ANCHOR-TO-DIRECTION-PLAN.md §6, mockup tab C). The **Shift From** and **Anchor To** buttons
+are gone. What they did is two choices in the Shift form, under Shift All's old caret, which now reads **Shift ▾**:
+
+- **What moves:** `All phases | Phase & before | Phase & after`. The phase row under it shows only when a phase is
+  needed, and a hint names the phases that stay put.
+- **How far:** `By weeks` (`[n] wks  Earlier  Later`) or `To a date` (`[starts on / ends by]  [date]  Go`).
+- **Where each old tool went:** Shift All's form is All phases, By weeks, which is what the form opens on every time
+  (ruling R2(a)). Shift From is Phase & after, By weeks. Anchor To is All phases, To a date, with Whole schedule in
+  the list only there. The ← 1 wk / 1 wk → arrows are unchanged.
+- **New: Phase & before.** The picked phase and every phase before it move, and the gaps are kept. Before, no tool
+  did this. Example: delivery is fixed but the shoot must start two weeks earlier.
+- **Each phase goes by where it STARTS.** Phase & after Pre-Prep leaves a Writer's Room that runs into Pre-Prep,
+  because it started earlier. Phase & after is exactly the old Shift From. ⚠️ For one deploy (`c52094f`, 5 Nov
+  03:16 UTC) a phase overlapping the picked one moved too (owner's *"Overlaps move too"*). The owner reverted it the
+  same night: *"how would you move everything except for writers room"*.
+- Notes, unlocked all-phase hiatuses and the calendar range go from the picked phase's start week (after) or up to its
+  LAST week (before), so the picked phase takes its own notes and any hiatus inside it along. Holidays, locked hiatuses, dated notes and day notes never
+  move; Production's day marks travel by shoot-day number, as on every mover.
+- The result line for All phases is the old one, word for word. A part-calendar move adds what moved and what stayed
+  (*"Production and everything before it moved (4 phases). 2 stayed where they were."*).
+
+Engine: `shiftCalendarDates(weeks, fromIso, opts)` gains `opts.part = {phases, fromWeek, toWeek}`: exactly those phases
+move, and everything week-keyed inside the window. The form works the set out once (`shiftPlan`) for its hint and the
+move. With no `part`, every existing caller does exactly what it did. `part` with one phase is also the "just this
+phase" mover that the per-card week arrows' plan asks for. The third argument is ONE options object, shared with
+HIATUS-RIPPLE-PLAN.md's `except`. No frozen code, no writer and no save-format change: the choices are id-less buttons
+inside `.tools-menu`, and the ids `tool-shift-*` / `tool-anchor-*` live on in the form (`tool-ripple-*` retired).
+The Help's "Adjusting dates" section is rewritten. New leg `anchorside` (23 cases, in gate.sh) on a new synthetic
+fixture `anchorside.sptcal`, which has two overlaps by days. X2 is the owner's case: Phase & after leaves a phase that
+started earlier and runs in. A build with one bound at the picked phase's start is red on B2 and B3. `builtindates`, `customunits`,
+`datepick` and `snaptools` open Shift instead of Anchor To; `calrange`, `overrides` and `rowheight` pick Phase & after
+instead of Shift From. Full gate: 3,927 PASS, every baseline identical. Its 20 FAILs were in five legs that don't
+touch the shift tool, and each is green alone (`pilllabel`, `hdrrow`, `hiatuscolour`, `offweek`, `mvnotes`). The
+gate ran on the start-week rule. That rule was briefly replaced by the overlap rule and is now back; each step was
+re-checked on the targeted legs (HANDOFF).
+
+
+### the Automatic notes card, one row per phase (4 Nov 2026)
+
+The owner, on a screenshot of Settings ▸ Preferences ▸ Automatic notes: *"make this menu less ugly"*, then *"show me
+3 differnt mockups"* ([`mockups/autonote-card.html`](mockups/autonote-card.html): A, the same list tidied; B, one row
+per phase; C, labelled toggle pills), then *"go with b"*. Chrome only: the same ticks, the same saved data, nothing
+in the grid or the exports.
+
+- **One row per phase:** its name, then a Start and an End box under WATERFALL, then the same under MONTH. The card
+  is 231 px tall in a narrow window, down from 482. The note's own word ("Opens", "Wraps"…) is no longer printed;
+  it is each box's tooltip, and still each box's spoken label.
+- **The phase's colour** is a small chip before its name: its fill, edged in its month-bar ink so a pale fill still
+  shows. A recoloured or custom phase shows its own.
+- **The heading** has one rule under each view's name (it was three broken pieces, the first under nothing), a thin
+  rule runs above each phase's row, and the whole row shades on hover.
+- **Fit:** in the narrowest window (a 247 px card) the default names stay on one line; a longer typed name wraps,
+  never clips.
+- **Verified:** in the browser pane (narrow and full width, row hover, a tick taking and surviving the redraw).
+  `npm run check` 40/40. The legs that read the card's layout (`autonotekinds` A1, `autonotephases` P1 and C0) now
+  read B's rows. Every leg that reads the card, on the build: `autonotekinds` 16/16, `autonotephases` 27/27,
+  `prepreptitle` 7/7, `autonote` 9/9, `autonoterename` 24/24, `autonoteview` 18/18, `settingswin` 21/21,
+  `phasesui` 8/8. No full gate: nothing in the grid, the exports or the save path changed.
+
+### Swap Column no longer splits a phase quietly; Reuse Empty Columns stops adding a column (4 Nov 2026)
+
+The owner's report, with before/after screenshots: Swap Column on a short phase beside a long one moved only the
+weeks they share, so the long phase sat in two columns. Turning off Reuse Empty Columns "fixed it", *"But how would a
+user know that was what they needed to turn off?"* Reproduced on a copy of the owner's setup (kept out of the repo).
+Ruled "Fix both".
+
+- **Why it happened:** with Reuse Empty Columns ticked, a phase that starts after every column is free took the
+  LOWEST free column, which can be one last used in an earlier year. In its own year that column was otherwise empty,
+  so the year grew a column. That column sat exactly where Simultaneous Post has to land when Production swaps, so
+  the whole-column swap was refused, and since 2 Nov the arrow then falls back, unmarked, to swapping only the shared
+  weeks. With the box clear the default layout happened to need no swap.
+- **Reuse Empty Columns** (`placeSegmentsReusingColumns`, rule 3): a free column already used in the years the
+  phase runs in is preferred; among equals, the lowest, as before. A calendar with the box ticked can lay out with
+  one column fewer in such a year. With the box clear, and in Single Column, nothing changes. No frozen code.
+- **The swap arrow:** after Swap Column, when the only swap it can offer would leave a phase in two columns, the
+  arrow is amber instead of teal, a dashed amber box outlines exactly the cells that will move, and the tooltip says
+  which phase ends up in two columns and why the whole column can't move. Swapping a split phase back is not
+  marked, nor is a part of a column you selected yourself. No new chip (owner ruling, 21 Oct 2026).
+- **Verified:** new leg `swapsplitreuse` 5/5 on the fixture `swapsplit-reuse` (made up, reuse ticked), red on the
+  build before it in S1–S3: a 4th column, the part-column arrow, Writers left in slots 0 and 2. `colswappartial`
+  8/8 on both fixtures, now also checking the amber arrow, the box and the tooltip (P1, P4), the unmarked swap back
+  (P3) and an unmarked hand selection (P5). Seen in the browser pane: the amber arrow and the box on the four shared
+  weeks. `npm run check` 40/40. A swap/reuse mini-gate (every column-swap, block-swap and reuse section of
+  `gate.sh`): 300 PASS, 0 FAIL. Full gate: 3,896 PASS, 3 FAIL, every baseline identical; the three are known
+  timing flakes (`monthexport` X6, `phaseedge`'s deadline, `offweek` R9), each green re-run alone.
+
+### automatic notes per view, and "Hide Auto-Note" (4 Nov 2026)
+
+Each automatic note can now show in the waterfall, the month view, or both, as a holiday can (owner, 2 Nov 2026:
+*"Can automatic notes be seperated like holidays so you can indepentenly show/hide them in the waterfall and month
+view"*; AUTO-NOTES-PER-VIEW-PLAN.md steps 2–4, every ruling the recommendation):
+
+- **Settings ▸ Preferences ▸ Automatic notes** is grouped by phase, under a Waterfall | Month heading: each phase's name,
+  then its two notes ("Opens" / "Closes", "Begins" / "Ends", "Starts" / "Wraps"), each with a Waterfall box and a Month
+  box. Custom phases follow. Waterfall covers the Notes column, Excel and the waterfall PDF (its Notes column narrows
+  with it); Month covers the month view and its PDF. A phase hidden in the waterfall dims its Waterfall boxes and keeps
+  their ticks.
+- **A delete hides a note from the view you are in** (ruling R4): the waterfall's Delete key, Clear, a line taken out
+  in its editor and a paste over it hide it from the waterfall; the month view's button, renamed **Hide Auto-Note**
+  (owner, 4 Nov 2026), hides it from the month view. A note the other view already hides is switched off, as before.
+  Dragging one to another week or day still switches it off, since it travels on as your own note in both views.
+- **Two frozen edits, owner-approved with the gate (R2(a)):** in `notesForWaterfallDate`, N1 widens the M-13 holiday
+  rule so a month-only note (and a note of a phase hidden in the waterfall) stays in the month view under a typed
+  waterfall note, once; N2 keeps a waterfall-only line out of the month view when a typed note carries it word for word.
+  The month editor's write-back follows the same rules. Nothing in the renderers, the width model or the writers changed.
+
+Saved as one new key, `autoNotesView` (`{kind: {sheet: false} | {month: false}}`, sorted), written only while a note is
+split, so every other calendar saves byte for byte as before, and an older build shows a split note in both views. New
+leg `autonoteview` (18 cases, in gate.sh): each split in its own view's screen, workbook and PDFs, the save key
+(byte-identical when ticked back, hostile entries dropped, restored unconditionally), undo per tick, an opt-in kind,
+typed weeks, a shift and the month editor. Red on a build without N1 (5 cases) or without N2 (4). `autonotekinds`,
+`autonotephases`, `autonoterename`, `wfkeys` and `wfmenu` were rewritten where they held the old one-box card or the
+old delete; `holidayrename`, `mvmenu`, `monthnotes`, `hidewf`, `settingswin` and `prepreptitle` pass unchanged.
+
+
+### recovered work goes back into its own file, not an Untitled copy (4 Nov 2026)
+
+Owner, 4 Nov 2026: *"sometimes when we reopen the app, it loads the last calendar we were on but as an unsaved,
+untitled duplicate."* That was the "Recover unsaved work" question at launch. Two causes:
+
+- **Recovery never linked the file back.** It restored the calendar and nothing else, so work on `show.sptcal` came
+  back as Untitled, and the next Save asked for a new file, leaving a second copy beside the real one. A backup now
+  records which file it belongs to (its recents entry and the file's stamp as last read or written), and Recover
+  links that file again. The file menu names it and Save writes to it, asking permission first when Chrome wants
+  that. If the file was saved somewhere else since, Save asks before overwriting, as it always does for a linked
+  file.
+- **A calendar you had just saved could be offered for recovery.** The backup is written 3 s after an edit. A Save
+  (or an autosave) inside those 3 s deleted it, and then the timer wrote it back, so the next launch offered to
+  "recover" a calendar already in its file. A saved calendar now writes no backup.
+
+A backup left by an older build has no file named, so it still recovers as Untitled, once. No frozen code, no
+save-format change (a backup is never a saved file). New legs `backuplink` (5 cases) and `backuplinkstale` (3), in
+the gate beside `backupslots`: red on the live build except L1, and L4 red with only the new guard deleted. Also
+green: `backupslots`, and the other legs that save, load or read the backup (listed in HANDOFF). `npm run check` 40/40.
+
+### Compare: the holiday chip is on Wrap only, in words (4 Nov 2026)
 
 Owner, 4 Nov 2026, on a Compare window showing "−1 holiday" under First shoot day and "−2 holidays" under Wrap:
 *"what does -1 holidays on first shoot day and -2 on wrap even mean??"*, then *"why would wrap and first shoot have
@@ -70,7 +4091,7 @@ alone). Leg `scenarios` 23/23: S19 and S20 reworded, and new S22 (a holiday on t
 nowhere), red on the old build with exactly the owner's "−1 holiday" under First shoot day. `scenariofacts` 12/12,
 `npm run check` 40/40, and the browser pane on `scenarios-3`.
 
-### Unreleased — a note can show in the other view: "Show in month view" / "Show in waterfall" (4 Nov 2026)
+### a note can show in the other view: "Show in month view" / "Show in waterfall" (4 Nov 2026)
 
 Both note editors now have a switch right below the colours (owner, 4 Nov 2026: *"a toggle in the popup when you edit
 a note … to hide/show the note in the other calendar"*):
@@ -93,7 +4114,7 @@ top-level key and no new field id. Older builds open such a file and ignore both
 gate.sh), plus 13 neighbouring note legs green on the build. Full gate merged with main: every byte comparison held;
 of four FAILs, one was this leg's own outdated check, and three were Load-timing flakes that pass alone.
 
-### Unreleased — no hairline between rows in the waterfall PDF (4 Nov 2026)
+### no hairline between rows in the waterfall PDF (4 Nov 2026)
 
 Owner, 4 Nov 2026: *"there appears to be a pixel wide gap between rows when you export waterfall to pdf with grid
 lines turned off"*.
@@ -126,7 +4147,7 @@ covers it; Gridlines None has no line.
   - It fails on the old PDF.
 - `wfnotecolors` P1 now counts cell fills rather than every rectangle. A No fill note also takes its neighbours'
   strips away, so the plain count fell by 3 instead of 1.
-### Unreleased — a phase's own hiatus gets a colour square; the month menu's hiatus Colour… is gone (4 Nov 2026)
+### a phase's own hiatus gets a colour square; the month menu's hiatus Colour… is gone (4 Nov 2026)
 
 The owner's follow-up pickers to the change below: *"Same rule, add colour"* for a phase's own hiatus, and *"remove
 month color, but keep the style bar working for all"*.
@@ -144,7 +4165,7 @@ Verified: `hiatussidebar` grew to 16 cases, all green; the six new ones are red 
 menu legs (`mvmenu`, `hiatusfold`, `hiatuscolour`, `labelsetup`) and `phiatusnum` were updated for the cut item and the
 phase band; `notewrap` gets its Post label from a saved file.
 
-### Unreleased — the note under Show info is gone (4 Nov 2026)
+### the note under Show info is gone (4 Nov 2026)
 
 The blue box at the bottom of Show info, *"Production's Total Shooting Days: N — the sum of the episode list in the
 Production phase…"* with its *"Manually changed: Episode 101 → 11 days…"* line, is removed (owner, 4 Nov 2026, with a
@@ -157,7 +4178,7 @@ changed" from the box, and now reads an unstyled `is-edited` class on the episod
 now checks that Production's row is not greyed and its total is written; all green. `npm run check` 40/40. Checked in
 the browser pane: no box, total 80 → 83 with an episode at 11, no console errors.
 
-### Unreleased — an all-phase hiatus is named and coloured on its sidebar card only (4 Nov 2026)
+### an all-phase hiatus is named and coloured on its sidebar card only (4 Nov 2026)
 
 The owner: *"Remove ability to edit the name and color of all phase hiatuses in the waterfall itself. That should only
 be possible in the left side bar"*.
@@ -172,7 +4193,7 @@ Verified: a new leg, `hiatussidebar`, 11/11, red on v1.10.0 in 8 of 11. Six legs
 reworked: `hiatuslabel`, `notewrap`, `mvmenu`, `wfnotecolors`, `textstyle`, `hdrcontrols`. Those six and ten neighbouring
 legs are green. Checked by hand in the browser.
 
-### Unreleased — right-click a loaded file: Show in folder… (4 Nov 2026)
+### right-click a loaded file: Show in folder… (4 Nov 2026)
 
 Right-click a calendar in the file menu's list and choose **Show in folder…**: the Mac's file window opens in the
 folder that holds that file, and the bar at its top shows where it is saved (owner, 4 Nov 2026: *"I want to see where
@@ -185,7 +4206,7 @@ copy exported with the menu open not carrying it. Red on a build without `startI
 hand in the browser pane with a real click: Chrome still counts the click as the user's when the window is asked for.
 Not yet seen on the owner's Mac with the real window.
 
-### Unreleased — the acceptance gate can no longer hang on a stuck Chrome (3 Nov 2026)
+### the acceptance gate can no longer hang on a stuck Chrome (3 Nov 2026)
 
 Harness only; the app is unchanged. A full gate sat for 3 h 20 min in `tests/harness/printpaper.mjs` because its
 DevTools calls wait for Chrome's reply with no timeout. `printpaper.mjs` (240 s) and `rtleg.mjs` (`--secs` + 60) now

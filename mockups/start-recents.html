@@ -1,0 +1,419 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Start Recents Variations</title>
+<!-- MOCKUP, not the app. The recent calendars on an empty start (StartRecents.jsx, audit AUD2-030, on the v1.15 release
+     branch), redrawn. Owner, 16 Nov 2026, on a screenshot of the live list: "this recent calendars UI is ugly. Mockup some
+     alternatives that fit in better with the UI and look more elegant and natural." Then, on versions 1 to 5: "combine 2
+     and 3", which is versions 6 (one card) and 7 (two cards).
+     Five alternatives and today's look, each in a copy of the empty preview panel (the toolbar, then the empty-state
+     sentence, which is frozen render()'s own text and stays word for word). Switch the number of recent files to see
+     how each one holds up with none, a few, or the eight the start screen shows (START_RECENTS_MAX).
+     Only data the app already keeps is used: each recent file's name and savedAt (set whenever it is opened or saved),
+     shown as "Today", "Yesterday" or a date. The file names are MADE UP (this repo is public).
+     Tokens are src/theme.js's (navy primary, warm grays, Inter, 5 / 7 / 10 px radii) and legacy.css's --bg and
+     --text-faint. Nothing here touches #table-wrap: the host stays the sibling after it. -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  /* src/theme.js */
+  --navy-0:#EAEEF2; --navy-1:#D3DAE1; --navy-2:#B4BFC9; --navy-3:#8E9EAD; --navy-6:#2C3E50; --navy-7:#1C2833;
+  --gray-0:#F7F6F3; --gray-1:#EEECE5; --gray-2:#E3E1DA; --gray-3:#D9D7CE; --gray-4:#C4C1B6; --gray-5:#A5A197;
+  --gray-6:#726F68; --gray-7:#5A5750; --gray-9:#1E1D1B;
+  --shadow-xs:0 1px 2px rgba(0,0,0,.08); --shadow-sm:0 2px 6px rgba(0,0,0,.08); --shadow-md:0 8px 24px rgba(0,0,0,.12);
+  --r-sm:5px; --r-md:7px; --r-lg:10px;
+  /* legacy.css */
+  --bg:#F7F6F3; --text:#1E1D1B; --text-faint:#6E6A62;
+  --page:#ECEBE6;
+}
+*{ box-sizing:border-box; }
+body{ margin:0; font-family:'Inter',system-ui,sans-serif; color:var(--gray-9); background:var(--page); line-height:1.5; }
+button{ font:inherit; color:inherit; }
+.ic{ width:16px; height:16px; flex:none; fill:none; stroke:currentColor; stroke-width:1.6; stroke-linecap:round; stroke-linejoin:round; }
+
+/* ---------- The page around the mockup ---------- */
+.page{ max-width:1320px; margin:0 auto; padding:24px 16px 60px; }
+.page-head h1{ font-size:22px; margin:0 0 6px; letter-spacing:-.01em; }
+.page-head p{ margin:0 0 4px; color:var(--gray-6); font-size:13.5px; max-width:900px; }
+.bar{ position:sticky; top:0; z-index:5; display:flex; flex-wrap:wrap; gap:10px 18px; align-items:center; justify-content:space-between;
+      margin:14px 0 16px; padding:10px 0; background:var(--page); }
+.tabs, .cases{ display:flex; flex-wrap:wrap; gap:4px; align-items:center; }
+.cases .lbl{ font-size:12px; color:var(--gray-6); margin-right:4px; }
+.pill{ height:30px; padding:0 12px; border:1px solid var(--gray-3); background:#fff; border-radius:var(--r-md); font-size:12.5px;
+       font-weight:500; color:var(--gray-7); cursor:pointer; }
+.pill:hover{ border-color:var(--gray-4); color:var(--gray-9); }
+.pill.on{ background:var(--navy-6); border-color:var(--navy-6); color:#fff; }
+.pill .star{ color:#E0A800; margin-left:3px; }
+.pill.on .star{ color:#FFD24D; }
+.var{ margin:0 0 36px; }
+.var-head{ display:flex; align-items:baseline; gap:10px; margin:0 0 8px; }
+.var-head h2{ font-size:16px; margin:0; letter-spacing:-.005em; }
+.rec{ font-size:11px; font-weight:600; color:#7A5B14; background:#FEF6E7; border:1px solid #F0D9A8; border-radius:99px; padding:1px 8px; }
+.notes{ display:grid; grid-template-columns:repeat(3, 1fr); gap:18px; background:#fff; border:1px solid var(--gray-2);
+        border-radius:12px; padding:14px 18px; margin-top:10px; }
+.notes h3{ font-size:10.5px; text-transform:uppercase; letter-spacing:.07em; color:var(--gray-6); margin:0 0 4px; }
+.notes p{ font-size:13px; margin:0; }
+@media (max-width:900px){ .notes{ grid-template-columns:1fr; } }
+.kbd{ font-size:11.5px; color:var(--gray-6); }
+
+/* ---------- The empty preview panel (a copy, for context) ---------- */
+.frame{ background:var(--bg); border:1px solid var(--gray-3); border-radius:12px; min-height:640px; overflow:hidden; }
+.tb{ display:flex; align-items:center; gap:14px; padding:14px 20px; white-space:nowrap; overflow:hidden; font-size:12px; font-weight:500; }
+.tb .seg{ display:flex; gap:2px; padding:3px; background:var(--gray-1); border-radius:var(--r-lg); }
+.tb .seg span{ display:inline-flex; align-items:center; gap:7px; height:28px; padding:0 14px; border-radius:var(--r-md); color:var(--gray-6); }
+.tb .seg span.on{ background:#fff; color:var(--gray-9); box-shadow:var(--shadow-xs); }
+.tb .ol{ display:flex; align-items:center; height:30px; border:1px solid var(--navy-6); border-radius:var(--r-md); color:var(--navy-6); background:#fff; }
+.tb .ol span{ display:inline-flex; align-items:center; gap:4px; height:100%; padding:0 13px; }
+.tb .ol span + span{ border-left:1px solid var(--navy-6); }
+.tb .grp{ display:flex; align-items:center; gap:14px; height:34px; padding:0 12px; background:var(--gray-1); border-radius:var(--r-lg); color:var(--gray-9); }
+.tb .grp.dim{ color:var(--gray-5); }
+.tb .grp .sw{ width:22px; height:12px; border-radius:99px; background:var(--gray-3); position:relative; margin-right:-8px; }
+.tb .grp .sw::after{ content:''; position:absolute; left:2px; top:2px; width:8px; height:8px; border-radius:50%; background:#fff; }
+.tb .car{ font-size:8px; color:currentColor; opacity:.7; }
+.tb .hl{ background:#FFF3A3; padding:0 3px; border-radius:2px; }
+.empty{ color:var(--text-faint); font-size:13.5px; padding:40px 0; text-align:center; }
+.host{ display:flex; justify-content:center; padding:0 16px 40px; }
+
+/* Shared controls, in the chrome's look */
+.btn-default{ display:inline-flex; align-items:center; gap:6px; height:30px; padding:0 12px; background:#fff; border:1px solid var(--gray-3);
+              border-radius:var(--r-md); font-size:12px; font-weight:500; color:var(--gray-9); cursor:pointer; }
+.btn-default:hover{ background:var(--gray-0); }
+.btn-default .ic{ width:14px; height:14px; }
+.txtbtn{ display:inline-flex; align-items:center; gap:6px; height:26px; padding:0 8px; border:0; background:none; border-radius:var(--r-sm);
+         color:var(--navy-6); font-size:12px; font-weight:500; cursor:pointer; }
+.txtbtn:hover{ background:var(--gray-1); }
+.txtbtn .ic{ width:14px; height:14px; }
+.nm{ min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.ext{ color:var(--gray-5); font-weight:400; }
+.stamp{ white-space:nowrap; }
+.when{ flex:none; color:var(--text-faint); font-size:11px; font-variant-numeric:tabular-nums; }
+.solo{ display:flex; flex-direction:column; align-items:center; gap:8px; }
+
+/* ---------- Today (StartRecents.jsx + legacy.css .sr-*) ---------- */
+.t0{ width:320px; max-width:100%; display:flex; flex-direction:column; gap:6px; }
+.t0-head{ padding:0 2px; font-size:11px; font-weight:600; color:var(--text-faint); }
+.t0-list{ background:#fff; border:1px solid var(--gray-3); border-radius:var(--r-md); overflow:hidden; }
+.t0-row{ display:flex; align-items:center; gap:8px; width:100%; padding:8px 12px; border:0; background:none; font-size:12px; text-align:left; cursor:pointer; }
+.t0-row + .t0-row{ border-top:1px solid var(--gray-2); }
+.t0-row:hover{ background:var(--gray-0); }
+.t0-row .ic{ color:var(--text-faint); }
+.t0 .btn-default{ align-self:flex-start; margin-top:4px; }
+.t0 .btn-default:first-child{ align-self:center; }
+
+/* ---------- 1. Quiet list ---------- */
+.v1{ width:440px; max-width:100%; }
+.v1-head{ display:flex; align-items:center; justify-content:space-between; padding:0 2px 6px 10px; margin-bottom:4px; border-bottom:1px solid var(--gray-2); }
+.v1-head .lbl{ font-size:11px; font-weight:600; color:var(--text-faint); }
+.v1-row{ display:flex; align-items:center; gap:10px; width:100%; height:32px; padding:0 10px; border:0; background:none; border-radius:var(--r-md);
+         font-size:12px; text-align:left; cursor:pointer; }
+.v1-row .nm{ flex:1; }
+.v1-row .ic{ color:var(--gray-5); }
+.v1-row:hover{ background:var(--gray-1); }
+.v1-row:hover .ic{ color:var(--navy-6); }
+
+/* ---------- 2. Card ---------- */
+.v2{ width:460px; max-width:100%; background:#fff; border:1px solid var(--gray-2); border-radius:var(--r-lg); box-shadow:var(--shadow-xs); padding:6px; }
+.v2-head{ display:flex; align-items:center; justify-content:space-between; padding:6px 6px 8px 10px; }
+.v2-head .ttl{ font-size:12px; font-weight:600; }
+.v2-head .btn-default{ height:26px; padding:0 10px; }
+.v2-row{ display:flex; align-items:center; gap:11px; width:100%; padding:6px 8px; border:0; background:none; border-radius:var(--r-md); text-align:left; cursor:pointer; }
+.v2-row:hover{ background:var(--gray-0); }
+.tile{ width:30px; height:30px; flex:none; display:grid; place-items:center; border-radius:var(--r-md); background:var(--navy-0); color:var(--navy-6); }
+.v2-txt{ flex:1; min-width:0; display:flex; flex-direction:column; line-height:1.35; }
+.v2-nm{ font-size:12px; font-weight:500; }
+.v2-meta{ font-size:11px; color:var(--text-faint); }
+.v2-row .go{ color:var(--navy-6); opacity:0; transition:opacity .1s; }
+.v2-row:hover .go{ opacity:1; }
+.v2-empty{ padding:10px 10px 12px; font-size:12px; color:var(--text-faint); }
+
+/* ---------- 3. Continue ---------- */
+.v3{ width:460px; max-width:100%; display:flex; flex-direction:column; gap:18px; }
+.v3-hero{ display:flex; align-items:center; gap:14px; width:100%; padding:14px 16px; background:#fff; border:1px solid var(--gray-2);
+          border-radius:var(--r-lg); box-shadow:var(--shadow-xs); text-align:left; cursor:pointer; transition:box-shadow .12s, border-color .12s; }
+.v3-hero:hover{ border-color:var(--gray-4); box-shadow:var(--shadow-sm); }
+.v3-hero .tile{ width:40px; height:40px; border-radius:var(--r-lg); background:var(--navy-6); color:#fff; }
+.v3-hero .tile .ic{ width:18px; height:18px; }
+.v3-txt{ flex:1; min-width:0; display:flex; flex-direction:column; line-height:1.35; }
+.v3-over{ font-size:11px; font-weight:500; color:var(--text-faint); }
+.v3-ttl{ font-size:14px; font-weight:600; margin:1px 0; }
+.v3-meta{ font-size:11px; color:var(--text-faint); }
+.v3-go{ display:inline-flex; align-items:center; gap:4px; font-size:12px; font-weight:500; color:var(--navy-6); flex:none; }
+.v3-more .v1-row{ height:30px; }
+.v3-foot{ display:flex; justify-content:center; }
+
+/* ---------- 6. Card + Continue, in one card ---------- */
+.v6{ width:460px; max-width:100%; background:#fff; border:1px solid var(--gray-2); border-radius:var(--r-lg); box-shadow:var(--shadow-xs); padding:6px; }
+.v6-hero{ display:flex; align-items:center; gap:14px; width:100%; padding:10px 10px 12px; border:0; background:none; border-radius:var(--r-md);
+          text-align:left; cursor:pointer; }
+.v6-hero:hover{ background:var(--gray-0); }
+.v6-hero .tile, .v3-hero .tile{ width:40px; height:40px; border-radius:var(--r-lg); background:var(--navy-6); color:#fff; }
+.v6-hero .tile .ic{ width:18px; height:18px; }
+.btn-primary{ display:inline-flex; align-items:center; gap:5px; height:28px; padding:0 12px; flex:none; border-radius:var(--r-md);
+              background:var(--navy-6); color:#fff; font-size:12px; font-weight:500; }
+.btn-primary .ic{ width:14px; height:14px; }
+.v6-hero:hover .btn-primary{ background:var(--navy-7); }
+.v6-sep{ margin:2px 4px 0; padding:8px 6px 4px; border-top:1px solid var(--gray-2); font-size:11px; font-weight:600; color:var(--text-faint); }
+
+/* ---------- 4. Tiles ---------- */
+.v4{ width:510px; max-width:100%; }
+.v4-head{ padding:0 4px 8px; font-size:11px; font-weight:600; color:var(--text-faint); }
+.v4-grid{ display:flex; flex-wrap:wrap; gap:12px; }
+.v4-tile{ width:154px; height:132px; display:flex; flex-direction:column; align-items:center; gap:8px; padding:14px 10px 10px; background:#fff;
+          border:1px solid var(--gray-2); border-radius:var(--r-lg); cursor:pointer; transition:box-shadow .12s, border-color .12s; }
+.v4-tile:hover{ border-color:var(--navy-2); box-shadow:var(--shadow-sm); }
+.v4-tile svg.glyph{ width:40px; height:46px; flex:none; }
+.v4-nm{ width:100%; font-size:12px; font-weight:500; line-height:1.35; text-align:center; overflow:hidden;
+        display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; }
+.v4-tile .when{ margin-top:auto; }
+.v4-load{ background:transparent; border:1px dashed var(--gray-4); color:var(--navy-6); justify-content:center; font-size:12px; font-weight:500; }
+.v4-load .ic{ width:22px; height:22px; stroke-width:1.4; }
+.v4-load:hover{ background:#fff; border-style:solid; }
+
+/* ---------- 5. Inline links ---------- */
+.v5{ width:660px; max-width:100%; text-align:center; }
+.v5-lead{ font-size:12px; color:var(--text-faint); margin:-14px 0 12px; }
+.v5-chips{ display:flex; flex-wrap:wrap; justify-content:center; gap:6px; }
+.chip{ display:inline-flex; align-items:center; gap:6px; height:28px; max-width:250px; padding:0 10px; background:#fff; border:1px solid var(--gray-2);
+       border-radius:var(--r-md); font-size:12px; cursor:pointer; }
+.chip .ic{ width:14px; height:14px; color:var(--gray-5); }
+.chip:hover{ border-color:var(--navy-3); color:var(--navy-6); }
+.chip:hover .ic{ color:var(--navy-6); }
+.chip.load{ background:transparent; border-style:dashed; border-color:var(--gray-4); color:var(--navy-6); font-weight:500; }
+.chip.load .ic{ color:var(--navy-6); }
+</style>
+</head>
+<body>
+<div class="page">
+  <header class="page-head">
+    <h1>Recent calendars on an empty start</h1>
+    <p>Five other ways to show the recent calendars under the empty preview, each beside today’s look in a copy of the
+       panel. The sentence above the list is the grid’s own and stays as it is. They only use what the app already
+       keeps for each recent file: its name and when it was last opened or saved. The file names are made up.</p>
+    <p><b>New:</b> 6 and 7 combine 2 (Card) and 3 (Continue), in one card or as two.</p>
+    <p class="kbd">Hover the rows to see them respond. ← / → steps through the versions.</p>
+  </header>
+  <div class="bar">
+    <div class="tabs" id="tabs"></div>
+    <div class="cases" id="cases"><span class="lbl">Recent files</span></div>
+  </div>
+  <main id="stage"></main>
+</div>
+<script>
+(function(){
+  const svg = (inner) => `<svg class="ic" viewBox="0 0 16 16" aria-hidden="true">${inner}</svg>`;
+  // src/chrome/icons.jsx
+  const I = {
+    cal: svg('<rect x="2.5" y="3.5" width="11" height="10" rx="1.5"/><path d="M2.5 6.5h11M5.5 1.5v3M10.5 1.5v3"/>'),
+    folder: svg('<path d="M1.5 4.5a1 1 0 0 1 1-1h3.2l1.6 2h6.2a1 1 0 0 1 1 1v5.5a1 1 0 0 1-1 1h-11a1 1 0 0 1-1-1Z"/>'),
+    table: svg('<rect x="2" y="2.5" width="12" height="11" rx="1.5"/><path d="M2 6h12M6.5 6v7.5"/>'),
+    undo: svg('<path d="M6.5 3 3 6.5 6.5 10"/><path d="M3 6.5h6.5a3.25 3.25 0 0 1 0 6.5H7"/>'),
+    redo: svg('<path d="M9.5 3 13 6.5 9.5 10"/><path d="M13 6.5H6.5a3.25 3.25 0 0 0 0 6.5H9"/>'),
+    arrow: svg('<path d="M3 8h10M9 4l4 4-4 4"/>'),
+  };
+  // A waterfall in miniature: an icon for "an SPTCal calendar", the same on every tile (not a preview of the file).
+  const GLYPH = `<svg class="glyph" viewBox="0 0 40 46" aria-hidden="true">
+    <rect x=".5" y=".5" width="39" height="45" rx="5" fill="#fff" stroke="#D9D7CE"/>
+    <rect x="6" y="7" width="16" height="2.5" rx="1.25" fill="#C4C1B6"/>
+    <rect x="6" y="14" width="13" height="6" rx="1.5" fill="#E4DDF0"/>
+    <rect x="13" y="21.5" width="14" height="6" rx="1.5" fill="#DCE8F5"/>
+    <rect x="18" y="29" width="16" height="6" rx="1.5" fill="#E2F0D9"/>
+    <rect x="26" y="36.5" width="8" height="5" rx="1.5" fill="#FBE5D6"/>
+  </svg>`;
+
+  // Made up. Ordered as the app orders them: most recently opened or saved first (savedAt).
+  const FILES = [
+    { name: 'Northwind S2 2026-11-04.sptcal',          when: 'Today',     long: 'Today at 9:40 AM' },
+    { name: 'Harbor Lights 2026-10-20.sptcal',         when: 'Yesterday', long: 'Yesterday at 4:15 PM' },
+    { name: 'Copper Valley 2026-10-29.sptcal',         when: 'Nov 12',    long: 'Thursday, Nov 12' },
+    { name: 'Slate Planning Calendar for All Shows 2026-11-06.sptcal', when: 'Nov 10', long: 'Tuesday, Nov 10' },
+    { name: 'Glass Orchard S2.html',                    when: 'Nov 6',     long: 'Friday, Nov 6' },
+    { name: 'Night Desk S1 2026-08-10.sptcal',         when: 'Oct 29',    long: 'Thursday, Oct 29' },
+    { name: 'Lantern Bay 2026-10-20.sptcal',           when: 'Oct 20',    long: 'Tuesday, Oct 20' },
+    { name: 'Paper Kites Scenario 2 2026-11-04.sptcal', when: 'Oct 14',   long: 'Wednesday, Oct 14' },
+  ];
+  const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  // .sptcal is dropped (every new file is one); an older .html calendar keeps its extension, faintly.
+  const label = (f) => {
+    const m = f.name.match(/^(.*?)(\.(sptcal|html))$/i);
+    if (!m) return esc(f.name);
+    // The date stamp Save puts on a name (buildSavedFileName) never breaks inside itself when a tile wraps the name.
+    const base = esc(m[1]).replace(/ (\d{4}-\d{2}-\d{2})$/, ' <span class="stamp">$1</span>');
+    return base + (m[3].toLowerCase() === 'html' ? `<span class="ext">${esc(m[2])}</span>` : '');
+  };
+  const loadBtn = (cls = 'btn-default', text = 'Load…') => `<button type="button" class="${cls}">${I.folder}${text}</button>`;
+
+  // ---- Today, as built (StartRecents.jsx) ----
+  function vToday(files) {
+    const rows = files.map((f) => `<button type="button" class="t0-row" title="${esc(f.name)}">${I.cal}<span class="nm">${esc(f.name)}</span></button>`).join('');
+    return `<div class="t0">${files.length ? `<div class="t0-head">Recent calendars</div><div class="t0-list">${rows}</div>` : ''}${loadBtn()}</div>`;
+  }
+
+  // ---- 1. Quiet list ----
+  const quietRows = (files) => files.map((f) =>
+    `<button type="button" class="v1-row" title="${esc(f.name)}">${I.cal}<span class="nm">${label(f)}</span><span class="when">${f.when}</span></button>`).join('');
+  function vQuiet(files) {
+    if (!files.length) return `<div class="solo">${loadBtn()}</div>`;
+    return `<div class="v1"><div class="v1-head"><span class="lbl">Recent calendars</span>${loadBtn('txtbtn')}</div>${quietRows(files)}</div>`;
+  }
+
+  // ---- 2. Card ----
+  const cardRows = (files) => files.map((f) => `<button type="button" class="v2-row" title="${esc(f.name)}">
+        <span class="tile">${I.cal}</span>
+        <span class="v2-txt"><span class="v2-nm nm">${label(f)}</span><span class="v2-meta">${f.long}</span></span>
+        <span class="go">${I.arrow}</span></button>`).join('');
+  function vCard(files) {
+    return `<div class="v2"><div class="v2-head"><span class="ttl">Recent calendars</span>${loadBtn('btn-default')}</div>
+      ${files.length ? cardRows(files) : '<div class="v2-empty">Calendars you save or load will show up here.</div>'}</div>`;
+  }
+
+  // ---- 3. Continue where you left off ----
+  const lastOpened = (f) => 'Last opened ' + f.long.charAt(0).toLowerCase() + f.long.slice(1);
+  const heroText = (f) => `<span class="tile">${I.cal}</span>
+        <span class="v3-txt"><span class="v3-over">Pick up where you left off</span><span class="v3-ttl nm">${label(f)}</span>
+          <span class="v3-meta">${lastOpened(f)}</span></span>`;
+  const heroCard = (f) => `<button type="button" class="v3-hero" title="${esc(f.name)}">${heroText(f)}<span class="v3-go">Open ${I.arrow}</span></button>`;
+  function vContinue(files) {
+    if (!files.length) return `<div class="solo">${loadBtn()}</div>`;
+    const [first, ...rest] = files;
+    const hero = heroCard(first);
+    const more = rest.length
+      ? `<div class="v3-more v1"><div class="v1-head"><span class="lbl">Other recent calendars</span>${loadBtn('txtbtn')}</div>${quietRows(rest)}</div>`
+      : `<div class="v3-foot">${loadBtn('txtbtn', 'Load another calendar…')}</div>`;
+    return `<div class="v3">${hero}${more}</div>`;
+  }
+
+  // ---- 6. Card + Continue, in one card (owner, 16 Nov 2026: "combine 2 and 3") ----
+  function vCombo(files) {
+    if (!files.length) return vCard(files);
+    const [first, ...rest] = files;
+    const hero = `<button type="button" class="v6-hero" title="${esc(first.name)}">${heroText(first)}<span class="btn-primary">Open ${I.arrow}</span></button>`;
+    return `<div class="v6"><div class="v2-head"><span class="ttl">Recent calendars</span>${loadBtn('btn-default')}</div>
+      ${hero}${rest.length ? `<div class="v6-sep">Earlier</div>${cardRows(rest)}` : ''}</div>`;
+  }
+
+  // ---- 7. Card + Continue, as two cards ----
+  function vComboTwo(files) {
+    if (!files.length) return vCard(files);
+    const [first, ...rest] = files;
+    const list = rest.length
+      ? `<div class="v2" style="width:100%"><div class="v2-head"><span class="ttl">Other recent calendars</span>${loadBtn('btn-default')}</div>${cardRows(rest)}</div>`
+      : `<div class="v3-foot">${loadBtn('btn-default', 'Load another calendar…')}</div>`;
+    return `<div class="v3" style="gap:12px">${heroCard(first)}${list}</div>`;
+  }
+
+  // ---- 4. Tiles ----
+  function vTiles(files) {
+    const load = `<button type="button" class="v4-tile v4-load">${I.folder}<span>Load…</span></button>`;
+    if (!files.length) return `<div class="v4"><div class="v4-grid" style="justify-content:center">${load}</div></div>`;
+    const tiles = files.map((f) => `<button type="button" class="v4-tile" title="${esc(f.name)}">${GLYPH}
+        <span class="v4-nm">${label(f)}</span><span class="when">${f.when}</span></button>`).join('');
+    return `<div class="v4"><div class="v4-head">Recent calendars</div><div class="v4-grid">${tiles}${load}</div></div>`;
+  }
+
+  // ---- 5. Inline links, continuing the sentence above ----
+  function vInline(files) {
+    const chips = files.map((f) => `<button type="button" class="chip" title="${esc(f.name)}">${I.cal}<span class="nm">${label(f)}</span></button>`).join('');
+    const lead = files.length ? 'or open a recent calendar' : 'or load a saved calendar';
+    return `<div class="v5"><div class="v5-lead">${lead}</div><div class="v5-chips">${chips}${loadBtn('chip load')}</div></div>`;
+  }
+
+  const VARIANTS = [
+    { id: 'today', tab: 'Today', title: 'Today', render: vToday, notes: [
+      ['What it is', 'The list as built on the v1.15 branch: the file menu’s white box with hairlines, every name with its extension, then Load… on its own line.'],
+      ['Why it reads wrong', 'A bordered table in the middle of an empty page looks like a form to fill in. Load… hangs under the box with nothing to line up with, and “.sptcal” repeats eight times.'],
+      ['Kept from it', 'One click loads (with the unsaved-work question), the full name on hover, and Load… alone when there are no recent files.'],
+    ] },
+    { id: 'quiet', tab: '1 · Quiet list', title: '1 · Quiet list', render: vQuiet, notes: [
+      ['What changes', 'No box. The rows sit straight on the page and tint on hover, like the Recent lists in Excel and Outlook. Load… moves up into the heading’s line, so nothing dangles. When each was last opened sits on the right.'],
+      ['Why it fits', 'The lightest of the five. It shares the toolbar’s hover tint and the sidebar’s plain labels, so the empty page stays calm and the names read first.'],
+      ['Trade-off', 'Without a box, a row only looks like a button on hover. The calendar icon and the date column carry it until then.'],
+    ] },
+    { id: 'card', tab: '2 · Card', title: '2 · Card', render: vCard, notes: [
+      ['What changes', 'One white card, shaped like the app’s popovers, with Load… as a button in its title row. Each calendar gets an icon tile, a second line for when it was last opened, and an arrow on hover.'],
+      ['Why it fits', 'Reads as a single “start” panel, the way Office opens. Two-line rows give long names more room to breathe.'],
+      ['Trade-off', 'Heaviest of the lists: eight two-line rows make a tall card, and it adds a shadowed surface to the page.'],
+    ] },
+    { id: 'continue', tab: '3 · Continue', title: '3 · Continue where you left off', render: vContinue, notes: [
+      ['What changes', 'The calendar you most likely want gets its own card with an Open button. The rest follow as the quiet list, with Load… beside their heading.'],
+      ['Why it fits', 'Most starts are “carry on with yesterday’s calendar”. That is one obvious click here, and the page still never opens a file by itself.'],
+      ['Trade-off', 'Two looks on one page. It puts the last file first, which is wrong for anyone who switches between several shows.'],
+    ] },
+    { id: 'tiles', tab: '4 · Tiles', title: '4 · Tiles', render: vTiles, notes: [
+      ['What changes', 'A grid of small file tiles, like the Office start screen. Load… is the last tile, drawn dashed. Eight calendars and Load… make a 3 × 3.'],
+      ['Why it fits', 'The most “app-like” start, and long names wrap to two lines instead of being cut. The little waterfall is an icon, the same on every tile, not a preview of the file.'],
+      ['Trade-off', 'The biggest footprint, and a grid is slower to scan than a list when you are looking for one name.'],
+    ] },
+    { id: 'inline', tab: '5 · Inline links', title: '5 · Inline links', render: vInline, notes: [
+      ['What changes', 'The calendars become small buttons that wrap under a line reading “or open a recent calendar”, so the block reads as the end of the sentence above. Load… is the last button, drawn dashed.'],
+      ['Why it fits', 'The smallest block, and it turns the empty page into one short instruction with two ways to start.'],
+      ['Trade-off', 'No dates, and long names are cut at about 250 px. Eight of them wrap to three uneven lines.'],
+    ] },
+    { id: 'combo', tab: '6 · 2 + 3, one card', rec: true, title: '6 · Card + Continue, in one card', render: vCombo, notes: [
+      ['What changes', 'Card 2, led by Continue’s idea. The last calendar fills the first row with its own Open button. The rest follow under “Earlier” as 2’s two-line rows, and Load… stays in the card’s title row.'],
+      ['Why it fits', 'One object on the empty page: the likely next step first, every other calendar one click below it, and nothing outside the card.'],
+      ['Trade-off', 'Eight files make a tall card, about 420 px. The Open button and a row click do the same thing (load the file). The button just marks the likely one.'],
+    ] },
+    { id: 'combo2', tab: '7 · 2 + 3, two cards', title: '7 · Card + Continue, as two cards', render: vComboTwo, notes: [
+      ['What changes', 'Continue’s card on its own, then card 2 for the rest, titled “Other recent calendars”, with Load… in its title row.'],
+      ['Why it fits', 'The likely calendar stands furthest apart from the rest.'],
+      ['Trade-off', 'Two white, shadowed surfaces on an empty page read busier than 6, and the second title repeats the idea of the first.'],
+    ] },
+  ];
+
+  let cur = 'combo';
+  let count = 8;
+  const tabs = document.getElementById('tabs');
+  const cases = document.getElementById('cases');
+  const stage = document.getElementById('stage');
+
+  const TOOLBAR = `<div class="tb" aria-hidden="true">
+    <div class="seg"><span class="on">${I.table}Waterfall</span><span>${I.cal}Month</span></div>
+    <div class="ol"><span>← 1 wk</span><span>Shift <i class="car">▼</i></span><span>1 wk →</span></div>
+    <div class="ol"><span>Build Around <i class="car">▼</i></span></div>
+    <div class="grp dim"><span>Size&nbsp;&nbsp;⌄</span><b>B</b><i>I</i><span>A</span><span class="hl">A</span><span>≡</span><span>⌀</span></div>
+    <div class="grp"><span class="sw"></span><span>Fill Gaps</span></div>
+    <div class="grp"><span>Side Boxes <i class="car">▼</i></span></div>
+    <div class="grp"><span>&nbsp;&nbsp;&nbsp;&nbsp;Header: Auto <i class="car">▼</i>&nbsp;&nbsp;&nbsp;&nbsp;</span></div>
+    <div class="grp dim">${I.undo}${I.redo}</div>
+  </div>`;
+
+  function frame(v) {
+    const notes = v.notes.map(([h, p]) => `<div><h3>${h}</h3><p>${p}</p></div>`).join('');
+    return `<section class="var">
+      <div class="var-head"><h2>${v.title}</h2>${v.rec ? '<span class="rec">Recommended</span>' : ''}</div>
+      <div class="frame">${TOOLBAR}
+        <div class="empty">Enter at least one phase’s start date and week count to see a preview.</div>
+        <div class="host">${v.render(FILES.slice(0, count))}</div>
+      </div>
+      <div class="notes">${notes}</div>
+    </section>`;
+  }
+
+  function draw() {
+    const list = cur === 'all' ? VARIANTS : VARIANTS.filter((v) => v.id === cur);
+    stage.innerHTML = list.map(frame).join('');
+    tabs.querySelectorAll('.pill').forEach((b) => b.classList.toggle('on', b.dataset.id === cur));
+    cases.querySelectorAll('.pill').forEach((b) => b.classList.toggle('on', +b.dataset.n === count));
+  }
+
+  tabs.innerHTML = VARIANTS.map((v) => `<button type="button" class="pill" data-id="${v.id}">${v.tab}${v.rec ? '<span class="star">★</span>' : ''}</button>`).join('')
+    + '<button type="button" class="pill" data-id="all">All, stacked</button>';
+  cases.insertAdjacentHTML('beforeend', [0, 3, 8].map((n) => `<button type="button" class="pill" data-n="${n}">${n === 0 ? 'None' : n}</button>`).join(''));
+  tabs.addEventListener('click', (e) => { const b = e.target.closest('.pill'); if (b) { cur = b.dataset.id; draw(); } });
+  cases.addEventListener('click', (e) => { const b = e.target.closest('.pill'); if (b) { count = +b.dataset.n; draw(); } });
+  document.addEventListener('keydown', (e) => {
+    if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+    const ids = VARIANTS.map((v) => v.id).concat('all');
+    const i = ids.indexOf(cur);
+    cur = ids[(i + (e.key === 'ArrowRight' ? 1 : ids.length - 1)) % ids.length];
+    draw();
+  });
+  draw();
+})();
+</script>
+</body>
+</html>

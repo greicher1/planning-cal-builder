@@ -387,9 +387,12 @@ window.addEventListener('load', function () { (async function () {
     await choose('clear');
     var n1 = {text: noteText('2026-06-29'), undo: undoOn()};
     var S2 = await snap();
-    add('N1', 'Clear on the automatic note (6/29) empties the cell, switches the note off and leaves no week blank (ruling 6); an undo step',
-      n1.text === '' && n1.undo && !('2026-06-29' in (S2.userNotes || {})) && (S2.autoNotesOff || {}).principalStart === true,
-      {n1: n1, stored: (S2.userNotes || {})['2026-06-29'], off: S2.autoNotesOff}, 'switched off, no blank');
+    // ⭐ Since 4 Nov 2026 (AUTO-NOTES-PER-VIEW-PLAN.md R4) a delete hides the note from the view it was made in: the
+    // waterfall, here, so autoNotesView rather than autoNotesOff, and the month view keeps it.
+    add('N1', 'Clear on the automatic note (6/29) empties the cell, hides the note from the waterfall only (R4) and leaves no week blank (ruling 6); an undo step',
+      n1.text === '' && n1.undo && !('2026-06-29' in (S2.userNotes || {})) && !(S2.autoNotesOff || {}).principalStart &&
+        JSON.stringify((S2.autoNotesView || {}).principalStart) === '{"sheet":false}',
+      {n1: n1, stored: (S2.userNotes || {})['2026-06-29'], off: S2.autoNotesOff, view: S2.autoNotesView}, 'hidden in the waterfall, no blank');
 
     await rc(noteTd('2026-06-29'));
     var n2c = info();

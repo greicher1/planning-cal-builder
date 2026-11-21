@@ -50,7 +50,13 @@ With the calendar's switch ON, the `segCol` block runs this instead (start order
    or separated only by all-phase hiatus weeks (ruled Q5).
 4. **Tie among handoffs:** the column of this phase's predecessor in `PHASE_CHAIN` (the phase its "↳ Start
    after" button names). If that doesn't settle it, the leftmost (ruled Q1).
-5. **No handoff:** the lowest free column.
+5. **No handoff:** a free column, preferring one **already used in the years this phase runs in**; among equals,
+   the lowest. ⭐ *Changed by the owner, 4 Nov 2026 ("Fix both"; HANDOFF, "SWAP COLUMN SPLIT A PHASE").* It was
+   "the lowest free column", which can reach back to a column whose last occupant ended in an EARLIER year. In this
+   phase's year that column is otherwise unused, so the year grows a column (a year's column count is its number of
+   distinct `col` values). Measured on a copy of the owner's calendar: a second-season Post starting after every
+   column was free gave its year 4 columns instead of 3, the extra column blocked Swap Column, and the fallback split
+   a phase. Calendars with the box ticked can lay out differently in such a year; with it clear nothing changes.
 6. **Nothing free:** a new column on the right.
 7. **Lane numbering** (ruled Q2): if Production is placed, renumber the columns so Production's column is 0 and
    the others keep their relative order. Frozen `computeBlockLayout` orders a year's columns by first

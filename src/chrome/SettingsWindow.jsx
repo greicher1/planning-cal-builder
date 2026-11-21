@@ -47,7 +47,7 @@ import { useState, useLayoutEffect, useEffect, useRef } from 'react'
 import { Tabs } from '@mantine/core'
 import { installChrome } from './bridge.js'
 import {
-  RegionCard, HolidaysCard, AppCard, HeadersCard, AutoNotesCard, WaterfallCard, MonthViewCard,
+  RegionCard, HolidaysCard, AppCard, HeadersCard, AutoNotesCard, WaterfallCard, MonthViewCard, HiatusPrefsCard,
 } from './Sidebar.jsx'
 
 // ⚠️ The VALUES are what a leg or the engine names (chrome.settingsWindow({ open, tab })); the labels
@@ -91,6 +91,8 @@ const PREFS_PANEL = (
     <MonthViewCard />
     {/* Automatic notes (ruling 9) reach both views, so it is no .pref-view-* card. No id in it. */}
     <AutoNotesCard />
+    {/* Ripple Hiatus Periods (HIATUS-RIPPLE-PLAN.md §5): a preference for both views, in a .prefs-card. */}
+    <HiatusPrefsCard />
     <AppCard />
   </>
 )
@@ -167,7 +169,7 @@ export function SettingsWindow() {
   // block, and an absolutely positioned child of a scroll box scrolls with its content: with the
   // sidebar scrolled down, `top:0` would be off the top of the window. So `top` follows scrollTop,
   // and the sidebar cannot scroll underneath while the window is open (.settings-open, overflow
-  // hidden). Below 960px the window is in flow (legacy.css) and `top` does nothing.
+  // hidden). (Below 960px the window was in flow until 16 Nov 2026, when the app stopped stacking.)
   // ⚠️ THE RAIL'S HEIGHT is measured, never assumed: `top` adds it, and --sw-rail-h takes it off the
   // window's height in legacy.css. It is measured from the rail's bottom edge on screen, so it holds
   // with the sticky rail pinned over a scrolled sidebar, and a ResizeObserver re-measures it.

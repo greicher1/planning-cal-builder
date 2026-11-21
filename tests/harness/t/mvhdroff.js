@@ -96,22 +96,15 @@ window.addEventListener('load', function () { (async function () {
       await T.until(function () { return rec.files.some(function (f) { return f.closed; }); }, 'the month PDF write', 300, 100);
     } finally { rec.restore(); }
     var u8 = rec.files.filter(function (f) { return f.closed; })[0].bytes;
-    var s = '', runs = [], labelY = null;
-    for (var i = 0; i < u8.length; i += 8192) s += String.fromCharCode.apply(null, u8.subarray(i, i + 8192));
-    var re = /stream\r?\n/g, m;
-    while ((m = re.exec(s))) {
-      var st = m.index + m[0].length, en = s.indexOf('endstream', st);
-      if (en < 0) continue;
-      while (en > st && (u8[en - 1] === 10 || u8[en - 1] === 13)) en--;   // DecompressionStream rejects the EOL
-      try {
-        var ds = new Blob([u8.subarray(st, en)]).stream().pipeThrough(new DecompressionStream('deflate'));
-        var t = await new Response(ds).text(), tj = /(-?[\d.]+) (-?[\d.]+) Tm \(((?:\\.|[^\\)])*)\) Tj/g, x;
-        while ((x = tj.exec(t))) {
-          var run = x[3].replace(/\\(.)/g, '$1');
-          runs.push(run);
-          if (labelY === null && /^[A-Z][a-z]+ \d{4}$/.test(run)) labelY = parseFloat(x[2]);
-        }
-      } catch (e) { /* not a Flate stream */ }
+    var runs = [], labelY = null;
+    // Each Flate stream inflated and cut at its own /Length (T.pdfInflated, lib.js: never by trimming the EOL).
+    for (var t of await T.pdfInflated(u8)) {
+      var tj = /(-?[\d.]+) (-?[\d.]+) Tm \(((?:\\.|[^\\)])*)\) Tj/g, x;
+      while ((x = tj.exec(t))) {
+        var run = x[3].replace(/\\(.)/g, '$1');
+        runs.push(run);
+        if (labelY === null && /^[A-Z][a-z]+ \d{4}$/.test(run)) labelY = parseFloat(x[2]);
+      }
     }
     return { runs: runs, labelY: labelY, pages: T.pdfPages(u8) };
   }

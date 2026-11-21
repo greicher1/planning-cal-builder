@@ -42,6 +42,32 @@ It holds the R5 rewrite in the month view's drags (owner, 19 Oct 2026: the grip 
 and `pilldrag` E18/E19 hold the two frozen lines in `notesForWaterfallDate` approved the same day (a one-digit day,
 and a line dated outside its note's week). Both cases were red on the grip-fix build `65389d35…`.
 
+## The one Shift tool's two sides (4 Nov 2026)
+
+`anchorside.sptcal` is `dayoverrides.sptcal` with, **added by script** (no real save; every other byte as it was):
+Localization 3/1/27 x 8, a calendar range start of 2/2/26, an UNLOCKED one-week "Fall Break" from 9/21/26 inside the
+shoot, and six week notes: `PREP-NOTE` (4/13), `SHOOT-WK6` (8/3), "Wrap party booked" (7/27, DATED 7/30, so pinned),
+`OVERLAP-WK` (11/2), `POST-WK3` (11/16) and `LOC-WK2` (3/8/27). It holds two overlaps by days. With the Fall Break the
+shoot wraps Tue 11/3, so Post (11/2) starts inside it. Pre Prep (snap-off Wed 4/8 x 6) works to Tue 5/19, inside Prod
+Prep's first week. Prod Prep and Production are back to back. Both overlaps STAY with a part move, because a phase goes
+by its start (ANCHOR-TO-DIRECTION-PLAN.md §2; the owner reverted "overlaps move too" the same night). It keeps dayoverrides' four day marks,
+its locked Summer Break and Christmas hiatuses, and Pre Prep snap-off on Wed 4/8. Read by `anchorside` (in gate.sh).
+
+## The phase card's week arrows (4 Nov 2026)
+
+`phasearrows.sptcal` is `anchorside.sptcal` with, **added by script** (no real save): Post's own one-week hiatus "Post
+Pause" from 1/4/27; four stores keyed `<week>|post` (a cell span and a bold phase text style on 11/23, the Post Pause
+band's colour on 1/4/27, and Post's half of a column swap with Production in the week they share, 11/2); and an EDITED
+automatic note on 6/29/26, Production's own "Start Principal Photography 6/29/26" with `PROD-EXTRA` under it
+(Production Starts is one of the three automatic notes this calendar has on). The title reads "Phase Arrows Test", and
+it opens in the waterfall on the Phases tab. Read by `phasearrows` (in gate.sh; PHASE-WEEK-ARROWS-PLAN.md).
+
+`mvdragcarry.sptcal` (5 Nov 2026) is `phasearrows.sptcal` with ONE key added by script: a stale band label,
+`hiatusTexts["2026-07-06"] = "Old Break Name"`, on a week with no band, one week above the locked Summer Break's
+7/13. A one-phase move re-keys such a label, and one row down lands it on 7/13, where it yields; the label is how the
+leg proves the month drag carries from the PRESS (out and back brings it home). Read by `mvdragcarry` (in gate.sh;
+PHASE-WEEK-ARROWS-PLAN.md §5).
+
 ## From the deployment-readiness audit (24 Sep 2026)
 
 These came out of `AUDIT-REPORT.md`. They were promoted here by `FIX-PLAN.md` step 0.1, so the batch
@@ -71,6 +97,13 @@ they are a working demonstration against the live site. They ship in the same re
 | `xss-mixed.sptcal` | an episode id, custom-holiday ids, hiatus `start` / `weeks` | several at once |
 | `xss-grid.sptcal` | note and hiatus colours plus header formats | grid and header together |
 | `xss-legacy.html` | a crafted legacy `.html` with markup in stored strings and in its OWN scripts | its own scripts must never run; the stored strings are the same sinks |
+| `xss-proto.sptcal` | text-style and side-box values that a load must never read (audit item 1.3, 13 Nov 2026); title "SHOW XSS PROTO". Also the second `hostile` run's starting state | a grid or month text's `style` |
+| `xss-proto-refresh.sptcal` | the same, one value; its marker is an element that would navigate after 600 s, to a fragment of the same page | the same |
+| `xss-proto-legacy.html` | `xss-proto.sptcal`'s calendar inside a minimal legacy `.html` (the saved-state block only) | the same, through the legacy reader |
+| `xss-proto-scenarios.sptcal` | the same in a two-scenario file: the tab on screen and the parked tab `s2` | the same, on Load and on switching to `s2` |
+
+The four `xss-proto*` files were made from `show-a.sptcal`'s JSON by a script, not by a Save. Each one must still
+LOAD (its title arrives), which the `hostile` leg checks.
 
 ### Loads that fail partway (M-1)
 
@@ -170,11 +203,45 @@ holidays. Do not re-mint them without keeping a copy saved with a retired place:
 | `mvbarsize-large.sptcal` | ⭐ 27 Oct 2026 (MONTH-BAR-SIZE-PLAN.md step 3): `mvnotes.sptcal` at the **Large phase bar size** (`mvBarSize: "large"`), minted by the `mvbarsize` leg from its real Save at Large (out.sptcal). Two one-day custom bars renamed by the leg: custom3 (4/17/26) "Wardrobe Fittings For The", which fits one line at 10 px and not at 12 in the SCREEN's day (B5), and custom1 (4/15/26) "Camera Prep Day For T", which fits one line of the PDF's box at 10 px and not at 12, so the written Large PDF sets it on two lines (gate.sh's text check). Read by `monthemit`, `monthwriter` and `monthexport` (gate.sh's sized block). No gate-10 or gate-13 baseline reads it yet (plan step 4) |
 | `episodeprep-blocks.sptcal` | Its Blocks-mode twin, minted by the same run's second Save: Schedule by Blocks, 3 blocks x 10 days (episodes split 2, 2, 2 in shooting order), Block 3 with its own prep of 12, so Prep Block 3 overlaps Prep Block 2 and steps over Good Friday and the hiatus. It still carries the Episodes calendar's per-episode lengths, dormant, which the leg's K3 switches back to |
 
+### v1.17.0 (17 Nov 2026)
+
+| File | Use |
+|---|---|
+| `v1.19.2-saved.sptcal` | the reference calendar saved by the v1.19.2 build (the shrink's font check), `t/mintfixture.js`: 46 keys, 77 ids, 0 clipped, byte-identical to `v1.19.0-saved.sptcal` but `lastEdited` |
+| `v1.20.0-saved.sptcal` | the reference calendar saved by the v1.20.0 build (export names with the WRO date, the File name list, the Version's "v"), `t/mintfixture.js`: 46 keys, 77 ids, `version: 1`, byte-identical to `v1.19.2-saved.sptcal` but `lastEdited` (the Version box is empty on this calendar, and the File name picks are per-computer preferences, not in the file) |
+| `v1.20.1-saved.sptcal` | the reference calendar saved by the v1.20.1 build (one month Size: Standard / Large / Extra Large), `t/mintfixture.js`: 46 keys, 77 ids, `version: 1`, byte-identical to `v1.20.0-saved.sptcal` but `lastEdited` (the reference calendar is at Standard, which writes neither size key) |
+| `v1.21.0-saved.sptcal` | the reference calendar saved by the v1.21.0 build (SPTCal moves to sptcal.pages.dev behind a Cloudflare Access sign-in; Export App With Data removed; Save on an older .html asks for .sptcal), `t/mintfixture.js`: 46 keys, 77 ids, `version: 1`, byte-identical to `v1.20.1-saved.sptcal` but `lastEdited` (nothing in the save format changed) |
+| `v1.22.0-saved.sptcal` | the reference calendar saved by the v1.22.0 build (Snap to Monday in the Starts date picker, Hide in waterfall in the phase card's corner, New gone from the File menu, the first window filling the screen), `t/mintfixture.js`: 46 keys, 77 ids, `version: 1`, 0 clipped, byte-identical to `v1.21.0-saved.sptcal` but `lastEdited` (nothing in the save format changed: both moved controls drive the same ids) |
+| `v1.22.1-saved.sptcal` | the reference calendar saved by the v1.22.1 build (scenario tabs show their Version, "+ Duplicate <tab>" at the far right, Tandem Days and the per-mode field order in Show info, Finish before on an empty card, calendar-only zoom, Reset hiatus bands gone), `t/mintfixture.js`: 46 keys, 77 ids, `version: 1`, 0 clipped, byte-identical to `v1.22.0-saved.sptcal` but `lastEdited` (the same 46 keys and 77 ids: the version offer and the "+" label are session UI) |
+| `v1.23.0-saved.sptcal` | the reference calendar saved by the v1.23.0 build (new notes stay with their phase week, the update bar on every update and the What's New window, "Final Delivery", the hover-only Notes "+", the week-count prompt on Enter), `t/mintfixture.js`: 46 keys, 77 ids, `version: 1`, 0 clipped, byte-identical to `v1.22.1-saved.sptcal` but `lastEdited` (nothing in the save format changed) |
+| `v1.19.1-saved.sptcal` | the reference calendar saved by the v1.19.1 build (the version under the SPTCal name), `t/mintfixture.js`: 46 keys, 77 ids, 0 clipped, byte-identical to `v1.19.0-saved.sptcal` but `lastEdited` |
+| `v1.19.0-saved.sptcal` | the reference calendar saved by the v1.19.0 build (the month shrink and the 10-line day), `t/mintfixture.js`: 46 keys, 77 ids, 0 clipped, byte-identical to `v1.18.0-saved.sptcal` but `lastEdited` (neither feature saves anything) |
+| `v1.18.0-saved.sptcal` | the reference calendar saved by the v1.18.0 build (Finish before, and the note editor's "No date"), `t/mintfixture.js`: 46 keys, 77 ids, 0 clipped, byte-identical to `v1.17.5-saved.sptcal` but `lastEdited` |
+| `v1.17.5-saved.sptcal` | the reference calendar saved by the v1.17.5 build (the Tandem colour), `t/mintfixture.js`: 46 keys, 77 ids, 0 clipped, byte-identical to `v1.17.4-saved.sptcal` but `lastEdited` |
+| `v1.17.4-saved.sptcal` | the reference calendar saved by the v1.17.4 build (the tandem grips), `t/mintfixture.js`: 46 keys, 77 ids, 0 clipped, byte-identical to `v1.17.3-saved.sptcal` but `lastEdited` |
+| `v1.17.3-saved.sptcal` | the reference calendar saved by the v1.17.3 build (the Tandem card's heading), `t/mintfixture.js`: 46 keys, 77 ids, 0 clipped, byte-identical to `v1.17.2-saved.sptcal` but `lastEdited` |
+| `v1.17.2-saved.sptcal` | the reference calendar saved by the v1.17.2 build (R21, the word Tandem), `t/mintfixture.js`: 46 keys, 77 ids, 0 clipped, byte-identical to `v1.17.1-saved.sptcal` but `lastEdited` |
+| `v1.17.1-saved.sptcal` | the reference calendar saved by the v1.17.1 build (R20, no double-up during the first episode), `t/mintfixture.js`: 46 keys, 77 ids, 0 clipped, byte-identical to `v1.17.0-saved.sptcal` but `lastEdited` |
+| `v1.17.0-saved.sptcal` | the reference calendar saved by the v1.17.0 build (double-up days), minted with `t/mintfixture.js` (a real Save): 46 snapshot keys, 77 ids, 0 clipped cells, **byte-identical to `v1.16.0-saved.sptcal` but its `lastEdited` line**, so a calendar with no double-up saves exactly as it did before them |
+
+### Double-up days (DOUBLE-UP-DAYS-PLAN.md, 17 Nov 2026)
+
+| File | Use |
+|---|---|
+| `doubleups.sptcal` | `episodeprep.sptcal` (a real Save) with these edits by hand, as a 17 Nov 2026 build's Save writes them: title "Double-up Fixture"; Production from **Wed 2/24/27** with Snap to Mon off, so episodes end mid-week and a double-up joins its bar flush; prep 3 days with no overrides; and the double-up keys: `doubleUps: {days: 1, moved: {ep3: {day: 27}}}`, Episode 304 (`ep4`) its own `doubleUpDays: 2` and `doubleUpName: "Tandem"`, Episode 305 (`ep5`, the last in shooting order) its own `doubleUpDays: 1`. `viewMode` month. The hand trace (every slot, every double-up's day, and after Shift +1 week) is in `tests/harness/t/doubleups.js`'s header. Read by the `doubleups` leg (RESTORE), `monthwriter` du and `monthexport` du |
+| `doubleups-half.sptcal` | `halfdays.sptcal` with `doubleUps: {days: 1}` added by hand and `viewMode` month: R15 (202 ends half way through Mon 7/13/26, its double-up is Tue 7/14) and two double-ups in one week (Sun 7/26). `doubleups` HALF, `monthwriter` duh |
+| `doubleups-blocks.sptcal` | `episodeprep-blocks.sptcal` with `doubleUps: {days: 1}` added by hand and `viewMode` month: "Double-up Block 1" / "Block 2", none for Block 3 (the last). `doubleups` BLOCKS, `monthwriter` dub |
+
 ### Excel's editing keys in the waterfall (WATERFALL-KEYS-PLAN.md, 22 Oct 2026)
 
 | File | Use |
 |---|---|
 | `wfkeys.sptcal` | `shift-stores.sptcal` ("Test Show", US General, two year blocks 2026 and 2027) edited by script, nothing else changed: its two tall rows removed (`rowHeightsByWeek: {}`), its notes replaced by four synthetic ones (2026-08-03 "Table read" #FFC000, size 9, bold + italic through `textStyles`; 2026-08-10 two lines; 2026-09-07 "Wrap party 9/10/26" pinned to Thu 9/10; 2026-09-14 "Blocker"), and one unlocked all-phase hiatus added, 11/23/26 for 2 weeks (two band rows with no Notes cell). The automatic notes on 1/5, 6/29 and 10/19/26 are the calendar's own. Read by `t/wfkeys.js` and `wfkeysreal.mjs` |
+| `phasenotes.sptcal` | `wfkeys.sptcal` (synthetic, US General) plus five notes LINKED TO A PHASE (PHASE-LINKED-NOTES-PLAN.md, 5 Nov 2026), a `phaseNotes` key and nothing else changed: `production@2` "Stunt rehearsal" (size 9, height 60), `production@6` "Visitor" (#FF0000, lands under 8/3's typed "Table read"), `production@day10` "Day ten" (the 10th shoot day, Mon 7/13/26), `prodPrep@3` "Tech scout" (Wed, #00B0F0), `post@1` a long line in bold. Read by `t/phasenotes.js`, `t/phaselink.js`, `t/phaselook.js`, `t/phasekeys.js` and `t/phasemonth.js` |
+| `lastedited.sptcal` | ⭐ 9 Nov 2026 (Date Last Edited): `hdrversion.sptcal` (synthetic, "Test Show") with one key added by script, `lastEdited: "2026-10-01T15:00:00.000Z"`, nothing else changed, so its header's date (10.1.26 / 10.01.26 in any US zone) is not today. Read by `t/lastedited.js`. No gate-10 or gate-13 baseline reads it |
+| `autonotefollow.sptcal` | ⭐ 13 Nov 2026 (audit AUD2-001/002/003, D1 (a)): synthetic, the harness's reference calendar (`T.buildFixture()`: "Test Show", US General, Production 6/29/26) with four notes typed through the waterfall editor and saved through the real Save by `autonotefollow` `g=m`: 6/29 "Table read" ABOVE "Start Principal Photography 6/29/26", 7/6 "Dailies review", 9/7 "Camera test", 10/19 the wrap line plus "Wrap party Fri". The calendar to try the fix on by hand (Production's ▼; Labor Day's Waterfall box). No leg loads it yet |
+| `mvkeys.sptcal` | ⭐ 13 Nov 2026 (audit AUD2-021/040, D6 (a)): synthetic, the harness's reference calendar (`T.buildFixture()`: "Test Show", US General, Production 6/29/26) loaded through the real picker with four July 2026 month notes (7/8 "Production Mtg 9am" #FFC000 bold + italic through `fmt`, 7/9 "Costume test", 7/15 "Crew call", 7/22 "Wardrobe 7/22/26"), a Waterfall note pinned to Wed 7/29 ("Network notes"), a note that stays with Production's 3rd shoot day (`production@day3`, "Camera test", 7/1), opening in the month view. Minted by `t/mvkeys.js` `g=mint`. Read by `mvkeysreal.mjs` |
+| `changessince.sptcal` | ⭐ 16 Nov 2026 (audit AUD2-103, idea I.3, "Changes since last save"): `lastedited.sptcal` (synthetic, "Test Show") edited by script: Region `us-general`, the phases moved so the shoot runs alone in the autumn (Writer's Rm 3/2/26 12 wks, Pre Prep 6/1/26 6 wks, Prod Prep 7/27/26 6 wks, Production 9/14/26 for 80 shoot days, Post 12/7/26 16 wks, Localization 4/5/27 8 wks), one locked all-phase hiatus 12/21/26 for 2 weeks, and the ten keys this build always writes added at their defaults, so a Save of it writes no key it lacks. Moved to 9/28/26 with a 1-week hiatus at 10/19/26, Production's first shoot day moves 2 wks and its wrap 3 wks (to 2/10/27), and nothing else moves. Read by `t/changessince.js` (also as a two-scenario file it builds). The calendar to try the feature on by hand |
 
 ## Month notes around the phases, and to another day (23 Oct 2026)
 
@@ -187,3 +254,33 @@ The 3/9 week's waterfall note is "Wardrobe 3/10/26" + "Props 3/12/26". No order 
 the untouched layout. Production starts Mon 6/29/26, for the auto-note case. On the live build of 23 Oct
 (`d2ac914e`), M1, M2 and M3 are red.
 
+
+## A file that leaves fields out, and the calendar loaded before it (13 Nov 2026)
+
+Both are read by the `loadsparse` leg (in `gate.sh`), which holds the rule that a file opens with ITS OWN values or a
+default, never with what the calendar before it left in memory.
+
+`carry-heavy.sptcal` is the calendar loaded BEFORE the file under test: synthetic ("CARRY-TITLE", US General, made-up
+2026 to 2028 dates), written by script with almost every store in use, so that anything able to carry has something
+to carry. It holds an UNLOCKED two-week all-phase hiatus named "CARRY-BREAK" from 8/3/26 (inside the shoot, so it
+moves the wrap), Simultaneous Post on, Production's own break from 11/23/26, two custom phases, 22 episodes (counter
+22), an extra month lane (`mvExtraLanes`), a legacy day-note colour (`dayNoteColors`), the month view and the Phases
+tab, plus 41 week notes, 40 day notes, text styles, side boxes, a made-up Location and Legal paper.
+
+`sparse-generated.sptcal` is the shape of a file a tool outside the app would write: `fields.byId` holds six ids (a
+title, Season 1, 8 episodes x 8 days, US General, Production from Mon 3/1/27) and `fields.hiatuses` one two-week break
+from 12/20/27. Nothing else is named. It must open as Production alone, 64 shoot days, 3/1/27 to 5/28/27. No file the
+app has ever written looks like this: every one names every field.
+
+## Compare's hiatus row, its Baseline, and the export names (audit 2026-11 item 2.10, 13 Nov 2026)
+
+`compare-send.sptcal` is `scenarios-3.sptcal` rewritten by script (synthetic, nothing else changed): "Harbor Test",
+Season 3, Version `v2`, U.S. Area Standards, the layout stamp (`colReuse`) so no layout strip shows, and three
+scenarios, "Scenario A" on screen, each with its own `lastEdited` at 12:00 UTC:
+- "Scenario A" (10/1/26): two locked all-phase hiatuses, 12/21/26 and 12/20/27, two weeks each;
+- "3-wk Xmas break" (10/5/26): the same with the first one three weeks;
+- "Var 9 long descriptive name" (10/3/26): the same as A plus a two-week break mid-shoot, from 8/10/26.
+
+Read by `t/comparebreaks.js` (Compare's "All-phase hiatus" row and its chips, both exports, Copy table, the Baseline
+heading, the PDF's column names at one size up to twelve columns) and `t/exportnames.js` (every export's name). Both
+red on `2089aa5`'s build.

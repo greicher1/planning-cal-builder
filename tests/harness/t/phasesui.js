@@ -101,6 +101,8 @@ window.addEventListener('load', function () { (async function () {
     return (byId || []).map(function (kv) {
       if (kv[0] !== 'show-version' || !kv[1] || typeof kv[1].value !== 'string') return kv;
       var num = kv[1].value.trim().replace(/^[vV]/, '').trim();
+      // ⭐ Since 18 Nov 2026 a NUMBER opens as the bare number ("v7" and "7" both open as "7"; the header adds the v).
+      if (/^\d+(\.\d+)*\.?$/.test(num) || num === '') return [kv[0], Object.assign({}, kv[1], { value: num })];
       return [kv[0], Object.assign({}, kv[1], { value: num ? 'v' + num : '' })];
     });
   }
@@ -138,7 +140,9 @@ window.addEventListener('load', function () { (async function () {
         var a = rec[n], b = base[n];
         if (!a || a.error || !b) { bad.push(n + ': ' + (a && a.error || 'no record')); return; }
         if (!same(a.controls, b.controls)) bad.push(n + ': controls');
-        if (!same(a.byId, versionEra(b.byId))) bad.push(n + ': fields.byId');
+        // before.json predates Show info's 19 Nov 2026 field order too: its four count ids in today's order, nothing
+        // else moved (T.showInfoOrderEra; the baseline's README).
+        if (!same(a.byId, T.showInfoOrderEra(versionEra(b.byId)))) bad.push(n + ': fields.byId');
         if (!same(a.hiatuses, b.hiatuses)) bad.push(n + ': hiatuses');
       });
       kase('P1', 'all ' + FIXTURES.length + ' fixtures: the Phases card\'s id\'d controls (same ids, tags and types, in the same order), the saved fields.byId (keys in order, and values) and the all-phase hiatus rows are those of the build before the redesign',
@@ -189,11 +193,16 @@ window.addEventListener('load', function () { (async function () {
       var r = rowOf(key); if (!r) return null;
       var head = r.querySelector(':scope > .custom-phase-header'), sw = r.querySelector(':scope > .swatch');
       var rr = r.getBoundingClientRect(), sr = sw.getBoundingClientRect();
-      var cb = r.querySelector('.phase-switches .sw-row > .phase-hidewf-cb'), cr = cb ? cb.getBoundingClientRect() : { width: 0, height: 0 };
+      // The switch measured is Number weeks: Hide in waterfall's row is hidden since 18 Nov 2026 (owner, "Build A"),
+      // its control the eye / tag in the head's corner, measured as `corner`.
+      var cb = r.querySelector('.phase-switches .sw-row > .phase-wknum-cb'), cr = cb ? cb.getBoundingClientRect() : { width: 0, height: 0 };
+      var cc = r.querySelector('.phase-head-corner .phase-wf-eye:not([hidden]), .phase-head-corner .phase-mvonly-tag:not([hidden])'),
+          ccr = cc ? cc.getBoundingClientRect() : { width: 0, height: 0 };
       var name = r.querySelector('.phase-name-input'), ns = getComputedStyle(name);
       return { head: getComputedStyle(head).backgroundColor, phaseColor: r.style.getPropertyValue('--phase-color'), swatch: sw.style.backgroundColor,
                sq: [Math.round(sr.left - rr.left), Math.round(sr.top - rr.top), Math.round(sr.width), Math.round(sr.height)],
-               sw: [Math.round(cr.width), Math.round(cr.height)], title: [ns.fontSize, ns.fontWeight, ns.color] };
+               sw: [Math.round(cr.width), Math.round(cr.height)], corner: [Math.round(ccr.width), Math.round(ccr.height)],
+               title: [ns.fontSize, ns.fontWeight, ns.color] };
     }
     await step('P3', async function () {
       function caret() { return rowOf('custom1').querySelector(':scope > .custom-phase-header > .phase-collapse-btn'); }
@@ -210,8 +219,9 @@ window.addEventListener('load', function () { (async function () {
       var open1 = look('custom1');
       kase('P3', 'a folded custom card is rebuilt by undo (a new element) and stays folded through undo and redo',
            el1 !== el0 && folded1 && folded2, { rebuilt: el1 !== el0, folded1: folded1, folded2: folded2 });
-      kase('P4', 'the card undo rebuilt keeps its look: head colour, --phase-color, the square\'s place and size, the switch, the title',
-           !!open0 && same(open0, open1) && open0.sq[2] === 16 && open0.sw[0] === 32 && open0.sw[1] === 16,
+      kase('P4', 'the card undo rebuilt keeps its look: head colour, --phase-color, the square\'s place and size, the switch, the corner control, the title',
+           !!open0 && same(open0, open1) && open0.sq[2] === 16 && open0.sw[0] === 32 && open0.sw[1] === 16 &&
+           open0.corner[0] === 22 && open0.corner[1] === 22,
            { before: open0, after: open1 });
     });
 
@@ -244,7 +254,8 @@ window.addEventListener('load', function () { (async function () {
       byId('undo-btn').click(); await settle();
       var undone = close(rgb(getComputedStyle(rowOf('post').querySelector(':scope > .custom-phase-header')).backgroundColor), tint(rgb(byId('swatch-post').style.backgroundColor)));
       kase('P5', 'every head (' + rows.length + ' cards) is its phase colour lightened 60/40 with black text, caret and title (R8, R9); the square is on top and opens the 14 swatches with no text (R10); a pick repaints the head, and undo puts it back',
-           bad.length === 0 && rows.length === 8 && hit === sw && swatches.length === 14 && popText === '' && picked && undone,
+           // 9 cards since 17 Nov 2026: the Double-ups card under Production (DOUBLE-UP-DAYS-PLAN.md), a head like the rest.
+           bad.length === 0 && rows.length === 9 && hit === sw && swatches.length === 14 && popText === '' && picked && undone,
            { bad: bad, hitSquare: hit === sw, swatches: swatches.length, popText: popText, picked: picked, undone: undone });
     });
 
@@ -282,6 +293,10 @@ window.addEventListener('load', function () { (async function () {
     // ===== P7: the all-phase hiatus card ============================================================================
     await step('P7', async function () {
       var row = document.querySelector('#hiatus-list > .hiatus-entry');
+      // ⚠️ Since 13 Nov 2026 (audit 2.14, AUD2-036, approved) a calendar opens with its all-phase hiatus cards FOLDED to
+      // their head, so the card is opened by its caret first, as a user would, to see its switches.
+      var caret = row.querySelector('.hiatus-collapse-btn');
+      if (row.classList.contains('is-collapsed') && caret) { caret.click(); await T.sleep(150); }
       var range = txt(row.querySelector('.hiatus-range')), name = row.querySelector('.hiatus-head .hiatus-name');
       var lock = row.querySelector('.hiatus-lock.sw-row > .hiatus-locked'), num = row.querySelector('.hiatus-numbered.sw-row > .hiatus-num');
       var head = rgb(getComputedStyle(row.querySelector('.hiatus-head')).backgroundColor);

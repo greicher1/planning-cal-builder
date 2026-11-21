@@ -245,9 +245,9 @@ window.addEventListener('load', function () { (async function () {
       var p = prod();
       document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
       await typeWrap('2026-10-20');
-      kase('E5', 'the picker (October 2026) offers only shoot days, every weekday but no weekend; November also greys Thanksgiving and the day after (26, 27); the hint; the wrap capped alone; picking Fri 23 makes it the wrap',
+      kase('E5', 'the picker (October 2026) offers only shoot days, every weekday but no weekend; November also greys Thanksgiving and the day after (26, 27); no hint line (owner removed it, 19 Nov 2026); the wrap capped alone; picking Fri 23 makes it the wrap',
            title === 'October 2026' && octOk && same(capped, ['20']) && same(novOff, ['26', '27'])
-           && hint === 'The shoot wraps on a shoot day, so only shoot days can be picked.' && p.box === '2026-10-23' && p.start === '2026-06-17',
+           && hint === '' && p.box === '2026-10-23' && p.start === '2026-06-17',
            { month: title, octOk: octOk, capped: capped, novOff: novOff, hint: hint, p: p });
     });
 

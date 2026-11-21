@@ -5,10 +5,10 @@
   "/MediaBox [0 0 792 612]"
  ],
  "stampHits": 16,
- "bytes": 515981,
- "elements": 3897,
- "structSha1": "c2b5c5c92ce67f79123ef62c4379f0ec864c3d8c",
- "docSha1": "6d51b1bcc869d17ed455b4cb0558ba8a625a39d4",
+ "bytes": 515777,
+ "elements": 3896,
+ "structSha1": "10bb56ea02c83f4f2d6ca2b6a399256c24e145e6",
+ "docSha1": "df8dcb1a65d3f4011da99cb824c25fc890ecb17b",
  "fit": [
   {
    "month": "January 2026",
@@ -16,7 +16,7 @@
    "scale": 1.0,
    "rows": [
     "57/g57",
-    "91/g23",
+    "95/g19",
     "57/g57",
     "95/g19",
     "57/g57"
@@ -211,7 +211,7 @@
   "cleanedUp": true,
   "classCleared": true,
   "stamps": [
-   "10.30.26"
+   "11.17.26"
   ],
   "errors": [],
   "leftInPrintState": true

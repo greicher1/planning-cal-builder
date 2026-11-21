@@ -1,0 +1,92 @@
+// WHAT'S NEW: the list the What's New window shows once after an update (src/chrome/WhatsNewDialog.jsx).
+//
+// Owner, 19 Nov 2026: *"When a new update launches lets add a quick dialogue that explains what new features/updates
+// were added. But only for things the user would actually care about - small UI changes, tiny bug fixes (not major
+// ones), and anything behind the scenes, don't tell the user. For real substantial changes, give a list of the changes
+// just like a real app would"*.
+//
+// ⛔ HOW TO ADD AN ENTRY (with the release that ships it, in the same commit as the README changelog):
+//   - NEWEST FIRST. One entry per release that has something worth telling; a release with nothing worth telling adds
+//     NOTHING, and then no window appears (the blue update bar still does).
+//   - IN: a new feature, a change to how something works or what it prints, a fix for a bug users actually hit.
+//     OUT: small look and label changes, small fixes, anything behind the scenes (tests, docs, speed, the build).
+//   - Written for a user, in the app's own words: a short title, one or two plain sentences. No ids, no code names, no
+//     plan names, no owner quotes, and nothing confidential (this file ships inside the app).
+//   - `version` (optional) is shown beside the date: the version cut that carries the entry.
+//   - `id` is unique and sorts by time ('YYYY-MM-DD', with '-2', '-3' for a second release on one day). It is what a
+//     machine remembers as seen (localStorage 'sptcal.whatsNew'), so never change an id once it has shipped.
+export const WHATS_NEW = [
+  {
+    id: '2026-11-21',
+    date: '21 Nov 2026',
+    items: [
+      {
+        title: 'Type a two-digit year',
+        text: 'Date boxes now show the year as two digits, like 01/04/26, and you can type 26 for 2026. The year fills in when you leave the box or press Enter.',
+      },
+    ],
+  },
+  {
+    id: '2026-11-20',
+    date: '20 Nov 2026',
+    items: [
+      {
+        title: 'Shift keeps phases in step with the wrap',
+        text: 'When you shift a calendar and Production gains or loses days on its new dates (a holiday, an Off day or a worked weekend), the phases after the wrap now move with it, so no gap or overlap opens up.',
+      },
+    ],
+  },
+  {
+    id: '2026-11-19-4',
+    date: '19 Nov 2026',
+    items: [
+      {
+        title: '“Final Delivery” is on for new calendars',
+        text: 'A new calendar now shows the “Final Delivery” note on Post’s last day without ticking it. Calendars you already saved keep the setting they had.',
+      },
+    ],
+  },
+  {
+    id: '2026-11-19-3',
+    date: '19 Nov 2026',
+    items: [
+      {
+        title: 'Build Around: pick the right end day',
+        text: 'When you build to an “ends by” date, the calendar now offers Fridays for a phase that runs whole weeks, and any weekday for Production and for phases that end mid-week. Before, it only let you pick Mondays.',
+      },
+    ],
+  },
+  {
+    // v1.23.0. ⚠️ Replaced '2026-11-19', live for under an hour before this cut on a build with the same list less
+    // the first item: the few machines that saw it see this one once more, with the item it was missing.
+    id: '2026-11-19-2',
+    version: '1.23.0',
+    date: '19 Nov 2026',
+    items: [
+      {
+        title: 'New notes stay with their phase',
+        text: 'A note you add now moves with its phase week when that phase moves. Pick “Week of …” in Stays with to keep a note on its date instead.',
+      },
+      {
+        title: 'Scenario tabs show their version',
+        text: 'Each scenario tab shows its Version. When you duplicate a scenario, SPTCal offers the next version number, one click to take it.',
+      },
+      {
+        title: 'Tandem days in Show info',
+        text: 'Set tandem days right beside the shooting days per episode or block.',
+      },
+      {
+        title: 'Build backwards with Finish before',
+        text: 'An empty phase card before a dated phase now offers Finish before, so you can start from one date and fill in the phases leading up to it.',
+      },
+      {
+        title: 'Zoom just the calendar',
+        text: 'Pinch, Ctrl-scroll and ⌘+ / ⌘− now zoom the waterfall and month view, and leave the rest of the app as it is.',
+      },
+      {
+        title: '“Final Delivery” on Post’s last day',
+        text: 'The automatic note at the end of Post now reads “Final Delivery” with its date.',
+      },
+    ],
+  },
+]

@@ -2,6 +2,7 @@
 // can put markup into the page (FIX-PLAN.md 1.4; AUDIT-REPORT H-1, L-8, L-9).
 //
 //   HARNESS_PAGE=/dist/index.html HARNESS_STATE=xss-mixed ./run.sh hostile 240
+//   HARNESS_PAGE=/dist/index.html HARNESS_STATE=xss-proto ./run.sh hostile 240   (the startup path, S0, for xss-proto*)
 //
 // Every payload lives in a tests/fixtures/xss-* file and is an INERT marker (see that README): it
 // pushes a tag onto window.__PWN / window.__pwn, or an injected element carries a data-pwn
@@ -45,8 +46,14 @@ window.addEventListener('load', function () { (async function () {
     await T.sleep(1500);
 
     // S0: the inline saved-state restored at startup (HARNESS_STATE = xss-mixed, the shareable-copy path).
+    // A second gate run starts from xss-proto (the shareable-copy path with the values on a prototype): month view too.
     var s0 = fired();
-    add('S0', 'inline saved-state at startup fires nothing and still restores', s0.tags.length === 0 && s0.injected === 0 && title() === 'SHOW XSS', {fired: s0, title: title()});
+    var mv0 = document.getElementById('view-month-btn'); if(mv0){ mv0.click(); await T.sleep(1200); }
+    var s0m = fired();
+    var wf0 = document.getElementById('view-sheet-btn'); if(wf0){ wf0.click(); await T.sleep(600); }
+    add('S0', 'inline saved-state at startup fires nothing and still restores (waterfall and month view)',
+      s0.tags.length === 0 && s0.injected === 0 && s0m.tags.length === 0 && s0m.injected === 0 && /^SHOW XSS( PROTO)?$/.test(title()),
+      {fired: s0, month: s0m, title: title()});
 
     // S1..: File > Load of every hostile calendar, through the real picker.
     var FILES = ['xss-hdrfmt.sptcal', 'xss-hdrfmt-auto.sptcal', 'xss-notecolor.sptcal', 'xss-hiatuscolor.sptcal',
@@ -97,6 +104,42 @@ window.addEventListener('load', function () { (async function () {
       var pf = fired();
       add('P3', 'applying a preset stored by a pre-fix build fires nothing', pf.tags.length === 0 && pf.injected === 0, {fired: pf, seedFailed: window.__SEED_FAILED || null});
     }
+
+    // S2..: values a file puts on an object's PROTOTYPE rather than on its own keys (a "__proto__" key), where a value
+    // the app refuses must not be read instead. Each file must still LOAD (its title arrives) and fire nothing, in the
+    // waterfall and the month view: a .sptcal, one whose marker is a refresh, the same inside a legacy .html, and a
+    // two-scenario file. Last in the leg, so a calendar left on screen here cannot colour R1's and P3's counts.
+    async function bothViews(){
+      var w = fired();
+      var mvb = document.getElementById('view-month-btn'); if(mvb){ mvb.click(); await T.sleep(1200); }
+      var m = fired();
+      var wfb = document.getElementById('view-sheet-btn'); if(wfb){ wfb.click(); await T.sleep(600); }
+      return {sheet: w, month: m, ok: !w.tags.length && !w.injected && !m.tags.length && !m.injected};
+    }
+    var PROTO = [['xss-proto.sptcal', 'SHOW XSS PROTO'], ['xss-proto-refresh.sptcal', 'SHOW XSS PROTO R'],
+                 ['xss-proto-legacy.html', 'SHOW XSS PROTO L'], ['xss-proto-scenarios.sptcal', 'SHOW XSS PROTO S']];
+    for(var j = 0; j < PROTO.length; j++){
+      clean();
+      await load(PROTO[j][0]);
+      // The "Load another calendar?" question can come after load()'s 4 s look on a loaded machine, and then the NEXT
+      // load answers it and reads this file's title. So wait for this file's own title, answering the question if it
+      // is still up.
+      for(var g2 = 0; g2 < 50 && title() !== PROTO[j][1]; g2++){
+        if(/Load another calendar/.test(T.modalText())) T.clickModalButton('Load');
+        await T.sleep(200);
+      }
+      await T.sleep(600);
+      var t2 = title(), b2 = await bothViews();
+      add('S2.' + PROTO[j][0], 'File > Load of ' + PROTO[j][0] + ' loads it and fires nothing (waterfall and month view)',
+        b2.ok && t2 === PROTO[j][1], {fired: b2, title: t2, want: PROTO[j][1], modal: T.modalText().slice(0, 160)});
+    }
+    // S3: that file's parked scenario, switched to (it is applied only now).
+    clean();
+    document.dispatchEvent(new CustomEvent('sptcal-scenario', {detail: {op: 'switch', id: 's2'}}));
+    await T.sleep(2000);
+    var t3 = title(), b3 = await bothViews();
+    add('S3', 'switching to the scenario file\'s parked tab shows it and fires nothing', b3.ok && t3 === 'SHOW XSS PROTO S2',
+      {fired: b3, title: t3});
   } catch (e) { cases.push({id: 'EX', title: 'harness', pass: null, observed: String(e && e.stack || e)}); }
   T.done({test: 'hostile', cases: cases, err: (window.__ERR || []).slice(0, 12)});
 })(); });

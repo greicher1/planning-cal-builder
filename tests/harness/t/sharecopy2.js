@@ -16,7 +16,11 @@ window.addEventListener('load', function () { (async function () {
     // A real calendar, and a non-default preference (Grid Lines dashed) that must NOT travel.
     T.buildFixture();
     await T.until(function () { return document.querySelectorAll('table.sheet-table tbody tr').length > 10; }, 'the grid', 200, 100);
-    set('pref-gridlines', 'dashed');
+    // Chosen in the Export PDF dialog, its only control since the owner took it out of Preferences (11 Nov 2026).
+    await T.sleep(700);
+    T.pdfDialogPick(['dashed']);
+    await T.captureExport('export-wf-pdf-btn', 'the waterfall PDF with Grid lines Dashed');
+    out.dashedStored = /"gridlines"\s*:\s*"dashed"/.test((function () { try { return localStorage.getItem('sptcal.prefs'); } catch (e) { return ''; } })() || '');
     await T.sleep(700);
 
     // The share control is #share-copy-btn, in the Settings window's Preferences tab since owner ruling 12
@@ -41,9 +45,11 @@ window.addEventListener('load', function () { (async function () {
     out.sidebarEmpty = /<div id="sidebar-static"><\/div>/.test(html);
     out.toolbarEmpty = /<div class="view-toggle-row"><\/div>/.test(html);
     out.reactRootEmpty = /<div id="react-root"><\/div>/.test(html);
-    // "Reset hiatus bands" is portalled into its own host in the static hiatus card (owner ruling
-    // 5, 30 Sep 2026), so that host must serialise empty too.
-    out.hiatusResetHostEmpty = /<div id="hiatus-reset-host"><\/div>/.test(html);
+    // "Reset hiatus bands" was portalled into its own host in the static hiatus card (owner ruling
+    // 5, 30 Sep 2026) until the owner removed the button and its host (19 Nov 2026): neither may come back.
+    // ⚠️ The pattern is built from pieces: the copy carries this script too, and a literal would match itself (and a
+    // literal tag opener here would also feed the inert check below one).
+    out.hiatusResetHostGone = !new RegExp('<' + 'div id="hiatus-' + 'reset-host"').test(html);
     // The Settings window's host (owner ruling 12, 20 Oct 2026), exported here with the window OPEN.
     // Its open state reaches outside the host -- `inert` on the sidebar it covers, .settings-open on
     // the sidebar, aria-expanded on the button -- and none of it may travel, or the copy boots with a
@@ -113,7 +119,7 @@ window.addEventListener('load', function () { (async function () {
     out.pass = c.showTitleIds === 1 && c.exportBtns === 1 && c.undoBtns === 1 && c.headers === 1 &&
                c.docWidth > 0 && c.docWidth <= 1024 && c.titleRestored === 'Test Show' &&
                out.headerEmpty && out.sidebarEmpty && out.toolbarEmpty && out.reactRootEmpty &&
-               out.hiatusResetHostEmpty && c.hiatusResetBtns === 1 && c.tbHdrModeBtns === 1 && c.tbNotesResetBtns === 1 &&
+               out.hiatusResetHostGone && c.hiatusResetBtns === 0 && c.tbHdrModeBtns === 1 && c.tbNotesResetBtns === 1 &&
                out.renderedSelectsWithSelected === 0 &&
                out.windowWasOpen && out.settingsHostEmpty && out.inertInMarkup === 0 && !out.settingsOpenInMarkup &&
                !out.expandedInMarkup && c.settingsWindows === 1 && c.unionPlaces === 1;

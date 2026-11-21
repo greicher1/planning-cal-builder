@@ -26,8 +26,9 @@
 //   T0  the toolbar holds the Header button after Rebuild From, reading "Header: Manual ▾" (the file's
 //       mode); the three originals are still in the page, hidden
 //   T1  Manual: the strip above the header is RETIRED (owner, 21 Oct 2026, TEXT-STYLE-BAR-PLAN.md): it is
-//       in the page but hidden, and the text style bar under the toolbar carries the editor-toolbar look
-//       (grey fill, a "Text" label) and spans the toolbar row
+//       in the page but hidden, and the text style bar is shown in the toolbar row. Until 10 Nov 2026 it was a
+//       grey, "Text"-labelled line spanning the row; since then it is its buttons in a well like the view toggle's
+//       (owner, variation 27), with no label (stylebarplace holds its place)
 //   T2  the button opens the mode menu UNDER IT (aria-expanded true), each of its four rows its name
 //       alone (the descriptions were deleted, owner, 23 Oct 2026), a second click closes it; a
 //       click on the hidden original opens the same menu under the toolbar button, not at 0,0; the
@@ -38,15 +39,17 @@
 //   T5  the Month view: the button follows the MONTH header (Manual here, whatever the waterfall is);
 //       the month strip is retired the same way (hidden); Auto from the toolbar leaves nothing above
 //       the month header; back in the Waterfall the label is the waterfall's again
-//   N0  the app header ends with a divider and "Reset Notes" (Waterfall) / "Reset Month Notes"
-//       (Month), and each tooltip says what it clears
-//   N1  "Reset Month Notes" clears the day note; the waterfall note stays (in both views)
+//   N0  the app header ends with a divider and "Reset Waterfall Notes" ("Reset Notes" until 11 Nov 2026) (Waterfall) / "Reset Month Notes"
+//       (Month), and each tooltip says what it clears. Since 6 Nov 2026 (owner: Reset Columns, "Add it") the
+//       Waterfall's ends divider, Reset Notes, Reset Columns; since 11 Nov 2026 the Month view ends divider, Reset Month
+//       Notes, Reset Bar Order, and Export PDF and both resets occupy the same boxes in both views (fixed slots)
+//   N1  "Reset Month Notes" clears the day note; the waterfall note stays (in both views). Since 14 Nov 2026 (audit
+//       AUD2-054) it asks first: the leg answers "Reset Month Notes" with Reset (the notesreset leg holds the question)
 //   N2  "Reset Notes" clears the waterfall note and its colour; the hiatus band and a holiday's
-//       Waterfall-note tick (holidayView) are left alone
+//       Waterfall-note tick (holidayView) are left alone. Asks first too, answered with Reset
 //   N3  that reset is ONE undo step: Undo brings the note back
-//   N4  the All-phase hiatus card ends with "Reset hiatus bands"; naming the row takes over the band typed by hand
-//       (since 4 Nov 2026), and after the reset a NAMED hiatus row's band shows its name at once (update(), not
-//       render()); the note stays
+//   N4  the All-phase hiatus card has NO "Reset hiatus bands" (owner removed it, 19 Nov 2026) and ends with + Add hiatus
+//       period; naming the row takes over the band typed by hand on both weeks (since 4 Nov 2026); the note stays
 //   E0  0 console errors
 window.__T.memoryIDB();
 window.addEventListener('load', function () { (async function () {
@@ -63,6 +66,15 @@ window.addEventListener('load', function () { (async function () {
     return txt + (b.querySelector('.caret') ? ' ▾' : '');
   }
   function resetBtn(){ return byId('tb-notes-reset-btn'); }
+  // Since 14 Nov 2026 (audit AUD2-054) both notes resets ASK FIRST: press, wait for the question, answer Reset.
+  // Returns the question's text ('' when none came), which N1 and N2 hold.
+  async function pressResetAndConfirm(){
+    resetBtn().click();
+    for(var g = 0; g < 30 && !T.modalText(); g++) await T.sleep(100);
+    var asked = T.modalText();
+    T.clickModalButton('Reset');
+    return asked;
+  }
   function pop(){ return document.querySelector('.hdr-mode-pop'); }
   // The menu's width, and whether any line in it runs past its row (the owner asked for a tighter menu once the
   // descriptions went, 23 Oct 2026; 170 px, so a long line has to wrap, never spill).
@@ -143,9 +155,10 @@ window.addEventListener('load', function () { (async function () {
 
     // ---- T1 ------------------------------------------------------------------------------------
     var s1 = strip('#table-wrap .hdr-tools .hdr-fmt'), g0 = gray0(), sb = strip('.view-toggle-row .style-bar-host .style-bar');
-    add('T1', 'Manual: the strip above the header is retired (in the page, hidden); the text style bar under the toolbar has the editor-toolbar look and spans the row',
-      !!s1 && !s1.shown && !!sb && sb.shown && sb.bg === g0 && /Text/.test(sb.label) && sb.spans,
-      {strip: s1, styleBar: sb, gray0: g0}, 'strip hidden; bar: gray-0 fill, ::before "Text", full width');
+    var vtBg = getComputedStyle(document.querySelector('.view-toggle')).backgroundColor;
+    add('T1', 'Manual: the strip above the header is retired (in the page, hidden); the text style bar is shown in the toolbar row, a well like the view toggle',
+      !!s1 && !s1.shown && !!sb && sb.shown && sb.bg === vtBg && sb.label === 'none',
+      {strip: s1, styleBar: sb, viewToggleBg: vtBg}, 'strip hidden; bar shown, the view toggle\'s grey, no ::before label');
 
     // ---- T2 ------------------------------------------------------------------------------------
     b0.click();
@@ -220,23 +233,33 @@ window.addEventListener('load', function () { (async function () {
 
     // ---- N0 ------------------------------------------------------------------------------------
     var bar = document.querySelector('.app-toolbar');
-    var kids = Array.prototype.filter.call(bar.children, function (k) { return getComputedStyle(k).display !== 'none'; });
+    var tail = function () {
+      var kids = Array.prototype.filter.call(bar.children, function (k) { return getComputedStyle(k).display !== 'none'; });
+      return kids.slice(-3).map(function (k) { return k.classList.contains('app-toolbar-div') ? 'div' : (k.id || k.className); });
+    };
+    // The fixed slots (owner, 11 Nov 2026: the header must not shift between the views): Export PDF, the notes reset and
+    // the last button occupy the same box in both views.
+    var slots = function (ids) { return ids.map(function (id) { var r = document.getElementById(id).getBoundingClientRect();
+      return Math.round(r.left * 10) / 10 + '-' + Math.round(r.right * 10) / 10; }); };
     var rb = resetBtn();
-    var n0 = {last: kids.length ? (kids[kids.length - 1].id || kids[kids.length - 1].className) : null,
-              divBefore: kids.length > 1 && kids[kids.length - 2].classList.contains('app-toolbar-div'),
-              sheetLabel: rb ? rb.textContent.trim() : null, sheetTitle: rb ? rb.getAttribute('title') : null};
+    var n0 = {sheetSlots: slots(['export-wf-pdf-btn', 'tb-notes-reset-btn', 'tb-cols-reset-btn']), sheetTail: tail(), sheetLabel: rb ? rb.textContent.trim() : null, sheetTitle: rb ? rb.getAttribute('title') : null};
     await view('month');
+    n0.monthTail = tail();
+    n0.monthSlots = slots(['export-btn', 'tb-notes-reset-btn', 'tb-order-reset-btn']);
     n0.monthLabel = resetBtn() ? resetBtn().textContent.trim() : null;
     n0.monthTitle = resetBtn() ? resetBtn().getAttribute('title') : null;
-    add('N0', 'the app header ends with a divider and the notes reset, labelled for the view, each tooltip saying what it clears',
-      n0.last === 'tb-notes-reset-btn' && n0.divBefore && n0.sheetLabel === 'Reset Notes' && /Month view shows these notes too/.test(n0.sheetTitle || '')
+    add('N0', 'the app header ends with a divider, the notes reset and Reset Columns (Waterfall) / Reset Bar Order (Month), labelled for the view, each tooltip saying what it clears, Export PDF and both resets in the same place in both views',
+      JSON.stringify(n0.sheetTail) === JSON.stringify(['div', 'tb-notes-reset-btn', 'tb-cols-reset-btn'])
+        && n0.sheetLabel === 'Reset Waterfall Notes' && /Month view shows these notes too/.test(n0.sheetTitle || '')
+        && JSON.stringify(n0.monthTail) === JSON.stringify(['div', 'tb-notes-reset-btn', 'tb-order-reset-btn'])
+        && JSON.stringify(n0.sheetSlots) === JSON.stringify(n0.monthSlots)
         && n0.monthLabel === 'Reset Month Notes' && /Waterfall notes stay/.test(n0.monthTitle || ''),
-      n0, 'divider + Reset Notes / Reset Month Notes');
+      n0, 'divider + Reset Notes + Reset Columns / divider + Reset Month Notes + Reset Bar Order, the same slots');
 
     // ---- N1: the month's own reset, in the Month view --------------------------------------------
     await goTo('January 2028');
     var n1 = {dayBefore: monthHas('Test')};
-    resetBtn().click();
+    n1.asked = await pressResetAndConfirm();
     await T.sleep(900);
     n1.dayAfter = monthHas('Test');
     await goTo('October 2027');
@@ -244,7 +267,7 @@ window.addEventListener('load', function () { (async function () {
     await view('sheet');
     n1.wfInSheet = noteCellText('2027-10-11').indexOf('CARRY-NOTE') >= 0;
     add('N1', '"Reset Month Notes" clears the day note; the waterfall note stays, in both views',
-      n1.dayBefore && !n1.dayAfter && n1.wfInMonth && n1.wfInSheet, n1, 'the day note gone; CARRY-NOTE kept');
+      /Reset Month Notes/.test(n1.asked) && n1.dayBefore && !n1.dayAfter && n1.wfInMonth && n1.wfInSheet, n1, 'asked first; the day note gone; CARRY-NOTE kept');
 
     // ---- N2: the waterfall reset -------------------------------------------------------------------
     // Tick a holiday's Waterfall-note box first: that is holidayView, which this reset must no longer touch.
@@ -252,13 +275,13 @@ window.addEventListener('load', function () { (async function () {
     var hvHid = hv ? hv.dataset.hid : null;
     if(hv){ hv.click(); await T.sleep(500); }
     var n2 = {noteBefore: noteCellText('2027-10-11'), bgBefore: noteCellBg('2027-10-11'), bandBefore: bandText('2027-12-20')};
-    resetBtn().click();
+    n2.asked = await pressResetAndConfirm();
     await T.sleep(900);
     var hvNow = hvHid ? document.querySelector('#holiday-vis-list .hv-cb[data-view="sheet"][data-hid="' + hvHid + '"]') : null;
     n2.noteAfter = noteCellText('2027-10-11'); n2.bgAfter = noteCellBg('2027-10-11'); n2.bandAfter = bandText('2027-12-20');
     n2.holidayTickKept = !!hvNow && hvNow.checked;
     add('N2', '"Reset Notes" clears the waterfall note and its colour; the hiatus band and the holiday tick stay',
-      /CARRY-NOTE/.test(n2.noteBefore) && !/CARRY-NOTE/.test(n2.noteAfter) && n2.bgAfter !== n2.bgBefore
+      /Reset Waterfall Notes/.test(n2.asked) && /CARRY-NOTE/.test(n2.noteBefore) && !/CARRY-NOTE/.test(n2.noteAfter) && n2.bgAfter !== n2.bgBefore
         && n2.bandBefore === 'CARRY-HIATUS' && n2.bandAfter === 'CARRY-HIATUS' && n2.holidayTickKept,
       n2, 'note + colour gone; CARRY-HIATUS kept; the tick kept');
 
@@ -269,14 +292,16 @@ window.addEventListener('load', function () { (async function () {
     var n3 = {note: noteCellText('2027-10-11')};
     add('N3', 'the waterfall reset is ONE undo step: Undo brings the note back', /CARRY-NOTE/.test(n3.note), n3, 'CARRY-NOTE back');
 
-    // ---- N4: the sidebar's hiatus reset --------------------------------------------------------------
+    // ---- N4: no hiatus reset; the card's name is what resets a band typed by hand --------------------
+    // "Reset hiatus bands" sat at the foot of this card from ruling 5 (30 Sep 2026) until the owner removed it
+    // (19 Nov 2026): it reset only the bands' look, and read as though it cleared the hiatuses.
     var card = byId('hiatus-list') ? byId('hiatus-list').closest('section.card') : null;
-    var hb = byId('hiatus-reset-btn');
-    var n4 = {inCard: !!(card && hb && card.contains(hb)), label: hb ? hb.textContent.trim() : null,
-              last: !!(card && hb && card.lastElementChild && card.lastElementChild.contains(hb))};
+    var addBtn = byId('add-hiatus');
+    var n4 = {resetBtns: document.querySelectorAll('[id="hiatus-reset-btn"], #hiatus-reset-host').length,
+              resetText: !!(card && /Reset hiatus bands/.test(card.textContent)),
+              lastIsAdd: !!(card && addBtn && card.lastElementChild === addBtn)};
     // Name the band's row. ⭐ Since 4 Nov 2026 the card's name takes over a week typed in the band itself (owner: an
     // all-phase hiatus is named on its card only; claimHiatusRowNames), so CARRY-HIATUS becomes the name at once.
-    // Until then it stayed CARRY-HIATUS (a hand edit owned it) until the reset cleared it.
     n4.bandBefore = bandText('2027-12-20');
     var nameIn = document.querySelector('#hiatus-list .hiatus-entry .hiatus-name');
     if(!nameIn) throw new Error('no hiatus name field');
@@ -285,17 +310,12 @@ window.addEventListener('load', function () { (async function () {
     Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(nameIn, 'Winter Break');
     ['input', 'change'].forEach(function (t) { nameIn.dispatchEvent(new Event(t, {bubbles: true})); });
     await T.sleep(800);
-    n4.bandNamed = bandText('2027-12-20');
-    // The reset then keeps the named row's name on its bands at once (it runs update(), not render(): a render alone
-    // would leave them reading "Hiatus" until the next edit).
-    if(hb) hb.click();
-    await T.sleep(900);
-    n4.bandAfter = bandText('2027-12-20'); n4.band2 = bandText('2027-12-27');
+    n4.bandNamed = bandText('2027-12-20'); n4.band2 = bandText('2027-12-27');
     n4.noteKept = /CARRY-NOTE/.test(noteCellText('2027-10-11'));
-    add('N4', 'the hiatus card ends with "Reset hiatus bands"; naming the row takes over the band typed CARRY-HIATUS, and after the reset both weeks show the row\'s name at once; the note stays',
-      n4.inCard && n4.last && n4.label === 'Reset hiatus bands' && n4.bandBefore === 'CARRY-HIATUS' && n4.bandNamed === 'Winter Break'
-        && n4.bandAfter === 'Winter Break' && n4.band2 === 'Winter Break' && n4.noteKept,
-      n4, 'CARRY-HIATUS -> Winter Break (named) -> Winter Break on both weeks (reset); CARRY-NOTE kept');
+    add('N4', 'the hiatus card has no "Reset hiatus bands" and ends with + Add hiatus period; naming the row takes over the band typed CARRY-HIATUS on both weeks; the note stays',
+      n4.resetBtns === 0 && !n4.resetText && n4.lastIsAdd && n4.bandBefore === 'CARRY-HIATUS' && n4.bandNamed === 'Winter Break'
+        && n4.band2 === 'Winter Break' && n4.noteKept,
+      n4, 'no reset; CARRY-HIATUS -> Winter Break on both weeks; CARRY-NOTE kept');
 
     var errs = T.appHealth().errors;
     add('E0', '0 console errors', errs.length === 0, {errors: errs.slice(0, 5)}, 'none');

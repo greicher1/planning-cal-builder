@@ -533,7 +533,7 @@ explained after it. `firstDayOfWeek={1}` makes Monday column one so the band rea
 > aren't able to pick any dates except mondays?"*). "Every day stays clickable" let a snapped phase's Starts
 > box show a Wednesday the phase does not start on. The built picker (`DatePop.jsx`, `fieldKind()`) now picks
 > each field the way the engine reads it:
-> - **Only Mondays** for a snapped phase start, every hiatus start, and Rebuild From on a snapped phase.
+> - **Only Mondays** for a snapped phase start, every hiatus start, and Build Around (was Rebuild From) on a snapped phase.
 >   Other days are greyed out (`aria-disabled`) and do nothing.
 > - **The exact day, with no band**, for Snap off, Days/Dates phases, a Dates end, a custom holiday, and
 >   Anchor To's "ends by".
@@ -578,6 +578,18 @@ records a property of the hiatus that only matters later, when a shift tool runs
 >   format and every listener are untouched (leg `phasesui` holds 46 fixtures' `fields.byId` to the build before);
 > - the reasoning above still holds **outside these cards**: anywhere else, a property that only matters later stays a
 >   Checkbox unless the owner rules otherwise.
+> - ⭐ **ONE PREFERENCE SHOWN IN SEVERAL PLACES (4 Nov 2026, HIATUS-RIPPLE-PLAN.md §5, owner rulings R1-R3):** "Ripple
+>   Hiatus Periods" is a switch row at the top of the All-phase hiatus card, "Ripple Hiatus" one in each phase's Hiatus
+>   block, and "Ripple Hiatus Periods" a Mantine `Switch` in Settings › Preferences › Hiatus (the owner's names, 4 Nov 2026). All three are ONE store (`prefs.hiatusRipple`, kept on this
+>   computer), painted by `reflectHiatusRipple()`, and a flip in any of them flips them all. ⛔ The two sidebar copies carry
+>   **no id**: they sit outside `.prefs-card`, and an id there would bake the preference into every saved calendar. Only
+>   the Settings copy has an id (`#pref-hiatus-ripple`), safe inside its `.prefs-card`. A future preference shown where it
+>   acts follows the same shape.
+>   ⚠️ **WITHDRAWN 10 Nov 2026 for this switch** (owner, *"Settings only"*, after asking whether anyone would want some
+>   hiatuses to ripple and some not, and that one global setting "would also remove clutter"): the two sidebar copies are
+>   gone, and Settings › Preferences › Hiatus holds the only switch. The shape above still stands for a future preference
+>   the owner wants shown where it acts; the clutter cost is now on record. The result line under an edited hiatus stays,
+>   so a ripple is still seen where it happens.
 
 **The inline-style duplication ends.** Of the seven repeated field recipes, six need no replacement
 at all — the component supplies the styling — and only `#show-title` needs one.
@@ -751,6 +763,11 @@ it lands on the feature's primary affordance.
 > ⛔ **THIS SECTION WAS SUPERSEDED BY WHAT WAS BUILT (round 6, 31 Aug 2026). Read the "AS BUILT"
 > block at the end before acting on anything above it.** Three of its prescriptions are not merely
 > unbuilt — they are now known to be wrong for this app, and one of them would break the print paths.
+>
+> ⛔ **And since 16 Nov 2026 the app never stacks** (owner: *"the left side bar (show, phases, settings) should always
+> stay on the left, I never want the UI to start stacking up and down....the app should basically just force you to
+> use it on a screen size that is wide enough"*). Every "below 960 px" in this section describes a layout that no
+> longer exists. Read **"the toolbar and the shell at every window size"** below.
 
 ~~**`AppShell` replaces the hand-rolled sticky layout**~~, with `AppShell.Header` / `.Navbar` /
 `.Main`. `#print-root` stays a direct child of `<body>`, outside the React root.
@@ -790,6 +807,7 @@ deliberate steps instead:
 | Below | What gives up room, and why it is the cheapest thing to lose |
 |---|---|
 | **1320 px** | the file chip narrows 224 → 180 px — the widest single control, and the same name is inside the menu it opens |
+| **1280 px** | **Reset Columns** (Waterfall view only, 6 Nov 2026) goes **icon-only** with its `title=` tooltip (`.btn-collapse-early`). Labelled it needs 128 px, and the header overflowed by 25 px at 1121 px and 11 px at 1201 px, since the status keeps an inline 78 px minimum. Swept 961–1440 px with it: no overflow, 63 px high, at least 64 px spare |
 | **1200 px** | the brand **name** hides; the mark stays, so identity survives |
 | **1120 px** | New / Save As / the secondary export go **icon-only** with `title=` tooltips |
 | **980 px** | the status text hides — the only thing here that is not a command |
@@ -798,6 +816,11 @@ deliberate steps instead:
 does the primary export. Verified at 1440 / 1280 / 1150 / 1024 / 900: zero clipped labels, zero
 overflow, `--header-h` 63 px throughout.
 
+**Fill Gaps (9 Nov 2026; "Fill Space" until the owner renamed it on 10 Nov 2026, id and saved key unchanged), left of Side Boxes** (off = one even width per phase per year): labelled above 1300 px, the drawn switch alone (40 px) at 1300 px and
+below. Measured with it: the row stays on one line down to ~1240 px and wraps between ~1200 and 1230 px where it
+otherwise would not. ⚠️ Since 16 Nov 2026 the switch alone is fold step 1 (`useToolbarFit`), not a window width, and
+the row never wraps (below). A toggle Button with `aria-pressed`, never a Switch (its automatic id would be swept into saves).
+
 **The preview toolbar keeps its two highest-frequency controls at every width** — the Waterfall/Month
 toggle and the Shift All arrows, which are deliberately one-click. ~~Below `lg` the three labelled
 popover buttons collapse into one *Adjust ▾* menu.~~ ⛔ **Corrected 30 Sep 2026: no such menu exists in
@@ -805,15 +828,20 @@ the code, and none was ever built.** The row WRAPS instead (`.preview-tools{flex
 max-width:100%}`): measured on v1.4.1 it goes to two lines below about 1144 px. Since the Header
 button joined it (owner ruling 1, after v1.4.1) that is about 1287 px (Auto) / 1301 px (Template).
 The same measurement is why the notes reset went to the app header rather than here (HANDOFF, the
-header-controls build).
+header-controls build). ⛔ **Since 16 Nov 2026 it never wraps: it FOLDS** (the owner's picker *"Icons, then a More
+menu"*), and an overflow menu exists after all: the engine-fights-unmounting objection is met by SHOWING the same
+mounted nodes in a panel, never moving or unmounting them. Read the block below.
 
 ⚠️ **Sidebar internals must be keyed to the sidebar's width, not the viewport's.** Measured, the
 sidebar's width is **non-monotonic in the viewport**: the holiday-row label is 83 px at a 1024 px
 window and 484 px at 960 px — the sidebar is at its narrowest one pixel before it goes full width.
+*(16 Nov 2026: it no longer goes full width, and the ≤1280 px rule is capped at 320 px, so the sidebar now only ever
+narrows as the window does: 280 px at the 960 px minimum. The advice stands.)*
 Every viewport media query written for a sidebar internal is keyed to the wrong quantity. Use
 container queries inside `AppShell.Navbar`.
 
-**Below 960 px the frozen `.sheet-scroll` box hangs 392–434 px below the fold** — because stacking
+~~**Below 960 px the frozen `.sheet-scroll` box hangs 392–434 px below the fold**~~ *(gone with the stacking, 16 Nov
+2026: the shell's grid fit runs at every width)* — because stacking
 the sidebar above the preview pushes the grid down while its `max-height` still assumes it starts
 under the header. The fix is not to touch the frozen rule: below the navbar breakpoint the sidebar
 becomes a Burger-toggled overlay, so `AppShell.Main` always starts directly under the header. Treat
@@ -821,29 +849,33 @@ becomes a Burger-toggled overlay, so `AppShell.Main` always starts directly unde
 
 **Declare the supported range and stop pretending:**
 
-> **1200 px is the design target. 1024 px is the fully supported floor. 768 px is
-> degraded-but-working. Below 768 px is explicitly unsupported.**
+> ~~**1200 px is the design target. 1024 px is the fully supported floor. 768 px is
+> degraded-but-working. Below 768 px is explicitly unsupported.**~~
+>
+> ⛔ **Superseded 16 Nov 2026 (owner's pickers): 960 px is the minimum, half of a 1920 monitor, and the app is the
+> same app at every width above it. Narrower, it stops shrinking and the window scrolls sideways** ("like Excel showing
+> fewer columns"), never stacking and never covering the calendar with a "make it wider" screen.
 
 Nobody builds a production calendar on a phone. Engineer `md` and `lg` properly; treat `sm` as "must
 not break, must not be pretty"; do nothing for `xs` beyond preventing horizontal overflow.
 
 ### ✅ AS BUILT — the app shell: the window never scrolls (22 Sep 2026)
 
-Owner: *"make the app behave like a standard app window."* Above 960 px the **window cannot scroll**;
+Owner: *"make the app behave like a standard app window."* The **window cannot scroll**;
 three things scroll, each in its own box: the sidebar, the waterfall grid, and — through
-`.preview-panel` — the month view. At 960 px and below nothing changed: the layout stacks and the
-page scrolls, exactly as before.
+`.preview-panel` — the month view. ⚠️ Above 960 px only until 16 Nov 2026, when at 960 px and below the layout
+stacked and the page scrolled; now at EVERY width, `<body>` stopping at 960 px and `<html>` scrolling sideways under it.
 
 | | How |
 |---|---|
-| the frame | `@media screen and (width > 960px)` in `legacy.css` ("The app shell"): `<body>` is a `100vh` flex column with `overflow:hidden`; every child is `flex:none` except `.layout` (`flex:1 1 0; min-height:0`). The header and any visible notice strips take their natural height, and the layout gets the rest |
+| the frame | `@media screen` in `legacy.css` ("The app shell"; `(width > 960px)` until 16 Nov 2026): `<html>` is `height:100%; overflow-x:auto; overflow-y:hidden` and `<body>` a `100%`-high flex column, `min-width:960px`, with `overflow:hidden` (⚠️ `<html>`'s own overflow is what lets the window scroll sideways: while it is `visible`, `<body>`'s `hidden` is handed to the window. And `100%`, not `100vh`, is the window LESS a sideways scrollbar, 17 px on Windows); every child is `flex:none` except `.layout` (`flex:1 1 0; min-height:0`). The header and any visible notice strips take their natural height, and the layout gets the rest |
 | the sidebar | fills `.layout` (`align-self:stretch`, `max-height:none`, `min-height:0`) and keeps its own `overflow-y:auto`. Its `calc(100vh - var(--header-h))` knew the header but **not the notice strips**, so with a strip showing it ran past the window and its last rows could not be reached |
 | the month view | *(26 Oct 2026, owner: "The surrounding menus need to stay fixed in place.")* **`#table-wrap` is its scroll box**, as the waterfall's grid box is: in the month view the panel is a flex column, the toolbar rows at their natural height and `#table-wrap` `flex:1 1 0; overflow:auto` under them, so the toolbar and the text style bar never scroll away, at any zoom. Zoomed, `#table-wrap` is a one-track grid (`calc(100% * var(--cal-zoom))`) that pins `.month-view` to its 100% width. Only `#table-wrap`'s own box; nothing inside it, no `.mv-*` rule. Until then the month scrolled in `.preview-panel` (still `overflow:auto`, so a tool popover past its bottom stays reachable). `calzoom` Z5, M2 and M2b hold it |
 | the waterfall | fitted so the panel never scrolls in that view and the grid box is the **one** vertical scroller — below |
-| the bottom strip | *(21 Oct 2026, owner: the zoom pill covered the grid's last rows.)* `.preview-panel{padding-bottom:0; margin-bottom:44px}`: the fixed **?** button (28 px, `bottom:8px`) and the zoom pill (26 px, centred on it) sit in the 44 px under the panel, 8 px clear of it. ⛔ A **margin**, not padding: padding is inside the panel's scroll box, so the month view would still scroll under them. The grid fit needs no change, since it measures the panel. Below 960 px it is `padding-bottom:44px`, so the end of the page clears them. `calzoom` Z5 and W1b hold it |
-| the text style bar | *(21 Oct 2026, TEXT-STYLE-BAR-PLAN.md.)* A full-width second line of `.view-toggle-row` (`.view-toggle-row > .style-bar-host{flex:1 1 100%}`; the row already wraps), 34 px tall at 1600×1200, so it costs one toolbar line of grid height at every width. ⛔ Inside the row, never a new sibling between it and `#table-wrap`. The grid fit already observes `.view-toggle-row` (its ResizeObserver), so the grid still ends at the panel's bottom with no change; `calzoom` W1b and `textstyle` B3 hold it |
-| the phase map | *(27 Oct 2026, MONTH-RAIL-PLAN.md, owner's option 3d+.)* `MonthMap.jsx`, a full-width line of `.view-toggle-row` ABOVE the text style bar, in the month view only (null in the waterfall, so the style bar keeps its place there). It draws the engine's `monthMap` push: every month (at least 36 px each, scrolling sideways inside the map past that), the phases as named 13 px bars in at most 3 rows plus 4 px thin rows, the all-phase hiatuses as red marks. 54 / 69 / 84 px tall for 1 / 2 / 3 rows. Plain buttons with `data-mvgo`, no ids. In the month view `#table-wrap` is the flex scroll box, so the calendar gives up the map's height with no grid-fit change. `monthmap` holds it |
-| the month stepper | *(28 Oct 2026, MONTH-RAIL-PLAN.md §18, owner's option B of `mockups/month-arrows.html`.)* `MonthStepper` in `MonthMap.jsx`: Today and ‹ October 2026 › at the right end of the text style bar's line, in the month view only, 34 px tall like the style bar. It replaced the map's own two 24 px arrows. That line is `.style-row`, wrapping `.style-bar-host` (still empty to React, found by class by the engine) and the stepper; in the waterfall the stepper renders nothing and the host fills the line as before. The host keeps 260 px before the stepper wraps under it. Fed by the same push as the map, in the same commit. `data-mvstep` / `data-mvgo`, no ids. `monthmap` part C holds it |
+| the bottom strip | *(21 Oct 2026, owner: the zoom pill covered the grid's last rows.)* `.preview-panel{padding-bottom:0; margin-bottom:44px}`: the fixed **?** button (28 px, `bottom:8px`) and the zoom pill (26 px, centred on it) sit in the 44 px under the panel, 8 px clear of it. ⛔ A **margin**, not padding: padding is inside the panel's scroll box, so the month view would still scroll under them. The grid fit needs no change, since it measures the panel. (Below 960 px it was `padding-bottom:44px` while the app stacked.) `calzoom` Z5 and W1b hold it |
+| the text style bar | *(21 Oct 2026, TEXT-STYLE-BAR-PLAN.md; moved 10 Nov 2026; card 4b of `mockups/toolbar-month-parity.html`, 11 Nov 2026.)* Its buttons in a grey well on the FIRST line of `.view-toggle-row`. The first line, in the owner's order: the view toggle alone at the left; Shift and Build Around (`.tb-dates`, no well, navy outlines); the text style bar (Highlight ALWAYS there, greyed until a header or side-box line is picked); the page tools (`.tb-page`: Fill Gaps, Side Boxes and Header, each its own grey 34 px button, no border, 10 px padding); Undo / Redo (a well). Fill Gaps and Side Boxes share ONE grid cell with the month stepper (`.tb-slots`), the view not shown kept by `visibility`, so the cell is one width in both views. ⭐ ONE EQUAL GAP after every item, Redo's to the edge included (eight): `useToolbarFit` (`useStyleBarFit` until 16 Nov 2026) solves `--tb-gap-fit` so the line fills the row and writes it on `.preview-panel` (never the row: the shareable copy clones the row's attributes); `--tb-gap` reads it, never under `--tb-gap-min` (10 px) and, since 16 Nov 2026, never over `--tb-gap-max` (14 px), the line packed LEFT (block below). ⭐ NOTHING MOVES as you click around or switch views (owner): Header has a fixed width, its longest label's (`useFixedHeaderWidth`), centred; Template / Manual / Off wear the navy outline on the grey; Fill Gaps greys where it doesn't apply instead of leaving. Where the line can't fit at the minimum gap it FOLDS (since 16 Nov 2026; block below). Until then the text bar alone dropped to its own line directly under the first (`.style-own-line` on the host, retired). ⛔ Inside the row, never a new sibling between it and `#table-wrap`. The grid fit observes `.view-toggle-row`; `stylebarplace`, `calzoom` W1b and `textstyle` B3 hold it |
+| the phase map | *(27 Oct 2026, MONTH-RAIL-PLAN.md, owner's option 3d+.)* `MonthMap.jsx`, a full-width line of `.view-toggle-row` under the first line (and under the text style bar's own line when it has had to drop to one: `order:2`), in the month view only (null in the waterfall). It draws the engine's `monthMap` push: every month (at least 36 px each, scrolling sideways inside the map past that), the phases as named 13 px bars in at most 3 rows plus 4 px thin rows, the all-phase hiatuses as red marks. 54 / 69 / 84 px tall for 1 / 2 / 3 rows. Plain buttons with `data-mvgo`, no ids. In the month view `#table-wrap` is the flex scroll box, so the calendar gives up the map's height with no grid-fit change. `monthmap` holds it |
+| the month stepper | *(28 Oct 2026, MONTH-RAIL-PLAN.md §18; moved 11 Nov 2026, owner, card 4b.)* `MonthStepper` in `MonthMap.jsx`: ‹ October 2026 › in the toolbar's first line, in the month view only, in the grid cell Fill Gaps and Side Boxes hold in the waterfall (`.tb-slots`), stretched to it: white, gray-3 border, navy-filled arrows, 30 px tall. NO Today button since 11 Nov 2026 (owner: "get rid of the today button entirely"); its own line under the phase map went, so the month calendar starts ~44 px higher. `data-mvstep`, no ids. `monthmap` part C and `stylebarplace` P6 hold it |
 
 ⛔ **Nothing was wrapped or re-parented.** Both print paths hide the app with
 `body.printing-* > *:not(#print-root)` child combinators and `header.app-header` must stay a direct
@@ -896,8 +928,162 @@ Before the shell, at 1440×900 the window overran by 4 px in the waterfall and b
 month view.
 
 The invariant stated above (*"the grid's top edge is header + ~140 px from the viewport top"*) is
-**retired above 960 px**. The fit measures where the grid's top actually is, so nothing needs that
+**retired** (above 960 px from 22 Sep 2026, at every width since 16 Nov 2026). The fit measures where the grid's top actually is, so nothing needs that
 140 px to be true any more.
+
+### ✅ AS BUILT — the toolbar and the shell at every window size (16 Nov 2026)
+
+Owner: *"Ok we really need to work on UI scaling at differnt screen sizes. Its mostly an issue with the tool bar. It
+only looks right on a normal sized laptop screen ... When the screen is made larger/on a big monitor, the tool bar
+should stay the same size and just have extra space on the sides rather than adding a bunch of space between the
+buttons. On smaller screens, its also not scaling down right."* Then four pickers: the spare room **on the right**
+(the Excel look), narrow windows **icons, then a More menu**, below the minimum **stop shrinking, scroll sideways**, and
+a cascading menu's arrow that **follows the side** it opens. It took over audit 3.12 (AUD2-065).
+
+**Wide.** The one equal gap is capped at `--tb-gap-max`, 14 px (about the gap on the owner's 1728 px laptop), and the
+line is `justify-content:flex-start` with no auto margins, so a wider window leaves its spare room after Undo / Redo.
+Before, the gap grew without limit: 116 px on a 2560 px window.
+
+**Narrow: the fold steps.** `useToolbarFit` (PreviewToolbar.jsx) tries the levels in turn and keeps the first whose
+line fits at the minimum gap; each is a class on `.preview-panel`, cumulative (`tbf1`-`tbf5`), and CSS draws it.
+Measured on `sideboxes.sptcal` (the narrowest preview), both views:
+
+| Level | What gives up room | First at (window) |
+|---|---|---|
+| 0 | nothing: every label | 1440 px and wider (a 13" MacBook Air) |
+| 1 | Fill Gaps its switch alone, Header its icon (`IconHeading`); Side Boxes keeps its label, since the month stepper shares their slot and needs about that width | ~1430 |
+| 2 | Fill Gaps, Side Boxes and Header (in the month view the stepper and Header) into the **More menu** (`.tb-more`, a ⋯ button) | ~1270 |
+| 3 | Build Around its **hammer** (`IconHammer`; a pin first, the owner: it read as a location) | ~1130 |
+| 4 | the text style buttons behind an **Aa** button (`.tb-text-btn`) | ~1090, and 960 |
+| 5 | Waterfall and Month their icons alone, named by hover hints the hook writes | only a narrower row than any window gives (larger text, a wider scroll bar) |
+
+⭐ **The laptop toolbar (owner, 19 Nov 2026: "Make it fit" on a 13" MacBook Air, then "Build Option B" of
+`mockups/toolbar-13in-options.html`).** At 1,700 px and narrower one `@media (max-width:1700px)` block in `legacy.css`
+draws the line tighter: `--tb-gap-min` 8 px, the view toggle, Shift, Build Around and the page tools 8 px side padding,
+the text style buttons 26 px (the size box 58), `.preview-panel` 12 px side padding. ⭐ The sidebar gives up ONLY what
+the toolbar needs (owner, 20 Nov 2026, after a first build narrowed it to 20.5vw everywhere up to 1,700 px):
+`clamp(280px, min(24vw, 100vw - 1150px), 440px)`, so it is 24vw as always from 1,513 px up, 320 px at 1,470 (a 13" Air,
+was 353), 290 at 1,440 (an M1 Air), 280 from 1,430 down (was 320). The 1,150 is measured: the unfolded line fits at the
+8 px minimum gap while the sidebar is at most the window less 1,130 px, plus 20 px for a classic scroll bar and rounding,
+held in the gaps (10.5 px from 1,430 to 1,513). ⛔ Re-measure it if the first line gets wider (`toolbarfit` F0). Before, level 0 ended at ~1,700, 1 at ~1,560, 2 at ~1,290,
+3 at ~1,100, and 960 was level 5. Above 1,700 px nothing changed. ⛔ The block's query and `useFixedHeaderWidth`'s
+`matchMedia('(max-width:1700px)')` must stay the same: the Header button re-measures its fixed width when it flips.
+
+Every folded control keeps a hover hint (`title=`). The view toggle and Shift go last; Shift never folds.
+
+- ⛔ **The menus SHOW the same nodes; nothing moves or unmounts.** The More panel is `.tb-page` itself, displayed under
+  the ⋯ button (`display:contents` wrapper below level 2), so the engine's delegated clicks and every id are unchanged.
+  The Aa menu is the style bar's host itself, `position:fixed` under its button (class `is-dropped`), because the host
+  must stay `.view-toggle-row > .style-bar-host` (the engine finds it by class; legs reach it by that path).
+- **The More menu's rows cascade, macOS-style.** Side Boxes' and Header's own menus open BESIDE the panel (`cascadeFrom`
+  in app.js), first row level with the row, on hover (140 ms) or click; the panel stays open behind them; another row
+  closes them (`sptcal:close-tool-menus`); a choice, Escape or a press outside closes everything. The rows show a
+  chevron that points the side the menu will open (‹ or ›): when the panel opens, the engine builds each menu off
+  screen, measures it (`sptcal:measure-tool-menus`, `cascadeSide`) and writes `data-cascade` on the row, which both the
+  CSS and the placement read. Side Boxes' menu (230 px) usually opens left, Header's (170 px) usually right.
+- A press on Aa keeps the focus and the text picked where they are (`preventDefault` on its mousedown), so the bar acts
+  on them once it opens.
+- ⚠️ **The preview panel's own scrollbar takes no width** (`scrollbar-width:none` in the shell). It overflows only for a
+  moment (the grid fit re-solving after a font or a strip changes a height) or on a very short window, and a classic
+  scrollbar (Windows; this machine's headless Chrome) took 15 px from the toolbar row as it came and went, so the
+  chosen fold level stopped fitting and the line wrapped for a moment (laptopfit at 1280 × 800). It still scrolls by
+  wheel or trackpad. The fold level must never depend on a scrollbar's presence.
+
+**The shell at every width.** The stacked layout is gone (every `max-width:960px` rule in legacy.css, and the
+SettingsWindow's in-flow form). The grid fit's media query is `screen`, and `fitPopToScreen`'s 960 px branch went with
+it. The sidebar's ≤1280 px width is capped at 320 px (it was 340, so it grew 13 px one pixel below 1281 px).
+
+**Held by** `toolbarfit.mjs` (real window widths with trusted mouse input: the levels in both views, one line, the
+cap and the left packing, never stacked, the 960 px minimum and the sideways scroll, the More menu's hover cascade and
+its arrows, the Aa menu acting on a picked cell, the hammer, the icon-only toggle) and `stylebarplace` (the ladder by
+the row's width inside one window, the gaps, the order).
+
+### ✅ AS BUILT — the month view is the month PDF's page (16 Nov 2026)
+
+Owner: *"I think the viewport for the month view calendar needs to work like the waterfall calendar where it maintains
+consistent proportions despite the window width or height. It should reflect whatever is as close as how it will
+appear when exported to pdf"*, then *"phase bar size and note size should also reflect the export exactly. essentially
+the live viewer should look just like what it will look like in the pdf export"*. Five pickers: **Full page shape**,
+**Scroll, like waterfall**, grid lines **Leave colours apart**, note symbols **Remove the symbols**, a crowded month
+**Full size, taller page** (REPLACED the next day by **Shrink like the PDF**, below).
+
+- **One fixed card.** In the month view `#table-wrap` is a one-track grid, `calc(11in - 16mm + 32px)` = 1027.53 px:
+  the writer's week width (`MVL_GEOMETRY.weekW`, 987.53) plus the card's own borders and padding. A day column is
+  141.07 px at every window and every zoom. Until then the card took the panel's width: 743 px at a 1100 px window,
+  2064 px at 2560, a day column 100 to 289 px, and the same note one, two or three lines.
+- **A smaller window scrolls**, sideways too, as the waterfall does; a larger one leaves its spare room on the right.
+  The zoom scales the card and nothing else.
+- **The page's height.** The card is at least `calc(8.5in - 16mm + 32.5px)` = 788.03 px, a Letter landscape page, and
+  the weeks share what the header leaves by the writer's own rule (`mvlShareRows`: each week its need, the spare room
+  by how far each is short of its comfortable height), carried out by flexbox from numbers `fitMonthPage()` writes
+  on `#table-wrap`'s own style (`--mvp-f1..6`, `--mvp-m1..6`).
+- **Printed heights.** A Standard bar or band is 19 px (34 px on two lines), a 10 px note 13 px a line plus 6, each
+  from the top of its first line; a line is as tall as what prints in it and never under 17 px. Until then the screen
+  held every Standard line to 17 px and stretched bars and notes over their lines.
+- ⭐ **A month the PDF shrinks is drawn shrunk, exactly as the PDF shrinks it** (owner, 17 Nov 2026: *"I think id rather
+  the live view look like it will in the pdf"*; pickers **Shrink like the PDF**, **Approve with that gate**, **Stay one
+  page**; `MONTH-SHRINK-PLAN.md`). Until then such a month stayed full size in a card taller than the page, and the
+  card's height changed from month to month.
+  - **The writer is asked, never copied.** `mvWriterFit()` renders the month on screen as the export renders it and
+    takes the month PDF writer's own fit (`mvlFitMonth`): one factor k for every week, a whole number of 64ths. So the
+    factor, the rows and every note's lines are the PDF's.
+  - **What scales** is the writer's own list (`mvlWeekPaint`): type, lines, vertical padding, the lane minimum and gap,
+    bar corners, the grey tag, the day number. Widths, horizontal padding and every line weight do not. So a Standard
+    bar is 17k + 2 px and a 10 px note (13 a line + 4)k + 2.
+  - **Notes wrap where the PDF wraps them**: the one approved frozen edit, SK1, counts a note's lines at the smaller
+    size, on screen only.
+  - **The card is one page at every month.** A line added to a shrunk month's week (the row's "+") does not make it
+    taller (**Stay one page**): that week keeps the PDF's row, and a blank line with no room sits below its edge.
+  - ⚠️ The page's four Inter programs are decoded the first time a MONTH is drawn (never in a waterfall-only session);
+    until they are in, a crowded month is drawn at full size, and it is fitted when they arrive, a few ms later.
+  - The export still warns when a month prints below 6 pt.
+- **Soft Lines stays**: 1 px soft grey on screen, 2 px black in the PDF. Sizes and layout match; that is the one
+  intended difference.
+- **No note symbols** (↻ / ⚑, 2 Nov 2026): the PDF never had them, and a marked note was measured 10 px narrower.
+- ⛔ **A knife edge can still differ.** A note's lines come from measuring text, and Chrome on screen and the PDF's own
+  font tables differ by hundredths of a pixel. A note whose text is within about 0.1 px of its box's width can take a
+  line more or less on screen than in the PDF (seen: one note at 13 px on `mvnotes`, one at 14 px on `mvnotesize-14`).
+  No width change closes it. In a shrunk month Chrome also draws a font at a size cut to 1/100 of a device pixel, so
+  a note within about 0.16% of its box can draw a line fewer inside the same lanes (1 of 42 on `monthscale`'s
+  August); its week and the card are unchanged.
+
+**Held by** `monthpage` (eight calendars, a small window, and no calendar): every week's height on screen is the
+written PDF's row within 0.1 px on every month, a shrunk one too; the card, the day column and the scroll rule; printed
+bar and note heights at the month's factor; the factor itself (T), a shrunk month's notes in the PDF's boxes (N), Stay
+one page (K); no symbol; the zoom; a line added to a week stays inside it. `calzoom`, `mvbarsize`, `mvnotesize`,
+`autonoterename` and `mvkeys` were re-premised for the page, and `mvnotesize`, `monthlanes`, `monthexport` and the
+three writer guards (`monthemit`, `monthwriter`, `monthlayout` F0) for the shrink. Gate 13 holds the PDF itself; gate
+10 was re-cut (the print rollback now sizes notes for the page, not the window).
+
+### ✅ AS BUILT — a day in the month view holds 10 lines (17 Nov 2026, `MONTH-ROW-LIMIT-PLAN.md`)
+
+Owner: *"there reall should be a max limit on how tall a calendar row can be"*. Five pickers: **Stop adding notes**,
+**10 lines in a week**, **No new notes until under**, **Never refused**, **Short message by the day**.
+
+- **The rule.** A day's lines are the lowest line any bar, band or note covering it ends on. A day that already
+  reaches its 10th line takes no new note added by hand in the month view. Every day is capped, so the row is: 10
+  lines is 226 px of the 631 px the weeks share.
+- **Four refusals**: a "+" on a full day (no editor opens), ⌘V (notes land one by one while there is room), Paste
+  notes… (a full day's row is an error row), a note dragged onto a full day (it goes back).
+- **Never refused**: an edit to a note that is already there; everything that arrives on its own (the Waterfall's
+  notes, notes that stay with a phase, automatic notes, holidays, bars, bands, the moving tools); Load and Undo. A
+  calendar already over the limit shows everything it holds.
+- **The words** are the grid's short message, the chip the month view already shows for "Holidays and automatic notes
+  stay on their own dates" (the owner's picker chose it over §4's blocking-error dialog: one more click every time a
+  full day is tried), drawn over the day it is about and kept inside the window: *"This day is full (10 lines)."* and, on its own line, *"Delete or move a note to
+  add another."* or *"1 of 3 notes were pasted."*. It lasts about 5 seconds and goes at once when a note does land.
+  In the Paste notes… box the row reads *"11/3/26 is full (10 lines)"*.
+- ⛔ **A refusal is never silent.** A paste goes to the day last clicked, which can have been scrolled out of view.
+  With no day on screen to sit by, the message shows at the top of the calendar and names the date (*"7/3/26 is
+  full (10 lines)…"*). A message placed by something must have a fallback for when that thing is not in view.
+- **At the door, at full size.** The check asks whether the day is full before the note is added (a note being typed
+  is saved whole, so a row can end a line or two over), and lines are counted as the month draws at full size, so a
+  day is full or not whichever month page it is seen on. ⚠️ A shrunk month can show fewer lines than are counted.
+- ⚠️ **The "+" still shows on a full day**, and in a week whose tallest day is far over the limit, on every empty
+  line beside a full day. The frozen renderer draws them; a click says the day is full.
+- **No setting, nothing saved, no output changes.** The week's own "+" strip keeps its 6 blank lines.
+
+**Held by** `monthrowlimit` (three runs: the doors, the over-limit fixture, a shrunk month).
 
 ### ✅ AS BUILT — the install gate's page (30 Sep 2026, `PWA-ONLY-PLAN.md`)
 
@@ -1388,8 +1574,16 @@ Nothing in this document ships without all of these, every stage:
       and a bar spans every phase the month view draws. Part C (28 Oct 2026): the month stepper's label is the month
       band's month after every ‹ › and map click, its arrows stop at both ends, and Today goes to this month.
     - Gates 10 and 13 byte-identical are the proof the look stays off both month PDFs.
+    - `monthpage` (16 Nov 2026; §7, "the month view is the month PDF's page"): the second screen-only block. Every
+      week's height on screen is the written PDF's row within 0.1 px, the card is the page at every window, and bars
+      and notes are their printed heights. ⚠️ Unlike Soft Lines it DOES move boxes, on purpose, so it is not held by
+      `softlines` (which deletes only the Soft Lines block and still passes with this one in place).
     - ⚠️ A new rule in that block must stay paint only. A font-size, padding or weight change on a box that sizes
       itself turns `softlines` L1 red.
+    - `monthrowlimit` (17 Nov 2026; §7, "a day in the month view holds 10 lines"): no frozen edit and no output, so
+      it is held on screen and in the stores: the four refusals with their words, what is never refused, an
+      over-limit calendar that opens whole, and the full-size count in a shrunk month. Gates 2, 3, 10 and 13
+      byte-identical are the proof that no file moved.
 21. **NEW — the month view's day menu stays as the owner trimmed it** (23 Oct 2026, MONTH-CONTEXT-MENU-PLAN.md §13,
     rulings T1–T4). `gate.sh`'s `mvmenu` leg: the EXACT item list of every menu it checks (a bar on a shoot day, a
     weekday holiday, a weekend, a hiatus day, a hiatus day with a holiday, Post's bar, a custom phase's bar, the

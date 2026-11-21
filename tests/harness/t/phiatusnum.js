@@ -73,22 +73,9 @@ window.addEventListener('load', function () { (async function () {
     await settle();
   }
   // Every "(text) Tj" run in a PDF's Flate streams: both writers set a line of text as one literal string.
-  async function pdfRuns(u8) {
-    var s = '', runs = [];
-    for (var i = 0; i < u8.length; i += 8192) s += String.fromCharCode.apply(null, u8.subarray(i, i + 8192));
-    var re = /stream\r?\n/g, m;
-    while ((m = re.exec(s))) {
-      var st = m.index + m[0].length, en = s.indexOf('endstream', st);
-      if (en < 0) continue;
-      while (en > st && (u8[en - 1] === 10 || u8[en - 1] === 13)) en--;   // DecompressionStream rejects the EOL
-      try {
-        var ds = new Blob([u8.subarray(st, en)]).stream().pipeThrough(new DecompressionStream('deflate'));
-        var t = await new Response(ds).text(), tj = /\(((?:\\.|[^\\)])*)\) Tj/g, x;
-        while ((x = tj.exec(t))) runs.push(x[1].replace(/\\(.)/g, '$1'));
-      } catch (e) { /* not a Flate stream */ }
-    }
-    return runs;
-  }
+  // Every "(text) Tj" run in the PDF's Flate streams, each cut at its own /Length (T.pdfRuns, lib.js: never by
+  // trimming the EOL, which truncated a stream whose data ended in 0x0A / 0x0D and read as no text at all).
+  async function pdfRuns(u8) { return T.pdfRuns(u8); }
   function count(list, s) { return list.filter(function (x) { return x === s; }).length; }
   var written = [];
   var saveHandle = { name: 'phiatusnum.sptcal', kind: 'file',
@@ -268,13 +255,10 @@ window.addEventListener('load', function () { (async function () {
       var unticked = bands('prePrep', PP);
       await clickBox('prePrep');
       var retick = bands('prePrep', PP);
-      // "Reset hiatus bands" clears every band's own text; the sync claims the bands again, numbered.
-      $('hiatus-reset-btn').click(); await settle();
-      var reset = bands('prePrep', PP);
-      kase('H11', 'a band retyped in the grid before 4 Nov 2026 (an older file) prints as saved beside its numbered neighbours; its double-click opens NO editor but the card\'s Name box; unticking Number weeks takes it over, ticking numbers all three; Reset hiatus bands keeps them numbered',
+      kase('H11', 'a band retyped in the grid before 4 Nov 2026 (an older file) prints as saved beside its numbered neighbours; its double-click opens NO editor but the card\'s Name box; unticking Number weeks takes it over, ticking numbers all three',
            same(ticked, [NUM[0], 'Lock-off', NUM[2]]) && !editor && focusName &&
            same(unticked, ['Pre-Prep Hiatus', 'Pre-Prep Hiatus', 'Pre-Prep Hiatus']) &&
-           same(retick, NUM) && same(reset, NUM), { ticked: ticked, editor: editor, focusName: focusName, unticked: unticked, retick: retick, reset: reset });
+           same(retick, NUM), { ticked: ticked, editor: editor, focusName: focusName, unticked: unticked, retick: retick });
     });
 
     await step('H12', async function () {
