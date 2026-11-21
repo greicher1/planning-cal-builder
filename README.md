@@ -28,6 +28,21 @@ way a user would notice or a future session would need to return to. See
 [`CLAUDE.md`](CLAUDE.md) → "⛔ Changelog every substantial change" for when and how.
 
 <!-- Newest first. Add new entries directly under this line. -->
+### Unreleased — the frozen code is locked by a check, not just by a rule (21 Nov 2026)
+
+Owner, 21 Nov 2026: *"Build the guard"*.
+
+- **`npm run check` now fails when any of the 55 frozen engine declarations changes** (the grid, the width model, text
+  fitting, direct manipulation, the writers, and the four functions named frozen edits made frozen). `tools/frozen-lock.mjs`
+  fingerprints each one's exact text and compares it with `tools/frozen-lock.json`; the deploy runs the check before
+  publishing, so a frozen change without an approved re-lock cannot reach the live site.
+- **An approved frozen edit re-locks in the same commit**, quoting the owner's approval:
+  `node tools/frozen-lock.mjs --approve "<words, date, what changed>"`. The approval is stored on each re-locked entry, and
+  `git log` of the lock file lists every frozen edit from now on.
+- **Not covered:** behaviour (the gate still guards the outputs) and the frozen CSS, which waits on an owner ruling.
+- **Verified:** the check runs in 0.23 s; its self-test catches a one-space change to each of the 55 and a rename;
+  `npm run check` 47/47, and red with a comment added inside `renderMonthView`. Replayed over the last 30 days of `main`, it
+  would have stopped all 38 commits that changed frozen text. No product file changed, so no gate and no What's New.
 ### Unreleased — every bar in the Month view reorders, Tandem and Prep included (21 Nov 2026)
 
 Owner, 21 Nov 2026: *"Ensure all phases of any type (including sim post, episodic/block prep, and tandem, can be

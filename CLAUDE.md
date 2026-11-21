@@ -339,6 +339,15 @@ edit and the rule below applies.
 use as the acceptance gate (clipped-cell count, PDF diff against a pre-change export). Do not
 decide this one alone.
 
+⛔ **A check enforces this now** (owner, 21 Nov 2026: *"Build the guard"*). `tools/frozen-lock.mjs`, run by
+`npm run check` and so by every deploy, fingerprints the exact text of the 55 frozen declarations (the list above, plus
+`mvNoteLineCount`, `mvNoteLineCountSized`, `notesForWaterfallDate`, `mvNoteBoxWidth`) and fails on any change not in
+`tools/frozen-lock.json`. Once the owner approves a frozen edit, re-lock in the SAME commit with
+`node tools/frozen-lock.mjs --approve "<the owner's words, date, what changed>"` and end the message with the
+`Frozen-edit-approved:` line it prints. **Never re-lock without that approval**, and never to turn a red check green.
+It guards the frozen TEXT, not behaviour (the gate does that), and not yet the frozen CSS. A new frozen symbol goes in
+with `--add name:group`. HANDOFF's 21 Nov 2026 entry has the details.
+
 ⚠️ **One place chrome geometry legitimately reaches into the frozen surface: `--header-h`.** A
 ResizeObserver measures the header and writes it, and the frozen
 `.sheet-scroll{max-height:calc(100vh - var(--header-h) - 140px)}` reads it. That is why the header

@@ -4,6 +4,42 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### 🔒 21 Nov 2026: THE FROZEN-CODE GUARD — `npm run check` fails when a frozen declaration's text changes without an approved re-lock. Branch `frozen-guard` (worktree `.claude/worktrees/frozen-guard`, from `origin/main` `79d6bea2`; its `node_modules` is a symlink, unlink it before `git worktree remove`), committed locally, NOT PUSHED. README "Unreleased". Tracker card `frozen-code-guard`.
+- **Owner:** asked whether the single-file design holds the app back; of the answer's options, *"Build the guard"*.
+- **Done:** `tools/frozen-lock.mjs` parses `src/legacy/app.js` with Vite 8's own parser (`rolldown/parseAst`, 0.2 s) and
+  takes a SHA-256 of the EXACT source text of each of the 55 frozen declarations (CLAUDE.md's 51: the five width-model
+  constants, grid, text fitting, direct manipulation, exports; plus the four its named frozen edits made frozen:
+  `mvNoteLineCount`, `mvNoteLineCountSized`, `notesForWaterfallDate`, `mvNoteBoxWidth`), 4,212 lines. Inner comments
+  count; the comment above a declaration and its position in the file do not. `tools/frozen-lock.json` holds the
+  fingerprints, each with the approval it was last locked under. `tools/check-build.mjs` runs it (check "the frozen code
+  is unchanged"), and `deploy.yml` runs `npm run check` before publishing, so an unapproved frozen edit cannot deploy.
+  - ⛔ **A frozen edit the owner approves re-locks in the SAME commit:** `node tools/frozen-lock.mjs --approve "<the
+    owner's words, date, what changed>"` (refused without real words), plus the `Frozen-edit-approved:` line it prints at
+    the end of the commit message. `git log --format='%h %cs %(trailers:key=Frozen-edit-approved,valueonly)' --
+    tools/frozen-lock.json` is then the list of every frozen edit. Never re-lock to make a red check green.
+  - `--add name[:group]` / `--remove name` freeze or unfreeze a declaration (owner's call); `--self-test` mutates each
+    declaration by one space, and renames one, and requires each to be caught.
+  - Approvals live ON each entry, not in a shared list, so two branches editing DIFFERENT frozen functions merge with no
+    conflict in the lock; two editing the SAME one conflict there, which is the case a person should see.
+  - ⚠️ **What it does not guard:** behaviour (a non-frozen helper frozen code calls can still change what it does: the
+    gate guards that), and the frozen CSS (below). If the engine is ever split into modules, the lock's `file` becomes a
+    list; the declaration finder already looks at a module's top level.
+- **Not done, owner's call: the frozen CSS.** The two banner blocks CLAUDE.md names (`Month view`, `Calendar PDF export
+  (browser print)` in `src/styles/legacy.css`) changed in 11 commits from 23 Oct to 14 Nov, several of them chrome work
+  (the Phases tab, the "+" buttons' hover, a Show info note) rather than frozen edits, so locking them as they stand would
+  stop ordinary work. Locking them needs the owner to rule what in them is frozen.
+- **Measured:** the check takes 0.23 s; `--self-test` catches all 55 one-space mutants and a rename (10 s); `npm run check`
+  47/47 on the worktree's build, and 46/47 with a comment added inside `renderMonthView` (exit 1, "renderMonthView: text
+  changed (733 lines when locked, 734 now)"); an `--approve` round trip re-locked only the edited declaration. Replayed over
+  the last 30 days of `origin/main`: 38 of 300 non-merge `app.js` commits changed frozen text, 36 saying "frozen" in their
+  message; the other two (`5b583808` rule 22 = LR6, `8129f047` LR8) are frozen edits HANDOFF records, so frozen edits run at
+  about one a day and every one would have needed a re-lock. Unmerged branches: the four live ones (`scenario-version-offer`,
+  `note-rows-grow`, `help-center`, `producers-cut`) touch no frozen text; `try-d` and `claude/settings-window-30719d`
+  (stale) do and would need an approval to re-lock if revived. No gate (no product file changed; `dist` is unaffected).
+- **Found on the way (engine-split study, same day, tracker card `engine-split-modules`):** CLAUDE.md and MANTINE-SEAM
+  say SEVEN unguarded `#table-wrap` listeners; `getElementById('table-wrap').addEventListener` appears 21 times.
+  `prove-header-preset`'s text anchor `sheet: p.lines ?` matches nothing in `app.js`, so that prover tests nothing.
+
 ### ✏️ 21 Nov 2026: A HOLIDAY IS RENAMED FROM THE HOLIDAYS LIST (Settings › Region) — committed on `scenario-version-offer` (its hunks only), NOT PUSHED. README "Unreleased". Tracker card `holiday-rename-in-settings`.
 - **Owner:** asked whether a holiday's name should be editable from the Holidays list, then *"No text box until you hover
   over the title similar to how the episode names in the production phase section work"*.
