@@ -24,15 +24,18 @@
   Pre-Prep 3/15/27 3 wks, Prod Prep 4/5/27 10 wks, Sim Post alongside, Post 11/8/27 30 wks with Final Delivery 6/16/28,
   Localization 6/19/28 10 wks, hiatuses 12/20/27 and 12/18/28). Owner's pickers: **made up, OK to ship**; **Vancouver BC**;
   **add a few typed notes** (added: Tone meeting Ep 101 6/2/27, Table read Ep 101 6/9/27 in the Waterfall; Tech scout /
-  Production meeting Ep 101 on 6/8, 6/10/27 and Night shoot 7/14/27 in the Month view; SHOWN to the owner, approval not yet
-  given); extras **"show me each first"**.
+  Production meeting Ep 101 on 6/8, 6/10/27 and Night shoot 7/14/27 in the Month view): **approved** ("Notes look good").
+- **The extras, shown and settled (21 Nov):** they are UI steps in `tools/help-shots.mjs` on top of `help-demo`
+  (`secondScenario()`, `colorKey()`, `tandem()`), and `HELP_SHOTS_OUT=<dir>` writes previews elsewhere for showing the
+  owner. A second tab "Shoot +2 wks" (takes the offered v2; Shift › After Production › 2 wks Later; prep left where it
+  was, the 2 empty weeks are the point: owner's picker **"Keep it as shown"**); Compare opened FROM THE ORIGINAL TAB so the
+  new one reads Pushed 2 wks (picker); a color key on the right, **widened** ~70 px by dragging `.sb-width` (owner: *"make
+  the color key wider"*); tandem 12+1 from Show info's box (no objection raised). The four test-fixture shots are gone
+  from the kit.
 - **Commits:** `ba06e4e3` (window, kit, 19 articles), `69954eec` (all 64 articles, 18 more shots, ⓘ links), then this one.
   `npm run check` 46/46 at `69954eec`.
 - **NEXT, in order:**
-  1. The owner's OK on the notes. Then the extras, EACH shown to the owner before its picture: a second scenario tab
-     "Shoot +2 wks", a color key side box, 1 tandem day per episode (12+1). Build them as UI steps in `tools/help-shots.mjs`
-     on top of `help-demo` (no more fixtures); today those four shots still come from test fixtures (`scenarios-3`,
-     `sideboxes`, `doubleups`): replace them.
+  1. (Done: notes approved, extras shown and settled, see above.)
   2. Point the kit's calendar-specific steps at the new calendar: note-editor (week `2027-06-07`), mv-note-editor ("Tech
      scout Ep 101"), mv-holiday-editor (a BC holiday, e.g. Canada Day 7/1/27), month-day-menu / app-month (2027-06 or 07),
      wf-context (a 2027 week). Then `npm run build && node tools/help-shots.mjs > log 2>&1` (≈7 min; never pipe it

@@ -25,7 +25,8 @@ import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
-const OUT = path.join(ROOT, 'src', 'help', 'shots')
+// HELP_SHOTS_OUT=<dir> writes elsewhere: how a new picture is shown to the owner before it goes into Help.
+const OUT = process.env.HELP_SHOTS_OUT || path.join(ROOT, 'src', 'help', 'shots')
 const PORT = 8000 + Math.floor(Math.random() * 900) + 50
 const CHROME = process.env.CHROME || '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome'
 const PROFILE = fs.mkdtempSync(path.join(os.tmpdir(), 'sptcal-helpshots-'))
@@ -124,6 +125,45 @@ const settingsTab = async name => {
   await ev(`(()=>{const b=[...document.querySelectorAll('.sw-tab')].find(e=>e.textContent.trim()===${JSON.stringify(name)}); if(b) b.click(); return 1})()`); await sleep(600)
 }
 const cap = (r, max) => ({ ...r, h: Math.min(r.h, max) })
+async function typeInto(sel, text) {   // a box the app reads on input/change
+  await ev(`(()=>{const i=document.querySelector(${JSON.stringify(sel)}); const set=Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value').set; set.call(i,${JSON.stringify(text)}); i.dispatchEvent(new Event('input',{bubbles:true})); i.dispatchEvent(new Event('change',{bubbles:true})); return 1})()`)
+  await sleep(500)
+}
+async function key(k, code) {
+  await send('Input.dispatchKeyEvent', { type: 'keyDown', key: k, code: k, windowsVirtualKeyCode: code })
+  await send('Input.dispatchKeyEvent', { type: 'keyUp', key: k, code: k, windowsVirtualKeyCode: code })
+  await sleep(250)
+}
+// THE EXTRAS (owner, 21 Nov 2026: each shown to them first). All are made on top of help-demo by the app's own controls.
+// A second scenario, "Shoot +2 wks": + Scenario, take the offered v2, rename the tab, then Shift › After Production › 2 wks Later.
+async function secondScenario() {
+  await click(`=[...document.querySelectorAll('button')].find(b=>b.textContent.replace('+','').trim()==='Scenario')`); await sleep(900)
+  await ev(`(()=>{const b=document.querySelector('.sc-ver-bump'); if(b) b.click(); return 1})()`); await sleep(500)
+  await click('.sc-tab.is-current', { count: 2 }); await sleep(400)
+  await key('a', 65)   // nothing: the box opens with its name selected
+  await ev(`(()=>{const i=document.querySelector('.sc-strip input'); if(i){ i.select(); } return !!i})()`)
+  await send('Input.insertText', { text: 'Shoot +2 wks' }); await key('Enter', 13); await sleep(500)
+  await click('#pop-shift-btn'); await sleep(500)
+  const row = await need(`=[...document.querySelectorAll('#pop-shift *')].find(e=>{const r=e.getBoundingClientRect(); return r.height>20&&r.height<44&&/^Production/.test(e.textContent.trim())&&e.children.length>1})`)
+  await mouse(row.x + row.w * 0.62, row.y + row.h / 2)
+  await click(`=[...document.querySelectorAll('#pop-shift button')].find(b=>/^After Production/.test(b.textContent.trim()))`)
+  await typeInto('#tool-shift-weeks', '2')
+  await click('#tool-shift-later'); await sleep(900)
+  await click('#pop-shift-btn'); await sleep(400)
+}
+// A color key on the right of the waterfall.
+async function colorKey() {
+  await click('#tb-side-boxes-btn'); await sleep(400); await click('.sb-menu-item[data-kind="key"][data-side="right"]'); await sleep(900); await esc(1)
+  // Wider than its default (owner, 21 Nov 2026: "make the color key wider"): drag the side's edge 70 px to the left.
+  const h = await need('.side-col.side-right .sb-width'); const x = h.x + h.w / 2, y = h.y + Math.min(h.h / 2, 200)
+  await send('Input.dispatchMouseEvent', { type: 'mouseMoved', x, y })
+  await send('Input.dispatchMouseEvent', { type: 'mousePressed', x, y, button: 'left', buttons: 1, clickCount: 1 })
+  for (let i = 1; i <= 7; i++) { await send('Input.dispatchMouseEvent', { type: 'mouseMoved', x: x - i * 10, y, button: 'left', buttons: 1 }); await sleep(30) }
+  await send('Input.dispatchMouseEvent', { type: 'mouseReleased', x: x - 70, y, button: 'left', buttons: 0, clickCount: 1 }); await sleep(700)
+  await send('Input.dispatchMouseEvent', { type: 'mouseMoved', x: W / 2, y: H - 6 }); await sleep(300)   // off the edge, so its hover line is gone
+}
+// One tandem day per episode (12 + 1), from Show info's Tandem Days box.
+async function tandem() { await sidebarTab('show'); await typeInto('.si-tandem-in', '1'); await sleep(800) }
 const card = id => `=document.getElementById(${JSON.stringify(id)}).closest('.phase-row, section.card, section')`
 const textEl = (txt, scope = '#table-wrap') => `=[...document.querySelectorAll(${JSON.stringify(scope + ' *')})].reverse().find(e=>e.children.length===0&&e.textContent.trim().startsWith(${JSON.stringify(txt)}))`
 async function monthTo(key) {
@@ -213,16 +253,20 @@ const SHOTS = [
     await ev(`(()=>{const b=document.querySelector('#file-menu [data-action="changes"]'); if(b) b.click(); return !!b})()`); await sleep(900)
     return pad(cap(await need('.changes-dlg .mantine-Modal-content'), 700), 10)
   }],
-  ['side-boxes', async () => { await load('sideboxes'); return null }, 0.5],
+  ['side-boxes', async () => { await load(); await colorKey(); return null }, 0.5],
+  ['tandem-month', async () => { await load(); await tandem(); await monthTo('2027-07'); return null }, 0.5],
   ['tandem-card', async () => {
-    await load('doubleups'); await monthTo('2027-03'); await sidebarTab('phases')
+    await sidebarTab('phases')
     await ev(`document.querySelector('.phase-row.du-row').scrollIntoView({block:'start'}); 1`); await sleep(300)
     return pad(cap(await need('.phase-row.du-row'), 520), 4)
   }],
   ['mv-prefs', async () => { await load(); await monthTo('2026-07'); await settingsTab('Preferences'); await ev(`(${cardWithHeading('Month view').slice(1)}).scrollIntoView({block:'start'}); 1`); await sleep(300); return pad(cap(await need(cardWithHeading('Month view')), 700), 4) }],
   ['month-pdf-dialog', async () => { await sidebarTab('show'); await click('#export-btn'); await sleep(900); return pad(await need('.month-pdf-dlg .mantine-Modal-content'), 10) }],
-  ['scenario-tabs', async () => { await load('scenarios-3'); return pad(union(await need('.sc-strip'), await need('.sc-band')), 12) }],
+  ['scenario-waterfall', async () => { await load(); await secondScenario(); return null }, 0.5],
+  ['scenario-tabs', async () => pad(union(await need('.sc-strip'), await need('.sc-band')), 12)],
   ['compare', async () => {
+    // Opened from the ORIGINAL tab (owner's picker), so the new one reads "Pushed 2 wks".
+    await click(`=[...document.querySelectorAll('.sc-tab')].find(t=>!t.classList.contains('is-current'))`); await sleep(900)
     await click(`=[...document.querySelectorAll('.sc-strip ~ * button, button')].find(b=>b.textContent.trim()==='Compare')`); await sleep(900)
     return pad(cap(await need('.compare-dlg .mantine-Modal-content'), 760), 10)
   }],
