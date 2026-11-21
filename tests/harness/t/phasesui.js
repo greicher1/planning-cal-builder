@@ -140,7 +140,9 @@ window.addEventListener('load', function () { (async function () {
         var a = rec[n], b = base[n];
         if (!a || a.error || !b) { bad.push(n + ': ' + (a && a.error || 'no record')); return; }
         if (!same(a.controls, b.controls)) bad.push(n + ': controls');
-        if (!same(a.byId, versionEra(b.byId))) bad.push(n + ': fields.byId');
+        // before.json predates Show info's 19 Nov 2026 field order too: its four count ids in today's order, nothing
+        // else moved (T.showInfoOrderEra; the baseline's README).
+        if (!same(a.byId, T.showInfoOrderEra(versionEra(b.byId)))) bad.push(n + ': fields.byId');
         if (!same(a.hiatuses, b.hiatuses)) bad.push(n + ': hiatuses');
       });
       kase('P1', 'all ' + FIXTURES.length + ' fixtures: the Phases card\'s id\'d controls (same ids, tags and types, in the same order), the saved fields.byId (keys in order, and values) and the all-phase hiatus rows are those of the build before the redesign',
