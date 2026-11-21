@@ -28,6 +28,27 @@ way a user would notice or a future session would need to return to. See
 [`CLAUDE.md`](CLAUDE.md) → "⛔ Changelog every substantial change" for when and how.
 
 <!-- Newest first. Add new entries directly under this line. -->
+### Unreleased — every bar in the Month view reorders, Tandem and Prep included (21 Nov 2026)
+
+Owner, 21 Nov 2026: *"Ensure all phases of any type (including sim post, episodic/block prep, and tandem, can be
+arranged up and down in any order in the month view"*.
+
+- **Tandem bars now have the six-dot reorder grip.** A loose Tandem (moved, the last episode's, or on a calendar
+  labelled by Production Week) is its own row in the order, like any phase: drag it above or below Production, Prep or
+  anything else, and it keeps that place in every week, on screen and in the month PDF. A Tandem drawn on its
+  episode's line moves that whole line (Production) with it, so it never leaves its episode (ruling R6).
+- **Sim Post and Episodic / Block Prep** already reordered (Prep as one row: its bars still stack among themselves by
+  episode); now checked by a leg with the rest.
+- Saved as `doubleUp` in `mvPhaseOrder` (a segment key the sanitizer already kept), so no new save key and no version
+  bump. Back to date order (the header button) puts it back. Help's "What sits on top" paragraph says so.
+- **No frozen edit:** only the reorder grip (`installMonthOrderDrag`) changed, which used to skip every Tandem pill;
+  frozen E1 / SO1 already ordered the loose double-up segment and prep. A calendar that never reorders draws exactly as
+  before.
+- **Verified:** new leg `mvorderdu` 10/10 (in `gate.sh` after `mvordersp`), red on the build before (no grip on a
+  Tandem bar); `mvorder`, `mvordersp`, `doubleups` (live, doubleups, doubleups-half, doubleups-blocks); `npm run check`;
+  in the browser on `doubleups`: Prep above Production, a loose Tandem above its Shoot, a joined Tandem taking
+  Production below Prep.
+
 
 ### Unreleased — The month view's holiday editor has Hide Holiday (21 Nov 2026)
 

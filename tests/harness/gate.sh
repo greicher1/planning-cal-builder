@@ -3499,6 +3499,28 @@ for c in cases:
 sys.exit(0 if cases and all(c.get('pass') is True for c in cases) else 1)
 PYMOS
 
+# ---- mvorderdu: Episodic Prep and Tandem take the month view's reorder grip ---------------------------------
+# ⭐ ADDED 21 Nov 2026 (owner: "Ensure all phases of any type (including sim post, episodic/block prep, and tandem, can be
+# arranged up and down in any order in the month view"). No frozen edit: the grip took Tandem pills in. mvordersp's
+# plumbing on doubleups, April 2027: a loose Tandem's grip (D1), dragged above Production in every week (D2), one undo
+# (D3), saved as "doubleUp" in mvPhaseOrder (D4), the WRITTEN month PDF stacks it the same way (D5); a JOINED Tandem's
+# grip moves the Production line it rides (D6, R6 kept); Prep's grip (D7); Escape (D8). Red on the build before (no
+# grip on a Tandem bar).
+node "$HERE/mvorderdu.mjs" --page "$PAGE" >/dev/null 2>&1
+python3 - "$HERE/mvorderdu.json" "mvorderdu (doubleups)" <<'PYMOD' || FAIL=1
+import json,sys
+path, label = sys.argv[1], sys.argv[2]
+try: a=json.load(open(path))
+except Exception as e:
+    print('  FAIL  '+label+' produced no result: '+str(e)); sys.exit(1)
+if a.get('EX'):
+    print('  FAIL  '+label+' threw: '+str(a['EX'])[:200]); sys.exit(1)
+cases = a.get('cases') or []
+for c in cases:
+    print(('  PASS  ' if c.get('pass') is True else '  FAIL  ')+label+' '+str(c.get('id'))+': '+str(c.get('title',''))[:110])
+sys.exit(0 if cases and all(c.get('pass') is True for c in cases) else 1)
+PYMOD
+
 # ---- hiatusdrag: move a hiatus, or change its first or last week, in the month view -----------------
 # ⭐ ADDED 19 Oct 2026 (HIATUS-DRAG-PLAN.md, owner rulings 1-4). phaseedge's sibling, for the same
 # reason a Node script: trusted CDP input, and a hiatus band is click-through, so every press is made

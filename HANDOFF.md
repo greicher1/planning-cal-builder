@@ -146,6 +146,29 @@
 
 ||||||| 2ef16d26
 
+### ↕️ 21 Nov 2026: EVERY BAR KIND REORDERS IN THE MONTH VIEW, TANDEM AND PREP INCLUDED — branch `mv-order-all` (worktree `.claude/worktrees/mv-order-all`, from `origin/main` at `a0819c0e`; its `node_modules` is a symlink, unlink it before `git worktree remove`). NOT committed until the owner's picker, NOT pushed. README "Unreleased", What's New `2026-11-21-2`. Tracker card `month-reorder-every-bar`.
+- **Owner:** *"Ensure all phases of any type (including sim post, episodic/block prep, and tandem, can be arranged up and
+  down in any order in the month view"*.
+- **What was already true (checked in the browser on `doubleups`):** Sim Post reorders (SO1, live 11 Nov). Episodic /
+  Block Prep reorders too: it is its own segment (`PREP_KEY`, `data-ph="episodePrep"`), so its grip moves every prep bar
+  as one row (they stack among themselves by unit order, P5). Only **Tandem** had no grip: `BAR_SEL` excluded
+  `[data-du]` on purpose when double-ups were built.
+- **As built (no frozen edit):** `installMonthOrderDrag`'s `BAR_SEL` takes every `.mv-pill[data-ph]`, and `barKey`
+  maps a Tandem pill through the new `duRidesProduction(schedule, id)` (beside `duLooseRunsForWeek`, the same test):
+  - LOOSE (moved, the last unit's, or labelled by Production Week): the double-up segment's own key `DU_KEY`
+    (`doubleUp`), already a segment frozen E1 orders, so it is a row like any phase.
+  - JOINED (riding its episode's line, R6): `production`, the line it is part of. ⚠️ My call, not ruled: the
+    alternative, a joined Tandem leaving its episode's line, would undo the owner's R6.
+- Saved as `doubleUp` in `mvPhaseOrder`: no new key, no version bump (the sanitizer already keeps unknown keys).
+  `mvOrderIsCustom()` / Back to date order need nothing (segment keys). Help's "What sits on top" paragraph and
+  CLAUDE.md's `mvPhaseOrder` row and DU1 note say so.
+- **Leg `mvorderdu`** (new, in gate.sh after `mvordersp`; `mvordersp.mjs`'s plumbing, `doubleups`, April 2027): D0-D8,
+  E0. Red on `origin/main`'s build (throws at D1: no grip on a Tandem bar).
+- **Verified (build `/dist/index.html`, port 8962):** `mvorderdu` 10/10, `mvorder` 31/31, `mvordersp` 11/11, `doubleups`
+  live 20/20, doubleups 50/50, doubleups-half 3/3, doubleups-blocks 2/2 (0 console errors each), `npm run check` 46/46;
+  in the browser pane on `doubleups` with the real mouse: Prep above Production, Tandem 305 above Shoot 305, Tandem 306
+  taking Production below Prep. No full gate: no frozen code, no output moves on a calendar that never reorders.
+
 ### 🔤 19 Nov 2026: THE TEMPLATE EDITOR OPENS ON VARIABLES, NOT A MANUAL HEADER'S PLAIN TEXT — committed `5ee3a54e` on `scenario-version-offer`, cherry-picked onto `origin/main`, pushed on the owner's picker. README "Unreleased". Tracker card `template-editor-variables`.
 - **Owner:** *"by default when you open the template editor, all the labels of the default auto-header should be the
   dynamic variables as opposed to plain text"*; asked which plain text, picked **"Header was on Manual"**. (From Auto the

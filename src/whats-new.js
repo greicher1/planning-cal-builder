@@ -17,6 +17,16 @@
 //     machine remembers as seen (localStorage 'sptcal.whatsNew'), so never change an id once it has shipped.
 export const WHATS_NEW = [
   {
+    id: '2026-11-21-2',
+    date: '21 Nov 2026',
+    items: [
+      {
+        title: 'Reorder Tandem bars in the Month view',
+        text: 'Tandem bars now have the reorder grip, like every other bar: drag one up or down and it keeps that place in every week, on screen and in the PDF. A Tandem on its episode’s line moves that line with it.',
+      },
+    ],
+  },
+  {
     id: '2026-11-21',
     date: '21 Nov 2026',
     items: [

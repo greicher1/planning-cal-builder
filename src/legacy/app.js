@@ -11488,9 +11488,22 @@ export function initLegacyApp() {
     let grip = null, shownFor = null, drag = null;
     // Sim Post included (SO1, 11 Nov 2026): its bar carries data-sp on screen and stands in the order as MV_SIMPOST_KEY.
     const effectiveOrder = ()=> mvOrderKeys((currentSchedule && currentSchedule.segments) || [], currentSchedule);
-    // Not a double-up pill (DOUBLE-UP-DAYS-PLAN.md): it rides Production's line or sits loose, and has no order of its own.
-    const BAR_SEL = '.mv-pill[data-ph]:not([data-du]), .mv-pill[data-sp]';
-    const barKey = p=> p.getAttribute('data-ph') || (p.hasAttribute('data-sp') ? MV_SIMPOST_KEY : null);
+    // ⭐ EVERY BAR KIND TAKES THE GRIP (owner, 21 Nov 2026: "Ensure all phases of any type (including sim post,
+    // episodic/block prep, and tandem, can be arranged up and down in any order in the month view"). A bar's place in
+    // the order is the SEGMENT that draws it, which is what frozen E1 / SO1 order:
+    //  - Sim Post: MV_SIMPOST_KEY (data-sp, SO1).
+    //  - Episodic / Block Prep: its own segment, PREP_KEY, already a data-ph bar, so all the preps move as one row
+    //    (they stack among themselves by unit order, P5).
+    //  - TANDEM (a double-up pill, data-du): until today no grip at all. A LOOSE one (moved, the last unit's, or a
+    //    calendar labelled by Production Week) is drawn by the double-up segment's own runs, so it is DU_KEY in the
+    //    order like any phase. A JOINED one rides its episode's line inside Production's runs (owner ruling R6,
+    //    mvJoinDoubleUps), so its grip moves PRODUCTION, the line it is part of: it cannot leave its episode without
+    //    undoing R6. duRidesProduction() decides from the schedule, as the renderer did.
+    const BAR_SEL = '.mv-pill[data-ph], .mv-pill[data-sp]';
+    const barKey = p=>{
+      if(p.hasAttribute('data-du')) return duRidesProduction(currentSchedule, p.getAttribute('data-du')) ? 'production' : DU_KEY;
+      return p.getAttribute('data-ph') || (p.hasAttribute('data-sp') ? MV_SIMPOST_KEY : null);
+    };
     function gripEl(){
       if(grip) return grip;
       grip = document.createElement('div');
@@ -18498,6 +18511,13 @@ export function initLegacyApp() {
       if(nx && nx.unit && !nx.du && nx.startCol <= lastDr.endCol && nx.endCol >= dr[0].startCol) nx.duBelow = true;
     });
     return out;
+  }
+  // Is the double-up `id` drawn on its episode's line inside Production's runs (mvJoinDoubleUps), rather than as one of
+  // the double-up segment's own loose pills (duLooseRunsForWeek, the same test)? The month reorder grip asks it.
+  function duRidesProduction(schedule, id){
+    const seg = duSegOf(schedule);
+    const du = seg && (seg.dus || []).find(x=> x.id === id);
+    return !!(du && du.joined && productionSplits(productionUnits(schedule)));
   }
   // The double-up segment's own pills in one row: every double-up that is not riding Production's line.
   function duLooseRunsForWeek(schedule, weekStart, seg){
