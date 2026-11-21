@@ -50,6 +50,20 @@ arranged up and down in any order in the month view"*.
   Production below Prep.
 
 
+### Unreleased — A holiday is renamed from the Holidays list (21 Nov 2026)
+
+The owner asked for a holiday's name to be editable from the Holidays list in Settings › Region, with no text box until
+you point at it, as the episode names in Production's settings work. Each name now reads as plain text; pointing at it
+draws the box and a click edits it in place. Enter or clicking away renames the holiday everywhere it shows (the
+waterfall, the month view, the workbook and both PDFs), the same rename the month view's holiday editor makes, for that
+date only. Esc puts the name back (and leaves the Settings window open), and clearing it brings back the holiday's own
+name, shown in gray while the box is empty. One undo step. The name is a plaintext contenteditable rather than an input,
+so a long name still wraps as before; the box moves nothing (every row's height and name position measured unchanged). A
+name being typed survives the list redrawing under it. The scenario probe now waits while any contenteditable field is
+being typed in (it missed plaintext-only ones). Nothing saved changes shape (`holidayNames` as before) and nothing frozen
+was edited. Help and the card's hint say so. Verified: `holidayrename` with new S1-S5, `holidayenable`, `settingswin`,
+`regionlock`, `mvmenu`, `npm run check` 46/46, and in the browser.
+
 ### Unreleased — The month view's holiday editor has Hide Holiday (21 Nov 2026)
 
 The owner asked for the waterfall note editor's **Hide Holiday** button in the month view's editor too. A holiday opened

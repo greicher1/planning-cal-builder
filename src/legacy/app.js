@@ -16143,9 +16143,18 @@ export function initLegacyApp() {
       const enCell = holidayEnableShown(schedule, h)
         ? '<span class="hv-cell"'+wk+'><input type="checkbox" class="hv-en" aria-label="Enable '+label+'" data-hid="'+escHtml(h.hid)+'"'+(on?' checked':'')+(weekend?' data-weekend="1"':'')+'></span>'
         : '<span class="hv-cell hv-en-na"></span>';
+      // ⭐ THE NAME RENAMES IN PLACE (owner, 21 Nov 2026: "No text box until you hover over the title similar to how
+      // the episode names in the production phase section work"). It reads as text; pointing at it draws the box and a
+      // click edits it (.hv-name-edit, legacy.css). Enter or leaving it renames the holiday everywhere it shows, as the
+      // month view's holiday editor does (commitHolidayNameEdit -> setHolidayName); Esc puts it back; cleared, it is
+      // its own name again. A plaintext contenteditable rather than an <input>, so a long name still wraps, and the
+      // name stays .hv-name's first text (legs read it there). No id: nothing here may reach fields.byId.
+      const nameEdit = '<span class="hv-name-edit" contenteditable="plaintext-only" spellcheck="false" role="textbox"'
+        + ' aria-label="Name of '+label+'" data-hid="'+escHtml(h.hid)+'" data-iso="'+escHtml(isoOf(h.date))+'"'
+        + ' data-name="'+escHtml(h.name)+'" data-orig="'+escHtml(h.origName || h.name)+'">'+escHtml(h.name)+'</span>';
       return '<div class="hv-row" data-hid="'+escHtml(h.hid)+'">'
         + '<span class="hv-label'+dim+'" title="'+label+renamed+'">'
-        +   '<span class="hv-name">'+escHtml(h.name)+tag+oor+'</span>'
+        +   '<span class="hv-name">'+nameEdit+tag+oor+'</span>'
         +   '<span class="hv-date">'+fmtShort(h.date)
         +     (costsDay[h.iso] ? ' <span class="hv-shoot" title="Falls on a day Production would have shot, so the shoot runs a day longer.">Costs a shoot day</span>' : '')
         // Why a box under Production carries no "Costs a shoot day" (owner, 11 Nov 2026: "whats happening here where
@@ -16200,8 +16209,29 @@ export function initLegacyApp() {
         + '<div class="hv-run-rows">' + r.rows.map(rowHtml).join('') + '</div></div>';
     });
     listEl.classList.toggle('hv-has-strips', runs.some(r=> !!r.seg));
-    listEl.innerHTML = html;
+    // A name being renamed survives a redraw (the list is rewritten on every render, and a scenario probe or any other
+    // render can land mid-typing): its text and caret go into the new row's name, still focused. hvNameRedrawing keeps
+    // the old one's focusout, if Chrome sends one as it is removed, from committing half a name.
+    const ae = document.activeElement;
+    let editing = null;
+    if(ae && ae.classList && ae.classList.contains('hv-name-edit') && listEl.contains(ae)){
+      const sel = window.getSelection();
+      editing = {hid: ae.dataset.hid, text: ae.textContent,
+                 at: (sel && sel.rangeCount && ae.contains(sel.anchorNode)) ? sel.anchorOffset : ae.textContent.length};
+    }
+    hvNameRedrawing = true;
+    try { listEl.innerHTML = html; } finally { hvNameRedrawing = false; }
+    if(editing){
+      const el = [...listEl.querySelectorAll('.hv-name-edit')].find(x=> x.dataset.hid === editing.hid);
+      if(el){
+        el.textContent = editing.text;
+        el.focus({preventScroll: true});
+        const tn = el.firstChild, sel = window.getSelection();
+        if(tn && sel){ const r = document.createRange(); r.setStart(tn, Math.min(editing.at, tn.length)); r.collapse(true); sel.removeAllRanges(); sel.addRange(r); }
+      }
+    }
   }
+  var hvNameRedrawing = false;
 
   // Rebuilding markup with innerHTML replaces the scroll containers themselves, which puts them
   // back at the top -- and rebuilding the sidebar can change the page height, taking the window's
@@ -33412,7 +33442,36 @@ export function initLegacyApp() {
       markDirty();
       render(currentSchedule);
     });
+    // A holiday's name, renamed in place (renderHolidayVisList's .hv-name-edit). Enter or leaving it commits; Esc puts
+    // the name back. preventDefault on both keys: Enter must not add a line, and the Settings window closes on an
+    // Escape nobody else took (SettingsWindow.jsx's onKeyDown checks defaultPrevented).
+    host.addEventListener('keydown', e=>{
+      const el = e.target.closest && e.target.closest('.hv-name-edit');
+      if(!el) return;
+      if(e.key === 'Enter'){ e.preventDefault(); el.blur(); }
+      else if(e.key === 'Escape'){ e.preventDefault(); el.textContent = el.dataset.name; el.blur(); }
+    });
+    host.addEventListener('focusout', e=>{
+      const el = e.target.closest && e.target.closest('.hv-name-edit');
+      if(!el || hvNameRedrawing || !el.isConnected) return;
+      commitHolidayNameEdit(el);
+    });
   })();
+  // The rename, written the way the month view's holiday editor writes one (writeActiveMvNote's holiday branch): its own
+  // date typed after the name is dropped (the date is added back on every line), and empty or the list's own name means
+  // no rename. One update(), so it is one undo step and every view and export follows.
+  const HOLIDAY_NAME_MAX = 200;
+  function commitHolidayNameEdit(el){
+    const was = el.dataset.name;
+    const orig = holidayOrigName(el.dataset.hid);
+    const date = parseDateUTC(el.dataset.iso);
+    if(orig == null || !date){ el.textContent = was; return; }
+    const typed = stripHolidayDate(String(el.textContent || '').replace(/\s+/g, ' ').trim(), date).slice(0, HOLIDAY_NAME_MAX).trim();
+    const next = (!typed || typed === orig) ? null : typed;
+    if((next || orig) === was){ el.textContent = was; return; }
+    setHolidayName({hid: el.dataset.hid, name: was, origName: orig, date}, next);
+    update();
+  }
   // Add / reset for the user's own holidays.
   (function(){
     const nameEl = document.getElementById('custom-hol-name');
@@ -34836,7 +34895,9 @@ export function initLegacyApp() {
       const need = scenarioTabs.filter(t => t.id !== currentScenarioId && !t.facts && !t.factsFailed && t.snapshot);
       if(!need.length) return;
       const ae = document.activeElement;
-      const typing = ae && ae !== document.body && ae.matches && ae.matches('input, textarea, select, [contenteditable="true"]');
+      // isContentEditable too: a plaintext-only field (a side box's text, a holiday's name in the Holidays list) does not
+      // match [contenteditable="true"].
+      const typing = ae && ae !== document.body && ((ae.matches && ae.matches('input, textarea, select, [contenteditable="true"]')) || ae.isContentEditable);
       if(activeNoteEditor || activeMvNote || typing){ scheduleScenarioProbe(800); return; }
       clearTimeout(undoPushTimer);
       pushUndoSnapshot();

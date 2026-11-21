@@ -4,6 +4,31 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### ✏️ 21 Nov 2026: A HOLIDAY IS RENAMED FROM THE HOLIDAYS LIST (Settings › Region) — committed on `scenario-version-offer` (its hunks only), NOT PUSHED. README "Unreleased". Tracker card `holiday-rename-in-settings`.
+- **Owner:** asked whether a holiday's name should be editable from the Holidays list, then *"No text box until you hover
+  over the title similar to how the episode names in the production phase section work"*.
+- **Done:** `renderHolidayVisList`'s row puts the name in `.hv-name-edit`, a `contenteditable="plaintext-only"` span
+  (no id) as `.hv-name`'s first child, carrying `data-hid` / `data-iso` / `data-name` / `data-orig`. legacy.css draws it as
+  text; `:hover` gives it the episode names' gray-3 border and white fill, `:focus` the primary border; negative margins
+  give its padding and border back, so no row or name moved (measured on all 27 rows of the fixture, leg S1). Cleared,
+  `:empty::before` shows the name it goes back to. The `#holiday-vis` IIFE: Enter blurs, Esc restores `data-name` and
+  blurs (both `preventDefault`, so the Settings window, which closes on an Escape nobody took, stays open); `focusout`
+  runs `commitHolidayNameEdit()`, which is `writeActiveMvNote`'s holiday rule (`stripHolidayDate`, empty or the list's own
+  name = no rename) through `setHolidayName()` and one `update()`. Help (Notes display paragraph) and the card's ⓘ say so.
+  - Why a contenteditable and not an `<input>` like `.ep-name`: a long name still WRAPS between words as it did (an input
+    would cut it in a ~125 px column), and the name stays `.hv-name`'s text, which `regionlock`, `mvmenu`, `holidayenable`
+    and `settingswin` read.
+  - ⛔ The list is rewritten on every render, so `renderHolidayVisList` carries a name being typed (text, caret, focus) into
+    the new row, with `hvNameRedrawing` keeping the old node's focusout from committing half a name (leg S4).
+  - `scheduleScenarioProbe`'s "typing" test now also takes `isContentEditable`: `[contenteditable="true"]` missed a
+    plaintext-only field (this name, and a side box's text), so a probe could re-apply the calendar mid-typing.
+- **No saved key, nothing frozen:** the rename is `holidayNames` as before (one date only, the owner's 30 Oct picker).
+  No What's New entry (a second way to do something users can already do: the 21 Nov Hide Holiday got none either).
+- **Verified:** `holidayrename` with new S1-S5, `holidayenable` 8/8 (anchorside) + 2/2 (customunits), `settingswin` 21/21,
+  `regionlock` 14/14, `mvmenu` 81/81 (halfdays), `npm run check` 46/46; in the browser on `holidayrename` (hover, rename,
+  ⌘Z, Esc, clear, a redraw mid-typing). ⚠️ `holidayrename` and `mvmenu` time out at "the fixture" without their
+  `HARNESS_STATE` (holidayrename, halfdays): that is a harness call, not a failure. No full gate (chrome only).
+
 ### 🙈 21 Nov 2026: THE MONTH VIEW'S HOLIDAY EDITOR HAS "HIDE HOLIDAY" — committed `a3ed0a2e` on `scenario-version-offer`, cherry-picked onto `origin/main` and pushed on the owner's picker. README "Unreleased". Tracker card `month-hide-holiday`.
 - **Owner:** *"We need to add the same hide holiday button in the waterfall pop-up to the month view pop-up"*.
 - **Done:** `openMvNoteEditor`'s head gives a holiday (`isHol`) a `note-pop-delete mv-holiday-hide` button, "Hide
