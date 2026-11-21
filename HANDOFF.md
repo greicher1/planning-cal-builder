@@ -4,7 +4,7 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### 🔒 21 Nov 2026: THE FROZEN-CODE GUARD — `npm run check` fails when a frozen declaration's text changes without an approved re-lock. Branch `frozen-guard` (worktree `.claude/worktrees/frozen-guard`, from `origin/main` `79d6bea2`; its `node_modules` is a symlink, unlink it before `git worktree remove`), committed locally, NOT PUSHED. README "Unreleased". Tracker card `frozen-code-guard`.
+### 🔒 21 Nov 2026: THE FROZEN-CODE GUARD — `npm run check` fails when a frozen declaration's text changes without an approved re-lock. ✅ **LIVE at `fbfd96a4`** (owner's picker *"Push now"*, 21 Nov 2026; fast-forward `79d6bea2..fbfd96a4`; deploy run 44941735360 green, its `npm run check` ran the guard, 47/47; the live build stamp is unchanged, `7b41a02b1a37`, so users got no update bar). Branch `frozen-guard` (worktree `.claude/worktrees/frozen-guard`; its `node_modules` is a symlink, unlink it before `git worktree remove`). README "Unreleased". Tracker card `frozen-code-guard`.
 - **Owner:** asked whether the single-file design holds the app back; of the answer's options, *"Build the guard"*.
 - **Done:** `tools/frozen-lock.mjs` parses `src/legacy/app.js` with Vite 8's own parser (`rolldown/parseAst`, 0.2 s) and
   takes a SHA-256 of the EXACT source text of each of the 55 frozen declarations (CLAUDE.md's 51: the five width-model
