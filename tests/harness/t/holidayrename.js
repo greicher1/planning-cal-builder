@@ -27,6 +27,8 @@
 //       neighbour, in the waterfall too
 //   W1  renaming Labor Day in the WATERFALL's editor renames the holiday: the cell stays automatic (no waterfall
 //       note), the month view and the Holidays list follow
+//   H1  the MONTH editor's Hide Holiday (owner, 21 Nov 2026) hides Thanksgiving from the month view only: its Month
+//       box unticked, its Waterfall box and Day After untouched; one undo brings it back
 //   X1  the workbook prints the renamed Labor Day
 //   E0  no console errors, apart from the one warning F2's values are meant to raise
 //
@@ -291,6 +293,27 @@ window.addEventListener('load', function () { (async function () {
            before === 'Labor Day 9/7/26' && after === 'Labor Day (closed) 9/7/26' && !(s.userNotes && s.userNotes['2026-09-07'])
              && s.holidayNames && s.holidayNames['labor-day@2026'] === 'Labor Day (closed)' && same(mv, ['Labor Day (closed) 9/7/26']) && !!row,
            { before: before, after: after, userNote: s.userNotes && s.userNotes['2026-09-07'], names: s.holidayNames, month: mv, listRow: row && row.title });
+    });
+    await step('H1', async function () {
+      // Hide Holiday in the MONTH view's holiday editor (owner, 21 Nov 2026): the waterfall editor's button, mirrored.
+      await toMonth('November 2026');
+      var box = function (v) { return q('#holiday-vis-list input[data-view="' + v + '"][data-hid="thanksgiving@2026"]'); };
+      var sheet0 = box('sheet') ? box('sheet').checked : null, fri0 = lines('2026-11-27');
+      var pop = await openMv('2026-11-26', /^Thanksgiving/);
+      var btn = q('.note-pop-head .mv-holiday-hide', pop);
+      var label = btn ? txt(btn) : null;
+      if (!btn) throw new Error('no Hide Holiday button');
+      btn.click();
+      await settle();
+      var thu = lines('2026-11-26'), fri = lines('2026-11-27'), s = JSON.parse(await save());
+      var hv = (s.holidayView || {})['thanksgiving@2026'] || {};
+      var monthBox = box('month') ? box('month').checked : null, sheet1 = box('sheet') ? box('sheet').checked : null;
+      await undo();
+      var back = lines('2026-11-26');
+      kase('H1', 'the month holiday editor has Hide Holiday at its top right: it hides Thanksgiving from the month view only (its Month box unticked, its Waterfall box and Day After untouched), and one undo brings it back',
+           label === 'Hide Holiday' && !byId('mv-note-pop') && thu.length === 0 && fri.length === 1 && same(fri, fri0)
+             && hv.month === false && monthBox === false && sheet1 === sheet0 && back.length === 1 && /^Thanksgiving/.test(back[0]),
+           { label: label, thu: thu, fri: fri, holidayView: hv, monthBox: monthBox, sheet: [sheet0, sheet1], afterUndo: back });
     });
     await step('X1', async function () {
       await view('sheet');

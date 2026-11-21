@@ -29,6 +29,18 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — The month view's holiday editor has Hide Holiday (21 Nov 2026)
+
+The owner asked for the waterfall note editor's **Hide Holiday** button in the month view's editor too. A holiday opened
+in the month view now shows Hide Holiday at the editor's top right, in the same place and look as the waterfall's. It is
+the waterfall's twin: it sets the holiday's Month box off (`holidayView[hid].month = false`), so the month view and both
+month PDFs leave it out, while its Waterfall box keeps whatever it was and the day stays off (no date moves). A rename or
+colour typed before the click is saved with it, as the waterfall's Hide saves the rest of its editor. One undo step. The
+Help window says so. Nothing saved changes shape (the key and its values already existed) and nothing frozen was edited.
+Verified: `holidayrename` 15/15 with a new H1 (the button, month only, Waterfall box and the next day's holiday
+untouched, undo), `npm run check` 46/46, and in the browser on the `holidayrename` fixture (hide, undo, redo, rename
+then hide).
+
 ### Unreleased — date boxes take and show a two-digit year: 01/04/26 (21 Nov 2026)
 
 Owner, 4 Nov 2026: *"you can type 26 instead of 2026"*, and the box *"should read 01/04/26"*.

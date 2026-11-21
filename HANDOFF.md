@@ -4,6 +4,22 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### 🙈 21 Nov 2026: THE MONTH VIEW'S HOLIDAY EDITOR HAS "HIDE HOLIDAY" — committed `a3ed0a2e` on `scenario-version-offer`, cherry-picked onto `origin/main` and pushed on the owner's picker. README "Unreleased". Tracker card `month-hide-holiday`.
+- **Owner:** *"We need to add the same hide holiday button in the waterfall pop-up to the month view pop-up"*.
+- **Done:** `openMvNoteEditor`'s head gives a holiday (`isHol`) a `note-pop-delete mv-holiday-hide` button, "Hide
+  Holiday", where the Auto-Note editor has Hide Auto-Note (it had none). Its click goes through the existing
+  `.note-pop-delete:not(.mv-note-delete)` handler, which now sets `activeMvNote.hideHoliday` for a holiday (`deleteAuto`
+  otherwise); `writeActiveMvNote`'s holiday branch applies the rename / colour first, then
+  `holidayView[hid].month = false` and `renamed` (the commit runs `update()`). The twin of `hideHolidayInWaterfall()`:
+  the Waterfall box is left as it was, the holiday stays a day off. No new id, no saved key, nothing frozen.
+- **Verified:** `holidayrename` 15/15 (new H1), `npm run check` 46/46, in the browser (8863's harness server, all five
+  preview slots were held by other chats).
+- ⚠️ `run.sh holidayrename` PRINTS its result cut off after W1 (stdout only); `holidayrename.json` has every case. Read
+  the JSON before calling X1 / E0 missing.
+- ⚠️ In the browser pane, `?state=holidayrename` opened with every holiday's Month box UNTICKED (Thanksgiving had to be
+  ticked to show), while the leg sees them on. Not investigated: likely the pane's own leftover state (a recovery offer
+  came up at launch).
+
 ### 🔨 4 Nov 2026: DATE BOXES TAKE AND SHOW A TWO-DIGIT YEAR (01/04/26) — branch `two-digit-year` (worktree `.claude/worktrees/two-digit-year`, from `origin/main` at `75003f1`; its `node_modules` is a symlink, so unlink it before `git worktree remove`). Not merged, not pushed. Tracker card `two-digit-year-dates`
 - **Asked** (owner, 4 Nov 2026): *"Would it be a small enough change so that all phases, hiatuses, etc use a date box
   in the left side panel that has the year as 25 or 26"*, then *"you can type 26 instead of 2026"* and *"it should

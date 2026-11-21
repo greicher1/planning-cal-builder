@@ -45667,6 +45667,8 @@ export function initLegacyApp() {
         if(pendingColor.toUpperCase() === base.toUpperCase()) delete holidayColors[h.hid];
         else holidayColors[h.hid] = pendingColor;
       }
+      // Its Hide Holiday button: out of the month view only (setHolidayView's store; the commit draws).
+      if(activeMvNote.hideHoliday){ holidayView[h.hid] = Object.assign({}, holidayView[h.hid], {month: false}); activeMvNote.renamed = true; }
       return true;
     }
     if(kind === 'auto'){
@@ -46209,7 +46211,8 @@ export function initLegacyApp() {
     const headHtml = `<div class="note-pop-head"><div class="note-pop-heading mv-note-pop-day"><span class="note-pop-title">${escHtml(mvName)}</span>`
       + ` <span class="note-pop-when">${escHtml(mvWhen)}</span></div>`
       + (isAuto ? `<button type="button" class="note-pop-delete" title="Hides it from the month view and its PDF. Tick its Month box in Settings ▸ Automatic notes to bring it back.">Hide Auto-Note</button>`
-                : isHol ? '' : delNoteHtml) + `</div>`;
+                : isHol ? `<button type="button" class="note-pop-delete mv-holiday-hide" title="Hides this holiday from the month view and its PDF. It stays in the Waterfall and stays a day off. Tick its Month box under Holidays, or right-click its day, to bring it back.">Hide Holiday</button>`
+                : delNoteHtml) + `</div>`;
     const colourRow = `<div class="note-item note-colour-item"><div class="note-line"><span class="note-row-name">Color</span>`
       + `<span class="note-colour-name">${escHtml(noteColourName(curColor))}</span></div>${notePaletteRowsHtml(curColor)}</div>`;
     const footHtml = `<div class="note-pop-foot">${(isAuto || isHol) ? '<span class="note-pop-keys">Enter to save · Esc to cancel</span>' : ''}`
@@ -46375,13 +46378,17 @@ export function initLegacyApp() {
       });
     }
     // Hide Auto-Note: what clearing the box does (ruling 4, R4), as one click. Its class keeps the old word.
+    // ⭐ Hide Holiday (owner, 21 Nov 2026: "add the same hide holiday button in the waterfall pop-up to the month view
+    // pop-up"): the waterfall editor's Hide Holiday mirrored, holidayView[hid].month = false (writeActiveMvNote's holiday
+    // branch), so the month view and its PDF leave it out, the Waterfall keeps its own setting and it stays a day off.
+    // Anything typed or picked in the editor is saved with it, as the waterfall's Hide saves the rest of its editor.
     const delBtn = pop.querySelector('.note-pop-delete:not(.mv-note-delete)');
     if(delBtn){
       delBtn.addEventListener('mousedown', e=>e.preventDefault());
       delBtn.addEventListener('click', e=>{
         e.stopPropagation();
         if(!activeMvNote) return;
-        activeMvNote.deleteAuto = true;
+        if(isHol) activeMvNote.hideHoliday = true; else activeMvNote.deleteAuto = true;
         commitMvNoteEditor();
       });
     }
