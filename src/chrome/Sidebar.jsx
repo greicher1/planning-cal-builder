@@ -208,7 +208,7 @@ export function CalendarRangeCard() {
     <section className="card pref-view-sheet" data-tab="show">
       <h2>
         <IconCalendarRange className="card-ic" /><span>Calendar range</span>
-        <InfoHint label="Calendar range" width={280}>
+        <InfoHint label="Calendar range" help="range" width={280}>
           The first and last week of the waterfall, in Excel and the PDF too. Leave a date blank to keep the
           usual start or end. The month view always shows everything.
         </InfoHint>
@@ -306,7 +306,7 @@ export function RegionCard() {
             only when you see it is. UI-CONVENTIONS.md §4 separated explanation from warning, and
             this takes only the explanation. (The lock hint that stayed visible below is gone with
             the lock itself, owner ruling 6.) */}
-        <InfoHint label="Production Region">
+        <InfoHint label="Production Region" help="region">
           Sets the union-holiday calendar. Holidays that fall on a Production shoot day are skipped,
           pushing the schedule out. Canada is picked by province and the UK by nation — the statutory lists genuinely differ.
         </InfoHint>
@@ -367,7 +367,7 @@ export function AutoNotesCard() {
     <section className="card">
       <h2>
         <IconNote className="card-ic" /><span>Automatic notes</span>
-        <InfoHint label="Automatic notes" width={300}>
+        <InfoHint label="Automatic notes" help="auto" width={300}>
           Notes the calendar writes for you on the day a phase starts or ends, such as “Post Begins 7/5/27”. Tick
           a note under Waterfall to add it to the Notes column, Excel and the waterfall PDF, and under Month to add it
           to the month view and its PDF. Tick both for both. Phases you add yourself are listed too. Notes you typed
@@ -473,7 +473,7 @@ export function WaterfallCard() {
         {/* The Grid Lines sentence is the old Preferences card's own ⓘ, folded in when the tabs merged:
             the owner removed its visible description on 9 Sep 2026 ("remove the descriptions, theyre not
             necessary"), and it is the answer to "why did nothing change on screen?". */}
-        <InfoHint label="Waterfall" width={320}>
+        <InfoHint label="Waterfall" help="prefs" width={320}>
           How the waterfall reads, on screen and in Excel and the PDF. Double-click any column heading
           to type your own, or to split or merge headings; Reset puts a heading back. A Notes heading
           can also hide its column on screen and in Excel and the PDF; click its thin strip, or its
@@ -746,7 +746,7 @@ export function HeadersCard() {
     <section className="card prefs-card">
       <h2>
         <IconHeading className="card-ic" /><span>Headers</span>
-        <InfoHint label="Headers" width={320}>
+        <InfoHint label="Headers" help="presets" width={320}>
           The header is the block of text printed above the calendar in the PDF and the workbook.
           Templates and presets stay on this computer; the header you apply travels inside the
           calendar you save.
@@ -917,7 +917,7 @@ export function HiatusPrefsCard() {
     <section className="card prefs-card">
       <h2>
         <IconPause className="card-ic" /><span>Hiatus</span>
-        <InfoHint label="Ripple Hiatus Periods" width={300}>
+        <InfoHint label="Ripple Hiatus Periods" help="ripple" width={300}>
           On: when a hiatus is added, removed, lengthened, shortened or moved, every phase that starts on or
           after it moves by the same number of weeks, so the gaps between phases stay as they were. Locked
           hiatuses, holidays and notes with a date stay put. {keyLabel('Mod+Z')} takes back your hiatus change and its push
@@ -955,7 +955,7 @@ export function HolidaysCard() {
     <section className="card">
       <h2>
         <IconCalendarDot className="card-ic" /><span>Holidays</span>
-        <InfoHint label="Holidays" width={280}>
+        <InfoHint label="Holidays" help="regiontab" width={280}>
           Un-tick <strong>Enable</strong> to work a holiday: it stops costing a day and stops appearing
           as a note. It only shows where that moves a date. A colored strip marks the holidays inside a
           phase that counts days (Production, a phase counted in Days, episode prep). The two note columns control where an

@@ -42,11 +42,13 @@ export function capsFor(spec, mac = KEYS_MAC) {
     : PC_ORDER.filter(m => mods.has(m)).map(m => (m === 'Mod' ? 'Ctrl' : m)).filter((m, i, a) => a.indexOf(m) === i)
   return { caps, key: ARROWS[key] || key }
 }
+// A Mac draws the caps side by side (⇧⌘S); elsewhere they are joined with + (Ctrl+Shift+S), as keys.js words them.
 export function Keys({ k }) {
   const { caps, key } = capsFor(k)
+  const plus = !KEYS_MAC
   return (
     <span className="hp-keys">
-      {caps.map((c, i) => <kbd key={i}>{c}</kbd>)}
+      {caps.map((c, i) => <span key={i}><kbd>{c}</kbd>{plus && key !== 'click' ? '+' : ''}</span>)}
       {key === 'click' ? <span className="hp-click">-click</span> : <kbd>{key}</kbd>}
     </span>
   )

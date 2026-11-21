@@ -19,6 +19,7 @@
 // see HANDOFF.md, the round-7 row about UnstyledButton winning over Button.
 
 import { HoverCard, Text } from '@mantine/core'
+import { chrome } from './bridge.js'
 
 // The trigger. A button, not a <span>: it has to be focusable to be reachable by keyboard, and
 // HoverCard opens on focus as well as hover. type="button" because these sit inside a <form>-ish
@@ -34,7 +35,10 @@ import { HoverCard, Text } from '@mantine/core'
 // `middlewares` is Popover's own prop, passed through for the ONE hint that must not flip: the Shift box's, whose
 // list of phases sits right under it (owner, 9 Nov 2026: nothing may float over those rows). Omitted, Mantine's
 // defaults apply, as before.
-export function InfoHint({ label, children, width = 260, position = 'right', middlewares }) {
+// `help` (owner's pick, 21 Nov 2026): the id of the Help article that says more (src/help/toc.js). It adds a
+// "More in Help" link under the hint, which opens Help on that article. A plain button with no id, so the engine's
+// field sweep never sees it.
+export function InfoHint({ label, children, width = 260, position = 'right', middlewares, help }) {
   return (
     // zIndex 400, not Mantine's default 300: `.tools-menu` in legacy.css is ALSO 300, and four of
     // these hints live inside those popovers. Equal z-index leaves the winner to DOM order, which
@@ -63,6 +67,11 @@ export function InfoHint({ label, children, width = 260, position = 'right', mid
       </HoverCard.Target>
       <HoverCard.Dropdown>
         <Text size="xs" c="dimmed" className="info-hint-body">{children}</Text>
+        {help && (
+          <button type="button" className="info-hint-help" onClick={() => chrome.openHelp && chrome.openHelp(help)}>
+            More in Help →
+          </button>
+        )}
       </HoverCard.Dropdown>
     </HoverCard>
   )

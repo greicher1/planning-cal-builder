@@ -7,7 +7,7 @@ export default function Article() {
       Keys show as they are on this computer.</Lead>
     <Sec title="Files and exports">
       <Table head={['Key', 'Does']} rows={[
-        KEYS_MAC ? [<Keys k="Mod+N" />, 'New'] : ['New', 'Use the New button: the browser keeps Ctrl+N for a new window.'],
+        KEYS_MAC ? [<Keys k="Mod+N" />, 'New'] : ['New', 'New has no key here, because the browser keeps it for a new window: use the New button at the top.'],
         [<Keys k="Mod+O" />, 'Load…'],
         [<Keys k="Mod+S" />, 'Save'],
         [<Keys k="Mod+Shift+S" />, 'Save As'],

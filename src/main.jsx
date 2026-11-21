@@ -159,7 +159,7 @@ function Chrome() {
           React component -- but its header is static markup, so its "i" portals in here. Keeps
           one InfoHint implementation rather than a CSS-only lookalike for this one card. */}
       {portal(
-        <InfoHint label="All-phase hiatus" width={300}>
+        <InfoHint label="All-phase hiatus" help="hiatus" width={300}>
           A production-wide pause (e.g. a winter break) that stops every phase at once and pushes
           the whole schedule out. For pausing a single phase, use its own hiatus toggle above. With
           Ripple Hiatus Periods on (in Settings), the phases that start after a hiatus move with it when you change it.

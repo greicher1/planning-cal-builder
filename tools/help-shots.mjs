@@ -63,6 +63,8 @@ let seq = 0
 const waiting = new Map()
 ws.onmessage = e => {
   const m = JSON.parse(e.data)
+  // A "Leave site?" prompt (unsaved work, then a new page) would wait forever: answer every dialog.
+  if (m.method === 'Page.javascriptDialogOpening') { send('Page.handleJavaScriptDialog', { accept: true }); return }
   if (m.id && waiting.has(m.id)) { const p = waiting.get(m.id); waiting.delete(m.id); m.error ? p.rej(new Error(m.error.message)) : p.res(m.result) }
 }
 const send = (method, params = {}) => new Promise((res, rej) => { const id = ++seq; waiting.set(id, { res, rej }); ws.send(JSON.stringify({ id, method, params })) })
@@ -75,8 +77,10 @@ await send('Page.enable')
 await send('Emulation.setDeviceMetricsOverride', { width: W, height: H, deviceScaleFactor: DPR, mobile: false })
 
 // ---- helpers ------------------------------------------------------------------------------------------------------
-async function load() {
-  await send('Page.navigate', { url: `http://localhost:${PORT}/dist/index.html?state=help-demo` })
+async function load(state = 'help-demo') {
+  // Every load starts clean: no crash backup to offer back, no remembered Help or preferences.
+  await send('Storage.clearDataForOrigin', { origin: `http://localhost:${PORT}`, storageTypes: 'indexeddb,local_storage' }).catch(() => {})
+  await send('Page.navigate', { url: `http://localhost:${PORT}/dist/index.html?state=${state}` })
   for (let i = 0; i < 80; i++) { await sleep(250); if (await ev("!!document.querySelector('#table-wrap table, #table-wrap .month-view')").catch(() => false)) break }
   await sleep(1200)
   await esc(3)
@@ -115,6 +119,11 @@ async function shot(name, clip, scale = 1) {
   console.log(`  ${name}.webp  ${Math.round(c.width * scale * DPR)}x${Math.round(c.height * scale * DPR)}  ${Math.round(fs.statSync(file).size / 1024)} KB`)
 }
 const sidebarTab = t => click(`.side-tab-btn[data-tab="${t}"]`)
+const settingsTab = async name => {
+  if (!(await ev("!!document.querySelector('.side-settings-btn.active')"))) { await click('.side-settings-btn'); await sleep(600) }
+  await ev(`(()=>{const b=[...document.querySelectorAll('.sw-tab')].find(e=>e.textContent.trim()===${JSON.stringify(name)}); if(b) b.click(); return 1})()`); await sleep(600)
+}
+const cap = (r, max) => ({ ...r, h: Math.min(r.h, max) })
 const card = id => `=document.getElementById(${JSON.stringify(id)}).closest('.phase-row, section.card, section')`
 const textEl = (txt, scope = '#table-wrap') => `=[...document.querySelectorAll(${JSON.stringify(scope + ' *')})].reverse().find(e=>e.children.length===0&&e.textContent.trim().startsWith(${JSON.stringify(txt)}))`
 async function monthTo(key) {
@@ -170,13 +179,60 @@ const SHOTS = [
     const d = await need(textEl('15', '#table-wrap .mv-week')); await mouse(d.x + 60, d.y + 4, { button: 'right' })
     const m = await need('.day-menu'); return pad(union({ ...d, w: 140 }, m), 20)
   }],
+  // ---- added for the rest of the articles (21 Nov 2026) ----
+  ['prep-card', async () => { await load(); await monthTo('2026-07'); await sidebarTab('phases'); await ev(`document.querySelector('.phase-row.prep-row').scrollIntoView({block:'start'}); 1`); await sleep(300); return pad(cap(await need('.phase-row.prep-row'), 400), 4) }],
+  ['hiatus-card', async () => {
+    await ev(`document.getElementById('hiatus-list').scrollIntoView({block:'start'}); 1`); await sleep(300)
+    await ev(`(()=>{const b=document.querySelector('#hiatus-list .hiatus-collapse-btn'); if(b) b.click(); return 1})()`); await sleep(400)
+    await ev(`document.getElementById('hiatus-list').closest('section, .card').scrollIntoView({block:'start'}); 1`); await sleep(300)
+    return pad(cap(await need("=document.getElementById('hiatus-list').closest('section, .card')"), 420), 4)
+  }],
+  ['region-card', async () => { await settingsTab('Region'); return pad(cap(await need(cardWithHeading('Production Region')), 420), 4) }],
+  ['wf-prefs', async () => { await load(); await settingsTab('Preferences'); return pad(cap(await need(cardWithHeading('Waterfall')), 420), 4) }],
+  ['hiatus-prefs', async () => { await ev(`(${cardWithHeading('Hiatus').slice(1)}).scrollIntoView({block:'start'}); 1`); await sleep(300); return pad(cap(await need(cardWithHeading('Hiatus')), 300), 4) }],
+  ['presets', async () => { await settingsTab('Presets'); return pad(cap(await need(cardWithHeading('Headers')), 420), 4) }],
+  ['hdr-menu', async () => { await sidebarTab('show'); await click('#tb-hdr-mode-btn'); await sleep(500); return pad(union(await need('#tb-hdr-mode-btn'), await need('.hdr-mode-pop')), 16) }],
+  ['wf-context', async () => {
+    await esc(2); const cell = 'td.sheet-note-cell[data-week="2026-07-13"]'
+    await ev(`document.querySelector('${cell}').scrollIntoView({block:'center'}); 1`); await sleep(300)
+    const r = await need(cell); await mouse(r.x + r.w / 2, r.y + r.h / 2, { button: 'right' })
+    return pad(union(r, await need('.day-menu')), 20)
+  }],
+  ['heading-editor', async () => {
+    await esc(2); await ev(`document.querySelector('#table-wrap .sheet-scroll') && (document.querySelector('#table-wrap .sheet-scroll').scrollTop=0); 1`); await sleep(300)
+    const th = await need(`=[...document.querySelectorAll('#table-wrap th')].find(t=>t.textContent.trim()==='Notes')`)
+    await mouse(th.x + th.w / 2, th.y + th.h / 2, { count: 2 }); await sleep(500)
+    return pad(union(th, await need('.hdrrow-pop')), 18)
+  }],
+  ['text-bar', async () => { await esc(2); return pad(await need('.style-bar-host'), 6) }],
+  ['file-menu', async () => { await click('.file-menu-btn'); await sleep(500); return pad(union(await need('.file-menu-btn'), await need('#file-menu')), 14) }],
+  ['changes-dialog', async () => {
+    await esc(2)
+    await ev(`(()=>{const i=document.getElementById('show-title'); const set=Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value').set; set.call(i,'Harbor Lights (draft)'); i.dispatchEvent(new Event('input',{bubbles:true})); i.dispatchEvent(new Event('change',{bubbles:true})); return 1})()`); await sleep(600)
+    await click('.file-menu-btn'); await sleep(500)
+    await ev(`(()=>{const b=document.querySelector('#file-menu [data-action="changes"]'); if(b) b.click(); return !!b})()`); await sleep(900)
+    return pad(cap(await need('.changes-dlg .mantine-Modal-content'), 700), 10)
+  }],
+  ['side-boxes', async () => { await load('sideboxes'); return null }, 0.5],
+  ['tandem-card', async () => {
+    await load('doubleups'); await monthTo('2027-03'); await sidebarTab('phases')
+    await ev(`document.querySelector('.phase-row.du-row').scrollIntoView({block:'start'}); 1`); await sleep(300)
+    return pad(cap(await need('.phase-row.du-row'), 520), 4)
+  }],
+  ['mv-prefs', async () => { await load(); await monthTo('2026-07'); await settingsTab('Preferences'); await ev(`(${cardWithHeading('Month view').slice(1)}).scrollIntoView({block:'start'}); 1`); await sleep(300); return pad(cap(await need(cardWithHeading('Month view')), 700), 4) }],
+  ['month-pdf-dialog', async () => { await sidebarTab('show'); await click('#export-btn'); await sleep(900); return pad(await need('.month-pdf-dlg .mantine-Modal-content'), 10) }],
+  ['scenario-tabs', async () => { await load('scenarios-3'); return pad(union(await need('.sc-strip'), await need('.sc-band')), 12) }],
+  ['compare', async () => {
+    await click(`=[...document.querySelectorAll('.sc-strip ~ * button, button')].find(b=>b.textContent.trim()==='Compare')`); await sleep(900)
+    return pad(cap(await need('.compare-dlg .mantine-Modal-content'), 760), 10)
+  }],
 ]
 
 let failed = 0
 for (const [name, fn, scale = 1] of SHOTS) {
   // Every step runs (each leaves the page as the next expects); only the named shots are written.
   try { const clip = await fn(); if (!ONLY.size || ONLY.has(name)) await shot(name, clip, scale) }
-  catch (e) { failed++; console.log(`  ${name}: FAILED: ${e.message}`) }
+  catch (e) { failed++; console.log(`  ${name}: FAILED: ${String(e.message).slice(0, 200)}`) }
 }
 ws.close()
 console.log(failed ? `help-shots: ${failed} failed` : 'help-shots: done')
