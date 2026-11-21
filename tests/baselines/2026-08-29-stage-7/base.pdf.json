@@ -1,13 +1,13 @@
 {
  "file": "base.pdf",
- "bytes": 77039,
+ "bytes": 77027,
  "mediaBox": [
   612,
   792
  ],
- "textOps": 204,
+ "textOps": 203,
  "rectOps": 356,
- "contentLen": 32700,
+ "contentLen": 32605,
  "gridLeft": 19.08,
  "gridRight": 592.92,
  "gridDrawnW": 573.84,

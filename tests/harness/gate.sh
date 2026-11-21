@@ -2395,6 +2395,7 @@ for AFSPEC in pwagate:-:120 pwagatelogic:-:120 cfmove:-:180 whatsnew:-:240 setti
               lastedited:lastedited:400 \
               viewclean:-:1500 \
               wfnotecolors:wfkeys:400 \
+              wfnoteellipsis:noteellipsis:300 \
               noteviews:wfkeys:500 \
               phasenotes:phasenotes:900 \
               phaselink:phasenotes:900 \

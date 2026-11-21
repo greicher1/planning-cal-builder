@@ -421,6 +421,41 @@ export function initLegacyApp() {
              clipped: need > budgetAt(px) };
   }
 
+  // ⛔ FROZEN EDIT EL1 (owner, 21 Nov 2026: "When you increase font size of a note, don't just silently cut off the
+  // text, add an elipses"; picker "Screen + PDF", "Notes and hiatus bands"). A note or hiatus band that needs more lines
+  // than its row holds (cellTextFit's `clipped`: a size picked for it, or a pinned row the shrink floor cannot fit) was
+  // cut by .cell-body's max-height, mid-word or mid-line, with nothing to say text was missing. It now shows the lines
+  // its row holds, the last ending in "…" (-webkit-line-clamp, as the month view's sized notes do). The count is
+  // cellTextFit's own budgetAt at the size drawn, so it is the line budget the fit was decided against.
+  // ⛔ INERT on every cell that is not clipped: '' is appended, so its markup is byte for byte what it was. Screen only:
+  // the waterfall PDF does the same in its own units (wfPdfEllipsize, beside its wrapLines); Excel is unchanged.
+  // ⚠️ A line counts as SHOWN when at least half of it is inside the row (Math.round), never only when all of it is
+  // (budgetAt's floor): every two-line note in a 20 px row is `clipped` at the shrink floor (1.68 lines fit), and its
+  // second line is 84% visible and readable, so a floor would have swapped that line for "…" on every such note. Only
+  // a cell whose wrapped lines run past what shows is clamped; every other returns 0.
+  function cellClampLines(fit, rowPx){
+    if(!fit || !fit.clipped || !fit.wrap || !rowPx) return 0;
+    const shown = Math.max(1, Math.round((rowPx - ROW_TEXT_PAD_PX) / (11 * fit.scale * SHEET_LINE_RATIO)));
+    return fit.lines > shown ? shown : 0;
+  }
+  function cellClampCss(fit, rowPx){
+    const n = cellClampLines(fit, rowPx);
+    return n ? ` display:-webkit-box; -webkit-box-orient:vertical; -webkit-line-clamp:${n};` : '';
+  }
+  // The PDF's twin: `lines` are wrapLines' lines for a cell `chars` wide at `px` (the 11 px basis), drawn top-aligned
+  // at `size` in a row `rh` tall (both in the writer's units). The lines past what the row shows (half a line or more)
+  // are dropped and the
+  // last one kept ends in "…", cut back a character at a time until it fits the wrap width, as Chrome's clamp does.
+  // Lines that all fit are returned as they came, so every such cell's PDF bytes are unchanged.
+  function wfPdfEllipsize(lines, chars, px, isBold, rh, size){
+    const show = Math.max(1, Math.round(rh / (size * SHEET_LINE_RATIO)));   // half a line shown counts, as on screen
+    if(lines.length <= show) return lines;
+    const avail = Math.max(1, chars * EXCEL_MDW) * (11 / px);
+    let last = lines[show - 1].replace(/\s+$/, '');
+    while(last && measureTextPx(last + '…', !!isBold) > avail) last = last.slice(0, -1).replace(/\s+$/, '');
+    return lines.slice(0, show - 1).concat([last + '…']);
+  }
+
   // ⛔ FROZEN EDIT R4 (PROPOSED, audit AUD2-044, item 3.1; the owner's D4 = a: "a Notes cell with two holiday lines takes
   // the height it needs"). Every row is ROW_DEFAULT_PX unless dragged, which buys a Notes cell ONE line, so a week showing
   // two holidays (Thanksgiving and the Day After) shrank both to the floor and still cut the second through its middle,
@@ -658,6 +693,12 @@ export function initLegacyApp() {
           if(flows){
             target.style.whiteSpace = fit.wrap ? 'pre-wrap' : 'pre';
             target.style.maxHeight = rowPx ? Math.max(0, rowPx - ROW_TEXT_PAD_PX) + 'px' : '';
+            // ⛔ FROZEN EDIT EL1 (owner, 21 Nov 2026): the render's "…" on a cut note or band, kept in step while a
+            // row or column is dragged (cellClampLines; cleared, as the render leaves it, when nothing is cut).
+            const clampN = cellClampLines(fit, rowPx);
+            target.style.display = clampN ? '-webkit-box' : '';
+            target.style.webkitBoxOrient = clampN ? 'vertical' : '';
+            target.style.webkitLineClamp = clampN ? String(clampN) : '';
             td.style.verticalAlign = fit.wrap ? 'top' : '';
             td.dataset.notefit = fit.scale.toFixed(4);
             td.dataset.notelines = String(fit.lines);
@@ -18871,7 +18912,8 @@ export function initLegacyApp() {
           const hPx = 11 * hFit.scale;
           const hFitCss = `white-space:${hFit.wrap ? 'pre-wrap' : 'pre'};`
             + (Math.abs(hPx - 11) > 0.01 ? ` font-size:${hPx.toFixed(2)}px;` : '')
-            + ` max-height:${Math.max(0, (sheetRowPx(schedule, r)) - ROW_TEXT_PAD_PX)}px;`;
+            + ` max-height:${Math.max(0, (sheetRowPx(schedule, r)) - ROW_TEXT_PAD_PX)}px;`
+            + cellClampCss(hFit, sheetRowPx(schedule, r));   // ⛔ FROZEN EDIT EL1: "…" on a cut band
           bodyHtml += `<td class="sheet-hiatus-cell" title="Double-click to rename or recolor this hiatus" data-week="${hKey}" data-default-label="${HIATUS_DEFAULT_LABEL}" data-notelines="${hFit.lines}" colspan="${mc+nCs}" style="background:${hCol}; color:${textColorFor(hCol)}; cursor:text; ${hFit.wrap?'vertical-align:top;':''} ${edgeLast?'border-right:2px solid var(--text);':''}${textStyleCss(hts)}"><div class="cell-body" style="${hFitCss}">${escHi(hTxt)}</div></td>`;
         } else {
           // Lay out the phase area: stable slots, lone phases span empty slots, and
@@ -18941,7 +18983,8 @@ export function initLegacyApp() {
               const phPx = 11 * phFit.scale;
               const phCss = `white-space:${phFit.wrap ? 'pre-wrap' : 'pre'};`
                 + (Math.abs(phPx - 11) > 0.01 ? ` font-size:${phPx.toFixed(2)}px;` : '')
-                + ` max-height:${Math.max(0, (sheetRowPx(schedule, r)) - ROW_TEXT_PAD_PX)}px;`;
+                + ` max-height:${Math.max(0, (sheetRowPx(schedule, r)) - ROW_TEXT_PAD_PX)}px;`
+                + cellClampCss(phFit, sheetRowPx(schedule, r));   // ⛔ FROZEN EDIT EL1: "…" on a cut band
               // Same span-drag hooks a phase cell gets (own/lmin/rmax/a/b/nphases), so a hiatus
               // band can be double-clicked or dragged across its column exactly like an active
               // phase (owner, 1 Sep 2026). data-week here is deliberately the PLAIN date to match
@@ -18984,7 +19027,8 @@ export function initLegacyApp() {
               + (Math.abs(fitPx - 11) > 0.01 ? ` font-size:${fitPx.toFixed(2)}px;` : '')
               // Every row caps its text now, not just a hand-dragged one: they all start at the
               // default height, so they all get the same line budget.
-              + ` max-height:${Math.max(0, (sheetRowPx(schedule, r)) - ROW_TEXT_PAD_PX)}px;`;
+              + ` max-height:${Math.max(0, (sheetRowPx(schedule, r)) - ROW_TEXT_PAD_PX)}px;`
+              + cellClampCss(fit, sheetRowPx(schedule, r));   // ⛔ FROZEN EDIT EL1: "…" on a cut note
             bodyHtml += `<td class="sheet-note-cell has-note" title="Double-click to edit this note" data-week="${weekDateKey}" data-notefit="${fit.scale.toFixed(4)}" data-notelines="${fit.lines}" style="background:${nc}; color:${textColorFor(nc)}; ${fit.wrap?'vertical-align:top;':''} ${isLast?'border-right:2px solid var(--text);':''}${textStyleCss(nts)}"><div class="cell-body" style="${fitCss}">${esc(noteText)}</div></td>`;
           } else {
             bodyHtml += `<td class="sheet-note-cell" title="Double-click to add a note" data-week="${weekDateKey}" ${isLast?'style="border-right:2px solid var(--text);"':''}><span class="note-add-hint">+</span></td>`;
@@ -42900,10 +42944,11 @@ export function initLegacyApp() {
                                               rowPx: sheetRowPx(schedule, r) }, hts && hts.bold ? { bold: true } : {}));
           cellFill(bx + dw, ry, bandW, rh, hCol);    // SM1
           page.clipPush(bx + dw, ry, bandW, rh);
-          if(hts) drawStyled(fit.wrap ? wrapLines(hTxt, av, 11*fit.scale, hts.bold) : String(hTxt).split('\n'),
+          // ⛔ FROZEN EDIT EL1 (owner, 21 Nov 2026): a wrapped band the row cannot hold ends in "…" (wfPdfEllipsize).
+          if(hts) drawStyled(fit.wrap ? wfPdfEllipsize(wrapLines(hTxt, av, 11*fit.scale, hts.bold), av, 11*fit.scale, hts.bold, rh, S(11*fit.scale)) : String(hTxt).split('\n'),
                              bx + dw, bandW, ry, rh, S(11*fit.scale), textColorFor(hCol), hts, false, fit.wrap);
-          else if(fit.wrap) drawWrapped(wrapLines(hTxt, av, 11*fit.scale), bx + dw + bandW/2, ry, S(11*fit.scale),
-                                   textColorFor(hCol), 'F1', reg);
+          else if(fit.wrap) drawWrapped(wfPdfEllipsize(wrapLines(hTxt, av, 11*fit.scale), av, 11*fit.scale, false, rh, S(11*fit.scale)),
+                                   bx + dw + bandW/2, ry, S(11*fit.scale), textColorFor(hCol), 'F1', reg);
           else drawLines(hTxt, bx + dw + bandW/2, ry, rh, S(11*fit.scale),
                     textColorFor(hCol), 'F1', reg, bandW);
           page.clipPop();
@@ -42958,11 +43003,13 @@ export function initLegacyApp() {
             page.clipPush(cx, ry, cw, rh);
             if(cts){
               const wrapped = cell.kind === 'phaseHiatus' && fit.wrap;
-              drawStyled(wrapped ? wrapLines(cell.label||'', av, 11*fit.scale, cts.bold) : String(cell.label||'').split('\n'),
+              // ⛔ FROZEN EDIT EL1 (owner, 21 Nov 2026): a wrapped per-phase band the row cannot hold ends in "…".
+              drawStyled(wrapped ? wfPdfEllipsize(wrapLines(cell.label||'', av, 11*fit.scale, cts.bold), av, 11*fit.scale, cts.bold, rh, S(11*fit.scale)) : String(cell.label||'').split('\n'),
                          cx, cw, ry, rh, S(11*fit.scale), ink, cts, false, wrapped);
             }
             else if(cell.kind === 'phaseHiatus' && fit.wrap)
-              drawWrapped(wrapLines(cell.label||'', av, 11*fit.scale), cx + cw/2, ry, S(11*fit.scale), ink, 'F1', reg);
+              drawWrapped(wfPdfEllipsize(wrapLines(cell.label||'', av, 11*fit.scale), av, 11*fit.scale, false, rh, S(11*fit.scale)),
+                          cx + cw/2, ry, S(11*fit.scale), ink, 'F1', reg);
             else drawLines(cell.label||'', cx + cw/2, ry, rh, S(11*fit.scale), ink, 'F1', reg, cw);
             page.clipPop();
           }
@@ -42987,9 +43034,10 @@ export function initLegacyApp() {
           // pdfRgb would read #FFFFFF00 as yellow. Its text is drawn as any note's. Every other colour is unchanged.
           if(!isMvNoFill(nCol)) cellFill(nx, ry, nw, rh, nCol);   // SM1
           page.clipPush(nx, ry, nw, rh);
-          if(nts) drawStyled(fit.wrap ? wrapLines(nTxt, colWidthsFor[bi].notes, 11*fit.scale, nts.bold) : String(nTxt).split('\n'),
+          // ⛔ FROZEN EDIT EL1 (owner, 21 Nov 2026): a wrapped note the row cannot hold ends in "…" (wfPdfEllipsize).
+          if(nts) drawStyled(fit.wrap ? wfPdfEllipsize(wrapLines(nTxt, colWidthsFor[bi].notes, 11*fit.scale, nts.bold), colWidthsFor[bi].notes, 11*fit.scale, nts.bold, rh, S(11*fit.scale)) : String(nTxt).split('\n'),
                              nx, nw, ry, rh, S(11*fit.scale), textColorFor(nCol), nts, false, fit.wrap);
-          else if(fit.wrap) drawWrapped(wrapLines(nTxt, colWidthsFor[bi].notes, 11*fit.scale), nx + nw/2, ry,
+          else if(fit.wrap) drawWrapped(wfPdfEllipsize(wrapLines(nTxt, colWidthsFor[bi].notes, 11*fit.scale), colWidthsFor[bi].notes, 11*fit.scale, false, rh, S(11*fit.scale)), nx + nw/2, ry,
                                    S(11*fit.scale), textColorFor(nCol), 'F1', reg);
           else drawLines(nTxt, nx + nw/2, ry, rh, S(11*fit.scale), textColorFor(nCol), 'F1', reg, nw);
           page.clipPop();

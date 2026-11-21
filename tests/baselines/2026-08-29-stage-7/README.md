@@ -435,6 +435,30 @@ stripped). `base.xlsx` is the OLD zip entry for entry (names, order, MS-DOS orig
 Unchanged by this: `base.pdf.txt`, `restore.json`. Gate 10 (`reference`, `month-lanecap`, `mvnotes`) and gate 13 (every
 calendar) were run by hand on the fixed build and are byte-identical: the month view never reads `sheetRowPx`.
 
+## ✅ `base.pdf` RE-CUT — a note cut off by its row ends in "…" (21 Nov 2026)
+
+Owner, 21 Nov 2026: *"When you increase font size of a note, don't just silently cut off the text, add an elipses"*
+(pickers *"Screen + PDF"*, *"Notes and hiatus bands"*), and, shown this change, *"Accept, update refs"*. Frozen edit
+EL1 (`cellClampLines` / `cellClampCss` on screen, `wfPdfEllipsize` in `buildWaterfallPdf`): a wrapped note or band
+whose lines its row cannot show keeps the lines it shows (half a line visible counts as shown) and ends the last in
+"…"; the PDF drops the lines its cell's clip box hid anyway.
+
+| what | before → after | why |
+|---|---|---|
+| `base.pdf`, stream 0 (the page) | 759 lines → **758**: in the 6/29/26 week's Notes cell (20 px row, three lines: "Start Principal Photography 6/29/26", "Independence Day (Observed) 7/3/26", "Independence Day 7/4/26"), the second line now reads `Independence Day \(Observed\) 7/3/26\205` (x 211.933 → 210.292, re-centred for the "…"), and the third line, which the cell's clip box hid, is no longer drawn. Every other line identical; the fonts (streams 1 and 2) identical | the row shows 1.5 of the three lines; the cut is now marked |
+| `base.pdf.txt` | lines 116-117 → one line, `Independence Day \(Observed\) 7/3/26\205` | the same |
+| `base.pdf.json` | bytes 77,039 → **77,027**, `textOps` 204 → **203**, `contentLen` 32,700 → **32,605** | `pdf-info.js` on the new file |
+
+Unchanged: `base.json` (gate 1: the screen's `sig`, `noteCells`, `vClip` read text and geometry, and the clamp moves
+neither), `base.xlsx` (Excel is not changed by EL1), `restore.json`.
+
+**How it was cut.** As on 16 Nov: the `base` leg (`?layout=legacy`) on the fixed build, in a throwaway copy with a
+running clock in front that starts at local noon on 29 Aug 2026; `base.pdf` is that run's writer bytes (`pdfmark.py`,
+mark checked and stripped). Proven before writing: (1) the pinned run equals the same build's unpinned run bar the stamp
+(`pdfcmp.py`, 3 streams); (2) a line diff against the old baseline is exactly the two lines above; (3) the new build
+passes against the new file and the old file fails it (first diff at byte 18831, the "…" line); (4) Quartz draws the
+"…" (Carlito's subset carries all of WinAnsi, 0x85 included).
+
 ## Reproducing it
 
 ```bash

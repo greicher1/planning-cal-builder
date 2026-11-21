@@ -29,6 +29,24 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — A waterfall note or hiatus band cut off by its row ends in "…" (21 Nov 2026)
+
+The owner asked that a note made bigger than its row holds stop being cut off silently and end in an ellipsis instead.
+A waterfall note or hiatus band given its own size (or a pinned row the automatic shrink cannot fit) was cut by the
+cell's height mid-line, with nothing to say text was missing. Now, on screen and in the waterfall PDF, the lines the
+row shows are kept and the last ends in "…" (frozen edit EL1, owner's pickers "Screen + PDF" and "Notes and hiatus
+bands": `cellClampLines` / `cellClampCss` in `renderSpreadsheetView` and `applyCellFitLive`, `wfPdfEllipsize` in
+`buildWaterfallPdf`). A line counts as shown when at least half of it is in the row, so the familiar two-line note in a
+20 px row keeps its second line and changes in no way. Excel is unchanged: it keeps every note whole in its cell. The
+month view already did this. The same holds for a note with more lines than even the smallest automatic size fits: the
+reference calendar's 6/29/26 cell (three lines in a 20 px row) now reads "Independence Day (Observed) 7/3/26…", and its
+third line, which the cell already hid, is no longer drawn into the PDF. Gate 2's `base.pdf` was re-cut for that one
+cell (owner's picker *"Accept, update refs"*; its README). Verified: new leg `wfnoteellipsis` 11/11 (7 of 11 red on the
+build before), `npm run check` 46/46, the full gate (green but for that cell and three legs that expected the PDF to
+write hidden lines: `notewrap` A/D, `noteviews` P1, `phasenotes` X2, now 16/16, 15/15, 21/21; six legs that failed
+under load passed when rerun alone).
+
+
 ### Unreleased — Shift keeps every phase's distance from the wrap (20 Nov 2026)
 
 The owner asked that, when a shift moves Production and its new dates change how long the shoot takes, the phases
