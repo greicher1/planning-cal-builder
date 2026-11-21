@@ -6,12 +6,12 @@ export default function Article() {
     <Lead>The Month view draws your plan as a wall calendar, one month at a time: every phase is a bar across its days,
       and every shoot day, holiday and note sits on its date.</Lead>
     <Sec title="Get around">
-      <Shot src={month} pins={[[21, 18], [70, 11], [31, 43.3], [71.5, 42], [32, 59.4]]}
+      <Shot src={month} pins={[[97.4, 16.5], [77.1, 13.75], [48.6, 72.2], [43.8, 77.6], [72.9, 59.7]]}
         items={[
           <><b>The month map</b> · every month at a glance, with each phase as a bar under its name. Click a month to go
             there, or a phase to go to the month it starts in. A dot marks this month and a red mark is an all-phase hiatus.</>,
           <><b>‹ Month ›</b> · steps one month at a time. The month between the arrows is the one on screen.</>,
-          <><b>Episode bars</b> · Production is split into its episodes (“Shoot 301”), laid across the shoot days.</>,
+          <><b>Episode bars</b> · Production is split into its episodes (“Shoot 101”), laid across the shoot days.</>,
           <><b>Holidays and automatic notes</b> · written on their day.</>,
           <><b>Your own notes</b> · added right on the day.</>,
         ]} />

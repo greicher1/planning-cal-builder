@@ -11,13 +11,13 @@ export default function Article() {
         <Step t="Type, pick a color,">then press <Keys k="Enter" />.</Step>
       </Steps>
       <p>If a day needs more room, the wider + on the bottom edge of the day adds a line to the whole week.</p>
-      <Shot src={editor} w={316} pins={[[66, 18], [84, 31.5], [33, 47], [24, 60], [49, 82], [68, 92]]}
+      <Shot src={editor} w={316} pins={[[64, 18], [84, 31.5], [35.1, 47], [24, 60.1], [48.4, 82.4], [66.8, 92.7]]}
         items={[
           <><b>Delete Note</b></>,
           <><b>The note</b></>,
           <><b>Stays with</b> · this day, or a phase. On a shoot day it can stay with that shoot day.</>,
           <><b>Color</b></>,
-          <><b>Show in waterfall</b> · adds it to its week in the Waterfall and Excel, as “Location scout: Pier 9 7/8/26”.</>,
+          <><b>Show in waterfall</b> · adds it to its week in the Waterfall and Excel, as “Tech scout Ep 101 6/8/27”.</>,
           <><b>Save</b></>,
         ]} />
     </Sec>

@@ -1,4 +1,5 @@
-import { Lead, Sec, Steps, Step, Ui, Info, Related } from '../parts.jsx'
+import { Lead, Sec, Steps, Step, Shot, Ui, Info, Related } from '../parts.jsx'
+import pic from '../shots/heading-editor.webp'
 
 export default function Article() {
   return <>
@@ -9,9 +10,14 @@ export default function Article() {
         <Step t="Double-click a heading.">A small editor opens under it.</Step>
         <Step t="Type your own.">Press Enter to save, or Esc to cancel.</Step>
       </Steps>
-      <p>The editor has buttons to <Ui>← Merge</Ui> or <Ui>Merge →</Ui> a heading with the one beside it, so one heading
-        covers both columns, and <Ui>Split</Ui> to give each column under it a heading of its own. <Ui>Reset</Ui> puts the
-        heading back to the way it was.</p>
+      <Shot src={pic} w={284} pins={[[82.7, 35.4], [37, 43.8], [62.5, 43.8], [90.1, 43.5], [71.3, 58.7]]}
+        items={[
+          <><b>The heading</b> · type your own words.</>,
+          <><b>← Merge</b> · one heading over this column and the one on its left.</>,
+          <><b>Split</b> · gives each column under a merged heading its own again.</>,
+          <><b>Merge →</b> · the same, with the column on its right.</>,
+          <><b>Reset</b> · puts the heading back the way it was.</>,
+        ]} />
     </Sec>
     <Sec title="What to know">
       <Info title="Headings never change the shape">A heading never widens a column. A long one shrinks to fit. The Excel file

@@ -1,4 +1,4 @@
-import { Lead, Sec, Shot, Path, Info, Related } from '../parts.jsx'
+import { Lead, Sec, Shot, Path, Info, Related, ShowMe } from '../parts.jsx'
 import pic from '../shots/wf-prefs.webp'
 
 export default function Article() {
@@ -9,7 +9,7 @@ export default function Article() {
       <Shot src={pic} w={265} pins={[[56, 34.5]]}
         items={[<><b>Single Column Mode</b> · in <Path>Settings › Preferences › Waterfall</Path>.</>]} />
       <p>Instead of a separate block of columns for every calendar year, the waterfall becomes one block, from the first
-        working week to the last. Every phase keeps one column for its whole run, and its cells stay one column wide.</p>
+        working week to the last. Every phase keeps one column for its whole run, and its cells stay one column wide. <ShowMe at=".prefs-card:has(#one-col-btn)" view="sheet" tab="settings" sw="Preferences" /></p>
     </Sec>
     <Sec title="When to use it">
       <p>It suits a show that is easier to follow as one long list, or a plan that crosses New Year and would otherwise

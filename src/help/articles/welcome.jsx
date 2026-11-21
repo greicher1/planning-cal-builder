@@ -7,7 +7,7 @@ export default function Article() {
       that matches the Excel file, and the <b>Month view</b>, a day-by-day calendar for crews. Here is where everything is.</Lead>
     <Sec title="The screen">
       <Shot src={app} caption="Harbor Lights, a made-up show, in the Waterfall view."
-        pins={[[18.4, 3.5], [36, 3.5], [79, 3.5], [12, 10], [32.5, 11.3], [52, 11.3], [60, 11.3], [80, 11.3], [47, 52], [28.5, 97.5], [93, 97.5]]}
+        pins={[[20.8, 3.5], [47.9, 3.5], [59, 3.5], [19.8, 10], [27.4, 13.75], [46.4, 13.75], [68.4, 13.75], [80.6, 13.75], [47, 52], [28.8, 97.5], [80.9, 97.5]]}
         items={[
           <><b>File menu</b> · the calendar you’re in, your recent calendars, <Ui>Load…</Ui> and <Ui>Changes since last save…</Ui></>,
           <><b>New, Save, Save As</b> · Save writes a small .sptcal file. After the first time, it saves in place.</>,

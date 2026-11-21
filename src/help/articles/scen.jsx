@@ -1,17 +1,19 @@
-import { Lead, Sec, Steps, Step, Shot, Tip, More, Ui, To, Related } from '../parts.jsx'
+import { Lead, Sec, Steps, Step, Shot, Tip, More, Ui, To, Related, ShowMe } from '../parts.jsx'
 import tabs from '../shots/scenario-tabs.webp'
+import plan from '../shots/scenario-waterfall.webp'
 
 export default function Article() {
   return <>
     <Lead>A scenario is another version of your calendar to try, like a sheet in Excel. Each one is a tab at the bottom
       left, so you can test “what if the shoot starts later?” without losing the original.</Lead>
+    <Shot src={plan} caption="“Shoot +2 wks”, a second scenario of Harbor Lights: the shoot starts two weeks later, and its tab sits beside the original’s." />
     <Sec title="Make and use scenarios">
       <Steps>
-        <Step t={<>Click <Ui>+ Scenario</Ui>.</>}>The calendar on screen is copied into a new tab.</Step>
+        <Step t={<>Click <Ui>+ Scenario</Ui>.</>}>The calendar on screen is copied into a new tab. <ShowMe at=".sc-strip" /></Step>
         <Step t="Click a tab to switch to it.">Whatever you change affects only that scenario.</Step>
         <Step t="Double-click a tab to rename it, or drag it to reorder.">Right-click it, or click the ▾ on the tab on screen, for more.</Step>
       </Steps>
-      <Shot src={tabs} w={886} pins={[[1.2, 77], [23.5, 77], [37, 77], [51, 77]]}
+      <Shot src={tabs} w={886} pins={[[6.8, 58.8], [22.3, 58.8], [39.8, 58.8], [53.6, 58.8]]}
         items={[
           <><b>A tab</b> · click to switch. Each shows its Version.</>,
           <><b>The tab on screen</b> · the ▾ opens its menu.</>,

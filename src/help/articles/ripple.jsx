@@ -1,4 +1,4 @@
-import { Lead, Sec, Steps, Step, Shot, Timeline, Info, Ui, Path, More, Keys, Related } from '../parts.jsx'
+import { Lead, Sec, Steps, Step, Shot, Timeline, Info, Ui, Path, More, Keys, Related, ShowMe } from '../parts.jsx'
 import prefs from '../shots/hiatus-prefs.webp'
 
 const ROWS = [
@@ -32,7 +32,7 @@ export default function Article() {
     </Sec>
     <Sec title="Turn it off">
       <Shot src={prefs} w={265} pins={[[62, 50]]} items={[<><b>Ripple Hiatus Periods</b> · off, a hiatus only pauses the phases running through it.</>]} />
-      <p>It lives in <Path>Settings › Preferences › Hiatus</Path> and is kept on this computer, not in the calendar.
+      <p>It lives in <Path>Settings › Preferences › Hiatus</Path> and is kept on this computer, not in the calendar. <ShowMe at=".prefs-card:has(#pref-hiatus-ripple)" tab="settings" sw="Preferences" />
         Turn it off first when you want to change a hiatus without moving anything else.</p>
     </Sec>
     <Related ids={['hiatus', 'phiatus', 'move']} />

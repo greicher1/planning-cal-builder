@@ -9,11 +9,11 @@ export default function Article() {
       <Steps>
         <Step t="Double-click a Notes cell,">or click it and start typing.</Step>
         <Step t="Type."><Keys k="Shift+Enter" /> starts a new line.</Step>
-        <Step t="Pick a Day to date it.">“Table read” becomes “Table read 8/12/26”. The date is what puts it on that day in
-          the Month view. Typing the date at the end does the same: 8/12, 8-12 or 8-12-26 all work.</Step>
+        <Step t="Pick a Day to date it.">“Table read Ep 101” becomes “Table read Ep 101 6/9/27”. The date is what puts it on that day in
+          the Month view. Typing the date at the end does the same: 6/9, 6-9 or 6-9-27 all work.</Step>
         <Step t="Pick a color,">then press <Keys k="Enter" /> or click away.</Step>
       </Steps>
-      <Shot src={editor} w={320} pins={[[65, 17.2], [84, 27], [20, 38.4], [34, 46], [24, 61], [53, 81.2], [69, 90.3]]}
+      <Shot src={editor} w={320} pins={[[62.5, 17.1], [84, 27], [23.4, 38.4], [35.2, 46], [23.8, 61], [53.4, 81.1], [66.4, 90.3]]}
         items={[
           <><b>Delete Note</b> · deletes what you typed. Automatic notes and holidays stay.</>,
           <><b>The note</b> · type over it to replace it.</>,

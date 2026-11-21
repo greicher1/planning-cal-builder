@@ -1,4 +1,4 @@
-import { Lead, Sec, Steps, Step, Shot, Ui, Tip, More, Related } from '../parts.jsx'
+import { Lead, Sec, Steps, Step, Shot, Ui, Tip, More, Related, ShowMe } from '../parts.jsx'
 import pic from '../shots/side-boxes.webp'
 
 export default function Article() {
@@ -7,16 +7,16 @@ export default function Article() {
       want printed with the calendar.</Lead>
     <Sec title="Add a box">
       <Steps>
-        <Step t={<>Click <Ui>Side Boxes</Ui> in the toolbar.</>}>It is in the Waterfall view only.</Step>
+        <Step t={<>Click <Ui>Side Boxes</Ui> in the toolbar.</>}>It is in the Waterfall view only. <ShowMe at="#tb-side-boxes-btn" view="sheet" /></Step>
         <Step t="Choose a kind and a side.">Color key or Text box, on the left or the right.</Step>
         <Step t="Type.">The cursor lands in the box’s title. Typing renames it.</Step>
       </Steps>
-      <Shot src={pic} pins={[[76.5, 16.6], [30, 29.3], [90, 29.3]]}
+      <Shot src={pic} w={591} pins={[[52.5, 15.8], [91.4, 40.6]]}
         items={[
           <><b>Side Boxes</b> · adds a box.</>,
-          <><b>A text box</b> · a title and free text. It grows as you type, and each line can have its own style from the text bar.</>,
           <><b>A color key</b> · one row for each color the calendar shows. Click a row to rename it.</>,
         ]} />
+      <p>A text box has a title and free text. It grows as you type, and each line can have its own style from the text bar.</p>
     </Sec>
     <Sec title="Arrange and remove">
       <p>Drag a box by its grip (⋮⋮) to move it up, down, or to the other side. Drag the inner edge of a side to change its

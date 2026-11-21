@@ -5,7 +5,7 @@ export default function Article() {
   return <>
     <Lead>Production is the one phase counted in shooting days, not weeks. SPTCal lays the days out one by one and tells you when you wrap.</Lead>
     <Sec title="Days, not weeks">
-      <Shot src={pic} w={265} pins={[[83, 19.7], [64, 33.5], [90.5, 41.9], [60, 45.6]]}
+      <Shot src={pic} w={265} pins={[[85.8, 28.4], [62.3, 44.3], [53.8, 53.9], [57.5, 58.3]]}
         items={[
           <><b>Wraps</b> · the last shoot day.</>,
           <><b>Total Shooting Days</b> · shown, not typed. It is the sum of the episodes below.</>,

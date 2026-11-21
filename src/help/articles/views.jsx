@@ -1,19 +1,19 @@
-import { Lead, Sec, Shot, Table, Tip, Ui, To, Related } from '../parts.jsx'
+import { Lead, Sec, Shot, Table, Tip, Ui, To, Related, ShowMe } from '../parts.jsx'
 import month from '../shots/app-month.webp'
 
 export default function Article() {
   return <>
     <Lead>One plan, two calendars. <Ui>Waterfall</Ui> and <Ui>Month</Ui> above the calendar switch between them, and each
-      keeps its own header, notes and resets.</Lead>
+      keeps its own header, notes and resets. <ShowMe at="#view-toggle" /></Lead>
     <Sec title="What each one is">
       <Table head={['', 'Waterfall', 'Month view']} rows={[
         ['Looks like', 'Excel: one row a week, a block of columns per year', 'A wall calendar: one month at a time, every day'],
-        ['Production', 'One phase, week by week', 'Each episode as its own bar (“Shoot 301”)'],
+        ['Production', 'One phase, week by week', 'Each episode as its own bar (“Shoot 101”)'],
         ['Notes', 'A note cell for each week', 'Notes on their day'],
         ['Exports', 'Export to Excel and Export PDF', 'Export PDF, one month per page'],
         ['Best for', 'The big picture, several shows, executives', 'The detail: daily planning and crew'],
       ]} />
-      <Shot src={month} caption="The same show in the Month view." pins={[[60, 18.4], [39.5, 43.3], [61.5, 59.4]]}
+      <Shot src={month} caption="The same show in the Month view." pins={[[97.4, 16.5], [48.6, 72.2], [72.9, 59.7]]}
         items={[
           <><b>The month map</b> · every month at a glance. Click one to go there.</>,
           <><b>Episode bars</b> · Production split into its episodes.</>,

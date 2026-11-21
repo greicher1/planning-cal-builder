@@ -111,9 +111,11 @@ export function Related({ ids }) {
 }
 
 // Closes Help and rings the control: <ShowMe at="#pop-shift-btn" />. `view` ('sheet' | 'month') and `tab` ('show' |
-// 'phases' | 'settings') switch there first. ⛔ `at` must stay a selector the app keeps: the help leg checks every one.
-export function ShowMe({ at, view, tab, children = 'Show me' }) {
-  return <button type="button" className="hp-showme" data-showme={at} onClick={() => showMe({ at, view, tab })}>{children}</button>
+// 'phases' | 'settings') switch there first; with tab="settings", `sw` picks the Settings window's tab ('Preferences',
+// 'Region', 'Presets'). ⛔ `at` must stay a selector the app keeps: the help leg checks every one.
+export function ShowMe({ at, view, tab, sw, children = 'Show me' }) {
+  return <button type="button" className="hp-showme" data-showme={at} data-view={view} data-tab={tab} data-sw={sw}
+    onClick={() => showMe({ at, view, tab, sw })}>{children}</button>
 }
 
 // ---- pictures -----------------------------------------------------------------------------------------------------

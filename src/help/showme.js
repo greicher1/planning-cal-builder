@@ -8,12 +8,18 @@ export function setHelpCloser(fn) { closeHelp = fn }
 const wait = ms => new Promise(r => setTimeout(r, ms))
 const visible = el => { if (!el) return false; const r = el.getBoundingClientRect(); return r.width > 0 && r.height > 0 }
 
-export async function showMe({ at, view, tab }) {
+// `sw` names a tab of the Settings window ('Preferences', 'Region', 'Presets') when `tab` is 'settings'.
+export async function showMe({ at, view, tab, sw }) {
   closeHelp()
   await wait(220)   // the window's own closing
   if (view === 'sheet' && !document.querySelector('#table-wrap table')) { document.getElementById('view-sheet-btn')?.click(); await wait(400) }
   if (view === 'month' && !document.querySelector('#table-wrap .month-view')) { document.getElementById('view-month-btn')?.click(); await wait(400) }
-  if (tab === 'settings') { const b = document.querySelector('.side-settings-btn'); if (b && !b.classList.contains('active')) b.click(); await wait(250) }
+  if (tab === 'settings') {
+    // Open is aria-expanded on the button (it has no "active" class): clicking an open one would close it.
+    const b = document.querySelector('.side-settings-btn')
+    if (b && b.getAttribute('aria-expanded') !== 'true') { b.click(); await wait(250) }
+    if (sw) { [...document.querySelectorAll('.sw-tab')].find(t => t.textContent.trim() === sw)?.click(); await wait(250) }
+  }
   else if (tab) { document.querySelector(`.side-tab-btn[data-tab="${tab}"]`)?.click(); await wait(250) }
   const el = document.querySelector(at)
   if (!visible(el)) return false

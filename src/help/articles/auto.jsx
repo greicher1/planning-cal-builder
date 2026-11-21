@@ -3,16 +3,16 @@ import autoNotes from '../shots/auto-notes.webp'
 
 export default function Article() {
   return <>
-    <Lead>SPTCal writes the milestones for you, like “Writer’s Room Opens 1/5/26” and “Start Principal Photography
-      6/29/26”, and keeps their dates right as the plan moves.</Lead>
+    <Lead>SPTCal writes the milestones for you, like “Writer’s Room Opens 1/4/27” and “Start Principal Photography
+      6/14/27”, and keeps their dates right as the plan moves.</Lead>
     <Sec title="Choose which ones, and where">
       <p><Path>Settings › Preferences › Automatic notes</Path> has a box for each phase’s start and end, once for the
-        Waterfall and once for the Month view, so a note can show in one view or both. <ShowMe at=".side-settings-btn" /></p>
-      <Shot src={autoNotes} w={265} pins={[[60, 15.5], [83, 15.5], [40, 64]]}
+        Waterfall and once for the Month view, so a note can show in one view or both. <ShowMe at=".autonote-list" tab="settings" sw="Preferences" /></p>
+      <Shot src={autoNotes} w={265} pins={[[60, 14.8], [83, 14.8], [43.8, 64]]}
         items={[
           <><b>Waterfall</b> · start and end notes in the Waterfall and Excel.</>,
           <><b>Month</b> · in the Month view and its PDF.</>,
-          <><b>Each phase</b>, your own phases included: “Post Begins 7/5/27”.</>,
+          <><b>Each phase</b>, your own phases included: “Writer’s Room Opens 1/4/27”.</>,
         ]} />
       <p>Writer’s Room Opens and Production’s start and wrap are on to begin with. A new calendar also starts with Post’s
         end on, which reads “Final Delivery”.</p>

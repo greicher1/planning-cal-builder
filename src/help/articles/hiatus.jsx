@@ -1,4 +1,4 @@
-import { Lead, Sec, Steps, Step, Shot, Timeline, Info, Ui, Path, More, Related } from '../parts.jsx'
+import { Lead, Sec, Steps, Step, Shot, Timeline, Info, Ui, Path, More, Related, To } from '../parts.jsx'
 import card from '../shots/hiatus-card.webp'
 
 const ROWS = [
@@ -26,7 +26,7 @@ export default function Article() {
         Double-click a band to jump to its card.</p>
     </Sec>
     <Sec title="Name it and color it">
-      <Shot src={card} w={265} pins={[[66, 15.5], [20, 27.5], [86, 27.5], [40, 42]]}
+      <Shot src={card} w={265} pins={[[48.1, 18.2], [24.6, 33], [89.6, 33], [41.8, 50.1]]}
         items={[
           <><b>Name</b> · type one at the top of the card to label the band. Click the color box beside it to color the band.</>,
           <><b>Starts</b></>,
@@ -40,8 +40,8 @@ export default function Article() {
       <p>A locked hiatus keeps its dates when you move the plan with Shift or Build Around. Turn <Ui>Lock in place</Ui> off
         if the break should travel with the plan.</p>
       <More title="phases and other phases’ breaks">Each phase can also have its own break that pauses only that phase.
-        See <b>A hiatus for one phase</b>. To have other phases follow when you change a hiatus, see <b>Ripple
-        Hiatus Periods</b>, which lives in <Path>Settings › Preferences › Hiatus</Path>.</More>
+        See <To id="phiatus" />. To have other phases follow when you change a hiatus, see <To id="ripple" />, which
+        lives in <Path>Settings › Preferences › Hiatus</Path>.</More>
     </Sec>
     <Related ids={['phiatus', 'ripple', 'move']} />
   </>

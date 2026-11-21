@@ -9,7 +9,7 @@ export default function Article() {
         ['{title}', 'Show title'],
         ['{season}', 'Season, as S2 or S2 & S3'],
         ['{titleSeason}', 'Title and season'],
-        ['{version}', 'Version, as typed'],
+        ['{version}', 'Version, as v3 (the v is added to a number)'],
         ['{scenario}', 'The scenario on screen (empty with only one)'],
         ['{episodes}', 'Episode count'],
         ['{shootDaysPerEp}', 'Shoot days per episode'],
@@ -28,8 +28,8 @@ export default function Article() {
     </Sec>
     <Sec title="Each phase">
       <p>Every phase has four, written with its key: <b>writersRoom</b>, <b>prePrep</b>, <b>prodPrep</b>, <b>production</b>,{' '}
-        <b>post</b>, <b>localization</b>, or the key of a custom phase. The <Ui>Insert ▾</Ui> list shows them under each phase’s
-        current name.</p>
+        <b>post</b>, <b>localization</b>, or the key of a custom phase. The template editor’s <Ui>Insert</Ui> list shows them under each
+        phase’s current name.</p>
       <Table head={['Variable', 'Shows']} rows={[
         ['{production.open}', 'The date the phase opens (for Production, the first shoot day)'],
         ['{production.close}', 'The date it closes: the last weekday (for Production, the wrap day; {production.wrap} says the same)'],

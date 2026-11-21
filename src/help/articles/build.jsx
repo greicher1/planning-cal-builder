@@ -13,7 +13,7 @@ export default function Article() {
         <Step t="Check the list.">Each row shows its new date and Pushed, Pulled or No change.</Step>
         <Step t={<>Press <Ui>Build</Ui>.</>}>Nothing changes until you do.</Step>
       </Steps>
-      <Shot src={buildAround} w={440} pins={[[36, 46.7], [42, 29.7], [73, 29.7], [5, 64.8], [50, 78], [30, 91.2]]}
+      <Shot src={buildAround} w={440} pins={[[36, 46.7], [40.5, 29.7], [77.3, 29.7], [4.5, 64.8], [50, 78], [30, 91.2]]}
         items={[
           <><b>The pinned phase</b></>,
           <><b>Lengths</b> · type a new one. It’s saved when you press Build.</>,

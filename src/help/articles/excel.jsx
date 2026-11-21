@@ -1,11 +1,11 @@
-import { Lead, Sec, Steps, Step, Ui, Keys, Tip, More, To, Related } from '../parts.jsx'
+import { Lead, Sec, Steps, Step, Ui, Keys, Tip, More, To, Related, ShowMe } from '../parts.jsx'
 
 export default function Article() {
   return <>
     <Lead>Export to Excel makes a styled workbook that matches the waterfall, ready to print or send on.</Lead>
     <Sec title="Make the workbook">
       <Steps>
-        <Step t="Click Export to Excel">in the toolbar above the calendar, or press <Keys k="Mod+Shift+E" />.</Step>
+        <Step t="Click Export to Excel">in the toolbar above the calendar, or press <Keys k="Mod+Shift+E" />. <ShowMe at="#export-btn" view="sheet" /></Step>
         <Step t="Choose where to save it.">The file’s name follows the parts you picked. See <To id="names" />.</Step>
       </Steps>
       <p>The workbook has a column block for each year, colored phase cells, the Notes column, and a bold printed header

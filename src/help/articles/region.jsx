@@ -1,4 +1,4 @@
-import { Lead, Sec, Steps, Step, Shot, Ui, Path, Info, More, To, Related } from '../parts.jsx'
+import { Lead, Sec, Steps, Step, Shot, Ui, Path, Info, More, To, Related, ShowMe } from '../parts.jsx'
 import pic from '../shots/region-card.webp'
 
 export default function Article() {
@@ -6,8 +6,8 @@ export default function Article() {
     <Lead>Pick where you shoot, and Production skips that region’s union holidays, running a day longer for each one it skips.</Lead>
     <Sec title="Pick your region">
       <p>Choose <Ui>Production Region</Ui> in Show info: U.S. Area Standards, New York, each Canadian province, and more. The
-        same choice is in <Path>Settings › Region</Path>, with the holiday list and notes about where the region’s list comes from.</p>
-      <Shot src={pic} w={265} pins={[[96, 16], [29, 48], [52, 76]]}
+        same choice is in <Path>Settings › Region</Path>, with the holiday list and notes about where the region’s list comes from. <ShowMe at="#union-place" tab="show" /></p>
+      <Shot src={pic} w={265} pins={[[75.5, 19.9], [84.9, 54.3], [87.9, 74.1]]}
         items={[
           <><b>Production Region</b></>,
           <><b>Source</b> · the agreement the list follows.</>,

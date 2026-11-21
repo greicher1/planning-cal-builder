@@ -1,10 +1,17 @@
-import { Lead, Ui, More, Related } from '../parts.jsx'
+import { Lead, Shot, Ui, More, Related } from '../parts.jsx'
+import pic from '../shots/month-day-menu.webp'
 
 export default function Article() {
   return <>
     <Lead>Click a day in the Month view, or right-click anywhere on it, for a short menu of what that day can do.</Lead>
-    <p>You can add a one-day or one-week phase there, add a hiatus, start or end the phase under the pointer, or show that
-      week in the Waterfall.</p>
+    <Shot src={pic} w={344} pins={[[75.6, 25.1], [57, 48.2], [44.3, 72.6], [68.3, 87.1]]}
+      items={[
+        <><b>Add 1-day or 1-week phase here</b> · a new phase of your own, starting this day.</>,
+        <><b>Add hiatus ▸</b> · for every phase, or just one running that day.</>,
+        <><b>Full day / Off</b> · on a shoot day. A day marked Off is not shot, so the shoot runs a day longer.</>,
+        <><b>Show this week in the waterfall</b></>,
+      ]} />
+    <p>On a phase’s bar the menu can also start or end that phase on the day you clicked.</p>
     <p>On a shoot day the menu also offers <Ui>Full day</Ui> and <Ui>Off</Ui>. A day marked Off is not shot, so the shoot
       runs one day longer. On a weekend or a holiday during the shoot it offers <Ui>Work this day</Ui>, which adds a shoot
       day there, so the shoot ends a day sooner. Double-click a marked day to clear its mark.</p>

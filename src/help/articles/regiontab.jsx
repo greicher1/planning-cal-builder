@@ -11,12 +11,13 @@ export default function Article() {
         See <To id="region" />.</p>
     </Sec>
     <Sec title="The holiday list">
-      <Shot src={list} w={265} pins={[[48, 15], [67.5, 15], [84.5, 15]]}
+      <Shot src={list} w={265} pins={[[48, 13.9], [67.5, 13.9], [84.5, 13.9]]}
         items={[
           <><b>Enable</b> · untick it to work that day, so it stops costing a shoot day.</>,
           <><b>W’fall Note</b> · write it in the Waterfall and Excel.</>,
           <><b>Month Note</b> · write it in the Month view and its PDF.</>,
         ]} />
+      <p>Click a holiday’s name to rename it: Enter saves, and the new name shows everywhere the holiday does. Esc puts it back.</p>
       <Steps>
         <Step t="Add your own:">type a name and pick a date under <i>Add your own holiday</i>, then click <Ui>Add</Ui>. It is a single day.</Step>
         <Step t="Start over:">click <Ui>Reset holidays</Ui>.</Step>

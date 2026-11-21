@@ -8,19 +8,18 @@ export default function Article() {
       stay on this computer.</Lead>
     <Sec title="Waterfall">
       <p><Path>Settings › Preferences › Waterfall</Path></p>
-      <Shot src={wf} w={265} pins={[[7, 35], [7, 56], [7, 76]]}
+      <Shot src={wf} w={265} pins={[[56.2, 34.7], [21.3, 55.8]]}
         items={[
           <><b>Single Column Mode</b> · see <To id="singlecol" />. Saved with the calendar.</>,
           <><b>Dates</b> · MM/DD or DD/MM. See <To id="datefmt" />. Saved with the calendar.</>,
-          <><b>Hidden Notes columns</b> · bring a hidden Notes column back.</>,
         ]} />
     </Sec>
     <Sec title="Month view">
       <p><Path>Settings › Preferences › Month view</Path></p>
-      <Shot src={mv} w={265} pins={[[8, 16], [8, 33], [8, 52], [8, 63], [8, 74], [8, 85]]}
+      <Shot src={mv} w={265} pins={[[54.3, 16.3], [37, 37.5], [18.5, 55.1], [65.3, 64.2], [20.8, 74.7], [36.6, 85.9]]}
         items={[
           <><b>Label Production by</b> · Week, Episode or Block. Saved.</>,
-          <><b>Grey labels in Production’s bars</b> · on screen and in the month PDF. Kept on this computer.</>,
+          <><b>Add Production Week Label in Month View</b> · the grey “Production Week 2” beside each bar’s name, on screen and in the month PDF. Block and episode labels get switches like it when the bars can carry them. Kept on this computer.</>,
           <><b>Pause prep on days marked Off</b> · saved.</>,
           <><b>Number Production Days</b> · saved.</>,
           <><b>Size</b> · Standard, Large or Extra Large. Saved.</>,
@@ -29,7 +28,7 @@ export default function Article() {
     </Sec>
     <Sec title="Saved, or kept here">
       <Table head={['Saved with the calendar', 'Kept on this computer']} rows={[
-        ['Dates format, Single Column Mode, month Size, Number Production Days, Label Production by', 'Ripple Hiatus Periods, grid lines in exports, grey labels in Production’s bars'],
+        ['Dates format, Single Column Mode, month Size, Number Production Days, Label Production by', 'Ripple Hiatus Periods, grid lines in exports, the Production Week label in the Month view'],
       ]} />
       <Info title="Also here">The same tab has cards for Automatic notes (see <To id="auto" />) and Hiatus (see <To id="ripple" />).</Info>
     </Sec>

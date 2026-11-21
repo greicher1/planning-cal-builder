@@ -6,7 +6,7 @@
 // Lights", a synthetic show: tests/fixtures/README.md), and one command takes them all again:
 //
 //   npm run build && node tools/help-shots.mjs            # every shot
-//   node tools/help-shots.mjs shift-panel note-editor     # just these
+//   node tools/help-shots.mjs shift-panel note-editor     # just these (runs only their groups: seconds)
 //
 // Output: src/help/shots/<name>.webp, imported by the articles (Vite inlines them into the one file; the CSP allows
 // img-src data:). After retaking, look at each picture: a moved control also moves its numbered dots, which are
@@ -121,10 +121,19 @@ async function shot(name, clip, scale = 1) {
 }
 const sidebarTab = t => click(`.side-tab-btn[data-tab="${t}"]`)
 const settingsTab = async name => {
-  if (!(await ev("!!document.querySelector('.side-settings-btn.active')"))) { await click('.side-settings-btn'); await sleep(600) }
+  if (!(await ev("!!document.querySelector('.side-settings-btn[aria-expanded=\"true\"]')"))) { await click('.side-settings-btn'); await sleep(600) }
   await ev(`(()=>{const b=[...document.querySelectorAll('.sw-tab')].find(e=>e.textContent.trim()===${JSON.stringify(name)}); if(b) b.click(); return 1})()`); await sleep(600)
 }
 const cap = (r, max) => ({ ...r, h: Math.min(r.h, max) })
+// Scrolls the side panel so an element's top sits just under the panel's tabs, which stay put while it scrolls
+// (scrollIntoView alone puts it UNDER them). `pick` is a JS expression yielding the element.
+async function underTabs(pick) {
+  await ev(`(()=>{const c=(${pick}); c.scrollIntoView({block:'start'});
+    let s=c.parentElement; while(s && s.scrollHeight<=s.clientHeight+1) s=s.parentElement;
+    const tabs=document.querySelector('.side-tab-btn').getBoundingClientRect().bottom;
+    if(s) s.scrollTop -= (tabs + 12 - c.getBoundingClientRect().top); return 1})()`)
+  await sleep(300)
+}
 async function typeInto(sel, text) {   // a box the app reads on input/change
   await ev(`(()=>{const i=document.querySelector(${JSON.stringify(sel)}); const set=Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value').set; set.call(i,${JSON.stringify(text)}); i.dispatchEvent(new Event('input',{bubbles:true})); i.dispatchEvent(new Event('change',{bubbles:true})); return 1})()`)
   await sleep(500)
@@ -150,6 +159,9 @@ async function secondScenario() {
   await typeInto('#tool-shift-weeks', '2')
   await click('#tool-shift-later'); await sleep(900)
   await click('#pop-shift-btn'); await sleep(400)
+  // The panel's row press can leave a Notes cell picked under it; Escape on the page clears it (the grid's own rule).
+  await ev(`document.activeElement && document.activeElement.blur(); document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); 1`)
+  await send('Input.dispatchMouseEvent', { type: 'mouseMoved', x: W / 2, y: H - 6 }); await sleep(300)
 }
 // A color key on the right of the waterfall.
 async function colorKey() {
@@ -182,18 +194,25 @@ const cardWithHeading = txt => `=[...document.querySelectorAll('aside.form-panel
 // state the one before left; `load()` between groups resets it.
 const SHOTS = [
   ['app-waterfall', async () => { await load(); return null }, 0.5],
+  // The grid alone, about as wide as Help draws it, so its dots are not bigger than the cells they point at.
+  ['wf-grid', async () => {
+    const t = await need('#table-wrap table.sheet-table'), last = await need('td.sheet-note-cell[data-week="2027-06-21"]')
+    return { x: t.x - 8, y: t.y - 8, w: t.w + 16, h: last.y + last.h + 1 - (t.y - 8) }   // ends on a row line, under the shoot's 2nd week
+  }],
   ['show-info', async () => { await sidebarTab('show'); return pad(await need(card('show-title')), 4) }],
   ['phase-card', async () => { await sidebarTab('phases'); return pad(await need(card('start-prePrep')), 4) }],
   ['production-card', async () => {
     await sidebarTab('phases')
-    await ev(`document.getElementById('start-production').scrollIntoView({block:'start'}); 1`); await sleep(300)
-    const r = await need(card('start-production')); return pad({ ...r, h: Math.min(r.h, H - r.y - 8) }, 4)
+    // From the card's top to the end of its shooting order (its Hiatus and Simultaneous Post blocks are other articles').
+    await underTabs(`document.getElementById('start-production').closest('.phase-row')`)
+    const r = await need(card('start-production')), ep = await need(`=document.getElementById('start-production').closest('.phase-row').querySelector('.ep-panel')`)
+    return pad({ ...r, h: ep.y + ep.h + 6 - r.y }, 4)
   }],
   ['shift-panel', async () => { await click('#pop-shift-btn'); await sleep(400); return pad(union(await need('#pop-shift'), await need('#shift-group')), 20) }],
   ['build-around', async () => { await click('#pop-solve-btn'); await sleep(400); const r = pad(union(await need('#pop-solve'), await need('#pop-solve-btn')), 20); return r }, 1],
   ['note-editor', async () => {
     await load(); await sheet()
-    const cell = 'td.sheet-note-cell[data-week="2026-08-10"]'
+    const cell = 'td.sheet-note-cell[data-week="2027-06-07"]'   // "Table read Ep 101 6/9/27"
     await ev(`document.querySelector('${cell}').scrollIntoView({block:'center'}); 1`); await sleep(300)
     await click(cell, { count: 2 }); await sleep(500)
     return pad(union(await need(cell), await need('.note-pop')), 24)
@@ -204,27 +223,28 @@ const SHOTS = [
     const r = await need(cardWithHeading('Holidays')); return pad({ ...r, h: Math.min(r.h, 520) }, 4)
   }],
   ['export-dialog', async () => { await sidebarTab('show'); await click('#export-wf-pdf-btn'); await sleep(900); const r = pad(await need('.export-pdf-dlg .mantine-Modal-content'), 10); return r }],
-  ['app-month', async () => { await load(); await monthTo('2026-07'); return null }, 0.5],
+  ['app-month', async () => { await load(); await monthTo('2027-06'); return null }, 0.5],   // June 2027: Prod Prep ends, the shoot starts, every demo note, Canada Day
   ['mv-note-editor', async () => {
-    const n = await need(textEl('Location scout')); await mouse(n.x + n.w / 2, n.y + n.h / 2, { count: 2 }); await sleep(600)
+    const n = await need(textEl('Tech scout Ep 101')); await mouse(n.x + n.w / 2, n.y + n.h / 2, { count: 2 }); await sleep(600)
     return pad(union(n, await need('.note-pop, .mv-note-pop')), 22)
   }],
   ['mv-holiday-editor', async () => {
-    await esc(2); await sleep(300)
-    const n = await need(textEl('Independence Day 7/4')); await mouse(n.x + n.w / 2, n.y + n.h / 2, { count: 2 }); await sleep(600)
+    // In July: June's grid shows 7/1 as a day of the next month, where its holiday does not open the editor.
+    await esc(2); await sleep(300); await monthTo('2027-07')
+    const n = await need(textEl('Canada Day 7/1')); await mouse(n.x + n.w / 2, n.y + n.h / 2, { count: 2 }); await sleep(600)
     const p = await need('.note-pop, .mv-note-pop'); return pad(union(n, p), 22)
   }],
   ['month-day-menu', async () => {
-    await esc(2); await sleep(300)
+    await esc(2); await sleep(300); await monthTo('2027-06')   // back to June: the shoot's 2nd day, Tue 15 Jun
     const d = await need(textEl('15', '#table-wrap .mv-week')); await mouse(d.x + 60, d.y + 4, { button: 'right' })
     const m = await need('.day-menu'); return pad(union({ ...d, w: 140 }, m), 20)
   }],
   // ---- added for the rest of the articles (21 Nov 2026) ----
-  ['prep-card', async () => { await load(); await monthTo('2026-07'); await sidebarTab('phases'); await ev(`document.querySelector('.phase-row.prep-row').scrollIntoView({block:'start'}); 1`); await sleep(300); return pad(cap(await need('.phase-row.prep-row'), 400), 4) }],
+  ['prep-card', async () => { await load(); await monthTo('2027-06'); await sidebarTab('phases'); await underTabs(`document.querySelector('.phase-row.prep-row')`); return pad(cap(await need('.phase-row.prep-row'), 400), 4) }],
   ['hiatus-card', async () => {
     await ev(`document.getElementById('hiatus-list').scrollIntoView({block:'start'}); 1`); await sleep(300)
     await ev(`(()=>{const b=document.querySelector('#hiatus-list .hiatus-collapse-btn'); if(b) b.click(); return 1})()`); await sleep(400)
-    await ev(`document.getElementById('hiatus-list').closest('section, .card').scrollIntoView({block:'start'}); 1`); await sleep(300)
+    await underTabs(`document.getElementById('hiatus-list').closest('section, .card')`)
     return pad(cap(await need("=document.getElementById('hiatus-list').closest('section, .card')"), 420), 4)
   }],
   ['region-card', async () => { await settingsTab('Region'); return pad(cap(await need(cardWithHeading('Production Region')), 420), 4) }],
@@ -233,8 +253,9 @@ const SHOTS = [
   ['presets', async () => { await settingsTab('Presets'); return pad(cap(await need(cardWithHeading('Headers')), 420), 4) }],
   ['hdr-menu', async () => { await sidebarTab('show'); await click('#tb-hdr-mode-btn'); await sleep(500); return pad(union(await need('#tb-hdr-mode-btn'), await need('.hdr-mode-pop')), 16) }],
   ['wf-context', async () => {
-    await esc(2); const cell = 'td.sheet-note-cell[data-week="2026-07-13"]'
-    await ev(`document.querySelector('${cell}').scrollIntoView({block:'center'}); 1`); await sleep(300)
+    // A phase cell: its menu shows the most (start or end that phase here, add a phase or a hiatus).
+    await esc(2); const cell = `=[...document.querySelectorAll('#table-wrap td')].find(t=>t.textContent.trim()==='Prod Prep wk 8')`
+    await ev(`(${cell.slice(1)}).scrollIntoView({block:'center'}); 1`); await sleep(300)
     const r = await need(cell); await mouse(r.x + r.w / 2, r.y + r.h / 2, { button: 'right' })
     return pad(union(r, await need('.day-menu')), 20)
   }],
@@ -244,23 +265,29 @@ const SHOTS = [
     await mouse(th.x + th.w / 2, th.y + th.h / 2, { count: 2 }); await sleep(500)
     return pad(union(th, await need('.hdrrow-pop')), 18)
   }],
-  ['text-bar', async () => { await esc(2); return pad(await need('.style-bar-host'), 6) }],
-  ['file-menu', async () => { await click('.file-menu-btn'); await sleep(500); return pad(union(await need('.file-menu-btn'), await need('#file-menu')), 14) }],
-  ['changes-dialog', async () => {
-    await esc(2)
-    await ev(`(()=>{const i=document.getElementById('show-title'); const set=Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value').set; set.call(i,'Harbor Lights (draft)'); i.dispatchEvent(new Event('input',{bubbles:true})); i.dispatchEvent(new Event('change',{bubbles:true})); return 1})()`); await sleep(600)
-    await click('.file-menu-btn'); await sleep(500)
-    await ev(`(()=>{const b=document.querySelector('#file-menu [data-action="changes"]'); if(b) b.click(); return !!b})()`); await sleep(900)
-    return pad(cap(await need('.changes-dlg .mantine-Modal-content'), 700), 10)
+  ['text-bar', async () => {
+    // Picked first, so the bar is not dimmed: a plain click highlights a cell.
+    await esc(2); const c = await need(textEl("Writer's Rm wk 3")); await mouse(c.x + c.w / 2, c.y + c.h / 2); await sleep(300)
+    return pad(await need('.style-bar-host'), 6)
   }],
-  ['side-boxes', async () => { await load(); await colorKey(); return null }, 0.5],
-  ['tandem-month', async () => { await load(); await tandem(); await monthTo('2027-07'); return null }, 0.5],
+  ['file-menu', async () => { await click('.file-menu-btn'); await sleep(500); return pad(union(await need('.file-menu-btn'), await need('#file-menu')), 14) }],
+  ['side-boxes', async () => {   // the right of the window: Side Boxes, the color key, and the calendar beside it
+    await load(); await colorKey()
+    const b = await need('#tb-side-boxes-btn'), k = await need('.side-col.side-right .sb-box'), x0 = k.x - 400
+    return { x: x0, y: b.y - 14, w: k.x + k.w + 14 - x0, h: k.y + k.h + 30 - (b.y - 14) }
+  }],
+  ['tandem-month', async () => {   // Mon to Fri of July 2027's first four weeks: Tandem 101 and 102 beside the shoot
+    await load(); await tandem(); await monthTo('2027-07')
+    const wk = await ev(`[...document.querySelectorAll('#table-wrap .mv-week')].slice(0, 4).map(e=>{const r=e.getBoundingClientRect(); return {x:r.left+scrollX,y:r.top+scrollY,w:r.width,h:r.height}})`)
+    const a = wk[0], z = wk[wk.length - 1]
+    return { x: a.x + a.w / 7 - 2, y: a.y - 2, w: a.w * 5 / 7 + 4, h: Math.min(z.y + z.h, H - 46) - a.y + 4 }
+  }],
   ['tandem-card', async () => {
     await sidebarTab('phases')
-    await ev(`document.querySelector('.phase-row.du-row').scrollIntoView({block:'start'}); 1`); await sleep(300)
+    await underTabs(`document.querySelector('.phase-row.du-row')`)
     return pad(cap(await need('.phase-row.du-row'), 520), 4)
   }],
-  ['mv-prefs', async () => { await load(); await monthTo('2026-07'); await settingsTab('Preferences'); await ev(`(${cardWithHeading('Month view').slice(1)}).scrollIntoView({block:'start'}); 1`); await sleep(300); return pad(cap(await need(cardWithHeading('Month view')), 700), 4) }],
+  ['mv-prefs', async () => { await load(); await monthTo('2027-06'); await settingsTab('Preferences'); await ev(`(${cardWithHeading('Month view').slice(1)}).scrollIntoView({block:'start'}); 1`); await sleep(300); return pad(cap(await need(cardWithHeading('Month view')), 700), 4) }],
   ['month-pdf-dialog', async () => { await sidebarTab('show'); await click('#export-btn'); await sleep(900); return pad(await need('.month-pdf-dlg .mantine-Modal-content'), 10) }],
   ['scenario-waterfall', async () => { await load(); await secondScenario(); return null }, 0.5],
   ['scenario-tabs', async () => pad(union(await need('.sc-strip'), await need('.sc-band')), 12)],
@@ -272,11 +299,18 @@ const SHOTS = [
   }],
 ]
 
+// A step that calls load() starts a GROUP: it and the steps after it, up to the next load(). Each step leaves the page as
+// the next in its group expects, so with names given only the groups holding them run (a retake of one picture takes
+// seconds, not the whole run), and every step in such a group runs while only the named shots are written.
+const groups = []
+for (const s of SHOTS) { if (!groups.length || /\bawait load\(/.test(String(s[1]))) groups.push([]); groups[groups.length - 1].push(s) }
 let failed = 0
-for (const [name, fn, scale = 1] of SHOTS) {
-  // Every step runs (each leaves the page as the next expects); only the named shots are written.
-  try { const clip = await fn(); if (!ONLY.size || ONLY.has(name)) await shot(name, clip, scale) }
-  catch (e) { failed++; console.log(`  ${name}: FAILED: ${String(e.message).slice(0, 200)}`) }
+for (const group of groups) {
+  if (ONLY.size && !group.some(([name]) => ONLY.has(name))) continue
+  for (const [name, fn, scale = 1] of group) {
+    try { const clip = await fn(); if (!ONLY.size || ONLY.has(name)) await shot(name, clip, scale) }
+    catch (e) { failed++; console.log(`  ${name}: FAILED: ${String(e.message).slice(0, 200)}`) }
+  }
 }
 ws.close()
 console.log(failed ? `help-shots: ${failed} failed` : 'help-shots: done')

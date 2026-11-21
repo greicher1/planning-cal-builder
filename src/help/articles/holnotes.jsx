@@ -9,15 +9,16 @@ export default function Article() {
     <Sec title="Choose where each holiday shows">
       <p><Path>Settings › Region</Path> lists the holidays for your Production Region. Two boxes on each choose where its
         note is written. To begin with, none show in the Waterfall and all show in the Month view.</p>
-      <Shot src={list} w={265} pins={[[67.5, 22], [84.5, 22]]}
+      <Shot src={list} w={265} pins={[[67.5, 13.9], [84.5, 13.9]]}
         items={[<><b>W’fall Note</b> · in the Waterfall and Excel.</>, <><b>Month Note</b> · in the Month view and its PDF.</>]} />
       <Info title="Notes only">Showing or hiding a holiday’s note never moves a date. To stop a holiday costing a shoot day,
         see <To id="region" />.</Info>
     </Sec>
     <Sec title="Rename or color a holiday">
-      <p>Double-click a holiday in the Month view, or its line in a Waterfall note. A new name shows everywhere the holiday
-        does, in both views and every export. Its color is for the Month view.</p>
-      <Shot src={editor} w={302} pins={[[67, 20.4], [80, 31], [25, 58.7], [72, 86]]}
+      <p>Double-click a holiday in the Month view, or its line in a Waterfall note, or click its name in the list in{' '}
+        <Path>Settings › Region</Path>. A new name shows everywhere the holiday does, in both views and every export. Its
+        color is for the Month view.</p>
+      <Shot src={editor} w={302} pins={[[62.2, 20.3], [80, 31], [24, 58.6], [65.2, 86]]}
         items={[
           <><b>Hide Holiday</b> · takes it out of this view only.</>,
           <><b>Its name</b></>,

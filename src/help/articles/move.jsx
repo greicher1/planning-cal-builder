@@ -51,7 +51,7 @@ export default function Article() {
         <Step t="Check the list.">Each row shows its new date and how far it moves.</Step>
         <Step t={<>Press <Ui>Build</Ui>.</>} />
       </Steps>
-      <Shot src={buildAround} w={440} pins={[[36, 46.7], [42, 29.7], [73, 29.7], [5, 64.8], [50, 78], [30, 91.2]]}
+      <Shot src={buildAround} w={440} pins={[[36, 46.7], [40.5, 29.7], [77.3, 29.7], [4.5, 64.8], [50, 78], [30, 91.2]]}
         items={[
           <><b>The pinned phase</b> lands on your date.</>,
           <><b>Lengths</b> · type a new one right here.</>,

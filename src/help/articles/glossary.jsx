@@ -2,7 +2,7 @@ import { Lead, Sec, To } from '../parts.jsx'
 
 const TERMS = [
   ['a.o.', <>“As of”: the date the calendar was last edited, in an export’s file name. <To id="names" /></>],
-  ['Automatic note', <>A milestone note SPTCal writes and keeps dated, like “Start Principal Photography 6/29/26”. <To id="auto" /></>],
+  ['Automatic note', <>A milestone note SPTCal writes and keeps dated, like “Start Principal Photography 6/14/27”. <To id="auto" /></>],
   ['Block', <>A run of shooting days, for shows that shoot in blocks rather than one episode at a time. <To id="episodes" /></>],
   ['Build Around', <>Pins one phase to a date and builds the others end to end around it. <To id="build" /></>],
   ['Episodic prep', <>A prep bar before each episode’s shoot, in the Month view. <To id="prep" /></>],
