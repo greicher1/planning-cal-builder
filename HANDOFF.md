@@ -14,6 +14,117 @@
 - **Verified.** New leg `wfnoteellipsis` (fixture `noteellipsis.sptcal`, synthetic) 11/11, 7 of 11 red on the build before; `npm run check` 46/46; full gate: every baseline identical but gate 2's one cell (now re-cut and passing, `pdfcmp.py` both ways), and three legs that asserted the PDF writes lines the cell hid, changed to expect the shown lines and the "…": `notewrap` A-L/A-W/D-L/D-W (16/16; B and C, not cut, keep the old checks), `noteviews` P1 (15/15; the "…" after "Network call" is the proof the month notes reached the writer), `phasenotes` X2 (21/21; 8/3 draws "Table read…", not Visitor). Six failures under load (`swapsharenotice`, `swapsingleorders`, `recoverfail` newer, `doubleups` ×2, `weeknum`, `monthexport` monthnotes X6) all passed rerun alone. I could not use the browser pane (all five dev-server slots held by other sessions): the look was checked through a headless Chrome screenshot.
 - No What's New entry (a small fix). Excel is deliberately not changed: Excel clips wrapped text itself, and cutting the cell's text would lose the note from the file.
 
+### 🔒 21 Nov 2026: THE FROZEN-CODE GUARD — `npm run check` fails when a frozen declaration's text changes without an approved re-lock. ✅ **LIVE at `fbfd96a4`** (owner's picker *"Push now"*, 21 Nov 2026; fast-forward `79d6bea2..fbfd96a4`; deploy run 44941735360 green, its `npm run check` ran the guard, 47/47; the live build stamp is unchanged, `7b41a02b1a37`, so users got no update bar). Branch `frozen-guard` (worktree `.claude/worktrees/frozen-guard`; its `node_modules` is a symlink, unlink it before `git worktree remove`). README "Unreleased". Tracker card `frozen-code-guard`.
+- **Owner:** asked whether the single-file design holds the app back; of the answer's options, *"Build the guard"*.
+- **Done:** `tools/frozen-lock.mjs` parses `src/legacy/app.js` with Vite 8's own parser (`rolldown/parseAst`, 0.2 s) and
+  takes a SHA-256 of the EXACT source text of each of the 55 frozen declarations (CLAUDE.md's 51: the five width-model
+  constants, grid, text fitting, direct manipulation, exports; plus the four its named frozen edits made frozen:
+  `mvNoteLineCount`, `mvNoteLineCountSized`, `notesForWaterfallDate`, `mvNoteBoxWidth`), 4,212 lines. Inner comments
+  count; the comment above a declaration and its position in the file do not. `tools/frozen-lock.json` holds the
+  fingerprints, each with the approval it was last locked under. `tools/check-build.mjs` runs it (check "the frozen code
+  is unchanged"), and `deploy.yml` runs `npm run check` before publishing, so an unapproved frozen edit cannot deploy.
+  - ⛔ **A frozen edit the owner approves re-locks in the SAME commit:** `node tools/frozen-lock.mjs --approve "<the
+    owner's words, date, what changed>"` (refused without real words), plus the `Frozen-edit-approved:` line it prints at
+    the end of the commit message. `git log --format='%h %cs %(trailers:key=Frozen-edit-approved,valueonly)' --
+    tools/frozen-lock.json` is then the list of every frozen edit. Never re-lock to make a red check green.
+  - `--add name[:group]` / `--remove name` freeze or unfreeze a declaration (owner's call); `--self-test` mutates each
+    declaration by one space, and renames one, and requires each to be caught.
+  - Approvals live ON each entry, not in a shared list, so two branches editing DIFFERENT frozen functions merge with no
+    conflict in the lock; two editing the SAME one conflict there, which is the case a person should see.
+  - ⚠️ **What it does not guard:** behaviour (a non-frozen helper frozen code calls can still change what it does: the
+    gate guards that), and the frozen CSS (below). If the engine is ever split into modules, the lock's `file` becomes a
+    list; the declaration finder already looks at a module's top level.
+- **Not done, owner's call: the frozen CSS.** The two banner blocks CLAUDE.md names (`Month view`, `Calendar PDF export
+  (browser print)` in `src/styles/legacy.css`) changed in 11 commits from 23 Oct to 14 Nov, several of them chrome work
+  (the Phases tab, the "+" buttons' hover, a Show info note) rather than frozen edits, so locking them as they stand would
+  stop ordinary work. Locking them needs the owner to rule what in them is frozen.
+- **Measured:** the check takes 0.23 s; `--self-test` catches all 55 one-space mutants and a rename (10 s); `npm run check`
+  47/47 on the worktree's build, and 46/47 with a comment added inside `renderMonthView` (exit 1, "renderMonthView: text
+  changed (733 lines when locked, 734 now)"); an `--approve` round trip re-locked only the edited declaration. Replayed over
+  the last 30 days of `origin/main`: 38 of 300 non-merge `app.js` commits changed frozen text, 36 saying "frozen" in their
+  message; the other two (`5b583808` rule 22 = LR6, `8129f047` LR8) are frozen edits HANDOFF records, so frozen edits run at
+  about one a day and every one would have needed a re-lock. Unmerged branches: the four live ones (`scenario-version-offer`,
+  `note-rows-grow`, `help-center`, `producers-cut`) touch no frozen text; `try-d` and `claude/settings-window-30719d`
+  (stale) do and would need an approval to re-lock if revived. No gate (no product file changed; `dist` is unaffected).
+- **Found on the way (engine-split study, same day, tracker card `engine-split-modules`):** CLAUDE.md and MANTINE-SEAM
+  say SEVEN unguarded `#table-wrap` listeners; `getElementById('table-wrap').addEventListener` appears 21 times.
+  `prove-header-preset`'s text anchor `sheet: p.lines ?` matches nothing in `app.js`, so that prover tests nothing.
+
+### ✏️ 21 Nov 2026: A HOLIDAY IS RENAMED FROM THE HOLIDAYS LIST (Settings › Region) — committed on `scenario-version-offer` (its hunks only), NOT PUSHED. README "Unreleased". Tracker card `holiday-rename-in-settings`.
+- **Owner:** asked whether a holiday's name should be editable from the Holidays list, then *"No text box until you hover
+  over the title similar to how the episode names in the production phase section work"*.
+- **Done:** `renderHolidayVisList`'s row puts the name in `.hv-name-edit`, a `contenteditable="plaintext-only"` span
+  (no id) as `.hv-name`'s first child, carrying `data-hid` / `data-iso` / `data-name` / `data-orig`. legacy.css draws it as
+  text; `:hover` gives it the episode names' gray-3 border and white fill, `:focus` the primary border; negative margins
+  give its padding and border back, so no row or name moved (measured on all 27 rows of the fixture, leg S1). Cleared,
+  `:empty::before` shows the name it goes back to. The `#holiday-vis` IIFE: Enter blurs, Esc restores `data-name` and
+  blurs (both `preventDefault`, so the Settings window, which closes on an Escape nobody took, stays open); `focusout`
+  runs `commitHolidayNameEdit()`, which is `writeActiveMvNote`'s holiday rule (`stripHolidayDate`, empty or the list's own
+  name = no rename) through `setHolidayName()` and one `update()`. Help (Notes display paragraph) and the card's ⓘ say so.
+  - Why a contenteditable and not an `<input>` like `.ep-name`: a long name still WRAPS between words as it did (an input
+    would cut it in a ~125 px column), and the name stays `.hv-name`'s text, which `regionlock`, `mvmenu`, `holidayenable`
+    and `settingswin` read.
+  - ⛔ The list is rewritten on every render, so `renderHolidayVisList` carries a name being typed (text, caret, focus) into
+    the new row, with `hvNameRedrawing` keeping the old node's focusout from committing half a name (leg S4).
+  - `scheduleScenarioProbe`'s "typing" test now also takes `isContentEditable`: `[contenteditable="true"]` missed a
+    plaintext-only field (this name, and a side box's text), so a probe could re-apply the calendar mid-typing.
+- **No saved key, nothing frozen:** the rename is `holidayNames` as before (one date only, the owner's 30 Oct picker).
+  No What's New entry (a second way to do something users can already do: the 21 Nov Hide Holiday got none either).
+- **Verified:** `holidayrename` with new S1-S5, `holidayenable` 8/8 (anchorside) + 2/2 (customunits), `settingswin` 21/21,
+  `regionlock` 14/14, `mvmenu` 81/81 (halfdays), `npm run check` 46/46; in the browser on `holidayrename` (hover, rename,
+  ⌘Z, Esc, clear, a redraw mid-typing). ⚠️ `holidayrename` and `mvmenu` time out at "the fixture" without their
+  `HARNESS_STATE` (holidayrename, halfdays): that is a harness call, not a failure. No full gate (chrome only).
+
+### 🙈 21 Nov 2026: THE MONTH VIEW'S HOLIDAY EDITOR HAS "HIDE HOLIDAY" — committed `a3ed0a2e` on `scenario-version-offer`, cherry-picked onto `origin/main` and pushed on the owner's picker. README "Unreleased". Tracker card `month-hide-holiday`.
+- **Owner:** *"We need to add the same hide holiday button in the waterfall pop-up to the month view pop-up"*.
+- **Done:** `openMvNoteEditor`'s head gives a holiday (`isHol`) a `note-pop-delete mv-holiday-hide` button, "Hide
+  Holiday", where the Auto-Note editor has Hide Auto-Note (it had none). Its click goes through the existing
+  `.note-pop-delete:not(.mv-note-delete)` handler, which now sets `activeMvNote.hideHoliday` for a holiday (`deleteAuto`
+  otherwise); `writeActiveMvNote`'s holiday branch applies the rename / colour first, then
+  `holidayView[hid].month = false` and `renamed` (the commit runs `update()`). The twin of `hideHolidayInWaterfall()`:
+  the Waterfall box is left as it was, the holiday stays a day off. No new id, no saved key, nothing frozen.
+- **Verified:** `holidayrename` 15/15 (new H1), `npm run check` 46/46, in the browser (8863's harness server, all five
+  preview slots were held by other chats).
+- ⚠️ `run.sh holidayrename` PRINTS its result cut off after W1 (stdout only); `holidayrename.json` has every case. Read
+  the JSON before calling X1 / E0 missing.
+- ⚠️ In the browser pane, `?state=holidayrename` opened with every holiday's Month box UNTICKED (Thanksgiving had to be
+  ticked to show), while the leg sees them on. Not investigated: likely the pane's own leftover state (a recovery offer
+  came up at launch).
+
+### 🔨 4 Nov 2026: DATE BOXES TAKE AND SHOW A TWO-DIGIT YEAR (01/04/26) — branch `two-digit-year` (worktree `.claude/worktrees/two-digit-year`, from `origin/main` at `75003f1`; its `node_modules` is a symlink, so unlink it before `git worktree remove`). Not merged, not pushed. Tracker card `two-digit-year-dates`
+- **Asked** (owner, 4 Nov 2026): *"Would it be a small enough change so that all phases, hiatuses, etc use a date box
+  in the left side panel that has the year as 25 or 26"*, then *"you can type 26 instead of 2026"* and *"it should
+  read 01/04/26"*. Owner: *"Yes, build it"*. The toolbar's two date boxes (then Anchor To / Rebuild From, now Shift's
+  To a date and Build Around's) included for consistency.
+- **Built:**
+  - `legacy.css`, under the pop-out picker's block: `::-webkit-datetime-edit-year-field` clipped to its last two digits
+    (inline-flex packed to the end, `width:2ch`, `overflow:hidden`, no left padding), on `.form-panel` and
+    `.tools-menu` date boxes only. ⚠️ `font-variant-numeric:tabular-nums` must sit on the INPUT: on the year field
+    Chrome ignores it, and 2011 read "011".
+  - `app.js`, right after `showSnappedMonday`'s listeners: `holdUnfinishedYear` (document capture, `input` + `change`)
+    stops the events of a date box whose year is under 1000, so the engine never hears a half-typed year;
+    `finishTypedYear` (document capture, `focusout` + any `keydown` but a digit / Backspace / Delete) turns a year under
+    100 into 20xx and hands the box over with real `input` + `change` events, then `foldIntoBankedStep`. 100–999 is
+    handed over as typed, so readState still refuses and rings it.
+- ⚠️ **Learned:** the browser pane's `type` action does NOT drive a native date box (the value stays empty); its
+  `key` action with digits does (`0 1 0 5 2 6` → `0026-01-05`). Use `key` to test real date typing.
+- ⚠️ **Behaviour change beyond the ask:** typing 2026 no longer flashes "Check that year" three times (0002, 0020,
+  0202 are held). Only the box's own events are held: anything else that runs `update()` meanwhile reads the DOM,
+  so it still sees the half-typed year and refuses it, as before.
+- **Verified:** leg `twodigityear` 13/13 (wired into `gate.sh` after `snapbox`), red on a no-expansion mutant
+  (Y2, K1, K2, B1, B2); `snapbox` 12/12, `datepick` 17/17, `endsdate` 17/17, `prodends` 14/14, `calrange` 18/18,
+  `snaptools` 14/14, `builtindates`, `badyear` 6/6, `snapoff`, `undokeys` 11/11; `npm run check` 40/40; browser pane
+  on the build: real keystrokes, 01/05/26 with no refusal mid-typing, Enter → 2026-01-05, waterfall from 1/5/26;
+  11/14/11, 01/04/10, 12/30/19 and the toolbar's mm/dd/yy checked by eye. **Full gate not run** (chrome + sidebar
+  input only: no grid cell, writer or save code touched).
+- **21 Nov 2026, owner: *"push it"*.** `origin/main` (595 commits on, v1.23.0+) merged in; conflicts in HANDOFF and
+  README only, both kept. What's New entry `2026-11-21` ("Type a two-digit year") added, as CLAUDE.md now asks. On the
+  merged build: `npm run check` 46/46; `twodigityear` 13/13, `snapbox` 12/12, `datepick` 21/21, `endsdate` 17/17,
+  `prodends` 14/14, `calrange` 18/18, `snaptools` 14/14, `builtindates`, `badyear` 6/6, `snapoff`, `undokeys` 11/11,
+  and the newer panels' legs `panelstale` 16/16, `buildaround` 36/36, `anchorside` 39/39, `finishbefore` 16/16. Real
+  keystrokes over CDP (the preview-server limit was full): 0 1 0 5 2 6 → `0026-01-05` with no refusal, Enter →
+  `2026-01-05`; 0 3 0 2 2 0 2 6 → `2026-03-02`; the box reads 03/02/26 beside the phase card's ▲ / ▼, nothing clipped.
+
 ### 📐 20 Nov 2026: SHIFT KEEPS EVERY PHASE'S DISTANCE FROM THE WRAP — BUILT on branch `shift-wrap-follow` (worktree `.claude/worktrees/shift-wrap-follow`, from `origin/main` `a85ca47c`), full gate run (every baseline identical; no failure from this branch), README "Unreleased" and What's New entries in, committed locally; `origin/main` (`07d681ed`, the 13" toolbar) merged in and local `main` moved to the merge on the owner's picker *"Merge, don't push"*; then `origin/main` (`b093115`, the four re-premised checks) merged in again and PUSHED on the owner's *"push it"* (20 Nov 2026). Plan and rulings: [`SHIFT-WRAP-FOLLOW-PLAN.md`](SHIFT-WRAP-FOLLOW-PLAN.md). Tracker card `shift-keeps-wrap-gap` (ready).
 - **Owner:** Shift moves Production onto new holidays, the shoot gains or loses a week, and a 1-week gap or overlap opens before Post.
   Rulings by chat and picker (plan §1): R1 every phase Production's length affects, not just Post; R2 any cause (holidays, Off days,
@@ -105,6 +216,29 @@
 - No What's New entry (a small UI change). README "Unreleased".
 
 ||||||| 2ef16d26
+
+### ↕️ 21 Nov 2026: EVERY BAR KIND REORDERS IN THE MONTH VIEW, TANDEM AND PREP INCLUDED — branch `mv-order-all` (worktree `.claude/worktrees/mv-order-all`, from `origin/main` at `a0819c0e`; its `node_modules` is a symlink, unlink it before `git worktree remove`). NOT committed until the owner's picker, NOT pushed. README "Unreleased", What's New `2026-11-21-2`. Tracker card `month-reorder-every-bar`.
+- **Owner:** *"Ensure all phases of any type (including sim post, episodic/block prep, and tandem, can be arranged up and
+  down in any order in the month view"*.
+- **What was already true (checked in the browser on `doubleups`):** Sim Post reorders (SO1, live 11 Nov). Episodic /
+  Block Prep reorders too: it is its own segment (`PREP_KEY`, `data-ph="episodePrep"`), so its grip moves every prep bar
+  as one row (they stack among themselves by unit order, P5). Only **Tandem** had no grip: `BAR_SEL` excluded
+  `[data-du]` on purpose when double-ups were built.
+- **As built (no frozen edit):** `installMonthOrderDrag`'s `BAR_SEL` takes every `.mv-pill[data-ph]`, and `barKey`
+  maps a Tandem pill through the new `duRidesProduction(schedule, id)` (beside `duLooseRunsForWeek`, the same test):
+  - LOOSE (moved, the last unit's, or labelled by Production Week): the double-up segment's own key `DU_KEY`
+    (`doubleUp`), already a segment frozen E1 orders, so it is a row like any phase.
+  - JOINED (riding its episode's line, R6): `production`, the line it is part of. ⚠️ My call, not ruled: the
+    alternative, a joined Tandem leaving its episode's line, would undo the owner's R6.
+- Saved as `doubleUp` in `mvPhaseOrder`: no new key, no version bump (the sanitizer already keeps unknown keys).
+  `mvOrderIsCustom()` / Back to date order need nothing (segment keys). Help's "What sits on top" paragraph and
+  CLAUDE.md's `mvPhaseOrder` row and DU1 note say so.
+- **Leg `mvorderdu`** (new, in gate.sh after `mvordersp`; `mvordersp.mjs`'s plumbing, `doubleups`, April 2027): D0-D8,
+  E0. Red on `origin/main`'s build (throws at D1: no grip on a Tandem bar).
+- **Verified (build `/dist/index.html`, port 8962):** `mvorderdu` 10/10, `mvorder` 31/31, `mvordersp` 11/11, `doubleups`
+  live 20/20, doubleups 50/50, doubleups-half 3/3, doubleups-blocks 2/2 (0 console errors each), `npm run check` 46/46;
+  in the browser pane on `doubleups` with the real mouse: Prep above Production, Tandem 305 above Shoot 305, Tandem 306
+  taking Production below Prep. No full gate: no frozen code, no output moves on a calendar that never reorders.
 
 ### 🔤 19 Nov 2026: THE TEMPLATE EDITOR OPENS ON VARIABLES, NOT A MANUAL HEADER'S PLAIN TEXT — committed `5ee3a54e` on `scenario-version-offer`, cherry-picked onto `origin/main`, pushed on the owner's picker. README "Unreleased". Tracker card `template-editor-variables`.
 - **Owner:** *"by default when you open the template editor, all the labels of the default auto-header should be the

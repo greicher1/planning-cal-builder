@@ -960,7 +960,8 @@ export function HolidaysCard() {
           as a note. It only shows where that moves a date. A colored strip marks the holidays inside a
           phase that counts days (Production, a phase counted in Days, episode prep). The two note columns control where an
           enabled holiday shows up. <strong>Costs a shoot day</strong> marks a weekday holiday that falls
-          during Production, on a day the shoot would otherwise have worked.
+          during Production, on a day the shoot would otherwise have worked. Click a holiday’s name to rename
+          it everywhere it shows; clear it to go back to its own name.
         </InfoHint>
       </h2>
       <div className="side-block">

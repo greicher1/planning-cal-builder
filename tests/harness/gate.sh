@@ -1881,6 +1881,13 @@ done
 # the waterfall does not move; one undo step either way (paused or not), none for a Wednesday over its own Monday;
 # tabbing through, Snap off and a Dates phase leave the typed day. Red on two mutants (no rewrite: T2/U1-U3/K1/P1/H1;
 # no undo fold: U1/U3). Own line.
+# twodigityear (owner, 4 Nov 2026: "you can type 26 instead of 2026", and the box "should read 01/04/26") holds the
+# sidebar's and the tool popovers' date boxes: a year under 1000 typed in the box is held back from the engine until it
+# is finished (no "Check that year" refusal mid-typing, so 0002 / 0020 / 0202 on the way to 2026 never show it), then
+# leaving the box, Enter, Tab make a year under 100 into 20xx through real events (a snapped start then shows its
+# Monday; one undo step); a digit keeps typing; a 0026 nobody typed, 0202 and 20266 are left as typed; the hiatus, own
+# hiatus, Ends, calendar range, custom holiday and Rebuild From boxes; a box elsewhere is never touched; the stylesheet
+# clips the year to two digits with tabular figures. Red on a no-expansion mutant (Y2, K1, K2, B1, B2). Own line.
 # endsdate (owner, 30 Oct 2026: "what if for phases you could select EITHER starting date OR ending date", "Yes, no
 # switch", "build it") holds a Weeks phase held by its END (phaseEnds): the Starts / Ends select on every Weeks card
 # but Production's (no id), to Ends moving nothing, the end holding while the week count and the phase's own hiatus
@@ -2086,6 +2093,8 @@ done
 # waterfall note written, undo, the file's two new keys (holidayNames, holidayColors) and their repair, the written
 # month PDF, a waterfall line opening alone in the month editor, and a rename from the waterfall's own editor reaching
 # the month view, the Holidays list and the workbook.
+# Since 21 Nov 2026 (owner) it also renames from the Holidays list in Settings (S1-S5): the name edits in place, no
+# row moves, Enter / Esc / clear, undo, and a redraw mid-typing.
 # autonoterename (owner, 30 Oct - 2 Nov 2026; AUTO-NOTE-RENAME-PLAN.md) is an automatic note renamed and kept automatic:
 # the month view's Auto Note editor, the rename reaching the waterfall, the workbook and the month PDF and following a
 # moved Production, its own month colour, a typed note carrying the line, the waterfall editor's rename and removal,
@@ -2340,6 +2349,7 @@ for AFSPEC in pwagate:-:120 pwagatelogic:-:120 cfmove:-:180 whatsnew:-:240 setti
               datepick:-:150 \
               phiatuspick:-:200 \
               snapbox:-:300 \
+              twodigityear:-:300 \
               endsdate:-:400 \
               prodends:-:400 \
               finishbefore:-:300 \
@@ -3491,6 +3501,28 @@ for c in cases:
     print(('  PASS  ' if c.get('pass') is True else '  FAIL  ')+label+' '+str(c.get('id'))+': '+str(c.get('title',''))[:110])
 sys.exit(0 if cases and all(c.get('pass') is True for c in cases) else 1)
 PYMOS
+
+# ---- mvorderdu: Episodic Prep and Tandem take the month view's reorder grip ---------------------------------
+# ⭐ ADDED 21 Nov 2026 (owner: "Ensure all phases of any type (including sim post, episodic/block prep, and tandem, can be
+# arranged up and down in any order in the month view"). No frozen edit: the grip took Tandem pills in. mvordersp's
+# plumbing on doubleups, April 2027: a loose Tandem's grip (D1), dragged above Production in every week (D2), one undo
+# (D3), saved as "doubleUp" in mvPhaseOrder (D4), the WRITTEN month PDF stacks it the same way (D5); a JOINED Tandem's
+# grip moves the Production line it rides (D6, R6 kept); Prep's grip (D7); Escape (D8). Red on the build before (no
+# grip on a Tandem bar).
+node "$HERE/mvorderdu.mjs" --page "$PAGE" >/dev/null 2>&1
+python3 - "$HERE/mvorderdu.json" "mvorderdu (doubleups)" <<'PYMOD' || FAIL=1
+import json,sys
+path, label = sys.argv[1], sys.argv[2]
+try: a=json.load(open(path))
+except Exception as e:
+    print('  FAIL  '+label+' produced no result: '+str(e)); sys.exit(1)
+if a.get('EX'):
+    print('  FAIL  '+label+' threw: '+str(a['EX'])[:200]); sys.exit(1)
+cases = a.get('cases') or []
+for c in cases:
+    print(('  PASS  ' if c.get('pass') is True else '  FAIL  ')+label+' '+str(c.get('id'))+': '+str(c.get('title',''))[:110])
+sys.exit(0 if cases and all(c.get('pass') is True for c in cases) else 1)
+PYMOD
 
 # ---- hiatusdrag: move a hiatus, or change its first or last week, in the month view -----------------
 # ⭐ ADDED 19 Oct 2026 (HIATUS-DRAG-PLAN.md, owner rulings 1-4). phaseedge's sibling, for the same

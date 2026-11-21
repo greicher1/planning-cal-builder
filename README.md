@@ -28,6 +28,93 @@ way a user would notice or a future session would need to return to. See
 [`CLAUDE.md`](CLAUDE.md) → "⛔ Changelog every substantial change" for when and how.
 
 <!-- Newest first. Add new entries directly under this line. -->
+### Unreleased — the frozen code is locked by a check, not just by a rule (21 Nov 2026)
+
+Owner, 21 Nov 2026: *"Build the guard"*.
+
+- **`npm run check` now fails when any of the 55 frozen engine declarations changes** (the grid, the width model, text
+  fitting, direct manipulation, the writers, and the four functions named frozen edits made frozen). `tools/frozen-lock.mjs`
+  fingerprints each one's exact text and compares it with `tools/frozen-lock.json`; the deploy runs the check before
+  publishing, so a frozen change without an approved re-lock cannot reach the live site.
+- **An approved frozen edit re-locks in the same commit**, quoting the owner's approval:
+  `node tools/frozen-lock.mjs --approve "<words, date, what changed>"`. The approval is stored on each re-locked entry, and
+  `git log` of the lock file lists every frozen edit from now on.
+- **Not covered:** behaviour (the gate still guards the outputs) and the frozen CSS, which waits on an owner ruling.
+- **Verified:** the check runs in 0.23 s; its self-test catches a one-space change to each of the 55 and a rename;
+  `npm run check` 47/47, and red with a comment added inside `renderMonthView`. Replayed over the last 30 days of `main`, it
+  would have stopped all 38 commits that changed frozen text. No product file changed, so no gate and no What's New.
+### Unreleased — every bar in the Month view reorders, Tandem and Prep included (21 Nov 2026)
+
+Owner, 21 Nov 2026: *"Ensure all phases of any type (including sim post, episodic/block prep, and tandem, can be
+arranged up and down in any order in the month view"*.
+
+- **Tandem bars now have the six-dot reorder grip.** A loose Tandem (moved, the last episode's, or on a calendar
+  labelled by Production Week) is its own row in the order, like any phase: drag it above or below Production, Prep or
+  anything else, and it keeps that place in every week, on screen and in the month PDF. A Tandem drawn on its
+  episode's line moves that whole line (Production) with it, so it never leaves its episode (ruling R6).
+- **Sim Post and Episodic / Block Prep** already reordered (Prep as one row: its bars still stack among themselves by
+  episode); now checked by a leg with the rest.
+- Saved as `doubleUp` in `mvPhaseOrder` (a segment key the sanitizer already kept), so no new save key and no version
+  bump. Back to date order (the header button) puts it back. Help's "What sits on top" paragraph says so.
+- **No frozen edit:** only the reorder grip (`installMonthOrderDrag`) changed, which used to skip every Tandem pill;
+  frozen E1 / SO1 already ordered the loose double-up segment and prep. A calendar that never reorders draws exactly as
+  before.
+- **Verified:** new leg `mvorderdu` 10/10 (in `gate.sh` after `mvordersp`), red on the build before (no grip on a
+  Tandem bar); `mvorder`, `mvordersp`, `doubleups` (live, doubleups, doubleups-half, doubleups-blocks); `npm run check`;
+  in the browser on `doubleups`: Prep above Production, a loose Tandem above its Shoot, a joined Tandem taking
+  Production below Prep.
+
+
+### Unreleased — A holiday is renamed from the Holidays list (21 Nov 2026)
+
+The owner asked for a holiday's name to be editable from the Holidays list in Settings › Region, with no text box until
+you point at it, as the episode names in Production's settings work. Each name now reads as plain text; pointing at it
+draws the box and a click edits it in place. Enter or clicking away renames the holiday everywhere it shows (the
+waterfall, the month view, the workbook and both PDFs), the same rename the month view's holiday editor makes, for that
+date only. Esc puts the name back (and leaves the Settings window open), and clearing it brings back the holiday's own
+name, shown in gray while the box is empty. One undo step. The name is a plaintext contenteditable rather than an input,
+so a long name still wraps as before; the box moves nothing (every row's height and name position measured unchanged). A
+name being typed survives the list redrawing under it. The scenario probe now waits while any contenteditable field is
+being typed in (it missed plaintext-only ones). Nothing saved changes shape (`holidayNames` as before) and nothing frozen
+was edited. Help and the card's hint say so. Verified: `holidayrename` with new S1-S5, `holidayenable`, `settingswin`,
+`regionlock`, `mvmenu`, `npm run check` 46/46, and in the browser.
+
+### Unreleased — The month view's holiday editor has Hide Holiday (21 Nov 2026)
+
+The owner asked for the waterfall note editor's **Hide Holiday** button in the month view's editor too. A holiday opened
+in the month view now shows Hide Holiday at the editor's top right, in the same place and look as the waterfall's. It is
+the waterfall's twin: it sets the holiday's Month box off (`holidayView[hid].month = false`), so the month view and both
+month PDFs leave it out, while its Waterfall box keeps whatever it was and the day stays off (no date moves). A rename or
+colour typed before the click is saved with it, as the waterfall's Hide saves the rest of its editor. One undo step. The
+Help window says so. Nothing saved changes shape (the key and its values already existed) and nothing frozen was edited.
+Verified: `holidayrename` 15/15 with a new H1 (the button, month only, Waterfall box and the next day's holiday
+untouched, undo), `npm run check` 46/46, and in the browser on the `holidayrename` fixture (hide, undo, redo, rename
+then hide).
+
+### Unreleased — date boxes take and show a two-digit year: 01/04/26 (21 Nov 2026)
+
+Owner, 4 Nov 2026: *"you can type 26 instead of 2026"*, and the box *"should read 01/04/26"*.
+
+- **Every date box in the sidebar, and the toolbar's two (Shift's To a date, Build Around's), shows the year as two digits:**
+  01/04/26, and an empty box reads mm/dd/yy.
+- **Typing 26 means 2026.** Any year under 100 becomes 20xx once you finish it: when you leave the box, press Enter or
+  Tab, or press any key but a digit. Four digits still work, and 2, 0, 2, 6 still types 2026.
+- **No "Check that year" while you type.** A half-typed year (0026, or 0002 / 0020 / 0202 on the way to 2026) no longer
+  reaches the calendar until it is finished, so the red message and the blank preview don't flash mid-typing. A
+  three-digit year left in the box (a typo) is still refused and ringed, as before.
+- A snapped start still shows its Monday, and an Ends box its Friday, exactly as for a typed 2026; one undo takes the
+  edit back.
+- What's New tells users: "Type a two-digit year".
+
+The box still holds the full date (2026-01-04), so saved files, the grid and every export are unchanged; the two
+digits are paint only (`legacy.css` clips Chrome's year field to its last two digits, with tabular figures so 2011
+reads 11, not 011). The typing half is `holdUnfinishedYear` / `finishTypedYear` in `app.js`, capture-phase on the
+document so the Monday snap, the Ends boxes and the tools all see 2026. No frozen code. New leg `twodigityear` 13/13
+(red on a no-expansion mutant: Y2, K1, K2, B1, B2); `snapbox`, `datepick`, `endsdate`, `prodends`, `calrange`,
+`snaptools`, `builtindates`, `badyear`, `snapoff`, `undokeys` green; `npm run check` 40/40; real keystrokes in the
+browser pane (0 1 0 5 2 6 then Enter → 2026-01-05, no refusal while typing). Built 4 Nov; re-checked on 21 Nov after
+merging `main`: `npm run check` 46/46, the legs above plus `panelstale`, `buildaround`, `anchorside`, `finishbefore`
+green, and real typing beside the phase cards' ▲ / ▼.
 
 ### Unreleased — A waterfall note or hiatus band cut off by its row ends in "…" (21 Nov 2026)
 

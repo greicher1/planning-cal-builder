@@ -9282,6 +9282,65 @@ export function initLegacyApp() {
     host.addEventListener('keydown', e=>{ if(e.key === 'Enter') showSnappedMonday(e.target); });
   });
 
+  // ⭐ A TWO-DIGIT YEAR IS THIS CENTURY'S (owner, 4 Nov 2026: "you can type 26 instead of 2026", and the box "should
+  // read 01/04/26"). Chrome's date box takes a typed "26" as the year 0026, which parseDateUTC() refuses (MIN_YEAR):
+  // the box was ringed "Check that year" and the preview blanked. Now a year under 100 becomes 2000 + it once you
+  // finish typing it, through real input and change events, exactly as if 2026 had been typed. The box SHOWS two
+  // digits by CSS alone (legacy.css, "Two-digit years"), so the value, fields.byId and every saved file keep the full
+  // ISO date, and nothing reads a two-digit year anywhere.
+  //   - A YEAR STILL BEING TYPED IS HELD BACK. While the year is under 1000 (0026, or 0002 / 0020 / 0202 on the way
+  //     to 2026), the box's input and change events stop here, so the engine keeps the date it had: no "Check that
+  //     year" ring and no blank preview mid-typing. (Before, typing 2026 flashed both three times; with "26" it would
+  //     have stayed until the box was left.) A four-digit year, a cleared box and the picker's writes pass at once.
+  //   - FINISHED on leaving the box, or on any key but a digit or a delete (Enter, Tab, an arrow, a shortcut such as
+  //     ⌘S, so a save never catches a held year). A digit keeps typing, so 2, 0, 2, 6 still makes 2026. Under 100
+  //     becomes 20xx; 100-999 (a typo) is handed over as typed, so readState() refuses and rings it as before.
+  //   - Which boxes: every date box the pop-out picker serves (DatePop's pickerTarget): the sidebar (.form-panel) and
+  //     the tool popovers (.tools-menu). Never the grid.
+  //   - CAPTURE on the document, so it runs before showSnappedMonday(), the Ends boxes' own handlers, React and a
+  //     tool's Enter: they all see 2026 and treat it as a typed 2026 (a snapped start still shows its Monday).
+  //   - Only a year TYPED in this visit is held, so a 0026 loaded from an older file is left alone (and refused).
+  //   - One undo step: the engine first hears of the edit at 2026, and foldIntoBankedStep() covers the rare case of a
+  //     step banked while a year was held.
+  const yearHeld = new WeakSet();   // date boxes whose typed year is not finished, so the engine has not heard of it
+  let yearReleasing = false;        // our own events, handing a held year over
+  function twoDigitYearBox(t){
+    return t && t.tagName === 'INPUT' && t.type === 'date' && t.closest && (t.closest('.form-panel') || t.closest('.tools-menu')) ? t : null;
+  }
+  function typedYearParts(v){
+    const m = /^(\d{4,})-(\d{2})-(\d{2})$/.exec(v || '');
+    return m ? {y: +m[1], m: m[2], d: m[3]} : null;
+  }
+  function holdUnfinishedYear(e){
+    const el = twoDigitYearBox(e.target);
+    if(!el || yearReleasing) return;
+    const p = typedYearParts(el.value);
+    if(!p || p.y >= 1000){ yearHeld.delete(el); return; }
+    yearHeld.add(el);
+    e.stopImmediatePropagation();
+  }
+  function finishTypedYear(el){
+    if(!el || !yearHeld.has(el)) return;
+    yearHeld.delete(el);
+    const p = typedYearParts(el.value);
+    const before = undoStateJSON();
+    if(p && p.y < 100) el.value = (2000 + p.y) + '-' + p.m + '-' + p.d;
+    yearReleasing = true;
+    try {
+      el.dispatchEvent(new Event('input', {bubbles: true}));
+      el.dispatchEvent(new Event('change', {bubbles: true}));
+    } finally { yearReleasing = false; }
+    foldIntoBankedStep(before);
+  }
+  document.addEventListener('input', holdUnfinishedYear, true);
+  document.addEventListener('change', holdUnfinishedYear, true);
+  document.addEventListener('focusout', e=>{ finishTypedYear(twoDigitYearBox(e.target)); }, true);
+  document.addEventListener('keydown', e=>{
+    const el = twoDigitYearBox(e.target);
+    if(!el || /^[0-9]$/.test(e.key) || e.key === 'Backspace' || e.key === 'Delete') return;
+    finishTypedYear(el);
+  }, true);
+
   // ⭐ THE A + D BLEND (owner, 23 Oct 2026; PHASES-TAB-PLAN.md §3.4a, rulings R6-R10). Every phase card is a HEAD in
   // the phase's colour lightened (60% colour, 40% white, off the row's --phase-color, which paintPhaseSwatch() keeps
   // in step with the swatch): the caret, the colour square, the name (no box; it fades on hover), its tag, the dates
@@ -11470,9 +11529,22 @@ export function initLegacyApp() {
     let grip = null, shownFor = null, drag = null;
     // Sim Post included (SO1, 11 Nov 2026): its bar carries data-sp on screen and stands in the order as MV_SIMPOST_KEY.
     const effectiveOrder = ()=> mvOrderKeys((currentSchedule && currentSchedule.segments) || [], currentSchedule);
-    // Not a double-up pill (DOUBLE-UP-DAYS-PLAN.md): it rides Production's line or sits loose, and has no order of its own.
-    const BAR_SEL = '.mv-pill[data-ph]:not([data-du]), .mv-pill[data-sp]';
-    const barKey = p=> p.getAttribute('data-ph') || (p.hasAttribute('data-sp') ? MV_SIMPOST_KEY : null);
+    // ⭐ EVERY BAR KIND TAKES THE GRIP (owner, 21 Nov 2026: "Ensure all phases of any type (including sim post,
+    // episodic/block prep, and tandem, can be arranged up and down in any order in the month view"). A bar's place in
+    // the order is the SEGMENT that draws it, which is what frozen E1 / SO1 order:
+    //  - Sim Post: MV_SIMPOST_KEY (data-sp, SO1).
+    //  - Episodic / Block Prep: its own segment, PREP_KEY, already a data-ph bar, so all the preps move as one row
+    //    (they stack among themselves by unit order, P5).
+    //  - TANDEM (a double-up pill, data-du): until today no grip at all. A LOOSE one (moved, the last unit's, or a
+    //    calendar labelled by Production Week) is drawn by the double-up segment's own runs, so it is DU_KEY in the
+    //    order like any phase. A JOINED one rides its episode's line inside Production's runs (owner ruling R6,
+    //    mvJoinDoubleUps), so its grip moves PRODUCTION, the line it is part of: it cannot leave its episode without
+    //    undoing R6. duRidesProduction() decides from the schedule, as the renderer did.
+    const BAR_SEL = '.mv-pill[data-ph], .mv-pill[data-sp]';
+    const barKey = p=>{
+      if(p.hasAttribute('data-du')) return duRidesProduction(currentSchedule, p.getAttribute('data-du')) ? 'production' : DU_KEY;
+      return p.getAttribute('data-ph') || (p.hasAttribute('data-sp') ? MV_SIMPOST_KEY : null);
+    };
     function gripEl(){
       if(grip) return grip;
       grip = document.createElement('div');
@@ -16112,9 +16184,18 @@ export function initLegacyApp() {
       const enCell = holidayEnableShown(schedule, h)
         ? '<span class="hv-cell"'+wk+'><input type="checkbox" class="hv-en" aria-label="Enable '+label+'" data-hid="'+escHtml(h.hid)+'"'+(on?' checked':'')+(weekend?' data-weekend="1"':'')+'></span>'
         : '<span class="hv-cell hv-en-na"></span>';
+      // ⭐ THE NAME RENAMES IN PLACE (owner, 21 Nov 2026: "No text box until you hover over the title similar to how
+      // the episode names in the production phase section work"). It reads as text; pointing at it draws the box and a
+      // click edits it (.hv-name-edit, legacy.css). Enter or leaving it renames the holiday everywhere it shows, as the
+      // month view's holiday editor does (commitHolidayNameEdit -> setHolidayName); Esc puts it back; cleared, it is
+      // its own name again. A plaintext contenteditable rather than an <input>, so a long name still wraps, and the
+      // name stays .hv-name's first text (legs read it there). No id: nothing here may reach fields.byId.
+      const nameEdit = '<span class="hv-name-edit" contenteditable="plaintext-only" spellcheck="false" role="textbox"'
+        + ' aria-label="Name of '+label+'" data-hid="'+escHtml(h.hid)+'" data-iso="'+escHtml(isoOf(h.date))+'"'
+        + ' data-name="'+escHtml(h.name)+'" data-orig="'+escHtml(h.origName || h.name)+'">'+escHtml(h.name)+'</span>';
       return '<div class="hv-row" data-hid="'+escHtml(h.hid)+'">'
         + '<span class="hv-label'+dim+'" title="'+label+renamed+'">'
-        +   '<span class="hv-name">'+escHtml(h.name)+tag+oor+'</span>'
+        +   '<span class="hv-name">'+nameEdit+tag+oor+'</span>'
         +   '<span class="hv-date">'+fmtShort(h.date)
         +     (costsDay[h.iso] ? ' <span class="hv-shoot" title="Falls on a day Production would have shot, so the shoot runs a day longer.">Costs a shoot day</span>' : '')
         // Why a box under Production carries no "Costs a shoot day" (owner, 11 Nov 2026: "whats happening here where
@@ -16169,8 +16250,29 @@ export function initLegacyApp() {
         + '<div class="hv-run-rows">' + r.rows.map(rowHtml).join('') + '</div></div>';
     });
     listEl.classList.toggle('hv-has-strips', runs.some(r=> !!r.seg));
-    listEl.innerHTML = html;
+    // A name being renamed survives a redraw (the list is rewritten on every render, and a scenario probe or any other
+    // render can land mid-typing): its text and caret go into the new row's name, still focused. hvNameRedrawing keeps
+    // the old one's focusout, if Chrome sends one as it is removed, from committing half a name.
+    const ae = document.activeElement;
+    let editing = null;
+    if(ae && ae.classList && ae.classList.contains('hv-name-edit') && listEl.contains(ae)){
+      const sel = window.getSelection();
+      editing = {hid: ae.dataset.hid, text: ae.textContent,
+                 at: (sel && sel.rangeCount && ae.contains(sel.anchorNode)) ? sel.anchorOffset : ae.textContent.length};
+    }
+    hvNameRedrawing = true;
+    try { listEl.innerHTML = html; } finally { hvNameRedrawing = false; }
+    if(editing){
+      const el = [...listEl.querySelectorAll('.hv-name-edit')].find(x=> x.dataset.hid === editing.hid);
+      if(el){
+        el.textContent = editing.text;
+        el.focus({preventScroll: true});
+        const tn = el.firstChild, sel = window.getSelection();
+        if(tn && sel){ const r = document.createRange(); r.setStart(tn, Math.min(editing.at, tn.length)); r.collapse(true); sel.removeAllRanges(); sel.addRange(r); }
+      }
+    }
   }
+  var hvNameRedrawing = false;
 
   // Rebuilding markup with innerHTML replaces the scroll containers themselves, which puts them
   // back at the top -- and rebuilding the sidebar can change the page height, taking the window's
@@ -18480,6 +18582,13 @@ export function initLegacyApp() {
       if(nx && nx.unit && !nx.du && nx.startCol <= lastDr.endCol && nx.endCol >= dr[0].startCol) nx.duBelow = true;
     });
     return out;
+  }
+  // Is the double-up `id` drawn on its episode's line inside Production's runs (mvJoinDoubleUps), rather than as one of
+  // the double-up segment's own loose pills (duLooseRunsForWeek, the same test)? The month reorder grip asks it.
+  function duRidesProduction(schedule, id){
+    const seg = duSegOf(schedule);
+    const du = seg && (seg.dus || []).find(x=> x.id === id);
+    return !!(du && du.joined && productionSplits(productionUnits(schedule)));
   }
   // The double-up segment's own pills in one row: every double-up that is not riding Production's line.
   function duLooseRunsForWeek(schedule, weekStart, seg){
@@ -33377,7 +33486,36 @@ export function initLegacyApp() {
       markDirty();
       render(currentSchedule);
     });
+    // A holiday's name, renamed in place (renderHolidayVisList's .hv-name-edit). Enter or leaving it commits; Esc puts
+    // the name back. preventDefault on both keys: Enter must not add a line, and the Settings window closes on an
+    // Escape nobody else took (SettingsWindow.jsx's onKeyDown checks defaultPrevented).
+    host.addEventListener('keydown', e=>{
+      const el = e.target.closest && e.target.closest('.hv-name-edit');
+      if(!el) return;
+      if(e.key === 'Enter'){ e.preventDefault(); el.blur(); }
+      else if(e.key === 'Escape'){ e.preventDefault(); el.textContent = el.dataset.name; el.blur(); }
+    });
+    host.addEventListener('focusout', e=>{
+      const el = e.target.closest && e.target.closest('.hv-name-edit');
+      if(!el || hvNameRedrawing || !el.isConnected) return;
+      commitHolidayNameEdit(el);
+    });
   })();
+  // The rename, written the way the month view's holiday editor writes one (writeActiveMvNote's holiday branch): its own
+  // date typed after the name is dropped (the date is added back on every line), and empty or the list's own name means
+  // no rename. One update(), so it is one undo step and every view and export follows.
+  const HOLIDAY_NAME_MAX = 200;
+  function commitHolidayNameEdit(el){
+    const was = el.dataset.name;
+    const orig = holidayOrigName(el.dataset.hid);
+    const date = parseDateUTC(el.dataset.iso);
+    if(orig == null || !date){ el.textContent = was; return; }
+    const typed = stripHolidayDate(String(el.textContent || '').replace(/\s+/g, ' ').trim(), date).slice(0, HOLIDAY_NAME_MAX).trim();
+    const next = (!typed || typed === orig) ? null : typed;
+    if((next || orig) === was){ el.textContent = was; return; }
+    setHolidayName({hid: el.dataset.hid, name: was, origName: orig, date}, next);
+    update();
+  }
   // Add / reset for the user's own holidays.
   (function(){
     const nameEl = document.getElementById('custom-hol-name');
@@ -34801,7 +34939,9 @@ export function initLegacyApp() {
       const need = scenarioTabs.filter(t => t.id !== currentScenarioId && !t.facts && !t.factsFailed && t.snapshot);
       if(!need.length) return;
       const ae = document.activeElement;
-      const typing = ae && ae !== document.body && ae.matches && ae.matches('input, textarea, select, [contenteditable="true"]');
+      // isContentEditable too: a plaintext-only field (a side box's text, a holiday's name in the Holidays list) does not
+      // match [contenteditable="true"].
+      const typing = ae && ae !== document.body && ((ae.matches && ae.matches('input, textarea, select, [contenteditable="true"]')) || ae.isContentEditable);
       if(activeNoteEditor || activeMvNote || typing){ scheduleScenarioProbe(800); return; }
       clearTimeout(undoPushTimer);
       pushUndoSnapshot();
@@ -45656,6 +45796,8 @@ export function initLegacyApp() {
         if(pendingColor.toUpperCase() === base.toUpperCase()) delete holidayColors[h.hid];
         else holidayColors[h.hid] = pendingColor;
       }
+      // Its Hide Holiday button: out of the month view only (setHolidayView's store; the commit draws).
+      if(activeMvNote.hideHoliday){ holidayView[h.hid] = Object.assign({}, holidayView[h.hid], {month: false}); activeMvNote.renamed = true; }
       return true;
     }
     if(kind === 'auto'){
@@ -46198,7 +46340,8 @@ export function initLegacyApp() {
     const headHtml = `<div class="note-pop-head"><div class="note-pop-heading mv-note-pop-day"><span class="note-pop-title">${escHtml(mvName)}</span>`
       + ` <span class="note-pop-when">${escHtml(mvWhen)}</span></div>`
       + (isAuto ? `<button type="button" class="note-pop-delete" title="Hides it from the month view and its PDF. Tick its Month box in Settings ▸ Automatic notes to bring it back.">Hide Auto-Note</button>`
-                : isHol ? '' : delNoteHtml) + `</div>`;
+                : isHol ? `<button type="button" class="note-pop-delete mv-holiday-hide" title="Hides this holiday from the month view and its PDF. It stays in the Waterfall and stays a day off. Tick its Month box under Holidays, or right-click its day, to bring it back.">Hide Holiday</button>`
+                : delNoteHtml) + `</div>`;
     const colourRow = `<div class="note-item note-colour-item"><div class="note-line"><span class="note-row-name">Color</span>`
       + `<span class="note-colour-name">${escHtml(noteColourName(curColor))}</span></div>${notePaletteRowsHtml(curColor)}</div>`;
     const footHtml = `<div class="note-pop-foot">${(isAuto || isHol) ? '<span class="note-pop-keys">Enter to save · Esc to cancel</span>' : ''}`
@@ -46364,13 +46507,17 @@ export function initLegacyApp() {
       });
     }
     // Hide Auto-Note: what clearing the box does (ruling 4, R4), as one click. Its class keeps the old word.
+    // ⭐ Hide Holiday (owner, 21 Nov 2026: "add the same hide holiday button in the waterfall pop-up to the month view
+    // pop-up"): the waterfall editor's Hide Holiday mirrored, holidayView[hid].month = false (writeActiveMvNote's holiday
+    // branch), so the month view and its PDF leave it out, the Waterfall keeps its own setting and it stays a day off.
+    // Anything typed or picked in the editor is saved with it, as the waterfall's Hide saves the rest of its editor.
     const delBtn = pop.querySelector('.note-pop-delete:not(.mv-note-delete)');
     if(delBtn){
       delBtn.addEventListener('mousedown', e=>e.preventDefault());
       delBtn.addEventListener('click', e=>{
         e.stopPropagation();
         if(!activeMvNote) return;
-        activeMvNote.deleteAuto = true;
+        if(isHol) activeMvNote.hideHoliday = true; else activeMvNote.deleteAuto = true;
         commitMvNoteEditor();
       });
     }
