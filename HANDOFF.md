@@ -36,19 +36,19 @@
   `npm run check` 46/46 at `69954eec`.
 - **NEXT, in order:**
   1. (Done: notes approved, extras shown and settled, see above.)
-  2. Point the kit's calendar-specific steps at the new calendar: note-editor (week `2027-06-07`), mv-note-editor ("Tech
-     scout Ep 101"), mv-holiday-editor (a BC holiday, e.g. Canada Day 7/1/27), month-day-menu / app-month (2027-06 or 07),
-     wf-context (a 2027 week). Then `npm run build && node tools/help-shots.mjs > log 2>&1` (≈7 min; never pipe it
-     through `tail`, which hides progress; every group starts from cleared storage and "Leave site?" is answered).
-  3. Re-place the numbered dots in EVERY article that uses a picture, looking at each new picture (dots sit beside a
-     control's label, never on its words). `text-bar.webp` is dimmed (nothing picked); retake it with a cell picked.
-  4. Review all 64 articles in the app (on `localhost` via `tests/harness/srv.js` serving this worktree, `?state=help-demo`).
-     The writers flagged: `singlecol` (the Settings tooltip says Single Column Mode runs the whole calendar down ONE column,
-     no year blocks: check the article), `prefs` (mentions Hidden Notes columns: owner left that out, remove), `side`
-     (described from SIDE-BOXES-PLAN, not the app), `keys` (right-click menu items from the old Guide), `hdrmodes`
-     (which modes show the formatting bar), `presets` (Export… control not found), `mvpdf` ("one month: no window"),
-     `production` / `prep` (two inferred sentences), `holiday-list` dots in `regiontab` (guessed). No writer used ShowMe;
-     add ones whose selector is an id the app keeps.
+  2–4. **Done 21 Nov 2026 (`b86715c2`):** every picture retaken on Harbor Lights S1 (33, all used; `changes-dialog` dropped:
+     a `?state=` calendar has no saved version, so that window only says so). The kit now runs ONLY the groups holding the
+     named shots (`node tools/help-shots.mjs note-editor` ≈ 25 s; a group starts at a step that calls `load()`); new crops
+     `wf-grid` (read), side boxes, tandem month and the Production card, so a 26 px dot is not bigger than its cell;
+     `underTabs()` scrolls a card out from under the side panel's sticky tabs (scrollIntoView alone hides its top).
+     Whole-window shots draw 18 px dots (help.css). Dots re-placed by eye with an overlay script at true dot size. Review
+     fixes: header lines are styled by the text style bar (the in-header strip is hidden), Template is edited in the
+     template editor (its list is "Insert", not "Insert ▾"), Compare's chips show only with 3+ scenarios, Hidden Notes out
+     of `prefs`, Export… sits beside a saved preset, Fill Gaps (not "share the width") in `read`, the holiday rename from
+     Settings › Region's list (commit `6be10871` on main, NOT on this branch: merge main in before shipping), every
+     example on the demo's dates. Show me: `showme.js` checked `.side-settings-btn.active`, a class that button never
+     has, so it CLOSED an open Settings window; it reads `aria-expanded` now, and `sw` picks a Settings tab. 20 Show me
+     buttons in all. ⚠️ Not done: the engine's Insert list still says `{version}` is "Version, as typed" (it prints v3).
   5. The `help` leg (`tests/harness/t/help.js`, `HARNESS_PAGE=/dist/index.html HARNESS_STATE=help-demo ./run.sh help`):
      opens, every article has its title and no "being written", every picture loads, every `data-showme` target exists,
      search, Esc, context (Shift box → "Shift in detail"), Month-only switch, Help's controls add no undo step, an ⓘ link
