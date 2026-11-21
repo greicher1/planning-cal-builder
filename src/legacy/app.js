@@ -13,7 +13,7 @@
 
 import { chrome } from '../chrome/bridge.js'
 // The key names the app shows, for the computer it is on (audit 2026-11, WIN-3), and the one test of "is this a Mac".
-import { keyLabel, localizeKeys, platformIsMac } from '../chrome/keys.js'
+import { keyLabel, platformIsMac } from '../chrome/keys.js'
 
 export function initLegacyApp() {
 
@@ -33989,6 +33989,8 @@ export function initLegacyApp() {
     if(el.closest('.export-pdf-dlg')) return false;
     // ...and so is the Compare window (CompareDialog.jsx): Mantine mints an id for each scenario Chip's checkbox.
     if(el.closest('.compare-dlg')) return false;
+    // ...and Help (src/help/HelpWindow.jsx): its search box and "I only use the Month view" switch are per-machine UI.
+    if(el.closest('.help-dlg')) return false;
     return true;
   }
   // What a saved field holds on a NEW calendar: resetAll()'s values, as explicit constants. applyStateSnapshot()
@@ -41592,24 +41594,8 @@ export function initLegacyApp() {
     }));
   })();
 
-  // Help modal
-  (function(){
-    const overlay = document.getElementById('help-overlay');
-    // ⭐ HELP NAMES THE KEYS FOR THIS COMPUTER (audit 2026-11, WIN-3). index.html writes them as a Mac's (⌘S) with the
-    // key's spec beside it (data-keys="Mod+S"), and marks the few sentences true on one platform only (data-os). This
-    // rewrites them once, from the specs: Ctrl+S on Windows and Linux, ⌘S on a Mac. See src/chrome/keys.js.
-    localizeKeys(document.getElementById('help-body'));
-    // ⭐ A double-clicked ? leaves Help open (audit AUD2-061, 14 Nov 2026), as the app's Mantine windows do
-    // (src/chrome/modalGuard.js, the same 500 ms): the overlay covers the ? button the moment Help opens, so the
-    // double-click's second press landed on it and its click-away closed Help inside the same gesture.
-    let openedAt = 0;
-    const openHelp = ()=>{ if(!overlay.classList.contains('open')) openedAt = performance.now(); overlay.classList.add('open'); };
-    const closeHelp = ()=>{ overlay.classList.remove('open'); };
-    document.getElementById('help-fab').addEventListener('click', openHelp);
-    document.getElementById('help-close').addEventListener('click', closeHelp);
-    overlay.addEventListener('click', e=>{ if(e.target === overlay && performance.now() - openedAt >= 500) closeHelp(); });
-    document.addEventListener('keydown', e=>{ if(e.key==='Escape' && overlay.classList.contains('open')) closeHelp(); });
-  })();
+  // Help is src/help/HelpWindow.jsx (21 Nov 2026): it opens itself from #help-fab and names the keys for this
+  // computer through keys.js, so the one-page Guide's wiring that sat here (#help-overlay, localizeKeys) is gone.
 
   // ⭐ THE EXCEL LIBRARY IS LOADED AGAIN WHEN AN EXPORT NEEDS IT (November 2026 audit, item 3.11: AUD2-064; the owner's
   // decision D7 (a), 13 Nov 2026: SPTCal stays an online app, and says so). ExcelJS is the one script the app loads from
