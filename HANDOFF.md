@@ -49,6 +49,19 @@
      example on the demo's dates. Show me: `showme.js` checked `.side-settings-btn.active`, a class that button never
      has, so it CLOSED an open Settings window; it reads `aria-expanded` now, and `sw` picks a Settings tab. 20 Show me
      buttons in all. ⚠️ Not done: the engine's Insert list still says `{version}` is "Version, as typed" (it prints v3).
+  **Two "needs explaining?" audits of all 64 pages (21 Nov, read-only, nothing applied yet).** Full records, outside the repo:
+  `~/Library/Application Support/Claude/side-session-notes/local_1b68e484-…/help-audit-2026-11-21.md` (readers may use hover
+  and ⓘ) and `…/help-audit-2-visible-only-2026-11-21.md` (readers who never read hover text or ⓘ). Result: 6 pages need
+  explaining (tandem, ripple, mvnotes, swap, hdrmodes, autosave), 42 partly, 16 self-explanatory; about 20 merges would take
+  64 pages to ~44; ~20 wrong or stale claims were found (e.g. `newreset` says every reset asks first, `names` says Cancel
+  keeps the file-name choices, `hdrmodes` says Auto's lines come back, seven pages are stale since the 19 Nov
+  "new notes stay with their phase" default, Blocks mode breaks four "Production waits for…" lines). Both audits are guides,
+  not a task list: the merges and page edits wait for the owner's yes.
+  ⛔ **Owner ruling, 21 Nov 2026: NO printed captions.** He was shown ten one-line captions on localhost (File chip, Autosaved
+  status, header-menu rows, Ripple, Region, Tandem, Lock in place, Calendar range, Hidden Notes, Total shooting days) and
+  said *"absolutely not, i want less on-screen text as it looks ugly. I'd rather hide it behind 'i' symbols or in the help
+  page."* All reverted, never committed. So what the screen does not say lives in an ⓘ hint or in Help. Don't mock up printed
+  helper lines again; adding an ⓘ where a control has none is a UI change he hasn't seen, so show it first.
   5. The `help` leg (`tests/harness/t/help.js`, `HARNESS_PAGE=/dist/index.html HARNESS_STATE=help-demo ./run.sh help`):
      opens, every article has its title and no "being written", every picture loads, every `data-showme` target exists,
      search, Esc, context (Shift box → "Shift in detail"), Month-only switch, Help's controls add no undo step, an ⓘ link
