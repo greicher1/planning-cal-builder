@@ -4,6 +4,35 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### 🗄️ 21 Nov 2026: SPLITTING THE ENGINE INTO FILES IS SHELVED (owner, *"Shelve it"*). Decision only, no code. Tracker cards `engine-split-modules` (held), `post-schedule-version`, `holiday-data-own-file`, `multi-file-output`.
+- **Asked:** whether the single-file design holds the app back, especially with post-production coming. A read-only
+  study (5 agents) measured `src/legacy/app.js`: a behaviour-identical split into ES modules fits in ONE night as one
+  agent running a codemod (frozen text can stay byte-identical; only 7 bindings must sit with the frozen code). But it
+  leaves the coupling as it is (17 modules = one cycle, 202 of 272 possible edges, 260 shared mutable bindings), and its
+  prerequisites (a night's landing freeze, porting live branches by the merge-parent method, retargeting 15 path
+  readers and 11 text-slicing legs, 332 doc mentions) cost more than it returns.
+- **Why shelved, measured:** the gate gains nothing (headless Chrome starts in ~0.5 s and the app loads and boots in
+  ~0.4 s more per leg; the hour is the legs' own work); the frozen-code guard shipped without it (entry below); git
+  merges different hunks of one file without conflict; token savings are modest (sessions grep and read slices).
+- ⛔ **Do instead:**
+  - **Post-production is built as its OWN module from day one**: its own files, its saved data under one snapshot key,
+    and a defined way to read the shoot schedule, not more of `app.js`. (`post-milestones`, the Producer's Cut note, is
+    already inside `app.js`.)
+  - **The generated holiday data** (`HOLIDAYS`, `REGION_CAVEATS`, `REGION_NOTES`, ~2,400 lines that
+    `tools/gen_holidays.py` writes as `holidays.app.js` and someone splices in by hand) can move to its own generated
+    file the next time holidays are regenerated.
+  - **The output stays one file for now, but NOT as a rule.** Its old reason (an emailed working copy) is gone since
+    v1.21.0. The reasons the governance draft gave (rollback, the CSP, fonts) don't require it. There's no service
+    worker, so offline isn't a reason either. Keeping it is only the cost of changing (CSP, check-build, harness server,
+    release copies, the font element ids the PDF writers read). Revisit if post-production makes the app much bigger.
+- **Reopen the split if** post-production needs deep access to engine state, or merge conflicts in `app.js` start
+  costing real time.
+- **Found on the way:** 37 release copies (`releases/*.html`, 68 MB, ~2.3 MB each, 15 of them on 17-19 Nov) are committed;
+  storing them as GitHub Release files would stop that growth (not decided). The parallel lanes (`gate-lanes`, rejected
+  21 Oct) are still the biggest measured gate speed-up; the sleep trim (`gate-sleep-trim`) has sat unmerged since
+  22 Oct. A governance session's notes and this session's critique of them went both ways the same day (its draft rule
+  CODE-5, "the product stays one file", was flagged as not worth a rule).
+
 ### ✂️ 21 Nov 2026: A WATERFALL NOTE OR HIATUS BAND CUT OFF BY ITS ROW ENDS IN "…" — BUILT on branch `note-ellipsis` (worktree `.claude/worktrees/note-ellipsis`, from `origin/main` `81575e55`; `node_modules` is a symlink, unlink it before `git worktree remove`), full gate run, gate 2 RE-CUT on the owner's picker, committed `69ca122d`; `origin/main` merged in (`46b6ea33`, its three frozen declarations re-locked under the new frozen-code guard with the owner's approval), PUSHED to `main` on the owner's picker *"Merge and push"*. ✅ LIVE: deploy run green, the GitHub Pages file byte-identical to the tested build. Frozen edit **EL1** (CLAUDE.md's tenth exception). README "Unreleased". Tracker card `note-size-ellipsis`.
 - **Owner:** *"When you increase font size of a note, don't just silently cut off the text, add an elipses"*. Pickers: *"Screen + PDF (Recommended)"* (Excel unchanged), *"Notes and hiatus bands"*, then, shown the reference calendar's cell, *"Accept, update refs"*.
 - **Why it was silent.** `cellTextFit` honours a picked size outright (`manual`) and a pinned row's height, and the cell body is `max-height` + `overflow:hidden`, so lines past the row were simply cut; the PDF drew them inside the cell's clip box, where they were invisible. The month view already had a line clamp.
