@@ -2093,6 +2093,8 @@ done
 # waterfall note written, undo, the file's two new keys (holidayNames, holidayColors) and their repair, the written
 # month PDF, a waterfall line opening alone in the month editor, and a rename from the waterfall's own editor reaching
 # the month view, the Holidays list and the workbook.
+# Since 21 Nov 2026 (owner) it also renames from the Holidays list in Settings (S1-S5): the name edits in place, no
+# row moves, Enter / Esc / clear, undo, and a redraw mid-typing.
 # autonoterename (owner, 30 Oct - 2 Nov 2026; AUTO-NOTE-RENAME-PLAN.md) is an automatic note renamed and kept automatic:
 # the month view's Auto Note editor, the rename reaching the waterfall, the workbook and the month PDF and following a
 # moved Production, its own month colour, a typed note carrying the line, the waterfall editor's rename and removal,
@@ -2412,6 +2414,7 @@ for AFSPEC in pwagate:-:120 pwagatelogic:-:120 cfmove:-:180 whatsnew:-:240 setti
               lastedited:lastedited:400 \
               viewclean:-:1500 \
               wfnotecolors:wfkeys:400 \
+              wfnoteellipsis:noteellipsis:300 \
               noteviews:wfkeys:500 \
               phasenotes:phasenotes:900 \
               phaselink:phasenotes:900 \

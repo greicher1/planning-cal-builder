@@ -249,6 +249,23 @@ there for a specific, measured reason, and the reasons are not visible from the 
   height moves, `#print-root` and every writer are untouched. ⛔ The cell cannot draw the line itself in collapsed mode
   (it paints nothing outside its padding box, and no outer shadow); HANDOFF's 19 Nov entry has the repro.
 
+- ⚠️ **A tenth, frozen edit EL1 (owner, 21 Nov 2026: *"When you increase font size of a note, don't just silently cut off
+  the text, add an elipses"*; pickers *"Screen + PDF"*, *"Notes and hiatus bands"*): a waterfall note or hiatus band cut
+  off by its row ends in "…", on screen and in the waterfall PDF.** `cellClampLines(fit, rowPx)` counts the lines a
+  row SHOWS (half a line or more, `Math.round`), and only a cell whose wrapped lines run past that is clamped:
+  `cellClampCss` appends `display:-webkit-box; -webkit-line-clamp:N` to its `.cell-body` in `renderSpreadsheetView`
+  (notes, all-phase bands, per-phase bands), and `applyCellFitLive` keeps it in step during a drag. The writer's twin,
+  `wfPdfEllipsize`, drops the lines past what its own row shows and ends the last kept one in "…" (WinAnsi \205).
+  - ⛔ Never `budgetAt`'s floor: every two-line note in a 20 px row is `clipped` at the shrink floor (1.68 lines fit),
+    and a floor would swap its readable second line for "…" on every such note.
+  - ⛔ INERT on every cell that is not cut: '' is appended and the PDF lines come back as they went in, so a calendar
+    with no such cell is byte for byte what it was. Excel is NOT changed (owner's picker): Excel clips wrapped text
+    itself, and cutting the cell's text would lose the note from the file.
+  - Chrome reports a clamped body's display as `flow-root`. Leg `wfnoteellipsis` (S1-S5, P1-P4, X1, E0).
+  - Gate 2's `base.pdf` was re-cut for it (owner's picker *"Accept, update refs"*): the reference calendar's 6/29/26
+    cell, three lines in a 20 px row, ends its second line in "…". `notewrap` A/D, `noteviews` P1 and `phasenotes` X2
+    now expect the shown lines and the "…", not lines the cell hid.
+
 **Why, concretely.** These three cost weeks and are each invisible without measurement:
 
 - Calibri/Carlito's `"0"` advances 7.4336 px, but **Excel floors MDW to 7**. Using the true
@@ -338,6 +355,15 @@ edit and the rule below applies.
 **If a change genuinely requires touching it:** stop and ask, with the measurement you intend to
 use as the acceptance gate (clipped-cell count, PDF diff against a pre-change export). Do not
 decide this one alone.
+
+⛔ **A check enforces this now** (owner, 21 Nov 2026: *"Build the guard"*). `tools/frozen-lock.mjs`, run by
+`npm run check` and so by every deploy, fingerprints the exact text of the 55 frozen declarations (the list above, plus
+`mvNoteLineCount`, `mvNoteLineCountSized`, `notesForWaterfallDate`, `mvNoteBoxWidth`) and fails on any change not in
+`tools/frozen-lock.json`. Once the owner approves a frozen edit, re-lock in the SAME commit with
+`node tools/frozen-lock.mjs --approve "<the owner's words, date, what changed>"` and end the message with the
+`Frozen-edit-approved:` line it prints. **Never re-lock without that approval**, and never to turn a red check green.
+It guards the frozen TEXT, not behaviour (the gate does that), and not yet the frozen CSS. A new frozen symbol goes in
+with `--add name:group`. HANDOFF's 21 Nov 2026 entry has the details.
 
 ⚠️ **One place chrome geometry legitimately reaches into the frozen surface: `--header-h`.** A
 ResizeObserver measures the header and writes it, and the frozen

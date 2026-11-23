@@ -72,14 +72,15 @@ window.addEventListener('load', function () { (async function () {
                                           .map(function (t) { return t + '\n'; }).join('');
     var runs = [], rects = [], mm;
     var reRun = /BT \/(F\d+) ([\d.]+) Tf [\d. ]+ rg 1 0 [-\d.]+ 1 ([-\d.]+) ([-\d.]+) Tm \(((?:\\.|[^\\)])*)\) Tj ET/g;
-    while ((mm = reRun.exec(txt))) runs.push({ font: mm[1], size: +mm[2], x: +mm[3], y: +mm[4], text: mm[5].replace(/\\(.)/g, function (all, ch) { return ch; }) });
+    while ((mm = reRun.exec(txt))) runs.push({ font: mm[1], size: +mm[2], x: +mm[3], y: +mm[4], text: mm[5].replace(/\\([0-7]{3})/g, function (all, o) { var c = parseInt(o, 8); return c === 0x85 ? '\u2026' : String.fromCharCode(c); })
+                                                                                                       .replace(/\\(.)/g, function (all, ch) { return ch; }) });
     var reRect = /([\d.]+) ([\d.]+) ([\d.]+) rg ([-\d.]+) ([-\d.]+) ([-\d.]+) ([-\d.]+) re f/g;
     while ((mm = reRect.exec(txt))) rects.push({ rgb: [+mm[1], +mm[2], +mm[3]], x: +mm[4], y: +mm[5], w: +mm[6], h: +mm[7] });
     return { runs: runs, rects: rects };
   }
   var mctx = document.createElement('canvas').getContext('2d');
   function runWidth(r) { mctx.font = r.size + 'px Carlito, Calibri, sans-serif'; return mctx.measureText(r.text).width; }
-  function judge(key, content, screenLines, topCheck) {
+  function judge(key, content, screenLines, topCheck, cut) {
     var stem = { A: 'alpha', B: 'bravo', C: 'charlie', D: 'delta' }[key];
     var mine = content.runs.filter(function (r) { return r.text.indexOf(stem) >= 0; });
     var res = { runs: mine.length, screenLines: screenLines };
@@ -94,6 +95,16 @@ window.addEventListener('load', function () { (async function () {
     res.overflow = fits.filter(function (f) { return !f.ok; }).length;
     var drawn = mine.map(function (r) { return r.text.trim(); }).join(' ').split(/\s+/).filter(Boolean).join(' ');
     res.wordsInOrder = drawn === TEXT[key];
+    // ⭐ A CUT cell (frozen edit EL1, owner 21 Nov 2026): the PDF draws only the lines the screen shows, the last ending
+    // in "…", so its words are the text's first words in order, the last one perhaps cut short before the "…".
+    if (cut) {
+      var last = mine.length ? mine[mine.length - 1].text.trim() : '';
+      res.ellipsis = last.slice(-1) === '\u2026';
+      var shown = (res.ellipsis ? drawn.slice(0, -1) : drawn).split(' '), all = TEXT[key].split(' ');
+      res.wordsInOrder = res.ellipsis && shown.length <= all.length && shown.every(function (w, i) {
+        return i < shown.length - 1 ? w === all[i] : all[i].indexOf(w) === 0;
+      });
+    }
     // TOP vs CENTRED, from the PDF's own arithmetic. baselineIn puts a line's baseline k*size below the
     // top of its line box (k is a property of the font's ascent/descent), and a block's top is the cell
     // top when top-aligned, or (h - n*lh)/2 lower when centred. The date in the SAME row is always one
@@ -146,6 +157,16 @@ window.addEventListener('load', function () { (async function () {
       D: lines('#table-wrap td.sheet-hiatus-cell.sheet-phase-cell[data-week="2026-12-07"]')
     };
     out.screen = screen;
+    // The lines each cell SHOWS: a cell its row cuts off is clamped to them (frozen edit EL1, owner 21 Nov 2026), and the
+    // PDF draws exactly those, ending in "…". A cell that is not cut has no clamp and shows all its lines.
+    function clampOf(sel) { var b = document.querySelector(sel + ' .cell-body'); var n = b ? +(b.style.webkitLineClamp || 0) : 0; return n || 0; }
+    var shows = {
+      A: clampOf('#table-wrap td.sheet-note-cell[data-week="2026-10-05"]'),
+      B: clampOf('#table-wrap td.sheet-note-cell[data-week="2026-09-14"]'),
+      C: clampOf('#table-wrap td.sheet-hiatus-cell:not(.sheet-phase-cell)[data-week="2026-08-24"]'),
+      D: clampOf('#table-wrap td.sheet-hiatus-cell.sheet-phase-cell[data-week="2026-12-07"]')
+    };
+    out.shows = shows;
     out.rowPx = { r0914: (document.querySelector('#table-wrap td.sheet-note-cell[data-week="2026-09-14"]') || { closest: function () { return null; } }).closest('tr').getBoundingClientRect().height };
     kase('S0', 'setup: all four cells wrap on screen (data-notelines > 1), and the 9/14 row is dragged taller',
          screen.A > 1 && screen.B > 1 && screen.C > 1 && screen.D > 1 && out.rowPx.r0914 > 70, { screen: screen, rowPx: out.rowPx });
@@ -154,12 +175,16 @@ window.addEventListener('load', function () { (async function () {
     out.pdfB64 = T.b64(await blob.arrayBuffer());
     var content = await pdfContent(blob);
     ['A', 'B', 'C', 'D'].forEach(function (k) {
-      var j = judge(k, content, screen[k], { B: '9/14/26', C: '8/24/26' }[k] || null);
+      var cut = shows[k] > 0 && shows[k] < screen[k];
+      var j = judge(k, content, screen[k], { B: '9/14/26', C: '8/24/26' }[k] || null, cut);
+      j.shows = shows[k];
       var name = { A: 'a long note, default row', B: 'a long note, 80 px row', C: 'a long all-phase hiatus label, 80 px row', D: 'a long per-phase hiatus label' }[k];
-      kase(k + '-L', name + ': the PDF draws it on the SAME number of lines the screen counts (data-notelines)',
+      if (cut) kase(k + '-L', name + ': cut off by its row, the PDF draws the lines the screen SHOWS (its line clamp, fewer than data-notelines), the last ending in "…"',
+           j.runs >= 1 && j.runs === shows[k] && j.ellipsis === true, j);
+      else kase(k + '-L', name + ': the PDF draws it on the SAME number of lines the screen counts (data-notelines)',
            j.runs > 1 && j.runs === screen[k], j);
       kase(k + '-F', name + ': every line fits inside its cell -- nothing runs off either end', j.runs > 0 && j.overflow === 0, { overflow: j.overflow, runs: j.runs });
-      kase(k + '-W', name + ': the lines carry every word, in order', j.wordsInOrder, {});
+      kase(k + '-W', name + (cut ? ': the lines carry the text\'s first words, in order, up to the "…"' : ': the lines carry every word, in order'), j.wordsInOrder, {});
       if (k === 'B' || k === 'C') kase(k + '-T', name + ': TOP-aligned, as the screen is when it wraps',
                           j.gapTop !== undefined && Math.abs(j.gapTop - j.expectTop) < 0.3 && Math.abs(j.gapTop - j.expectCentred) > 1,
                           { gapTop: j.gapTop, expectTop: j.expectTop, expectCentred: j.expectCentred, noDateRun: j.noDateRun });

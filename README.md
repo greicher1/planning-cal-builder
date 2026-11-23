@@ -70,6 +70,21 @@ reopening the last page. Mid-build: it must stay cheap to update, with no big ne
   (results in HANDOFF), `npm run check` 46/46, and by hand in the browser (every article, a Show me through Settings, the ⓘ
   link). Not pushed; `main` (the holiday rename from the Settings list) still has to be merged in before it ships.
 
+### Unreleased — the frozen code is locked by a check, not just by a rule (21 Nov 2026)
+
+Owner, 21 Nov 2026: *"Build the guard"*.
+
+- **`npm run check` now fails when any of the 55 frozen engine declarations changes** (the grid, the width model, text
+  fitting, direct manipulation, the writers, and the four functions named frozen edits made frozen). `tools/frozen-lock.mjs`
+  fingerprints each one's exact text and compares it with `tools/frozen-lock.json`; the deploy runs the check before
+  publishing, so a frozen change without an approved re-lock cannot reach the live site.
+- **An approved frozen edit re-locks in the same commit**, quoting the owner's approval:
+  `node tools/frozen-lock.mjs --approve "<words, date, what changed>"`. The approval is stored on each re-locked entry, and
+  `git log` of the lock file lists every frozen edit from now on.
+- **Not covered:** behaviour (the gate still guards the outputs) and the frozen CSS, which waits on an owner ruling.
+- **Verified:** the check runs in 0.23 s; its self-test catches a one-space change to each of the 55 and a rename;
+  `npm run check` 47/47, and red with a comment added inside `renderMonthView`. Replayed over the last 30 days of `main`, it
+  would have stopped all 38 commits that changed frozen text. No product file changed, so no gate and no What's New.
 ### Unreleased — every bar in the Month view reorders, Tandem and Prep included (21 Nov 2026)
 
 Owner, 21 Nov 2026: *"Ensure all phases of any type (including sim post, episodic/block prep, and tandem, can be
@@ -91,6 +106,20 @@ arranged up and down in any order in the month view"*.
   in the browser on `doubleups`: Prep above Production, a loose Tandem above its Shoot, a joined Tandem taking
   Production below Prep.
 
+
+### Unreleased — A holiday is renamed from the Holidays list (21 Nov 2026)
+
+The owner asked for a holiday's name to be editable from the Holidays list in Settings › Region, with no text box until
+you point at it, as the episode names in Production's settings work. Each name now reads as plain text; pointing at it
+draws the box and a click edits it in place. Enter or clicking away renames the holiday everywhere it shows (the
+waterfall, the month view, the workbook and both PDFs), the same rename the month view's holiday editor makes, for that
+date only. Esc puts the name back (and leaves the Settings window open), and clearing it brings back the holiday's own
+name, shown in gray while the box is empty. One undo step. The name is a plaintext contenteditable rather than an input,
+so a long name still wraps as before; the box moves nothing (every row's height and name position measured unchanged). A
+name being typed survives the list redrawing under it. The scenario probe now waits while any contenteditable field is
+being typed in (it missed plaintext-only ones). Nothing saved changes shape (`holidayNames` as before) and nothing frozen
+was edited. Help and the card's hint say so. Verified: `holidayrename` with new S1-S5, `holidayenable`, `settingswin`,
+`regionlock`, `mvmenu`, `npm run check` 46/46, and in the browser.
 
 ### Unreleased — The month view's holiday editor has Hide Holiday (21 Nov 2026)
 
@@ -128,6 +157,24 @@ document so the Monday snap, the Ends boxes and the tools all see 2026. No froze
 browser pane (0 1 0 5 2 6 then Enter → 2026-01-05, no refusal while typing). Built 4 Nov; re-checked on 21 Nov after
 merging `main`: `npm run check` 46/46, the legs above plus `panelstale`, `buildaround`, `anchorside`, `finishbefore`
 green, and real typing beside the phase cards' ▲ / ▼.
+
+### Unreleased — A waterfall note or hiatus band cut off by its row ends in "…" (21 Nov 2026)
+
+The owner asked that a note made bigger than its row holds stop being cut off silently and end in an ellipsis instead.
+A waterfall note or hiatus band given its own size (or a pinned row the automatic shrink cannot fit) was cut by the
+cell's height mid-line, with nothing to say text was missing. Now, on screen and in the waterfall PDF, the lines the
+row shows are kept and the last ends in "…" (frozen edit EL1, owner's pickers "Screen + PDF" and "Notes and hiatus
+bands": `cellClampLines` / `cellClampCss` in `renderSpreadsheetView` and `applyCellFitLive`, `wfPdfEllipsize` in
+`buildWaterfallPdf`). A line counts as shown when at least half of it is in the row, so the familiar two-line note in a
+20 px row keeps its second line and changes in no way. Excel is unchanged: it keeps every note whole in its cell. The
+month view already did this. The same holds for a note with more lines than even the smallest automatic size fits: the
+reference calendar's 6/29/26 cell (three lines in a 20 px row) now reads "Independence Day (Observed) 7/3/26…", and its
+third line, which the cell already hid, is no longer drawn into the PDF. Gate 2's `base.pdf` was re-cut for that one
+cell (owner's picker *"Accept, update refs"*; its README). Verified: new leg `wfnoteellipsis` 11/11 (7 of 11 red on the
+build before), `npm run check` 46/46, the full gate (green but for that cell and three legs that expected the PDF to
+write hidden lines: `notewrap` A/D, `noteviews` P1, `phasenotes` X2, now 16/16, 15/15, 21/21; six legs that failed
+under load passed when rerun alone).
+
 
 ### Unreleased — Shift keeps every phase's distance from the wrap (20 Nov 2026)
 

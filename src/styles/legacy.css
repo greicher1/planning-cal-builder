@@ -5213,6 +5213,20 @@
   .hv-label{ flex:1; min-width:0; padding-right:var(--mantine-spacing-sm); line-height:var(--mantine-line-height-xs);
     display:flex; flex-direction:column; gap:1px; }
   .hv-name{ font-size:var(--mantine-font-size-sm); }
+  /* The name reads as text until you point at it, then edits in place: the episode names' idiom
+     (#episode-rows input.ep-name), owner 21 Nov 2026. The box is drawn AROUND the text and moves nothing: the
+     negative side margins give back its padding and border, so the text sits under the "Holiday" heading and wraps
+     at the same width as before, and the -1px top and bottom keep the row's height. A long name wraps between words
+     as it always did; no word is broken. */
+  .hv-name-edit{
+    display:inline-block; box-sizing:border-box; vertical-align:top;
+    margin:-1px -5px; padding:0 4px; border:1px solid transparent; border-radius:var(--mantine-radius-sm);
+    cursor:text; outline:none;
+  }
+  .hv-name-edit:hover{ border-color:var(--mantine-color-gray-3); background:var(--mantine-color-white); }
+  .hv-name-edit:focus{ border-color:var(--mantine-primary-color-filled); background:var(--mantine-color-white); }
+  /* Cleared, it shows the name it goes back to. */
+  .hv-name-edit:empty::before{ content:attr(data-orig); color:var(--mantine-color-gray-5); }
   /* The date on its own row, smaller and lighter (owner, round 4 image 2). */
   .hv-date{ font-size:var(--mantine-font-size-xxs); color:var(--mantine-color-gray-6); }
   .hv-cell{ width:46px; text-align:center; flex:none; }

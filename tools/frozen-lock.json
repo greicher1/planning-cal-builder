@@ -1,0 +1,336 @@
+{
+  "about": "Fingerprints (SHA-256 of the exact source text) of the frozen engine declarations: CLAUDE.md's 'Never touch the grid or the exports' symbol list, plus the four functions its named frozen edits made frozen. Checked by tools/frozen-lock.mjs inside `npm run check`, which deploy.yml runs on every push. Change ONLY with the owner's approval for that frozen edit: node tools/frozen-lock.mjs --approve \"<the owner's words, date, what changed>\", committed WITH the edit and a 'Frozen-edit-approved:' line in the commit message. Each entry's 'approved' is the approval it was last locked under.",
+  "file": "src/legacy/app.js",
+  "declarations": {
+    "EXCEL_MDW": {
+      "group": "widthModel",
+      "sha256": "647bdc448070fe8dbe91adb4e066b2adaf43e38aaa9c6805be9f2f487f7c684f",
+      "lines": 1,
+      "approved": "2026-11-21: locked as it stood on origin/main 79d6bea2 when the guard was built (owner, 21 Nov 2026: \"Build the guard\"); every earlier frozen edit is in HANDOFF.md"
+    },
+    "SHEET_ZOOM": {
+      "group": "widthModel",
+      "sha256": "3e6a0c01621f72f806901710795879343fcabfd9edfc7c8cf1c266c360590fde",
+      "lines": 1,
+      "approved": "2026-11-21: locked as it stood on origin/main 79d6bea2 when the guard was built (owner, 21 Nov 2026: \"Build the guard\"); every earlier frozen edit is in HANDOFF.md"
+    },
+    "EXCEL_CELL_PAD": {
+      "group": "widthModel",
+      "sha256": "ce44562b3e67912f58eba31ab00692573c1e2c27a6ea2bacb738bea59f1ab2a5",
+      "lines": 1,
+      "approved": "2026-11-21: locked as it stood on origin/main 79d6bea2 when the guard was built (owner, 21 Nov 2026: \"Build the guard\"); every earlier frozen edit is in HANDOFF.md"
+    },
+    "COL_PAD_CHARS": {
+      "group": "widthModel",
+      "sha256": "f298f4d4c36262d6d8867a2b6e5a59c80baff1c40f9aa4317a3fcf06039983a6",
+      "lines": 1,
+      "approved": "2026-11-21: locked as it stood on origin/main 79d6bea2 when the guard was built (owner, 21 Nov 2026: \"Build the guard\"); every earlier frozen edit is in HANDOFF.md"
+    },
+    "ROW_DEFAULT_PX": {
+      "group": "widthModel",
+      "sha256": "f3e57fd357bc354c43c9aea1f4aa57446c6e86fc99f1f2ce3c50da09bc716943",
+      "lines": 1,
+      "approved": "2026-11-21: locked as it stood on origin/main 79d6bea2 when the guard was built (owner, 21 Nov 2026: \"Build the guard\"); every earlier frozen edit is in HANDOFF.md"
+    },
+    "render": {
+      "group": "grid",
+      "sha256": "9b2317b876c7631bb29e4fa995e5662b17efbf22a62fce17190ae985359e4374",
+      "lines": 137,
+      "approved": "2026-11-21: locked as it stood on origin/main 79d6bea2 when the guard was built (owner, 21 Nov 2026: \"Build the guard\"); every earlier frozen edit is in HANDOFF.md"
+    },
+    "renderSpreadsheetView": {
+      "group": "grid",
+      "sha256": "0dd75c54b27634c37629a4851287bad22b6e9efc064c0a4da2666c77d703811e",
+      "lines": 337,
+      "approved": "2026-11-21: Owner, 21 Nov 2026: \"When you increase font size of a note, don't just silently cut off the text, add an elipses\"; pickers \"Screen + PDF\", \"Notes and hiatus bands\", \"Accept, update refs\". Frozen edit EL1: renderSpreadsheetView, applyCellFitLive and buildWaterfallPdf end a cut note or band in \"…\"."
+    },
+    "renderMonthView": {
+      "group": "grid",
+      "sha256": "90df91897e04f46aee1e45427b1459a8d51499ddbd631d501ba95a27991d47bf",
+      "lines": 733,
+      "approved": "2026-11-21: locked as it stood on origin/main 79d6bea2 when the guard was built (owner, 21 Nov 2026: \"Build the guard\"); every earlier frozen edit is in HANDOFF.md"
+    },
+    "computeBlockLayout": {
+      "group": "grid",
+      "sha256": "2fa207b3ee17c66b643e58c119473bb5ae92fc173a3784d303438a9153b8d586",
+      "lines": 95,
+      "approved": "2026-11-21: locked as it stood on origin/main 79d6bea2 when the guard was built (owner, 21 Nov 2026: \"Build the guard\"); every earlier frozen edit is in HANDOFF.md"
+    },
+    "phaseRunBounds": {
+      "group": "grid",
+      "sha256": "7ce10fb321cae371400ab563233b30912d88b4ab2096b1c338941173ad89b586",
+      "lines": 12,
+      "approved": "2026-11-21: locked as it stood on origin/main 79d6bea2 when the guard was built (owner, 21 Nov 2026: \"Build the guard\"); every earlier frozen edit is in HANDOFF.md"
+    },
+    "computePhaseRowLayout": {
+      "group": "grid",
+      "sha256": "34b369de646c697c279b69b3058035a6e59cac74047a1464a1ce39cda7a5761e",
+      "lines": 362,
+      "approved": "2026-11-21: locked as it stood on origin/main 79d6bea2 when the guard was built (owner, 21 Nov 2026: \"Build the guard\"); every earlier frozen edit is in HANDOFF.md"
+    },
+    "applyCellSpanOverrides": {
+      "group": "grid",
+      "sha256": "495054c1bc1a30ac294bbf198cbd88186494a238078f0a3499d4384cccd8d7be",
+      "lines": 62,
+      "approved": "2026-11-21: locked as it stood on origin/main 79d6bea2 when the guard was built (owner, 21 Nov 2026: \"Build the guard\"); every earlier frozen edit is in HANDOFF.md"
+    },
+    "sheetRowCount": {
+      "group": "grid",
+      "sha256": "77959c02c83acefb4c78cdf6526576ae588e03433d44b9fb265d4e5a33622440",
+      "lines": 15,
+      "approved": "2026-11-21: locked as it stood on origin/main 79d6bea2 when the guard was built (owner, 21 Nov 2026: \"Build the guard\"); every earlier frozen edit is in HANDOFF.md"
+    },
+    "sheetGridMetrics": {
+      "group": "grid",
+      "sha256": "b26e5117d8d02df220b81e2c89089b7c74e24f53c087257614fd5d15e245c017",
+      "lines": 6,
+      "approved": "2026-11-21: locked as it stood on origin/main 79d6bea2 when the guard was built (owner, 21 Nov 2026: \"Build the guard\"); every earlier frozen edit is in HANDOFF.md"
+    },
+    "sheetPageOrientation": {
+      "group": "grid",
+      "sha256": "95954d0f264c84a032a16cfa23cb63a638d7197e8dabeda5f87284f1e87de90f",
+      "lines": 12,
+      "approved": "2026-11-21: locked as it stood on origin/main 79d6bea2 when the guard was built (owner, 21 Nov 2026: \"Build the guard\"); every earlier frozen edit is in HANDOFF.md"
+    },
+    "sheetColumnWidths": {
+      "group": "grid",
+      "sha256": "6d3a2ea86465763624fe4159a081981a570c9b9ae299809d30ccd873b0313b7a",
+      "lines": 157,
+      "approved": "2026-11-21: locked as it stood on origin/main 79d6bea2 when the guard was built (owner, 21 Nov 2026: \"Build the guard\"); every earlier frozen edit is in HANDOFF.md"
+    },
+    "computeYearBlocks": {
+      "group": "grid",
+      "sha256": "ee6b871269f1a98c368130bc8a0e51966120bbd6b6130bca6c8b365c0dcc804b",
+      "lines": 26,
+      "approved": "2026-11-21: locked as it stood on origin/main 79d6bea2 when the guard was built (owner, 21 Nov 2026: \"Build the guard\"); every earlier frozen edit is in HANDOFF.md"
+    },
+    "measureTextPx": {
+      "group": "textFit",
+      "sha256": "bd83f483d760c4d8604e2c9882a5113dd75cec91a6cdf8902319de8acc98bb7c",
+      "lines": 10,
+      "approved": "2026-11-21: locked as it stood on origin/main 79d6bea2 when the guard was built (owner, 21 Nov 2026: \"Build the guard\"); every earlier frozen edit is in HANDOFF.md"
+    },
+    "pxToChars": {
+      "group": "textFit",
+      "sha256": "c8074a0155d3d975f8a304d9228ccc26cde5a8e2af6aef5b3d7c2dd68af66733",
+      "lines": 1,
+      "approved": "2026-11-21: locked as it stood on origin/main 79d6bea2 when the guard was built (owner, 21 Nov 2026: \"Build the guard\"); every earlier frozen edit is in HANDOFF.md"
+    },
+    "charsToPx": {
+      "group": "textFit",
+      "sha256": "f6b5dd8f8cb74571e8029b65868a522cabf142721f0943ff84766b3236330c1b",
+      "lines": 1,
+      "approved": "2026-11-21: locked as it stood on origin/main 79d6bea2 when the guard was built (owner, 21 Nov 2026: \"Build the guard\"); every earlier frozen edit is in HANDOFF.md"
+    },
+    "charsToScreenPx": {
+      "group": "textFit",
+      "sha256": "a5399bd7737818fc7145df9f280dc5c79fee897058b5e036ed181a489e7daafc",
+      "lines": 1,
+      "approved": "2026-11-21: locked as it stood on origin/main 79d6bea2 when the guard was built (owner, 21 Nov 2026: \"Build the guard\"); every earlier frozen edit is in HANDOFF.md"
+    },
+    "clampChars": {
+      "group": "textFit",
+      "sha256": "2e39847d47c092490909c1a6b107a953cd4c5e6916772ed4f46f62c6475299ec",
+      "lines": 10,
+      "approved": "2026-11-21: locked as it stood on origin/main 79d6bea2 when the guard was built (owner, 21 Nov 2026: \"Build the guard\"); every earlier frozen edit is in HANDOFF.md"
+    },
+    "screenPxToChars": {
+      "group": "textFit",
+      "sha256": "c45eacc4860b23bdd2c5e81d4b3673d833dbdfbd50bcd16760d799f09e076d88",
+      "lines": 3,
+      "approved": "2026-11-21: locked as it stood on origin/main 79d6bea2 when the guard was built (owner, 21 Nov 2026: \"Build the guard\"); every earlier frozen edit is in HANDOFF.md"
+    },
+    "wrapLineCount": {
+      "group": "textFit",
+      "sha256": "da7a06716827125e0d7047931a8e780ea25bd29e55cd97f60885ee90bfeeba6e",
+      "lines": 19,
+      "approved": "2026-11-21: locked as it stood on origin/main 79d6bea2 when the guard was built (owner, 21 Nov 2026: \"Build the guard\"); every earlier frozen edit is in HANDOFF.md"
+    },
+    "cellTextFit": {
+      "group": "textFit",
+      "sha256": "1c77cb2fa3e410a2f6a13ae5672124677507394d989a5188b8b944927f17d5a7",
+      "lines": 36,
+      "approved": "2026-11-21: locked as it stood on origin/main 79d6bea2 when the guard was built (owner, 21 Nov 2026: \"Build the guard\"); every earlier frozen edit is in HANDOFF.md"
+    },
+    "installGridResizers": {
+      "group": "directManipulation",
+      "sha256": "13754da78412352c5a030d0cb9733bb40685ea126e932973ab897a331f3cf807",
+      "lines": 115,
+      "approved": "2026-11-21: locked as it stood on origin/main 79d6bea2 when the guard was built (owner, 21 Nov 2026: \"Build the guard\"); every earlier frozen edit is in HANDOFF.md"
+    },
+    "beginSpanDrag": {
+      "group": "directManipulation",
+      "sha256": "b38dd215f58a053248798fb6d1a03314ab568303ce91f4704be53fef95242619",
+      "lines": 64,
+      "approved": "2026-11-21: locked as it stood on origin/main 79d6bea2 when the guard was built (owner, 21 Nov 2026: \"Build the guard\"); every earlier frozen edit is in HANDOFF.md"
+    },
+    "spanHandleGeometry": {
+      "group": "directManipulation",
+      "sha256": "f3f15a9761bea76a7d727009f979fd1e587b7956ec18b49608326c16d31b7da9",
+      "lines": 12,
+      "approved": "2026-11-21: locked as it stood on origin/main 79d6bea2 when the guard was built (owner, 21 Nov 2026: \"Build the guard\"); every earlier frozen edit is in HANDOFF.md"
+    },
+    "applyCellFitLive": {
+      "group": "directManipulation",
+      "sha256": "e35ace746ec3e02bb0bf4e236a24c11f4c85e2dfccc556cb39864e57a0a13794",
+      "lines": 61,
+      "approved": "2026-11-21: Owner, 21 Nov 2026: \"When you increase font size of a note, don't just silently cut off the text, add an elipses\"; pickers \"Screen + PDF\", \"Notes and hiatus bands\", \"Accept, update refs\". Frozen edit EL1: renderSpreadsheetView, applyCellFitLive and buildWaterfallPdf end a cut note or band in \"…\"."
+    },
+    "repositionColHandles": {
+      "group": "directManipulation",
+      "sha256": "0f269a45e24ddce6030c43be4e85bec3c90d955ba20530879e1ad265bde1a67d",
+      "lines": 13,
+      "approved": "2026-11-21: locked as it stood on origin/main 79d6bea2 when the guard was built (owner, 21 Nov 2026: \"Build the guard\"); every earlier frozen edit is in HANDOFF.md"
+    },
+    "repositionRowHandles": {
+      "group": "directManipulation",
+      "sha256": "514086a50e243d827be8e28a1f769207dc6e135c0e1261ff7cb687ae553e8dc4",
+      "lines": 15,
+      "approved": "2026-11-21: locked as it stood on origin/main 79d6bea2 when the guard was built (owner, 21 Nov 2026: \"Build the guard\"); every earlier frozen edit is in HANDOFF.md"
+    },
+    "scheduleLiveUpdate": {
+      "group": "directManipulation",
+      "sha256": "28f747cd64d82109f6598a6408363a717086850e956444c570ab57205d5451fd",
+      "lines": 8,
+      "approved": "2026-11-21: locked as it stood on origin/main 79d6bea2 when the guard was built (owner, 21 Nov 2026: \"Build the guard\"); every earlier frozen edit is in HANDOFF.md"
+    },
+    "captureScroll": {
+      "group": "directManipulation",
+      "sha256": "d2d6b48ba66b48e98090c531df84acd001c64212c1cd0349571056f439eb821f",
+      "lines": 16,
+      "approved": "2026-11-21: locked as it stood on origin/main 79d6bea2 when the guard was built (owner, 21 Nov 2026: \"Build the guard\"); every earlier frozen edit is in HANDOFF.md"
+    },
+    "restoreScroll": {
+      "group": "directManipulation",
+      "sha256": "a55d05184a514cc198de0091796dcad5939b4f1f40f0631e4b9af50669934179",
+      "lines": 19,
+      "approved": "2026-11-21: locked as it stood on origin/main 79d6bea2 when the guard was built (owner, 21 Nov 2026: \"Build the guard\"); every earlier frozen edit is in HANDOFF.md"
+    },
+    "exportExcel": {
+      "group": "exports",
+      "sha256": "e01e2c1a4baa5b129f714bafabb40ed731693c4225fd3d05926151d5eabc64ba",
+      "lines": 544,
+      "approved": "2026-11-21: locked as it stood on origin/main 79d6bea2 when the guard was built (owner, 21 Nov 2026: \"Build the guard\"); every earlier frozen edit is in HANDOFF.md"
+    },
+    "exportMonthPdf": {
+      "group": "exports",
+      "sha256": "b46ac1a74ae356228834970187dfbd0886f8aa2c2d18952a6b5e5f86e5eec7ae",
+      "lines": 217,
+      "approved": "2026-11-21: locked as it stood on origin/main 79d6bea2 when the guard was built (owner, 21 Nov 2026: \"Build the guard\"); every earlier frozen edit is in HANDOFF.md"
+    },
+    "buildWaterfallPdf": {
+      "group": "exports",
+      "sha256": "faff2a8c6633e59a91ffa0b66fdc941ec205f9f54430996242073d8e57632c96",
+      "lines": 602,
+      "approved": "2026-11-21: Owner, 21 Nov 2026: \"When you increase font size of a note, don't just silently cut off the text, add an elipses\"; pickers \"Screen + PDF\", \"Notes and hiatus bands\", \"Accept, update refs\". Frozen edit EL1: renderSpreadsheetView, applyCellFitLive and buildWaterfallPdf end a cut note or band in \"…\"."
+    },
+    "exportWaterfallPdf": {
+      "group": "exports",
+      "sha256": "f752549ef96e9b39283f1519ce4db3ae143b72c672daddf1a790eed8dd14adfe",
+      "lines": 98,
+      "approved": "2026-11-21: locked as it stood on origin/main 79d6bea2 when the guard was built (owner, 21 Nov 2026: \"Build the guard\"); every earlier frozen edit is in HANDOFF.md"
+    },
+    "exportWaterfallPdfDirect": {
+      "group": "exports",
+      "sha256": "a673fcc9dd0179d56ff2a89ad9fc1f032dd045c72c32e3a43337ffd33009bf6c",
+      "lines": 25,
+      "approved": "2026-11-21: locked as it stood on origin/main 79d6bea2 when the guard was built (owner, 21 Nov 2026: \"Build the guard\"); every earlier frozen edit is in HANDOFF.md"
+    },
+    "pdfSerialize": {
+      "group": "exports",
+      "sha256": "2c05f0d7fe524e02ed338d188821b08bd51e6df85e81568b206500ee850f4588",
+      "lines": 59,
+      "approved": "2026-11-21: locked as it stood on origin/main 79d6bea2 when the guard was built (owner, 21 Nov 2026: \"Build the guard\"); every earlier frozen edit is in HANDOFF.md"
+    },
+    "pdfPage": {
+      "group": "exports",
+      "sha256": "f0793c78e91d0fa67af6b7e982df2b1989c1865930c61eb32df8558eb0faf7c6",
+      "lines": 37,
+      "approved": "2026-11-21: locked as it stood on origin/main 79d6bea2 when the guard was built (owner, 21 Nov 2026: \"Build the guard\"); every earlier frozen edit is in HANDOFF.md"
+    },
+    "pdfEscape": {
+      "group": "exports",
+      "sha256": "b9b86ab05ede267bd2250057be75c489afa808800b300e5defaa82d4f2f81879",
+      "lines": 12,
+      "approved": "2026-11-21: locked as it stood on origin/main 79d6bea2 when the guard was built (owner, 21 Nov 2026: \"Build the guard\"); every earlier frozen edit is in HANDOFF.md"
+    },
+    "pdfRgb": {
+      "group": "exports",
+      "sha256": "61f48aa9997aec5ed1686e9e2a3460cf21847cbda4ed862df7b3120d6d87786e",
+      "lines": 4,
+      "approved": "2026-11-21: locked as it stood on origin/main 79d6bea2 when the guard was built (owner, 21 Nov 2026: \"Build the guard\"); every earlier frozen edit is in HANDOFF.md"
+    },
+    "pdfDeflate": {
+      "group": "exports",
+      "sha256": "1d0ae6d7f365e54c49f58f04893326debf27146e3eaa6f6b6fa08a4770bbe907",
+      "lines": 4,
+      "approved": "2026-11-21: locked as it stood on origin/main 79d6bea2 when the guard was built (owner, 21 Nov 2026: \"Build the guard\"); every earlier frozen edit is in HANDOFF.md"
+    },
+    "ttfRead": {
+      "group": "exports",
+      "sha256": "503b6acd9b00169630066619109b072fef302c336d5d3332808ac99aabc0fea2",
+      "lines": 51,
+      "approved": "2026-11-21: locked as it stood on origin/main 79d6bea2 when the guard was built (owner, 21 Nov 2026: \"Build the guard\"); every earlier frozen edit is in HANDOFF.md"
+    },
+    "ttfGlyph": {
+      "group": "exports",
+      "sha256": "db15fe26ecbe57273ccdcd68307cf7e805ca4827b1650c5056c8d4a7c60622ac",
+      "lines": 26,
+      "approved": "2026-11-21: locked as it stood on origin/main 79d6bea2 when the guard was built (owner, 21 Nov 2026: \"Build the guard\"); every earlier frozen edit is in HANDOFF.md"
+    },
+    "ttfAdvance": {
+      "group": "exports",
+      "sha256": "e6ec327fc1aadb5ddb2398b759d22da4c51b86dd398d772f296683a6a58d8b35",
+      "lines": 3,
+      "approved": "2026-11-21: locked as it stood on origin/main 79d6bea2 when the guard was built (owner, 21 Nov 2026: \"Build the guard\"); every earlier frozen edit is in HANDOFF.md"
+    },
+    "ttfTextWidth": {
+      "group": "exports",
+      "sha256": "bb97867fe69cb3f994c1a256e4daae4b8b9fe36f8efada1b482227510812b765",
+      "lines": 5,
+      "approved": "2026-11-21: locked as it stood on origin/main 79d6bea2 when the guard was built (owner, 21 Nov 2026: \"Build the guard\"); every earlier frozen edit is in HANDOFF.md"
+    },
+    "setWfPageStyle": {
+      "group": "exports",
+      "sha256": "7aeb01af963e4449c8032211f14e74e56f37aa1232ff2b2604fecd58844c98ac",
+      "lines": 7,
+      "approved": "2026-11-21: locked as it stood on origin/main 79d6bea2 when the guard was built (owner, 21 Nov 2026: \"Build the guard\"); every earlier frozen edit is in HANDOFF.md"
+    },
+    "removeWfPageStyle": {
+      "group": "exports",
+      "sha256": "66473ec729afe95b39687ca57ae38a8106c314e725a635c4aa85b73d68ea304a",
+      "lines": 4,
+      "approved": "2026-11-21: locked as it stood on origin/main 79d6bea2 when the guard was built (owner, 21 Nov 2026: \"Build the guard\"); every earlier frozen edit is in HANDOFF.md"
+    },
+    "readCfgForMeta": {
+      "group": "exports",
+      "sha256": "169c3bcea5f2c4119521f17346b78ed03adca9f0217e19f0b711b1545db49af7",
+      "lines": 9,
+      "approved": "2026-11-21: locked as it stood on origin/main 79d6bea2 when the guard was built (owner, 21 Nov 2026: \"Build the guard\"); every earlier frozen edit is in HANDOFF.md"
+    },
+    "mvNoteLineCount": {
+      "group": "frozenEditHosts",
+      "sha256": "88fd2aae056e1962e4fed1bf085e182e8632c3196875441d13ed779c1f12d5e2",
+      "lines": 20,
+      "approved": "2026-11-21: locked as it stood on origin/main 79d6bea2 when the guard was built (owner, 21 Nov 2026: \"Build the guard\"); every earlier frozen edit is in HANDOFF.md"
+    },
+    "mvNoteLineCountSized": {
+      "group": "frozenEditHosts",
+      "sha256": "201c18e8e9ca76de2704008f4fe3170ae1c19eb1b3ef5cffb9e49945326677bb",
+      "lines": 18,
+      "approved": "2026-11-21: locked as it stood on origin/main 79d6bea2 when the guard was built (owner, 21 Nov 2026: \"Build the guard\"); every earlier frozen edit is in HANDOFF.md"
+    },
+    "notesForWaterfallDate": {
+      "group": "frozenEditHosts",
+      "sha256": "f91a46c32d2dd0ad22235de6315538e81e8545a0336330c190af130fc8c666ae",
+      "lines": 101,
+      "approved": "2026-11-21: locked as it stood on origin/main 79d6bea2 when the guard was built (owner, 21 Nov 2026: \"Build the guard\"); every earlier frozen edit is in HANDOFF.md"
+    },
+    "mvNoteBoxWidth": {
+      "group": "frozenEditHosts",
+      "sha256": "cd671205dec74feb9b6bd117840a94bce57b9a7579b8473c7fa6190b620a7bea",
+      "lines": 16,
+      "approved": "2026-11-21: locked as it stood on origin/main 79d6bea2 when the guard was built (owner, 21 Nov 2026: \"Build the guard\"); every earlier frozen edit is in HANDOFF.md"
+    }
+  }
+}

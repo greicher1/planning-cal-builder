@@ -114,6 +114,106 @@
   engine's ⓘ list says `{version}` is "Version, as typed" (it prints v3); an ⓘ edit, not Help. (e) Owner ruling: no
   printed captions, see above.
 
+### 🗄️ 21 Nov 2026: SPLITTING THE ENGINE INTO FILES IS SHELVED (owner, *"Shelve it"*). Decision only, no code. Tracker cards `engine-split-modules` (held), `post-schedule-version`, `holiday-data-own-file`, `multi-file-output`.
+- **Asked:** whether the single-file design holds the app back, especially with post-production coming. A read-only
+  study (5 agents) measured `src/legacy/app.js`: a behaviour-identical split into ES modules fits in ONE night as one
+  agent running a codemod (frozen text can stay byte-identical; only 7 bindings must sit with the frozen code). But it
+  leaves the coupling as it is (17 modules = one cycle, 202 of 272 possible edges, 260 shared mutable bindings), and its
+  prerequisites (a night's landing freeze, porting live branches by the merge-parent method, retargeting 15 path
+  readers and 11 text-slicing legs, 332 doc mentions) cost more than it returns.
+- **Why shelved, measured:** the gate gains nothing (headless Chrome starts in ~0.5 s and the app loads and boots in
+  ~0.4 s more per leg; the hour is the legs' own work); the frozen-code guard shipped without it (entry below); git
+  merges different hunks of one file without conflict; token savings are modest (sessions grep and read slices).
+- ⛔ **Do instead:**
+  - **Post-production is built as its OWN module from day one**: its own files, its saved data under one snapshot key,
+    and a defined way to read the shoot schedule, not more of `app.js`. (`post-milestones`, the Producer's Cut note, is
+    already inside `app.js`.)
+  - **The generated holiday data** (`HOLIDAYS`, `REGION_CAVEATS`, `REGION_NOTES`, ~2,400 lines that
+    `tools/gen_holidays.py` writes as `holidays.app.js` and someone splices in by hand) can move to its own generated
+    file the next time holidays are regenerated.
+  - **The output stays one file for now, but NOT as a rule.** Its old reason (an emailed working copy) is gone since
+    v1.21.0. The reasons the governance draft gave (rollback, the CSP, fonts) don't require it. There's no service
+    worker, so offline isn't a reason either. Keeping it is only the cost of changing (CSP, check-build, harness server,
+    release copies, the font element ids the PDF writers read). Revisit if post-production makes the app much bigger.
+- **Reopen the split if** post-production needs deep access to engine state, or merge conflicts in `app.js` start
+  costing real time.
+- **Found on the way:** 37 release copies (`releases/*.html`, 68 MB, ~2.3 MB each, 15 of them on 17-19 Nov) are committed;
+  storing them as GitHub Release files would stop that growth (not decided). The parallel lanes (`gate-lanes`, rejected
+  21 Oct) are still the biggest measured gate speed-up; the sleep trim (`gate-sleep-trim`) has sat unmerged since
+  22 Oct. A governance session's notes and this session's critique of them went both ways the same day (its draft rule
+  CODE-5, "the product stays one file", was flagged as not worth a rule).
+
+### ✂️ 21 Nov 2026: A WATERFALL NOTE OR HIATUS BAND CUT OFF BY ITS ROW ENDS IN "…" — BUILT on branch `note-ellipsis` (worktree `.claude/worktrees/note-ellipsis`, from `origin/main` `81575e55`; `node_modules` is a symlink, unlink it before `git worktree remove`), full gate run, gate 2 RE-CUT on the owner's picker, committed `69ca122d`; `origin/main` merged in (`46b6ea33`, its three frozen declarations re-locked under the new frozen-code guard with the owner's approval), PUSHED to `main` on the owner's picker *"Merge and push"*. ✅ LIVE: deploy run green, the GitHub Pages file byte-identical to the tested build. Frozen edit **EL1** (CLAUDE.md's tenth exception). README "Unreleased". Tracker card `note-size-ellipsis`.
+- **Owner:** *"When you increase font size of a note, don't just silently cut off the text, add an elipses"*. Pickers: *"Screen + PDF (Recommended)"* (Excel unchanged), *"Notes and hiatus bands"*, then, shown the reference calendar's cell, *"Accept, update refs"*.
+- **Why it was silent.** `cellTextFit` honours a picked size outright (`manual`) and a pinned row's height, and the cell body is `max-height` + `overflow:hidden`, so lines past the row were simply cut; the PDF drew them inside the cell's clip box, where they were invisible. The month view already had a line clamp.
+- **What it does.** `cellClampLines(fit, rowPx)` (beside `cellTextFit`) = the lines the row shows, `Math.round((rowPx - ROW_TEXT_PAD_PX) / (11 * scale * 1.35))`, at least 1; a cell whose wrapped lines run past that gets `display:-webkit-box; -webkit-box-orient:vertical; -webkit-line-clamp:N` (`cellClampCss`) on its `.cell-body`: notes, all-phase bands, per-phase bands in `renderSpreadsheetView`, and `applyCellFitLive` during a drag. The PDF twin `wfPdfEllipsize` keeps that many of `wrapLines`' lines (its own row height, points) and ends the last in "…" (WinAnsi `\205`, trimmed until it fits the column; Carlito's subset carries every WinAnsi glyph, and Quartz draws it).
+- ⛔ **Half a line counts as shown, never `budgetAt`'s floor.** The familiar two-line note in a 20 px row is `clipped` at the shrink floor (1.68 lines fit); a floor would have put "…" in place of its readable second line on every such note. With the round, it is untouched (the leg's control).
+- ⚠️ **It also reaches AUTOMATIC-size cells**, not only picked sizes: any wrapped cell with more lines than its row shows. That is why gate 2 moved: the reference calendar's 6/29/26 Notes cell is three lines in a 20 px row ("Start Principal Photography 6/29/26", "Independence Day (Observed) 7/3/26", "Independence Day 7/4/26"); it now draws two, the second ending in "…", and the hidden third is no longer in the PDF. The owner saw exactly this and picked *"Accept, update refs"* (the alternative offered was "…" only on picked sizes). Re-cut as on 16 Nov, running clock pinned to 29 Aug 2026; the baseline README has the proofs. `base.json` (gate 1) and `base.xlsx` (gate 3) did not move.
+- ⚠️ A cell already cut by part of a line still is: a 14 px note in a 20 px row shows one line slightly trimmed at the bottom, "…" included. Pre-existing; the row is shorter than the line.
+- **Verified.** New leg `wfnoteellipsis` (fixture `noteellipsis.sptcal`, synthetic) 11/11, 7 of 11 red on the build before; `npm run check` 46/46; full gate: every baseline identical but gate 2's one cell (now re-cut and passing, `pdfcmp.py` both ways), and three legs that asserted the PDF writes lines the cell hid, changed to expect the shown lines and the "…": `notewrap` A-L/A-W/D-L/D-W (16/16; B and C, not cut, keep the old checks), `noteviews` P1 (15/15; the "…" after "Network call" is the proof the month notes reached the writer), `phasenotes` X2 (21/21; 8/3 draws "Table read…", not Visitor). Six failures under load (`swapsharenotice`, `swapsingleorders`, `recoverfail` newer, `doubleups` ×2, `weeknum`, `monthexport` monthnotes X6) all passed rerun alone. I could not use the browser pane (all five dev-server slots held by other sessions): the look was checked through a headless Chrome screenshot.
+- No What's New entry (a small fix). Excel is deliberately not changed: Excel clips wrapped text itself, and cutting the cell's text would lose the note from the file.
+
+### 🔒 21 Nov 2026: THE FROZEN-CODE GUARD — `npm run check` fails when a frozen declaration's text changes without an approved re-lock. ✅ **LIVE at `fbfd96a4`** (owner's picker *"Push now"*, 21 Nov 2026; fast-forward `79d6bea2..fbfd96a4`; deploy run 44941735360 green, its `npm run check` ran the guard, 47/47; the live build stamp is unchanged, `7b41a02b1a37`, so users got no update bar). Branch `frozen-guard` (worktree `.claude/worktrees/frozen-guard`; its `node_modules` is a symlink, unlink it before `git worktree remove`). README "Unreleased". Tracker card `frozen-code-guard`.
+- **Owner:** asked whether the single-file design holds the app back; of the answer's options, *"Build the guard"*.
+- **Done:** `tools/frozen-lock.mjs` parses `src/legacy/app.js` with Vite 8's own parser (`rolldown/parseAst`, 0.2 s) and
+  takes a SHA-256 of the EXACT source text of each of the 55 frozen declarations (CLAUDE.md's 51: the five width-model
+  constants, grid, text fitting, direct manipulation, exports; plus the four its named frozen edits made frozen:
+  `mvNoteLineCount`, `mvNoteLineCountSized`, `notesForWaterfallDate`, `mvNoteBoxWidth`), 4,212 lines. Inner comments
+  count; the comment above a declaration and its position in the file do not. `tools/frozen-lock.json` holds the
+  fingerprints, each with the approval it was last locked under. `tools/check-build.mjs` runs it (check "the frozen code
+  is unchanged"), and `deploy.yml` runs `npm run check` before publishing, so an unapproved frozen edit cannot deploy.
+  - ⛔ **A frozen edit the owner approves re-locks in the SAME commit:** `node tools/frozen-lock.mjs --approve "<the
+    owner's words, date, what changed>"` (refused without real words), plus the `Frozen-edit-approved:` line it prints at
+    the end of the commit message. `git log --format='%h %cs %(trailers:key=Frozen-edit-approved,valueonly)' --
+    tools/frozen-lock.json` is then the list of every frozen edit. Never re-lock to make a red check green.
+  - `--add name[:group]` / `--remove name` freeze or unfreeze a declaration (owner's call); `--self-test` mutates each
+    declaration by one space, and renames one, and requires each to be caught.
+  - Approvals live ON each entry, not in a shared list, so two branches editing DIFFERENT frozen functions merge with no
+    conflict in the lock; two editing the SAME one conflict there, which is the case a person should see.
+  - ⚠️ **What it does not guard:** behaviour (a non-frozen helper frozen code calls can still change what it does: the
+    gate guards that), and the frozen CSS (below). If the engine is ever split into modules, the lock's `file` becomes a
+    list; the declaration finder already looks at a module's top level.
+- **Not done, owner's call: the frozen CSS.** The two banner blocks CLAUDE.md names (`Month view`, `Calendar PDF export
+  (browser print)` in `src/styles/legacy.css`) changed in 11 commits from 23 Oct to 14 Nov, several of them chrome work
+  (the Phases tab, the "+" buttons' hover, a Show info note) rather than frozen edits, so locking them as they stand would
+  stop ordinary work. Locking them needs the owner to rule what in them is frozen.
+- **Measured:** the check takes 0.23 s; `--self-test` catches all 55 one-space mutants and a rename (10 s); `npm run check`
+  47/47 on the worktree's build, and 46/47 with a comment added inside `renderMonthView` (exit 1, "renderMonthView: text
+  changed (733 lines when locked, 734 now)"); an `--approve` round trip re-locked only the edited declaration. Replayed over
+  the last 30 days of `origin/main`: 38 of 300 non-merge `app.js` commits changed frozen text, 36 saying "frozen" in their
+  message; the other two (`5b583808` rule 22 = LR6, `8129f047` LR8) are frozen edits HANDOFF records, so frozen edits run at
+  about one a day and every one would have needed a re-lock. Unmerged branches: the four live ones (`scenario-version-offer`,
+  `note-rows-grow`, `help-center`, `producers-cut`) touch no frozen text; `try-d` and `claude/settings-window-30719d`
+  (stale) do and would need an approval to re-lock if revived. No gate (no product file changed; `dist` is unaffected).
+- **Found on the way (engine-split study, same day, tracker card `engine-split-modules`):** CLAUDE.md and MANTINE-SEAM
+  say SEVEN unguarded `#table-wrap` listeners; `getElementById('table-wrap').addEventListener` appears 21 times.
+  `prove-header-preset`'s text anchor `sheet: p.lines ?` matches nothing in `app.js`, so that prover tests nothing.
+
+### ✏️ 21 Nov 2026: A HOLIDAY IS RENAMED FROM THE HOLIDAYS LIST (Settings › Region) — committed on `scenario-version-offer` (its hunks only), NOT PUSHED. README "Unreleased". Tracker card `holiday-rename-in-settings`.
+- **Owner:** asked whether a holiday's name should be editable from the Holidays list, then *"No text box until you hover
+  over the title similar to how the episode names in the production phase section work"*.
+- **Done:** `renderHolidayVisList`'s row puts the name in `.hv-name-edit`, a `contenteditable="plaintext-only"` span
+  (no id) as `.hv-name`'s first child, carrying `data-hid` / `data-iso` / `data-name` / `data-orig`. legacy.css draws it as
+  text; `:hover` gives it the episode names' gray-3 border and white fill, `:focus` the primary border; negative margins
+  give its padding and border back, so no row or name moved (measured on all 27 rows of the fixture, leg S1). Cleared,
+  `:empty::before` shows the name it goes back to. The `#holiday-vis` IIFE: Enter blurs, Esc restores `data-name` and
+  blurs (both `preventDefault`, so the Settings window, which closes on an Escape nobody took, stays open); `focusout`
+  runs `commitHolidayNameEdit()`, which is `writeActiveMvNote`'s holiday rule (`stripHolidayDate`, empty or the list's own
+  name = no rename) through `setHolidayName()` and one `update()`. Help (Notes display paragraph) and the card's ⓘ say so.
+  - Why a contenteditable and not an `<input>` like `.ep-name`: a long name still WRAPS between words as it did (an input
+    would cut it in a ~125 px column), and the name stays `.hv-name`'s text, which `regionlock`, `mvmenu`, `holidayenable`
+    and `settingswin` read.
+  - ⛔ The list is rewritten on every render, so `renderHolidayVisList` carries a name being typed (text, caret, focus) into
+    the new row, with `hvNameRedrawing` keeping the old node's focusout from committing half a name (leg S4).
+  - `scheduleScenarioProbe`'s "typing" test now also takes `isContentEditable`: `[contenteditable="true"]` missed a
+    plaintext-only field (this name, and a side box's text), so a probe could re-apply the calendar mid-typing.
+- **No saved key, nothing frozen:** the rename is `holidayNames` as before (one date only, the owner's 30 Oct picker).
+  No What's New entry (a second way to do something users can already do: the 21 Nov Hide Holiday got none either).
+- **Verified:** `holidayrename` with new S1-S5, `holidayenable` 8/8 (anchorside) + 2/2 (customunits), `settingswin` 21/21,
+  `regionlock` 14/14, `mvmenu` 81/81 (halfdays), `npm run check` 46/46; in the browser on `holidayrename` (hover, rename,
+  ⌘Z, Esc, clear, a redraw mid-typing). ⚠️ `holidayrename` and `mvmenu` time out at "the fixture" without their
+  `HARNESS_STATE` (holidayrename, halfdays): that is a harness call, not a failure. No full gate (chrome only).
+
 ### 🙈 21 Nov 2026: THE MONTH VIEW'S HOLIDAY EDITOR HAS "HIDE HOLIDAY" — committed `a3ed0a2e` on `scenario-version-offer`, cherry-picked onto `origin/main` and pushed on the owner's picker. README "Unreleased". Tracker card `month-hide-holiday`.
 - **Owner:** *"We need to add the same hide holiday button in the waterfall pop-up to the month view pop-up"*.
 - **Done:** `openMvNoteEditor`'s head gives a holiday (`isHol`) a `note-pop-delete mv-holiday-hide` button, "Hide

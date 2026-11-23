@@ -320,9 +320,12 @@ window.addEventListener('load', function () { (async function () {
       var b = await T.captureExport('export-wf-pdf-btn', 'phasenotes-pdf');
       var runs = await T.pdfRuns(new Uint8Array(await b.arrayBuffer()));
       var has = function (s) { return runs.some(function (r) { return r.indexOf(s) !== -1; }); };
-      kase('X2', 'the waterfall PDF draws the linked lines',
-        has('Stunt rehearsal') && has('Day ten 7/13/26') && has('Tech scout 6/3/26') && has('Visitor') && has('Post kickoff'),
-        { found: runs.filter(function (r) { return /Stunt|Day ten|Tech scout|Visitor|kickoff/.test(r); }).slice(0, 12) });
+      // ⚠️ Since 21 Nov 2026 (frozen edit EL1, owner: a note cut off by its row ends in "…"): 8/3's "Table read" (size 9) and
+      // its linked "Visitor" are two lines in a 20 px row that shows one, so the PDF draws "Table read…" and not Visitor.
+      // pdfRuns leaves WinAnsi's "…" as its octal digits, 205.
+      kase('X2', 'the waterfall PDF draws the linked lines; 8/3, two lines in a row that shows one, draws "Table read…" and not Visitor',
+        has('Stunt rehearsal') && has('Day ten 7/13/26') && has('Tech scout 6/3/26') && runs.indexOf('Table read205') !== -1 && !has('Visitor') && has('Post kickoff'),
+        { found: runs.filter(function (r) { return /Stunt|Day ten|Tech scout|Visitor|kickoff|Table read/.test(r); }).slice(0, 12) });
     });
 
     // ===== W1: the Notes width =========================================================================================
