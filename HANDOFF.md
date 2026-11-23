@@ -107,9 +107,15 @@
      remembers the old ids. Re-pointed: every `<To id>` / `<Related>`, the `?` context table (day menu → `month`, Region tab
      → `region`), the Holidays ⓘ (`help="region"`), the help leg's titles. `check-help-jsx` 44/44, `npm run check` 46/46,
      the `help` leg 12/12 on the build (20 Show me buttons now).
-  **WHAT IS LEFT (owner's call):** (a) the commit / push picker. ⛔ Before any push, merge `origin/main` in: it has the
-  holiday rename from Settings › Region's list (`6be10871`), which `regiontab` and `holnotes` already describe, and
-  README / HANDOFF / What's New will conflict at their tops (keep both sides). (b) (done, item 7). (c) Left on the owner's own "do not add back" list and still
+  8. ✅ **`origin/main` merged in (23 Nov, `b4986b5b`; the owner's picker "Merge main, push, deploy")**: 7 commits (the
+     holiday rename from Settings, the frozen-code guard, the cut-note "…"). Conflicts only in README, HANDOFF (kept both
+     sides) and `src/index.html` (kept the Guide's removal; main's one-sentence edit to the Guide was already in the Region
+     page). ⚠️ `git checkout --merge` writes `<<<<<<< ours / ||||||| base / ======= / >>>>>>> theirs`: a resolver must
+     handle the `|||||||` section (diff3 style) or it keeps the base text. After the merge: `npm run check` 47/47, `help`
+     12/12, `oskeys` ×3, `filekeys`, `firstrun`, `noresetall`, `simpostlabel`, `exportnames`, `swapwords` ×2, plus main's
+     `holidayrename` 20/20 and `wfnoteellipsis` 11/11, all green on the merged build.
+  **WHAT IS LEFT (owner's call):** (a) the final go-ahead: merge `help-center` into `main` and push (`main` auto-deploys;
+  verify the live URL after, ~40-60 s). (b) (done, item 7). (c) Left on the owner's own "do not add back" list and still
   mentioned: `newreset` bullets Reset Waterfall / Month Notes, and `heading-editor.webp` shows "Hide column": ask. (d) The
   engine's ⓘ list says `{version}` is "Version, as typed" (it prints v3); an ⓘ edit, not Help. (e) Owner ruling: no
   printed captions, see above.

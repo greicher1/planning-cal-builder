@@ -68,7 +68,9 @@ reopening the last page. Mid-build: it must stay cheap to update, with no big ne
   the full gate.
 - **Verified:** `help` 12/12, `oskeys` ×3, `filekeys`, `firstrun`, `noresetall`, `simpostlabel`, `exportnames`, `swapwords`
   (results in HANDOFF), `npm run check` 46/46, and by hand in the browser (every article, a Show me through Settings, the ⓘ
-  link). Not pushed; `main` (the holiday rename from the Settings list) still has to be merged in before it ships.
+  link). `origin/main` (23 Nov 2026: the holiday rename from the Settings list, the frozen-code guard, the cut-note "…")
+  is merged in and re-checked: `npm run check` 47/47, `help` 12/12, `oskeys` ×3, `filekeys`, `firstrun`, `noresetall`,
+  `simpostlabel`, `exportnames`, `swapwords`, `holidayrename` 20/20, `wfnoteellipsis` 11/11.
 
 ### Unreleased — the frozen code is locked by a check, not just by a rule (21 Nov 2026)
 
