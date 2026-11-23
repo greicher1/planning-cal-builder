@@ -616,8 +616,10 @@ over a modal.
 |---:|---|
 | **50** | The month view's edge handles (`.phase-edge-handle`): Production's (15 Oct 2026) and, since 16 Oct 2026, every other phase's start and end (`installPhaseEdgeHandles`, a second pool with the same class). Body-level, over the month grid, below every popover so one opened over a pill covers them |
 | **100** | app header, sidebar tab strip, help FAB, and the calendar zoom pill beside it (`.cal-zoom`, 20 Oct 2026; both are `z-index:60` in practice) |
-| **200** | help modal **and its backdrop** |
+| **200** | the app's Mantine modals and their backdrops (Settings, Export PDF, Compare, the app dialogs). *(Help was here until 23 Nov 2026; see 500.)* |
 | **300** | every popover and menu, and the shift readout. Also `.phase-edge-shield`, for the length of one edge drag only: it is appended last, so DOM order puts it on top |
+| **400** | the ⓘ hint cards (`InfoHint`'s `zIndex`), the body-level dialogs `.hde-overlay` and `.paste-notes-overlay`, `.du-toast`, `.du-rename-pop` |
+| **500** | ⛔ **Help (`.help-dlg`) and its backdrop, above everything** (owner, 23 Nov 2026: *"any menu should never appear on top of the help menu"*; at 200 the Shift and Build Around boxes painted over it). Only `.chrome-failed` and `#app-gate` are higher. A new menu or dialog stays BELOW 500: the `help` leg's H12 fails on any app stylesheet rule at 500 or more |
 
 ⚠️ **Mantine's `overlay: 400` tier is dead in 9.5.2** — `Overlay`'s default zIndex is
 `getDefaultZIndex('modal')` = 200, and `getDefaultZIndex("overlay")` is read by no component in the

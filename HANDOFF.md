@@ -4,6 +4,25 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### 🪟 23 Nov 2026: HELP OPENS ON TOP OF EVERY MENU — branch `help-on-top` (worktree `.claude/worktrees/help-on-top`, off
+`origin/main` at `8056c32a`), NOT pushed. Tracker card `help-above-menus`.
+- **Owner:** "More in Help" from the ⓘ in Shift or Build Around opened Help with the box still on top, *"those two menus. or
+  any menu should never appear on top of the help menu"*.
+- **Cause:** Help's `Modal` had Mantine's default z-index, 200. `.tools-menu` (both boxes, dragged or not) and every other
+  menu are 300; the ⓘ cards, `.hde-overlay`, `.paste-notes-overlay`, `.du-toast` and `.du-rename-pop` are 400.
+- **Fix:** `zIndex={500}` on Help's `Modal` (`HelpWindow.jsx`), a new top tier in UI-CONVENTIONS §6's ladder. Only
+  `.chrome-failed` and `#app-gate` are higher. A new menu or dialog must stay below 500.
+- **Held by** the `help` leg's H12: drags each box open (so it survives the press of ?), opens Help, and checks that
+  every point of the box hits Help; then scans every app stylesheet rule OUTSIDE Mantine's layer for a z-index of 500 or
+  more. Mantine's layer is skipped because its only values over 500 are a modal's sticky title row (1000) and scroll bar
+  (1001), inside that modal's own stacking context. Without the fix H12 is red (both boxes hit, Help at 200).
+  `help` 13/13, `npm run check` 47/47. Help-only chrome: no gate needed.
+- ⚠️ **Left as it is, for the owner:** a click INSIDE Help counts as a click outside an undragged Shift or Build Around box
+  (the 16 Nov rule), so that box closes on Help's first click (× included) and is gone when Help closes; a dragged box
+  stays. Esc closes Help without closing the box. Asked whether the box should stay open while Help is up.
+- **Tried by hand** in the browser pane at `localhost:8765/dist/index.html?state=help-demo` (`srv.js` started by hand: the
+  pane's five-server limit was full with other chats').
+
 ### 📖 21–23 Nov 2026: THE NEW HELP — BUILT and tested on branch `help-center` (worktree `.claude/worktrees/help-center`, NOT pushed, NOT merged). Tracker card `help-center-redesign` (building). Plan page `mockups/help-docs-plan.html` (main checkout, untracked).
 - **What it is:** the one-page Guide (`#help-overlay`, ~10,700 words) is replaced by `src/help/`: a ~1,120 px Mantine window with a
   sidebar of 14 sections / 45 articles (64 were written; 23 Nov: 20 folded into others, then "What is SPTCal?" added, see below), search, "On this page", Show me (rings the real control), `?` opening on the open

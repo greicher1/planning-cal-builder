@@ -152,6 +152,14 @@ export function HelpWindow() {
       padding={0}
       radius="lg"
       shadow="xl"
+      // Above EVERYTHING the app can have open (owner, 23 Nov 2026: "any menu should never appear on top of the help
+      // menu"). At Mantine's default 200 the Shift and Build Around boxes (.tools-menu, 300), every other menu (300), the
+      // ⓘ cards (400) and the body-level dialogs (.hde-overlay, .paste-notes-overlay, 400) painted over it, so "More in
+      // Help" from a Shift or Build Around ⓘ opened Help UNDER the box it came from. Now the box waits behind Help's
+      // scrim (a click inside Help still counts as a click outside an undragged box, the 16 Nov rule, so that one closes;
+      // a dragged one is there when Help closes). Only the load-failure screen and the install gate are higher. The help
+      // leg's H12 holds it: Help covers both boxes, and no z-index in the app's stylesheets reaches 500.
+      zIndex={500}
       className="help-dlg"
       aria-label="SPTCal Help"
       overlayProps={{ backgroundOpacity: 0.35, onClick: outside }}

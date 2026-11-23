@@ -23,6 +23,8 @@
 //   H6  ? opens the article for what is open: the Shift box, Build Around, a waterfall note editor, the month day menu,
 //       Settings (by its tab: Preferences, Region, Presets); else the last article read, else the view's own ("What is
 //       SPTCal?" in the Waterfall, the Month view's page in the Month view)
+//   H12 Help sits above every menu (owner, 23 Nov 2026): a dragged Shift box and a dragged Build Around box are covered
+//       by Help at every point, and no z-index in the app's stylesheets reaches Help's 500 (failure screen, gate excepted)
 //   (an ⓘ hint's "More in Help" is not here: a headless run draws no frames, so a Mantine HoverCard never opens. The link
 //   was tried by hand in the browser, and tools/check-help-jsx.mjs fails on any help="..." that names no article.)
 //   H10 no stale wording in ANY article: nothing the app no longer has or does (Export App With Data, Reset All, "three
@@ -224,6 +226,49 @@ window.addEventListener('load', function () { (async function () {
       c.prefs === 'Preferences' && c.region === 'Production Region and union holidays' && c.presets === 'Header presets' &&
       c.month === 'The Month view at a glance' && c.dayMenu === 'The Month view at a glance' && c.last === 'Glossary',
       c, 'What is SPTCal?; Shift in detail; Build Around in detail; Notes in the Waterfall; Preferences; Production Region and union holidays; Header presets; The Month view at a glance (twice: the month, then a day’s menu); Glossary');
+
+    // ---- H12: Help is above every menu (owner, 23 Nov 2026: "any menu should never appear on top of the help menu") ----
+    // Each box is DRAGGED first, so it stays open through the press of ? (an undragged one closes on that click), then
+    // Help opens and every point of the box must hit Help. Then no z-index in the app's stylesheets may reach Help's own,
+    // so a menu added later cannot paint over it either (the load-failure screen and the install gate excepted).
+    await view('sheet');
+    async function dragBox(menu){
+      var head = menu.querySelector('.tools-head'), r = head.getBoundingClientRect(), x0 = r.left + 60, y0 = r.top + r.height / 2;
+      function ev(type, x, y){ head.dispatchEvent(new PointerEvent(type, {bubbles: true, cancelable: true, button: 0, buttons: type === 'pointerup' ? 0 : 1, pointerId: 7, clientX: x, clientY: y})); }
+      ev('pointerdown', x0, y0); await T.sleep(30); ev('pointermove', x0 + 200, y0 + 80); await T.sleep(30); ev('pointerup', x0 + 200, y0 + 80); await T.sleep(80);
+    }
+    async function underHelp(btn, sel){
+      await closeHelp(); T.closePops(); await T.sleep(150);
+      q(btn).click(); await T.until(function(){ return shown(sel); }, sel, 40, 50);
+      var box = q(sel); await dragBox(box);
+      var floating = box.classList.contains('is-floating');
+      await pressHelp();
+      var r = box.getBoundingClientRect(), pts = [[r.left + 12, r.top + 12], [r.left + r.width / 2, r.top + r.height / 2], [r.right - 12, r.bottom - 12]];
+      var hits = pts.map(function(p){ var e = document.elementFromPoint(p[0], p[1]); return e && e.closest('.help-dlg') ? 'help' : e && e.closest(sel) ? 'box' : (e && (e.className || e.tagName)) || 'none'; });
+      var out = {open: shown(sel), floating: floating, hits: hits};
+      await closeHelp(); T.closePops(); await T.sleep(150);
+      return out;
+    }
+    var stack = {shift: await underHelp('#pop-shift-btn', '#pop-shift'), build: await underHelp('#pop-solve-btn', '#pop-solve')};
+    await pressHelp();
+    var helpZ = parseInt(getComputedStyle(q('.help-dlg .mantine-Modal-inner')).zIndex, 10), overZ = parseInt(getComputedStyle(q('.help-dlg .mantine-Modal-overlay')).zIndex, 10);
+    await closeHelp();
+    // The app's own rules: Mantine's layer is skipped, because its only values over 500 are a modal's sticky title row
+    // (1000) and its scroll bar (1001), INSIDE that modal's own stacking context, so they cannot reach Help.
+    var EXEMPT = /\.chrome-failed|#app-gate/, higher = [];
+    Array.prototype.forEach.call(document.styleSheets, function(ss){
+      var rules; try { rules = ss.cssRules; } catch (e) { return; }
+      (function walk(list){ Array.prototype.forEach.call(list || [], function(rule){
+        if(typeof CSSLayerBlockRule !== 'undefined' && rule instanceof CSSLayerBlockRule && /^mantine/.test(rule.name || '')) return;
+        if(rule.cssRules && !rule.selectorText) return walk(rule.cssRules);
+        var z = rule.style && parseInt(rule.style.zIndex, 10);
+        if(z >= helpZ && !EXEMPT.test(rule.selectorText || '')) higher.push((rule.selectorText || '?').slice(0, 60) + ' ' + z);
+      }); })(rules);
+    });
+    function covered(s){ return s.open && s.floating && s.hits.every(function(h){ return h === 'help'; }); }
+    add('H12', 'Help sits above every menu: a dragged Shift box and Build Around box are both under it, and no stylesheet z-index reaches Help\'s',
+      covered(stack.shift) && covered(stack.build) && helpZ >= 500 && overZ === helpZ && higher.length === 0,
+      {shift: stack.shift, build: stack.build, helpZ: helpZ, overlayZ: overZ, higher: higher.slice(0, 6)}, 'every point of each box hits Help; Help 500; nothing in the stylesheets at 500 or more');
 
     // ---- H10: no stale wording ----
     var STALE = [

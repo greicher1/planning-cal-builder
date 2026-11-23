@@ -28,6 +28,18 @@ way a user would notice or a future session would need to return to. See
 [`CLAUDE.md`](CLAUDE.md) → "⛔ Changelog every substantial change" for when and how.
 
 <!-- Newest first. Add new entries directly under this line. -->
+### Unreleased — Help opens on top of every menu (23 Nov 2026)
+
+The owner: "More in Help" from the ⓘ in the Shift or Build Around box opened Help *under* that box, *"any menu should never
+appear on top of the help menu"*. Help's window was at Mantine's default layer, 200; the two boxes and every other menu sit
+at 300, the ⓘ cards and the header-template and Paste notes dialogs at 400. Help's `Modal` now has `zIndex={500}`, above all
+of them (only the load-failure screen and the install gate are higher). A box left open waits behind Help's scrim; a dragged
+one is still there when Help closes, an undragged one closes on the first click inside Help (the 16 Nov click-outside rule,
+unchanged). Verified: the `help` leg's new H12 drags each box open, opens Help, and finds Help at every point of both boxes,
+and scans every app stylesheet rule outside Mantine's layer for a z-index of 500 or more (none). With the fix taken out, H12
+is red (both boxes over Help, Help at 200). The whole `help` leg is green (13/13) and `npm run check` 47/47. Help-only and
+chrome-only: no grid, export or saved-file change.
+
 ### Unreleased — a new Help: a window with a sidebar, search, pictures and Show me (23 Nov 2026)
 
 The owner asked for a refined Help (21 Nov 2026): a sidebar of sections, a wider window, screenshots, diagrams and color.
