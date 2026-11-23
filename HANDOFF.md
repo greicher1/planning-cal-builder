@@ -5,7 +5,7 @@
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
 ### 🪟 23 Nov 2026: HELP OPENS ON TOP OF EVERY MENU — branch `help-on-top` (worktree `.claude/worktrees/help-on-top`, off
-`origin/main` at `8056c32a`), NOT pushed. Tracker card `help-above-menus`.
+`origin/main` at `8056c32a`), pushed to `main` on the owner's picker. Tracker card `help-above-menus`.
 - **Owner:** "More in Help" from the ⓘ in Shift or Build Around opened Help with the box still on top, *"those two menus. or
   any menu should never appear on top of the help menu"*.
 - **Cause:** Help's `Modal` had Mantine's default z-index, 200. `.tools-menu` (both boxes, dragged or not) and every other
@@ -17,9 +17,9 @@
   more. Mantine's layer is skipped because its only values over 500 are a modal's sticky title row (1000) and scroll bar
   (1001), inside that modal's own stacking context. Without the fix H12 is red (both boxes hit, Help at 200).
   `help` 13/13, `npm run check` 47/47. Help-only chrome: no gate needed.
-- ⚠️ **Left as it is, for the owner:** a click INSIDE Help counts as a click outside an undragged Shift or Build Around box
-  (the 16 Nov rule), so that box closes on Help's first click (× included) and is gone when Help closes; a dragged box
-  stays. Esc closes Help without closing the box. Asked whether the box should stay open while Help is up.
+- ⚖ **Owner's picker, 23 Nov 2026: "Leave it as it is".** A click INSIDE Help counts as a click outside an undragged
+  Shift or Build Around box (the 16 Nov rule), so that box closes on Help's first click (× included) and is gone when Help
+  closes; a dragged box stays. Esc closes Help without closing the box. Don't make Help "not outside" without asking.
 - **Tried by hand** in the browser pane at `localhost:8765/dist/index.html?state=help-demo` (`srv.js` started by hand: the
   pane's five-server limit was full with other chats').
 
