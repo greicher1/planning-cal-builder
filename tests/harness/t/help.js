@@ -11,7 +11,7 @@
 // ⛔ No dollar sign anywhere in this file (see srv.js).
 //
 //   H0  Help is closed at the start, and the ? button is there
-//   H1  ? opens it on the tour, with a sidebar of articles
+//   H1  ? opens it on "What is SPTCal?", with a sidebar of articles
 //   H2  every article opens under its own title, says nothing is "being written", and every picture in it has loaded
 //   H4  search finds an article by a word in its body, says so when nothing matches, Esc clears the search and keeps
 //       Help open, and a result opens its article
@@ -21,7 +21,8 @@
 //       Undo button and the save status are as they were
 //   H3  every Show me button closes Help and rings its control, whatever view or tab it has to go to first
 //   H6  ? opens the article for what is open: the Shift box, Build Around, a waterfall note editor, the month day menu,
-//       Settings (by its tab: Preferences, Region, Presets); else the last article read, else the view's own
+//       Settings (by its tab: Preferences, Region, Presets); else the last article read, else the view's own ("What is
+//       SPTCal?" in the Waterfall, the Month view's page in the Month view)
 //   (an ⓘ hint's "More in Help" is not here: a headless run draws no frames, so a Mantine HoverCard never opens. The link
 //   was tried by hand in the browser, and tools/check-help-jsx.mjs fails on any help="..." that names no article.)
 //   H10 no stale wording in ANY article: nothing the app no longer has or does (Export App With Data, Reset All, "three
@@ -94,8 +95,8 @@ window.addEventListener('load', function () { (async function () {
     await pressHelp();
     var titles = navTitles();
     add('H1', '? opens Help on the tour, with a sidebar of articles',
-      isOpen() && crumb() === 'Tour of the screen' && titles.length >= 40 && !!q('.help-dlg .hp-search input') && !!q('.help-dlg .hp-foot'),
-      {title: crumb(), articles: titles.length}, 'Tour of the screen; 40+ articles');
+      isOpen() && crumb() === 'What is SPTCal?' && titles.length >= 40 && !!q('.help-dlg .hp-search input') && !!q('.help-dlg .hp-foot'),
+      {title: crumb(), articles: titles.length}, 'What is SPTCal?; 40+ articles');
 
     // ---- H2: every article ----
     var problems = [], allText = {}, showmes = [], picCount = 0;
@@ -219,10 +220,10 @@ window.addEventListener('load', function () { (async function () {
     await pressHelp(); await openArticle('Glossary'); await closeHelp(); await T.sleep(150);
     await pressHelp(); c.last = crumb(); await closeHelp();
     add('H6', '? opens the article for what is open (Shift, Build Around, a note editor, the day menu, each Settings tab), else the last one read, else the view\'s own',
-      c.waterfall === 'Tour of the screen' && c.shift === 'Shift in detail' && c.build === 'Build Around in detail' && c.note === 'Notes in the Waterfall' &&
+      c.waterfall === 'What is SPTCal?' && c.shift === 'Shift in detail' && c.build === 'Build Around in detail' && c.note === 'Notes in the Waterfall' &&
       c.prefs === 'Preferences' && c.region === 'Production Region and union holidays' && c.presets === 'Header presets' &&
       c.month === 'The Month view at a glance' && c.dayMenu === 'The Month view at a glance' && c.last === 'Glossary',
-      c, 'Tour; Shift in detail; Build Around in detail; Notes in the Waterfall; Preferences; Production Region and union holidays; Header presets; The Month view at a glance (twice: the month, then a day’s menu); Glossary');
+      c, 'What is SPTCal?; Shift in detail; Build Around in detail; Notes in the Waterfall; Preferences; Production Region and union holidays; Header presets; The Month view at a glance (twice: the month, then a day’s menu); Glossary');
 
     // ---- H10: no stale wording ----
     var STALE = [
@@ -243,6 +244,7 @@ window.addEventListener('load', function () { (async function () {
     // ---- H11: the facts that must still be said ----
     function has(title, re){ return re.test(allText[title] || ''); }
     var FEATURES = [
+      ['What is SPTCal?', /Waterfall/], ['What is SPTCal?', /Month view/], ['What is SPTCal?', /\.sptcal/],
       ['Simultaneous Post', /calendar weeks after Production begins/],
       ['File names', /Show Title S1 Planning Calendar v3 WRO 1\.5\.26 - a\.o\. 11\.12\.26\.xlsx/],
       ['Save, Load and autosave', /rewrites that file/], ['Save, Load and autosave', /Save As/], ['Save, Load and autosave', /Unsaved work/],

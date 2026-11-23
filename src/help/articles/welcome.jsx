@@ -1,10 +1,11 @@
-import { Lead, Sec, Shot, Table, Info, Ui, Related } from '../parts.jsx'
+import { Lead, Sec, Shot, Table, Info, Ui, To, Related } from '../parts.jsx'
 import app from '../shots/app-waterfall.webp'
 
 export default function Article() {
   return <>
     <Lead>SPTCal turns each phase’s start date and length into two calendars: the <b>Waterfall</b>, a week-by-week grid
-      that matches the Excel file, and the <b>Month view</b>, a day-by-day calendar for crews. Here is where everything is.</Lead>
+      that matches the Excel file, and the <b>Month view</b>, a day-by-day calendar for crews. Here is where everything is. New
+      to SPTCal? Start with <To id="what" />.</Lead>
     <Sec title="The screen">
       <Shot src={app} caption="Harbor Lights, a made-up show, in the Waterfall view."
         pins={[[20.8, 3.5], [47.9, 3.5], [59, 3.5], [19.8, 10], [27.4, 13.75], [46.4, 13.75], [68.4, 13.75], [80.6, 13.75], [47, 52], [28.8, 97.5], [80.9, 97.5]]}

@@ -8,7 +8,7 @@
 // Opened by the ? button (#help-fab, static markup in index.html), and by chrome.openHelp(id) from anywhere else.
 // "? opens the article for what you're doing" (owner's pick): the open box or editor is read on the PRESS of ?, before
 // the click that would close it (CONTEXT below). Otherwise it reopens the last article read, when that one fits the
-// view on screen, else the Month view's article in the Month view and the tour in the Waterfall.
+// view on screen, else the Month view's article in the Month view and "What is SPTCal?" in the Waterfall.
 //
 // Per-machine only, never saved in a calendar: localStorage 'sptcal.help' = { last, monthOnly }. The window has
 // Mantine inputs (the search box, the switch), which mint ids, so the engine's field sweep skips `.help-dlg`
@@ -63,7 +63,7 @@ const VIEW_LABEL = { waterfall: 'Waterfall', month: 'Month view', both: 'Both vi
 
 export function HelpWindow() {
   const [open, setOpen] = useState(false)
-  const [cur, setCur] = useState('welcome')
+  const [cur, setCur] = useState('what')
   const [q, setQ] = useState('')
   const [monthOnly, setMonthOnly] = useState(() => !!readStore().monthOnly)
   const [index, setIndex] = useState(null)       // id -> the article's text, built the first time someone searches
@@ -82,7 +82,7 @@ export function HelpWindow() {
   const openAt = (id) => {
     const month = inMonth()
     const last = readStore().last
-    const pick = (id && ARTICLE[id]) ? id : (pressCtx.current || (last && fitsView(last, month) ? last : (month ? 'month' : 'welcome')))
+    const pick = (id && ARTICLE[id]) ? id : (pressCtx.current || (last && fitsView(last, month) ? last : (month ? 'month' : 'what')))
     pressCtx.current = null
     setQ(''); setCur(pick); writeStore({ last: pick }); setOpen(true)
   }
@@ -135,7 +135,7 @@ export function HelpWindow() {
   }, [q, index, visibleArticles])
 
   const outside = useOutsideCloseGuard(open, close)
-  const art = ARTICLE[cur] || ARTICLE.welcome
+  const art = ARTICLE[cur] || ARTICLE.what
   const Body = BODIES[art.id]
   const nav = useMemo(() => ({ go }), [])
 

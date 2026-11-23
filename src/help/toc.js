@@ -22,6 +22,7 @@
 
 export const GROUPS = [
   { id: 'start', name: 'Start here', articles: [
+    { id: 'what', title: 'What is SPTCal?', view: 'both' },
     { id: 'welcome', title: 'Tour of the screen', view: 'both' },
     { id: 'first', title: 'Build your first calendar', view: 'both' },
     { id: 'views', title: 'Waterfall or Month view?', view: 'both' },

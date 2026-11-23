@@ -35,7 +35,7 @@ Picks from the plan page: a wide window, the "Docs" design, "picture first, deta
 a ? that opens the page for what you are doing, ⓘ links, an "I only use the Month view" switch, a What's New history and
 reopening the last page. Mid-build: it must stay cheap to update, with no big new gates.
 
-- **What it is.** `src/help/` (its `README.md` is the cheat-sheet): a Mantine window with 14 sections and 44 short
+- **What it is.** `src/help/` (its `README.md` is the cheat-sheet): a Mantine window with 14 sections and 45 short
   articles, one file each (`articles/<id>.jsx`), the list in `toc.js`. It replaced the one-page Guide (`#help-overlay`,
   about 10,700 words, no pictures). Each article opens with a lead and folds its details; keys are written for the computer
   in use (⌘ on a Mac, Ctrl elsewhere); 20 **Show me** buttons close Help and ring the real control, switching view or
@@ -52,7 +52,8 @@ reopening the last page. Mid-build: it must stay cheap to update, with no big ne
   hide-a-phase into phase cards, one-phase hiatus into hiatus, nudge and drag into Shift or Build Around, Compare into
   scenarios, holiday notes into automatic notes, Paste notes into Month notes, three settings pages into Preferences, the
   day menu into the Month view, template variables and Date Last Edited into Header, Excel into the PDF page, the File
-  menu, autosave and troubleshooting into Save, and the Region tab and holiday lists into Region). None had shipped.
+  menu, autosave and troubleshooting into Save, and the Region tab and holiday lists into Region). None had shipped. The owner then asked for a "What is SPTCal?" page: a plain overview (what it does, what it is good at, where
+  your calendar lives), first in the sidebar and the page Help opens on in the Waterfall.
 - **Owner ruling: no printed captions.** Ten one-line captions under controls were built on localhost and rejected (*"i
   want less on-screen text as it looks ugly. I'd rather hide it behind 'i' symbols or in the help page"*); all reverted.
 - **Found by the new test.** Esc in the search box closed all of Help instead of clearing the search (Mantine closes a

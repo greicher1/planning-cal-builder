@@ -6,7 +6,7 @@
 
 ### 📖 21–23 Nov 2026: THE NEW HELP — BUILT and tested on branch `help-center` (worktree `.claude/worktrees/help-center`, NOT pushed, NOT merged). Tracker card `help-center-redesign` (building). Plan page `mockups/help-docs-plan.html` (main checkout, untracked).
 - **What it is:** the one-page Guide (`#help-overlay`, ~10,700 words) is replaced by `src/help/`: a ~1,120 px Mantine window with a
-  sidebar of 14 sections / 44 articles (64 were written; 23 Nov: 20 folded into others, see below), search, "On this page", Show me (rings the real control), `?` opening on the open
+  sidebar of 14 sections / 45 articles (64 were written; 23 Nov: 20 folded into others, then "What is SPTCal?" added, see below), search, "On this page", Show me (rings the real control), `?` opening on the open
   Shift box / Build Around box / note editor / day menu / Settings (else the last article read; else Month view's article or
   the tour), an "I only use the Month view" switch (localStorage `sptcal.help`), What's New history, and "More in Help →"
   on every ⓘ hint (`InfoHint`'s `help` prop → `chrome.openHelp(id)`). The engine's sweep skips `.help-dlg`.
@@ -114,6 +114,10 @@
      handle the `|||||||` section (diff3 style) or it keeps the base text. After the merge: `npm run check` 47/47, `help`
      12/12, `oskeys` ×3, `filekeys`, `firstrun`, `noresetall`, `simpostlabel`, `exportnames`, `swapwords` ×2, plus main's
      `holidayrename` 20/20 and `wfnoteellipsis` 11/11, all green on the merged build.
+  9. ✅ **"What is SPTCal?" added (23 Nov, owner's request, `articles/what.jsx`)**: first in "Start here", and now the page Help
+     opens on in the Waterfall when nothing is open and nothing was read (the Month view still opens `month`); the tour links to
+     it. 45 articles; the `help` leg's H1 / H6 expect it. No picture (the tour has the numbered one); wording kept vague on
+     purpose (nothing about a studio or a real show).
   **WHAT IS LEFT (owner's call):** (a) the final go-ahead: merge `help-center` into `main` and push (`main` auto-deploys;
   verify the live URL after, ~40-60 s). (b) (done, item 7). (c) Left on the owner's own "do not add back" list and still
   mentioned: `newreset` bullets Reset Waterfall / Month Notes, and `heading-editor.webp` shows "Hide column": ask. (d) The
