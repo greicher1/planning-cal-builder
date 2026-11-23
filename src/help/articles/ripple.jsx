@@ -13,7 +13,7 @@ const ROWS = [
 
 export default function Article() {
   return <>
-    <Lead>When you add or change a hiatus, the phases after it move by the same number of weeks, so the gaps between
+    <Lead>When you add or change a hiatus (an all-phase one, or a phase’s own), the phases after it move by the same number of weeks, so the gaps between
       phases stay as they were. It is on unless you turn it off.</Lead>
     <Sec title="What it does">
       <Timeline weeks={16} states={['Ripple off', 'Ripple on']} rows={ROWS}
@@ -32,7 +32,7 @@ export default function Article() {
     </Sec>
     <Sec title="Turn it off">
       <Shot src={prefs} w={265} pins={[[62, 50]]} items={[<><b>Ripple Hiatus Periods</b> · off, a hiatus only pauses the phases running through it.</>]} />
-      <p>It lives in <Path>Settings › Preferences › Hiatus</Path> and is kept on this computer, not in the calendar. <ShowMe at=".prefs-card:has(#pref-hiatus-ripple)" tab="settings" sw="Preferences" />
+      <p>It lives in <Path>Settings › Preferences › Hiatus</Path> and is kept on this computer, not in the calendar. <ShowMe at=".prefs-card:has(#pref-hiatus-ripple)" tab="settings" sw="Preferences" />{' '}
         Turn it off first when you want to change a hiatus without moving anything else.</p>
     </Sec>
     <Related ids={['hiatus', 'phiatus', 'move']} />

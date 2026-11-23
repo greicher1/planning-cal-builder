@@ -5,11 +5,12 @@ export default function Article() {
     <Lead>Export to Excel makes a styled workbook that matches the waterfall, ready to print or send on.</Lead>
     <Sec title="Make the workbook">
       <Steps>
-        <Step t="Click Export to Excel">in the toolbar above the calendar, or press <Keys k="Mod+Shift+E" />. <ShowMe at="#export-btn" view="sheet" /></Step>
+        <Step t="Click Export to Excel">at the top of the window, beside Export PDF, or press <Keys k="Mod+Shift+E" />. <ShowMe at="#export-btn" view="sheet" /></Step>
         <Step t="Choose where to save it.">The file’s name follows the parts you picked. See <To id="names" />.</Step>
       </Steps>
       <p>The workbook has a column block for each year, colored phase cells, the Notes column, and a bold printed header
-        with the title, date and production summary. Columns are sized to fit their content.</p>
+        with the title, date and production summary. Columns are sized to fit their content. In a narrow window (about
+        1,120 px and under) the button shrinks to an icon, and Export PDF keeps its words.</p>
     </Sec>
     <Sec title="Printing from Excel">
       <p>The sheet is scaled to print as large as possible on one page, centered, with the print area pinned to the

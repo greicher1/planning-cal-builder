@@ -13,8 +13,10 @@ export default function Article() {
       <Tip>The tools always say where the wrap actually landed.</Tip>
     </Sec>
     <Sec title="What travels with a phase">
-      <p>Its own hiatus, the notes typed inside its weeks, its hiatus labels and colors, and Production’s Off and worked
-        days, which follow the shoot day they were set on. A note can also stay with a phase on purpose: see <To id="linked" />.</p>
+      <p>Its own hiatus, its hiatus labels and colors, and Production’s Off and worked days, which follow the shoot day they
+        were set on. Notes that stay with the phase (the default for a new note: see <To id="linked" />) follow it through every
+        mover. A note left on its calendar week stays on that week, except that Shift also carries the week notes inside the
+        weeks of the phases you ticked.</p>
     </Sec>
     <Related ids={['move', 'ripple', 'hiatus']} />
   </>

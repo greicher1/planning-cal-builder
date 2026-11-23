@@ -23,7 +23,9 @@ export default function Article() {
         <Step t="To clear a mark, double-click the day.">It goes back to how it was.</Step>
       </Steps>
       <Info>The Waterfall and Excel follow these marks, since they use the same dates.</Info>
-      <More title="Production won’t schedule">Production waits for Season, Number of Episodes and Shooting Days. See <To id="showinfo" />.</More>
+      <More title="Production won’t schedule">Production waits for Season, Number of Episodes and Shooting Days per Episode. In
+        Blocks mode it waits for Season, Number of Blocks and Shooting Days per Block instead, and Number of Episodes is
+        optional. See <To id="showinfo" />.</More>
     </Sec>
     <Related ids={['episodes', 'region', 'prep']} />
   </>

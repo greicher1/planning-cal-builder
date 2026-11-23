@@ -11,7 +11,9 @@ export default function Article() {
         <><b>Tandem 101</b> · the day after Shoot 101’s last day, the same day Shoot 102 starts.</>,
         <><b>Tandem 102</b> · beside Shoot 103’s first day.</>,
       ]} />
-    <p>“12 + 1” means twelve shoot days plus one tandem day. Set the default in <Ui>Tandem Days</Ui>, beside Shooting Days per
+    <p>“12 + 1” means twelve shoot days plus one tandem day, <b>not a 13-day shoot</b>: Production stays at 12 days an episode,
+      and the tandem day is a bar beside them. Tandem days show only in the Month view and its PDF, and the Tandem card on the
+      Phases tab appears while the Month view is on. Set the default in <Ui>Tandem Days</Ui>, beside Shooting Days per
       Episode in Show info, or on the <Ui>Tandem</Ui> card on the Phases tab. <ShowMe at=".si-tandem-in" tab="show" /> (You may also hear these called double-ups.)</p>
     <Shot src={card} w={265} pins={[[54, 20.1], [26.4, 39.6], [67.7, 39.6]]}
       items={[

@@ -20,6 +20,8 @@ export default function Article() {
         empty. Switch Fill Gaps on to let phases widen into the empty columns beside them.</p>
       <p>When Simultaneous Post is on, it gets a column beside Production, so you can see post starting while the shoot is
         still going.</p>
+      <p>The waterfall is drawn from the Phases tab: you don’t type dates or names into a phase cell. To change a phase, edit
+        its card, or right-click a cell for what that cell can do.</p>
       <p>If you have moved columns around and want the automatic layout back, press <Ui>Reset Columns</Ui> at the top of the window.</p>
     </Sec>
     <Related ids={['sizing', 'headings', 'keys']} />

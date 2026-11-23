@@ -23,9 +23,10 @@ export default function Article() {
         ['By weeks', <>Type a number, then press <Ui>Earlier</Ui> or <Ui>Later</Ui>.</>],
         ['To a date', <>Pick the phase that lands, <Ui>starts on</Ui> or <Ui>ends by</Ui>, and the date. The ticked phases move with it.</>],
       ]} />
-      <Info title="Ends by never overshoots">Starts on lands exactly on the week you pick. Ends by lands on or before your
-        date, because Shift moves whole weeks. With every phase ticked, To a date also offers <b>Whole schedule</b>: use
-        it with ends by for a delivery deadline.</Info>
+      <Info title="Where it lands">Starts on lands on the week you pick, unless that date is inside a locked hiatus, when
+        it lands the week after it. Ends by lands on or before your date, because Shift moves whole weeks, unless the shoot
+        grows over a holiday on its new dates (“Still past your date”). The line under the toolbar says so when either happens. With every phase ticked, To a date also offers <b>Whole schedule</b>: use it with ends by for
+        a delivery deadline.</Info>
     </Sec>
     <Sec title="Two common moves">
       <Table rows={[
@@ -34,7 +35,12 @@ export default function Article() {
       ]} />
       <Tip>A Writer’s Room that runs into Pre-Prep sits above it in the list, so <Ui>After Pre-Prep</Ui> leaves it behind.
         Tick it too if it should come along.</Tip>
-      <More title="notes and hiatuses">Notes inside a ticked phase’s weeks move with it. Holidays, notes with a date and
+      <More title="why Post moved a week more than I typed">When a Shift changes how long the shoot runs (a holiday or an Off
+        day now falls in or out of it), the phases tied to the wrap move by the same difference, so Post can land a week more or
+        less than you asked. The line says so: “Post and Localization were also pushed 1 wk to keep their distance from the
+        wrap.”</More>
+      <More title="notes and hiatuses">Notes inside a ticked phase’s weeks move with it, and notes that stay with a phase
+        follow it anyway. Holidays, notes with a date and
         locked hiatuses stay put; a phase’s own hiatus always goes with it. A phase that crosses a locked hiatus moves that
         hiatus’s length further, so its gaps are kept.</More>
       <More title="keeping the box open">The box closes when you click outside it. Drag it by its grey top bar to a spot of

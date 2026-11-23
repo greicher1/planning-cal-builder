@@ -9,7 +9,7 @@ export default function Article() {
       <Shot src={month} pins={[[97.4, 16.5], [77.1, 13.75], [48.6, 72.2], [43.8, 77.6], [72.9, 59.7]]}
         items={[
           <><b>The month map</b> · every month at a glance, with each phase as a bar under its name. Click a month to go
-            there, or a phase to go to the month it starts in. A dot marks this month and a red mark is an all-phase hiatus.</>,
+            there, or a phase to go to the month it starts in. The dark chip is the month on screen, a dot marks today’s month, and a red mark is an all-phase hiatus.</>,
           <><b>‹ Month ›</b> · steps one month at a time. The month between the arrows is the one on screen.</>,
           <><b>Episode bars</b> · Production is split into its episodes (“Shoot 101”), laid across the shoot days.</>,
           <><b>Holidays and automatic notes</b> · written on their day.</>,
@@ -22,8 +22,9 @@ export default function Article() {
         day they happen. To add a note of your own, hover a day and click <Ui>+</Ui>. See <To id="mvnotes" />.</p>
     </Sec>
     <Sec title="Change dates from the calendar">
-      <p>Drag the middle of a bar to move its dates, or double-click a bar to open its card. Click a day for a menu of
-        what it can do: <To id="daymenu" />.</p>
+      <p>Drag the middle of a bar to move its dates, drag its end to change where it starts or ends (its other end stays put),
+        or double-click it to open its card. A hiatus band drags by its grip, unless it is locked (untick Lock in place first). Click a day for a menu of what it can do:{' '}
+        <To id="daymenu" />.</p>
       <Tip>Export PDF in this view writes one month per page, in color, with the header.</Tip>
       <More title="the light grid lines">On screen the Month view’s grid lines are drawn lighter. The PDF keeps its black lines.</More>
     </Sec>

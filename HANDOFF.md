@@ -55,8 +55,17 @@
   explaining (tandem, ripple, mvnotes, swap, hdrmodes, autosave), 42 partly, 16 self-explanatory; about 20 merges would take
   64 pages to ~44; ~20 wrong or stale claims were found (e.g. `newreset` says every reset asks first, `names` says Cancel
   keeps the file-name choices, `hdrmodes` says Auto's lines come back, seven pages are stale since the 19 Nov
-  "new notes stay with their phase" default, Blocks mode breaks four "Production waits for…" lines). Both audits are guides,
-  not a task list: the merges and page edits wait for the owner's yes.
+  "new notes stay with their phase" default, Blocks mode breaks four "Production waits for…" lines).
+  ✅ **Applied 23 Nov 2026 (owner's picker "Fix and add"): the wrong claims are fixed and the hidden facts added to the
+  EXISTING pages in 40 articles + the Zoom wording in `src/whats-new.js`; no page was merged, renamed or removed** (the ~20
+  merges, 64 → ~44, still wait for the owner's yes). A separate fact-check read every new claim against the code: five
+  were wrong or imprecise and are fixed (⌘-scroll does NOT zoom, only Ctrl-scroll and pinch; only the reset buttons
+  Reset Columns / Reset Bar Order collapse to icons; "inside a locked hiatus lands the week after" is Starts on only; the
+  Enable box and the "Costs a shoot day" tag are two different sets; a start date snaps to Monday only in a weeks phase with
+  Snap to Monday on). ⚠️ Still unverified in code: bar-end drag leaves the other end put on every bar kind, Swap Column's
+  full "has a neighbor" rule, and that Reset Month Notes / Reset holidays are one undo step each.
+  `src/help/articles` rule learned: JSX drops the space between an inline element at a line end and the text on the next
+  line (`</b>` newline `in the…` prints "…workin the…"): end such a line with `{' '}`.
   ⛔ **Owner ruling, 21 Nov 2026: NO printed captions.** He was shown ten one-line captions on localhost (File chip, Autosaved
   status, header-menu rows, Ripple, Region, Tandem, Lock in place, Calendar range, Hidden Notes, Total shooting days) and
   said *"absolutely not, i want less on-screen text as it looks ugly. I'd rather hide it behind 'i' symbols or in the help

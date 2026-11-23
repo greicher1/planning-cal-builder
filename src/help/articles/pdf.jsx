@@ -7,7 +7,7 @@ export default function Article() {
       save it.</Lead>
     <Sec title="Export a PDF">
       <Steps>
-        <Step t="Click Export PDF">in the toolbar above the calendar, or press <Keys k="Mod+P" />. <ShowMe at="#export-wf-pdf-btn" view="sheet" /></Step>
+        <Step t="Click Export PDF">at the top of the window, beside Export to Excel, or press <Keys k="Mod+P" />. <ShowMe at="#export-wf-pdf-btn" view="sheet" /></Step>
         <Step t="Choose the paper and orientation.">The best fit is marked Recommended.</Step>
         <Step t="Pick grid lines and check the file name.">Type your own name, or tick the parts you want.</Step>
         <Step t="Click Export,">then choose where to save it.</Step>

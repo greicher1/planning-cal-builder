@@ -9,7 +9,7 @@ export default function Article() {
       <Shot src={app} caption="Harbor Lights, a made-up show, in the Waterfall view."
         pins={[[20.8, 3.5], [47.9, 3.5], [59, 3.5], [19.8, 10], [27.4, 13.75], [46.4, 13.75], [68.4, 13.75], [80.6, 13.75], [47, 52], [28.8, 97.5], [80.9, 97.5]]}
         items={[
-          <><b>File menu</b> · the calendar you’re in, your recent calendars, <Ui>Load…</Ui> and <Ui>Changes since last save…</Ui></>,
+          <><b>The calendar’s name</b> · this chip is the File menu (it says Untitled until you save): <Ui>Load…</Ui>, <Ui>Changes since last save…</Ui> and your recent calendars.</>,
           <><b>New, Save, Save As</b> · Save writes a small .sptcal file. After the first time, it saves in place.</>,
           <><b>Exports and resets</b> · for the view on screen.</>,
           <><b>Show, Phases, Settings</b> · fill these in and the calendar draws itself.</>,
@@ -29,6 +29,8 @@ export default function Article() {
         ['Exports', 'Excel and PDF', 'A PDF, one month per page'],
         ['Usually for', 'Studio planning and executives', 'The show’s production team and crew'],
       ]} />
+      <Info title="Narrow window?">Some buttons shrink to icons (New, Save As, Export to Excel, Reset Columns and Reset Bar Order), and the page
+        tools fold into a ⋯ button. Everything is still there.</Info>
       <Info title="Your calendar is a file on your computer">Save writes a small <b>.sptcal</b> file. Nothing you type is sent anywhere.</Info>
     </Sec>
     <Related ids={['first', 'views', 'move']} />

@@ -3,7 +3,7 @@ import menu from '../shots/hdr-menu.webp'
 
 export default function Article() {
   return <>
-    <Lead>The calendar’s header has nine lines and four modes. Pick a mode from the <Ui>Header</Ui> button above the
+    <Lead>The Waterfall’s header has nine lines (the Month view’s has four) and each has four modes. Pick a mode from the <Ui>Header</Ui> button above the
       calendar: it says which mode you’re in and opens the menu. <ShowMe at="#tb-hdr-mode-btn" /></Lead>
     <Sec title="The four modes">
       <Shot src={menu} w={202} pins={[[35.9, 32.5], [48.3, 46.6], [43.6, 69.4], [31.2, 83.8]]}
@@ -23,8 +23,10 @@ export default function Article() {
         whichever view is showing.</Info>
     </Sec>
     <Sec title="Switching modes">
-      <p>Template to Manual freezes today’s values and removes the variables. Switching to Auto discards your lines.
-        Choosing Template or Manual again brings your lines back. Every switch is one undo, so <Ui>Undo</Ui> takes it back.</p>
+      <p>Template to Manual freezes today’s values and removes the variables. <b>Switching to Auto throws away the lines you
+        wrote and their formatting</b>, with no warning; Undo is the only way back. Choosing Template afterwards starts again
+        from the standard lines, and choosing Manual copies what Auto shows. Only <b>Off</b> keeps your lines: switch it back
+        on and they return. Every switch is one undo step.</p>
     </Sec>
     <Sec title="Format a line">
       <p>Click a header line, then use the text style bar in the toolbar: size, bold, italic, color, highlight and

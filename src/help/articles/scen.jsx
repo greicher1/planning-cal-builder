@@ -25,7 +25,8 @@ export default function Article() {
       <p>Right-click a tab for <Ui>Rename…</Ui>, <Ui>Duplicate</Ui>, <Ui>Compare scenarios…</Ui>,{' '}
         <Ui>Save this scenario as its own file…</Ui>, <Ui>Keep only this scenario…</Ui> and <Ui>Delete scenario…</Ui>.</p>
       <p>Each tab shows its Version. When you duplicate a scenario, SPTCal offers the next version number, one click to take it.</p>
-      <Tip>Every scenario is saved in the one .sptcal file, and each keeps its own Undo.</Tip>
+      <Tip>Every scenario is saved in the one .sptcal file, and each keeps its own Undo. To keep a version as its own file
+        instead, use Save As: see <To id="save" />.</Tip>
       <More title="exporting">Exports take the scenario on screen only. To send one scenario by itself, use{' '}
         <Ui>Save this scenario as its own file…</Ui>.</More>
     </Sec>

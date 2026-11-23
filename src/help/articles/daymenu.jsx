@@ -11,7 +11,8 @@ export default function Article() {
         <><b>Full day / Off</b> · on a shoot day. A day marked Off is not shot, so the shoot runs a day longer.</>,
         <><b>Show this week in the waterfall</b></>,
       ]} />
-    <p>On a phase’s bar the menu can also start or end that phase on the day you clicked.</p>
+    <p>On a phase’s bar the menu can also start or end that phase on the day you clicked. On a holiday it has a Holiday section
+      (<Ui>Enabled</Ui>, <Ui>Show in month view</Ui>, <Ui>Show in waterfall</Ui>), and inside a hiatus it offers <Ui>Remove hiatus…</Ui>.</p>
     <p>On a shoot day the menu also offers <Ui>Full day</Ui> and <Ui>Off</Ui>. A day marked Off is not shot, so the shoot
       runs one day longer. On a weekend or a holiday during the shoot it offers <Ui>Work this day</Ui>, which adds a shoot
       day there, so the shoot ends a day sooner. Double-click a marked day to clear its mark.</p>

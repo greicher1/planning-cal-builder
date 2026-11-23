@@ -18,7 +18,7 @@ export default function Article() {
           <><b>Delete Note</b> · deletes what you typed. Automatic notes and holidays stay.</>,
           <><b>The note</b> · type over it to replace it.</>,
           <><b>Day</b> · stamps the date on the last line you typed.</>,
-          <><b>Stays with</b> · keep the note with a phase instead of this week.</>,
+          <><b>Stays with</b> · a new note starts out staying with the phase in its row, so it follows that phase. Pick “Week of …” to pin it to the calendar week instead (this one is pinned).</>,
           <><b>Color</b> · the text turns black or white to stay readable.</>,
           <><b>Show in month view</b></>,
           <><b>Save</b> · or press Enter or Tab, or click away.</>,
@@ -34,8 +34,8 @@ export default function Article() {
       ]} />
     </Sec>
     <Sec title="Good to know">
-      <Tip title="Keep a note with its phase">Set <b>Stays with</b> to “Production wk 2” and the note moves whenever
-        Production does.</Tip>
+      <Tip title="A new note follows its phase">A note in an empty cell already stays with the phase in its row (when a phase runs there and has no note that week), so it
+        moves whenever that phase does. To pin one to the calendar week instead, set <b>Stays with</b> to “Week of …”.</Tip>
       <Info title="Waterfall notes show in the Month view too">Notes you add in the Month view stay in the Month view.</Info>
       <More title="moving a note">Highlight it, then drag it to another week. If that week already has a note, you’re
         asked before it’s replaced. Holidays and automatic notes keep their own day.</More>

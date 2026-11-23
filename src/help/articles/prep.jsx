@@ -5,7 +5,8 @@ export default function Article() {
   return <>
     <Lead>Episodic Prep gives every episode, or block, its own prep bar in the Month view, ending the day before its first shoot day.</Lead>
     <Sec title="Set the prep days">
-      <p>Find the <Ui>Episodic Prep</Ui> card on the Phases tab. Type a number in <Ui>Default prep</Ui> and every episode gets that
+      <p>Switch to the Month view, then find the <Ui>Episodic Prep</Ui> card on the Phases tab (it is hidden while the
+        Waterfall is on). Type a number in <Ui>Default prep</Ui> and every episode gets that
         many days. Type a number beside one episode to give it its own; leave it blank to use the default, or put 0 for none.</p>
       <Shot src={pic} w={265} pins={[[36.5, 22.7], [60, 44.5]]}
         items={[<><b>Default prep</b> · days for every episode.</>, <><b>Per episode</b> · its own number.</>]} />

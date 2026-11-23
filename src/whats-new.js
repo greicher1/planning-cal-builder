@@ -91,7 +91,7 @@ export const WHATS_NEW = [
       },
       {
         title: 'Zoom just the calendar',
-        text: 'Pinch, Ctrl-scroll and ⌘+ / ⌘− now zoom the waterfall and month view, and leave the rest of the app as it is.',
+        text: 'Pinch, Ctrl-scroll, and ⌘ (Mac) or Ctrl (Windows) with + or − now zoom the waterfall and month view, and leave the rest of the app as it is.',
       },
       {
         title: '“Final Delivery” on Post’s last day',

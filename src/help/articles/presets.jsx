@@ -17,8 +17,11 @@ export default function Article() {
         <Step t={<>Open <Path>Settings › Presets</Path> and press <Ui>Save current header as preset…</Ui>.</>}>Name it. <ShowMe at=".hdr-preset-save-open" tab="settings" sw="Presets" /></Step>
         <Step t="On any other calendar, pick the preset and press Apply." />
       </Steps>
-      <p>A preset holds all nine lines and their formatting. It stores the variables, not the values they show today, which
-        is why saving is offered only in Template mode.</p>
+      <p>A preset holds the Waterfall’s header (nine lines) and the Month view’s (four) with their formatting; a header that was
+        Manual when you saved is left out. Applying one sets every header it holds, whichever view is showing. It stores the variables, not the values they show today, which is why saving is
+        offered only when a header is in Template mode.</p>
+      <p><b>Default</b>, the first entry, is the standard header, not “back to Auto”: it switches both views to Template with
+        the standard lines and clears your own lines and formatting (one undo step).</p>
     </Sec>
     <Sec title="Move a preset to another computer">
       <p>Presets stay on this computer and are never part of a saved calendar. Sending someone a .sptcal sends the header

@@ -14,7 +14,7 @@ const TERMS = [
   ['Ripple', <>Ripple Hiatus Periods: changing a hiatus moves the phases after it by the same weeks. <To id="ripple" /></>],
   ['Scenario', <>Another version of the plan, in its own tab, saved in the same file. <To id="scen" /></>],
   ['Shift', <>Moves phases by weeks or to a date and keeps the gaps between them. <To id="shift" /></>],
-  ['Shoot day', <>A day Production shoots. Weekends, holidays and hiatus days aren’t shoot days.</>],
+  ['Shoot day', <>A day Production shoots. Weekends, holidays and hiatus days aren’t, unless you mark a weekend or holiday <i>Work this day</i>.</>],
   ['Simultaneous Post', <>Post weeks that run during the shoot. <To id="simpost" /></>],
   ['.sptcal', <>A saved calendar: a small file of your entries. <To id="save" /></>],
   ['Tandem day', <>“8 + 1” is eight shoot days plus one tandem day, when a second crew shoots part of one episode while the first unit moves on to the next. Also called a double-up. <To id="tandem" /></>],

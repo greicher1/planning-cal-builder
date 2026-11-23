@@ -12,8 +12,10 @@ export default function Article() {
         <><b>Search</b> · finds a calendar you’ve saved or loaded, by name.</>,
       ]} />
     <p>Under the search box are the calendars you’ve saved or loaded. Click one to switch to it. Right-click one for{' '}
-      <Ui>Show in folder…</Ui>, which opens the Open window in the folder that holds it. The <b>×</b> on a calendar removes
+      <Ui>Show in folder…</Ui>, which opens a file window in the folder that holds it (picking a file there loads it). The <b>×</b> on a calendar removes
       only its shortcut from the list, never the file. <Ui>Esc</Ui> closes the menu.</p>
+    <p>If you declined to recover unsaved work after a crash, it waits under <b>Unsaved work</b> at the bottom of this menu: see
+      <To id="autosave" />.</p>
     <p>On an empty start, before there is anything to preview, the same recent calendars show under the calendar.</p>
     <Related ids={['save', 'changes']} />
   </>

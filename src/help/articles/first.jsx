@@ -14,14 +14,17 @@ export default function Article() {
           <><b>Season</b> · episodes number from it: season 1 gives 101, 102…</>,
           <><b>Number of Episodes</b></>,
           <><b>Shooting Days per Episode</b> · every episode gets this many. Change one episode’s count on the Phases tab.</>,
-          <><b>Production Region</b> · where you shoot. The shoot skips that region’s union holidays.</>,
+          <><b>Production Region</b> · where you shoot. The shoot skips that region’s union holidays. A new calendar starts on None.</>,
         ]} />
       <Info title="Production waits for these">Until the season, the number of episodes and the shooting days are filled in,
-        Production can’t be scheduled, and its card says what’s missing.</Info>
+        Production can’t be scheduled, and its card says what’s missing. (In Blocks mode it waits for the season, the number
+        of blocks and the days per block.) A new calendar also starts with <b>no Production Region</b>, so pick one or no
+        union holiday is skipped.</Info>
     </Sec>
     <Sec title="2. Date each phase">
-      <p>On the <Ui>Phases</Ui> tab, give each phase a start date and a length. A date snaps to the Monday of its week, and
-        the calendar draws itself as you type. Production needs only a start: its length comes from step 1.</p>
+      <p>On the <Ui>Phases</Ui> tab, give each phase a start date and a length. In a phase counted in weeks, a start date snaps to the Monday of its week, and
+        the calendar draws itself as you type. A new calendar comes with four two-week winter breaks already on the Hiatus
+        card; change or remove them there. Production needs only a start: its length comes from step 1.</p>
       <Shot src={phaseCard} w={265} pins={[[55.5, 10], [28, 30.5], [78, 42], [47.5, 55.8], [60.8, 80], [76.4, 90.2]]}
         items={[
           <><b>Name and color</b> · click either to change it.</>,
@@ -37,7 +40,7 @@ export default function Article() {
     </Sec>
     <Sec title="4. Save and send">
       <p><Keys k="Mod+S" /> saves a small .sptcal file. The first save asks where to put it; after that it saves in place,
-        and autosaves every 10 minutes. <Ui>Export to Excel</Ui> and <Ui>Export PDF</Ui> make the files you send.</p>
+        and autosaves every 10 minutes <b>into that same file</b> (to try something out, Save As or add a + Scenario first: see <To id="save" />). <Ui>Export to Excel</Ui> and <Ui>Export PDF</Ui> make the files you send.</p>
     </Sec>
     <Related ids={['showinfo', 'cards', 'pdf']} />
   </>

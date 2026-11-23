@@ -21,8 +21,8 @@ export default function Article() {
         ]} />
     </Sec>
     <Sec title="Which notes show where">
-      <p>Notes you write in the Waterfall show in the Month view too, on the day their date names (or that week’s Monday when
-        they have none). Notes you add in the Month view stay there, unless you switch on <b>Show in waterfall</b> in their
+      <p>Notes you write in the Waterfall show in the Month view too, on the day their date names (with no date, on the phase’s first day that week for a note that
+        stays with a phase, otherwise on the week’s Monday). Notes you add in the Month view stay there, unless you switch on <b>Show in waterfall</b> in their
         editor. Holidays and automatic notes can show in one view or both: see <To id="auto" /> and <To id="holnotes" />.</p>
       <Tip title="Only use the Month view?">Switch on <b>I only use the Month view</b> at the bottom of this sidebar to hide
         the articles about the Waterfall.</Tip>

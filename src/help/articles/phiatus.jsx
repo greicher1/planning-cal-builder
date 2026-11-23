@@ -15,8 +15,8 @@ export default function Article() {
     <Sec title="Name it and color it">
       <p>Under the toggle are a name box and a color box. They label and color every week of the pause, in both views and
         every export. Double-click the band in the waterfall to go straight to them.</p>
-      <Info title="It travels with its phase">When the phase moves, its break moves with it. With Ripple Hiatus Periods on,
-        the phases that start after the break move too.</Info>
+      <Info title="It travels with its phase">When the phase moves, its break moves with it. With Ripple Hiatus Periods on, adding,
+        removing, lengthening or moving the break itself also moves the phases that start after it.</Info>
     </Sec>
     <Related ids={['hiatus', 'ripple']} />
   </>
