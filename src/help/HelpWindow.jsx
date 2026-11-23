@@ -40,14 +40,14 @@ const CONTEXT = [
   [() => shown('#pop-solve'), 'build'],
   [() => shown('.mv-note-pop') || (shown('.note-pop') && inMonth()), 'mvnotes'],
   [() => shown('.note-pop'), 'wfnotes'],
-  [() => shown('.day-menu'), 'daymenu'],
+  [() => shown('.day-menu'), 'month'],
   // Settings is open when its button says so (aria-expanded; it never carried an "active" class, so an earlier version of this
   // line never matched). Its tabs have an article each.
   [() => !!document.querySelector('.side-settings-btn[aria-expanded="true"]'), () => {
     const tab = [...document.querySelectorAll('.sw-tab')].find(t => t.getAttribute('aria-selected') === 'true')
     const name = tab && tab.textContent.trim()
-    return name === 'Region' ? 'regiontab' : name === 'Presets' ? 'presets' : 'prefs'
-  }, ['prefs', 'regiontab', 'presets']],
+    return name === 'Region' ? 'region' : name === 'Presets' ? 'presets' : 'prefs'
+  }, ['prefs', 'region', 'presets']],
 ]
 // A table that names an article that is gone would send ? nowhere, silently: say so at load (the help leg's console check).
 for (const [, target, ids] of CONTEXT) for (const id of (ids || [target])) if (!ARTICLE[id]) console.error(`help: the ? context names "${id}", which is not in toc.js`)

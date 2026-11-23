@@ -6,7 +6,7 @@
 
 ### 📖 21–23 Nov 2026: THE NEW HELP — BUILT and tested on branch `help-center` (worktree `.claude/worktrees/help-center`, NOT pushed, NOT merged). Tracker card `help-center-redesign` (building). Plan page `mockups/help-docs-plan.html` (main checkout, untracked).
 - **What it is:** the one-page Guide (`#help-overlay`, ~10,700 words) is replaced by `src/help/`: a ~1,120 px Mantine window with a
-  sidebar of 14 sections / 64 articles, search, "On this page", Show me (rings the real control), `?` opening on the open
+  sidebar of 14 sections / 44 articles (64 were written; 23 Nov: 20 folded into others, see below), search, "On this page", Show me (rings the real control), `?` opening on the open
   Shift box / Build Around box / note editor / day menu / Settings (else the last article read; else Month view's article or
   the tour), an "I only use the Month view" switch (localStorage `sptcal.help`), What's New history, and "More in Help →"
   on every ⓘ hint (`InfoHint`'s `help` prop → `chrome.openHelp(id)`). The engine's sweep skips `.help-dlg`.
@@ -74,7 +74,7 @@
   5. ✅ **The `help` leg is written and in `gate.sh` (23 Nov 2026)**: `tests/harness/t/help.js`, `HARNESS_PAGE=/dist/index.html
      HARNESS_STATE=help-demo ./run.sh help 400`, 12 cases: opens (H0, H1), every article's title / lead / pictures / "being
      written" (H2), search + Esc (H4), the Month-only switch (H7), Esc closes (H5), Help changes no field and no Undo step
-     (H8), every Show me (22 buttons) rings its control (H3), `?` by context incl. each Settings tab and "the last article"
+     (H8), every Show me (20 buttons) rings its control (H3), `?` by context incl. each Settings tab and "the last article"
      (H6), no stale wording in any article (H10), the facts that mattered most still said (H11), E0. Red on a planted stale
      phrase (H10) and a dead Show me selector (H3). Its first run found three bugs, fixed: Esc in the search box closed
      Help (Mantine closes a modal on Esc in the CAPTURE phase: the input now carries `data-mantine-stop-propagation` while
@@ -96,11 +96,20 @@
      `textContent`, not `innerText`, when a folded "More detail" must count (innerText leaves a closed <details> out).
   6. ✅ README changelog ("Unreleased — a new Help…") and a What's New entry (`2026-11-23`, "A new Help", "Help for Month
      view users") are written; the tracker card `help-center-redesign` is `ready`.
+  7. ✅ **The page merges are DONE (23 Nov 2026, owner's picker "Before shipping"): 64 → 44 articles.** custom, hidewf →
+     `cards` (which also took the phase-card picture from `first`); phiatus → `hiatus`; nudge, drag → `move` (now the
+     chooser only: the Shift and Build Around steps and pictures live in `shift` / `build`); compare → `scen` ("Scenarios and
+     Compare"); holnotes → `auto` ("Automatic notes and holidays"); bulk → `mvnotes`; singlecol, datefmt, mvsize → `prefs`;
+     daymenu → `month`; tokens, lastedited → `hdrmodes` (the variable tables sit in a folded More); excel → `pdf`
+     ("Export: PDF and Excel (Waterfall)"); filemenu, autosave, trouble → `save` ("Save, Load and autosave"; `trouble` kept
+     only the permission prompt, "Chrome or Edge" and the file-changed line: the dialogs print their own explanations; the
+     Excel-library line moved into the export page); regiontab, holidaylists → `region`. None had shipped, so no machine
+     remembers the old ids. Re-pointed: every `<To id>` / `<Related>`, the `?` context table (day menu → `month`, Region tab
+     → `region`), the Holidays ⓘ (`help="region"`), the help leg's titles. `check-help-jsx` 44/44, `npm run check` 46/46,
+     the `help` leg 12/12 on the build (20 Show me buttons now).
   **WHAT IS LEFT (owner's call):** (a) the commit / push picker. ⛔ Before any push, merge `origin/main` in: it has the
   holiday rename from Settings › Region's list (`6be10871`), which `regiontab` and `holnotes` already describe, and
-  README / HANDOFF / What's New will conflict at their tops (keep both sides). (b) The ~20 page merges (64 → ~44) from the
-  audits, which change article ids (re-point the ⓘ `help=` links, the `?` context table and the Month-only filter's
-  needs; the leg and `check-help-jsx` will say what broke). (c) Left on the owner's own "do not add back" list and still
+  README / HANDOFF / What's New will conflict at their tops (keep both sides). (b) (done, item 7). (c) Left on the owner's own "do not add back" list and still
   mentioned: `newreset` bullets Reset Waterfall / Month Notes, and `heading-editor.webp` shows "Hide column": ask. (d) The
   engine's ⓘ list says `{version}` is "Version, as typed" (it prints v3); an ⓘ edit, not Help. (e) Owner ruling: no
   printed captions, see above.

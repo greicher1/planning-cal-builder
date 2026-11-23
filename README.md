@@ -35,20 +35,24 @@ Picks from the plan page: a wide window, the "Docs" design, "picture first, deta
 a ? that opens the page for what you are doing, ⓘ links, an "I only use the Month view" switch, a What's New history and
 reopening the last page. Mid-build: it must stay cheap to update, with no big new gates.
 
-- **What it is.** `src/help/` (its `README.md` is the cheat-sheet): a Mantine window with 14 sections and 64 short
+- **What it is.** `src/help/` (its `README.md` is the cheat-sheet): a Mantine window with 14 sections and 44 short
   articles, one file each (`articles/<id>.jsx`), the list in `toc.js`. It replaced the one-page Guide (`#help-overlay`,
   about 10,700 words, no pictures). Each article opens with a lead and folds its details; keys are written for the computer
-  in use (⌘ on a Mac, Ctrl elsewhere); 22 **Show me** buttons close Help and ring the real control, switching view or
+  in use (⌘ on a Mac, Ctrl elsewhere); 20 **Show me** buttons close Help and ring the real control, switching view or
   Settings tab first. Pictures (33) are made by `node tools/help-shots.mjs` from the built app on a made-up show,
   "Harbor Lights" (`tests/fixtures/help-demo.sptcal`), so none is a real schedule and a retake is one command.
 - **? and the ⓘ hints.** With the Shift box, Build Around, a note editor, a day's menu or Settings open (by tab: Preferences,
   Region, Presets), ? opens that page; otherwise the last page read, else the view's own. Nine hints say "More in Help →".
   Search reads every article. Chrome only: nothing here is frozen, saved in a calendar or in any export.
-- **Two read-only audits** asked of all 64 pages whether a newcomer needs the page or the app already says it (once letting
+- **Two read-only audits** asked of all 64 pages written whether a newcomer needs the page or the app already says it (once letting
   the reader use hover text and ⓘ, once not). About 20 wrong or stale claims were fixed and the facts only a hover said
   were added (autosave rewrites your real file, a new calendar starts on no Region, Auto throws header lines away, "12 + 1" is
   not 13 days, the 19 Nov "a new note stays with its phase" default, Blocks mode, which resets ask first…). A separate reader
-  then checked every new claim against the code and five more were corrected. No page was merged, renamed or removed.
+  then checked every new claim against the code and five more were corrected. Then, at the owner's pick, twenty small pages were folded into the page that explains the same thing (64 to 44: custom and
+  hide-a-phase into phase cards, one-phase hiatus into hiatus, nudge and drag into Shift or Build Around, Compare into
+  scenarios, holiday notes into automatic notes, Paste notes into Month notes, three settings pages into Preferences, the
+  day menu into the Month view, template variables and Date Last Edited into Header, Excel into the PDF page, the File
+  menu, autosave and troubleshooting into Save, and the Region tab and holiday lists into Region). None had shipped.
 - **Owner ruling: no printed captions.** Ten one-line captions under controls were built on localhost and rejected (*"i
   want less on-screen text as it looks ugly. I'd rather hide it behind 'i' symbols or in the help page"*); all reverted.
 - **Found by the new test.** Esc in the search box closed all of Help instead of clearing the search (Mantine closes a

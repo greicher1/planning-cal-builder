@@ -10,6 +10,6 @@ export default function Article() {
     <p><Ui>Copy</Ui> puts the lines on your clipboard, one per line, ready to paste into an email. With scenario tabs, it
       lists the tab on screen.</p>
     <p>If the calendar has never been saved or loaded, there’s nothing to compare with yet, and the window says so.</p>
-    <Related ids={['save', 'scen', 'compare']} />
+    <Related ids={['save', 'scen']} />
   </>
 }

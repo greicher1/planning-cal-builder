@@ -955,7 +955,7 @@ export function HolidaysCard() {
     <section className="card">
       <h2>
         <IconCalendarDot className="card-ic" /><span>Holidays</span>
-        <InfoHint label="Holidays" help="regiontab" width={280}>
+        <InfoHint label="Holidays" help="region" width={280}>
           Un-tick <strong>Enable</strong> to work a holiday: it stops costing a day and stops appearing
           as a note. It only shows where that moves a date. A colored strip marks the holidays inside a
           phase that counts days (Production, a phase counted in Days, episode prep). The two note columns control where an

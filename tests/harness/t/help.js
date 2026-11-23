@@ -135,7 +135,7 @@ window.addEventListener('load', function () { (async function () {
     if(swapRes) swapRes.click();
     await T.sleep(150);
     add('H4', 'search finds an article by a word in its body, says so when nothing matches, Esc clears it and keeps Help open, a result opens its article',
-      found.indexOf('Autosave and getting work back') >= 0 && /No articles match/.test(none) &&
+      found.indexOf('Save, Load and autosave') >= 0 && /No articles match/.test(none) &&
       afterEsc.open && afterEsc.value === '' && afterEsc.nav >= 40 && !!swapRes && /Swapping/.test(crumb()) && q('.help-dlg .hp-search input').value === '',
       {found: found.slice(0, 4), none: none, afterEsc: afterEsc, opened: crumb()}, 'autosave in the results; no match line; Esc clears; the result opens');
 
@@ -220,9 +220,9 @@ window.addEventListener('load', function () { (async function () {
     await pressHelp(); c.last = crumb(); await closeHelp();
     add('H6', '? opens the article for what is open (Shift, Build Around, a note editor, the day menu, each Settings tab), else the last one read, else the view\'s own',
       c.waterfall === 'Tour of the screen' && c.shift === 'Shift in detail' && c.build === 'Build Around in detail' && c.note === 'Notes in the Waterfall' &&
-      c.prefs === 'Preferences' && c.region === 'Region and the holiday list' && c.presets === 'Header presets' &&
-      c.month === 'The Month view at a glance' && c.dayMenu === 'A day’s menu' && c.last === 'Glossary',
-      c, 'Tour; Shift in detail; Build Around in detail; Notes in the Waterfall; Preferences; Region and the holiday list; Header presets; The Month view at a glance; A day’s menu; Glossary');
+      c.prefs === 'Preferences' && c.region === 'Production Region and union holidays' && c.presets === 'Header presets' &&
+      c.month === 'The Month view at a glance' && c.dayMenu === 'The Month view at a glance' && c.last === 'Glossary',
+      c, 'Tour; Shift in detail; Build Around in detail; Notes in the Waterfall; Preferences; Production Region and union holidays; Header presets; The Month view at a glance (twice: the month, then a day’s menu); Glossary');
 
     // ---- H10: no stale wording ----
     var STALE = [
@@ -245,15 +245,19 @@ window.addEventListener('load', function () { (async function () {
     var FEATURES = [
       ['Simultaneous Post', /calendar weeks after Production begins/],
       ['File names', /Show Title S1 Planning Calendar v3 WRO 1\.5\.26 - a\.o\. 11\.12\.26\.xlsx/],
-      ['Autosave and getting work back', /rewrites that file/], ['Autosave and getting work back', /Save As/],
+      ['Save, Load and autosave', /rewrites that file/], ['Save, Load and autosave', /Save As/], ['Save, Load and autosave', /Unsaved work/],
+      ['Save, Load and autosave', /recent calendars/],
       ['Production Region and union holidays', /starts on None/], ['Production Region and union holidays', /Costs a shoot day/],
-      ['Header: Auto, Template, Manual, Off', /throws away the lines/],
-      ['Scenario tabs', /Scenario/], ['Compare scenarios', /Compare/], ['Calendar range', /Calendar range/], ['Date format', /MM\/DD/],
-      ['Date Last Edited', /last edited/i], ['A day’s menu', /Work this day/], ['A day’s menu', /Full day/],
+      ['Header: Auto, Template, Manual, Off', /throws away the lines/], ['Header: Auto, Template, Manual, Off', /last edited/i],
+      ['Header: Auto, Template, Manual, Off', /square brackets/],
+      ['Scenarios and Compare', /Scenario/], ['Scenarios and Compare', /Only differences/], ['Calendar range', /Calendar range/],
+      ['Preferences', /MM\/DD/], ['Preferences', /Single Column Mode/], ['Preferences', /Number Production Days/],
+      ['The Month view at a glance', /Work this day/], ['The Month view at a glance', /Full day/],
+      ['Phase cards: start and length', /Add phase/], ['Phase cards: start and length', /eye/],
+      ['Hiatus: the whole show or one phase', /one phase/], ['Export: PDF and Excel (Waterfall)', /Export to Excel/],
+      ['Automatic notes and holidays', /Hide Holiday/], ['Notes in the Month view', /Paste notes/],
       ['Episodes or blocks', /Blocks/], ['Episodes or blocks', /4\.5/], ['Episodic prep', /Default prep/],
-      ['Size, day numbers and labels', /Number Production Days/], ['Paste many notes at once', /Paste notes/],
-      ['The File menu and recent calendars', /recent calendars/], ['Tandem days', /not a 13-day shoot/],
-      ['Shift in detail', /keep their distance from the wrap/], ['Keyboard shortcuts', /Esc/]
+      ['Tandem days', /not a 13-day shoot/], ['Shift in detail', /keep their distance from the wrap/], ['Keyboard shortcuts', /Esc/]
     ];
     var missing = FEATURES.filter(function(f){ return !has(f[0], f[1]); }).map(function(f){ return f[0] + ': ' + String(f[1]).slice(0, 40); });
     add('H11', 'the facts that mattered most are still said, and every main feature has its page', missing.length === 0,

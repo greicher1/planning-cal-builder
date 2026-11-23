@@ -35,6 +35,6 @@ export default function Article() {
       <p>It lives in <Path>Settings › Preferences › Hiatus</Path> and is kept on this computer, not in the calendar. <ShowMe at=".prefs-card:has(#pref-hiatus-ripple)" tab="settings" sw="Preferences" />{' '}
         Turn it off first when you want to change a hiatus without moving anything else.</p>
     </Sec>
-    <Related ids={['hiatus', 'phiatus', 'move']} />
+    <Related ids={['hiatus', 'move']} />
   </>
 }

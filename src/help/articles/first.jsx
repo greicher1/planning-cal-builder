@@ -1,6 +1,5 @@
 import { Lead, Sec, Shot, Info, Ui, Keys, To, Related } from '../parts.jsx'
 import showInfo from '../shots/show-info.webp'
-import phaseCard from '../shots/phase-card.webp'
 
 export default function Article() {
   return <>
@@ -25,15 +24,7 @@ export default function Article() {
       <p>On the <Ui>Phases</Ui> tab, give each phase a start date and a length. In a phase counted in weeks, a start date snaps to the Monday of its week, and
         the calendar draws itself as you type. A new calendar comes with four two-week winter breaks already on the Hiatus
         card; change or remove them there. Production needs only a start: its length comes from step 1.</p>
-      <Shot src={phaseCard} w={265} pins={[[55.5, 10], [28, 30.5], [78, 42], [47.5, 55.8], [60.8, 80], [76.4, 90.2]]}
-        items={[
-          <><b>Name and color</b> · click either to change it.</>,
-          <><b>Starts</b> · its first week. Switch it to <b>Ends</b> to set the last week instead.</>,
-          <><b>▲ ▼</b> · move just this phase a week earlier or later.</>,
-          <><b>Length</b> · in weeks, or switch to dates.</>,
-          <><b>Start after Writer’s Rm</b> · starts it the week after the phase before.</>,
-          <><b>Hiatus</b> · pause just this phase.</>,
-        ]} />
+      <p>The card’s controls (Starts or Ends, Weeks or Dates, start after, hiatus, the ▲ ▼ arrows) are in <To id="cards" />.</p>
     </Sec>
     <Sec title="3. Look at it both ways">
       <p><Ui>Waterfall</Ui> and <Ui>Month</Ui> above the calendar switch views. See <To id="views" />.</p>

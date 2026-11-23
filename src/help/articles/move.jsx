@@ -1,6 +1,4 @@
-import { Lead, Sec, Steps, Step, Shot, Table, Info, More, Ui, Keys, ShowMe, Timeline, Related } from '../parts.jsx'
-import shiftPanel from '../shots/shift-panel.webp'
-import buildAround from '../shots/build-around.webp'
+import { Lead, Sec, Table, Info, Ui, To, Keys, Timeline, Related } from '../parts.jsx'
 
 // The timeline: five phases a week apart, then the same plan after each tool. [first week, length] per state.
 const ROWS = [
@@ -27,46 +25,21 @@ export default function Article() {
         ['Gaps', 'Kept', 'Closed'],
         ['Empty dates', 'Stay empty', 'Filled in from each phase’s length'],
       ]} />
+      <p>The steps for each are in <To id="shift" /> and <To id="build" />. <Keys k="Mod+Z" /> takes back a whole move.</p>
     </Sec>
-    <Sec title="Shift the plan">
-      <Steps>
-        <Step t={<>Click <Ui>Shift ▾</Ui>.</>}>To move everything one week, use <Ui>← 1 wk</Ui> or <Ui>1 wk →</Ui> instead. <ShowMe at="#shift-group" /></Step>
-        <Step t="Untick any phase that should stay.">Or click a phase and press <Ui>Prior to …</Ui> or <Ui>After …</Ui>.</Step>
-        <Step t="Say how far.">Type weeks and press <Ui>Earlier</Ui> or <Ui>Later</Ui>, or choose <Ui>To a date</Ui>.</Step>
-      </Steps>
-      <Shot src={shiftPanel} w={381} pins={[[7, 27], [7, 38.3], [44, 49.5], [50, 68.5], [50, 81], [61, 89]]}
-        items={[
-          <><b>All phases</b> · every phase starts ticked, so the whole plan moves.</>,
-          <><b>A phase’s box</b> · untick it to leave that phase where it is.</>,
-          <><b>Click a row</b> to choose it. The buttons below name it.</>,
-          <><b>Prior to / After</b> · tick the chosen phase and everything before or after it.</>,
-          <><b>By weeks / To a date</b></>,
-          <><b>Earlier / Later</b> · nothing moves until you press one.</>,
-        ]} />
-    </Sec>
-    <Sec title="Build around one date">
-      <Steps>
-        <Step t={<>Click <Ui>Build Around</Ui>.</>}><ShowMe at="#pop-solve-btn" /></Step>
-        <Step t="Click the phase to pin.">Choose <Ui>starts on</Ui> or <Ui>ends by</Ui>, and pick the date.</Step>
-        <Step t="Check the list.">Each row shows its new date and how far it moves.</Step>
-        <Step t={<>Press <Ui>Build</Ui>.</>} />
-      </Steps>
-      <Shot src={buildAround} w={440} pins={[[36, 46.7], [40.5, 29.7], [77.3, 29.7], [4.5, 64.8], [50, 78], [30, 91.2]]}
-        items={[
-          <><b>The pinned phase</b> lands on your date.</>,
-          <><b>Lengths</b> · type a new one right here.</>,
-          <><b>The preview</b> · Pushed, Pulled or No change.</>,
-          <>A phase that runs alongside its neighbor starts unticked. Tick it to build it in line.</>,
-          <><b>Pin to a date</b> · starts on, or ends by its last workday.</>,
-          <><b>Build</b> · nothing changes until you press it.</>,
-        ]} />
+    <Sec title="Just one phase?">
+      <p>In the Waterfall, use the <b>▲</b> and <b>▼</b> in a phase’s date box on the Phases tab (or <Keys k="Alt+Up" /> and{' '}
+        <Keys k="Alt+Down" /> in that box) to move it a week earlier or later without touching the others. The gaps on either
+        side change. The phase takes its own hiatus, its cell settings and any notes that stay with it (a new note does by
+        default) with it; a note left on its week, holidays and all-phase hiatuses stay. A run of quick clicks is one undo. The
+        arrows show while the Waterfall is on screen.</p>
+      <p>In the Month view, drag the middle of a phase’s bar to move its dates: a copy follows the pointer while the calendar
+        underneath shows where it will land. Drag a bar’s end instead to change where it starts or ends (the other end stays
+        put). Double-click a bar to open its phase’s card on the Phases tab.</p>
     </Sec>
     <Sec title="What never moves">
       <Info title="These stay on their dates"><b>Union holidays</b>, <b>notes with a date in them</b>, and hiatuses with
-        <b> Lock in place</b> on. Because holidays stay put, the wrap can move a day more or less than the rest.</Info>
-      <More title="move just one phase">Use the ▲ ▼ in a phase’s date box on the Phases tab, or <Keys k="Alt+Up" /> and{' '}
-        <Keys k="Alt+Down" /> in that box. It moves one week at a time and takes its own hiatus with it.</More>
-      <p>Changed your mind? <Keys k="Mod+Z" /> takes back the whole move.</p>
+        <b> Lock in place</b> on. Because holidays stay put, the wrap can move a day more or less than the rest. See <To id="stays" />.</Info>
     </Sec>
     <Related ids={['shift', 'build', 'stays']} />
   </>

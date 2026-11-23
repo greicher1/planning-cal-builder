@@ -30,6 +30,6 @@ export default function Article() {
         or only export to Excel, switch to the Waterfall, open Export PDF and click Export once to set the parts (that writes
         a PDF).</p>
     </Sec>
-    <Related ids={['pdf', 'showinfo', 'lastedited']} />
+    <Related ids={['pdf', 'showinfo', 'hdrmodes']} />
   </>
 }

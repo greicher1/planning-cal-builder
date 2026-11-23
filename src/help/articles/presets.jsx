@@ -28,6 +28,6 @@ export default function Article() {
         it is wearing, but not your library. To share one, press <Ui>Export…</Ui> beside it in the list (your own presets are listed under the
         buttons) to make a .spthdr file, and <Ui>Import preset file…</Ui> on the other computer.</p>
     </Sec>
-    <Related ids={['hdrmodes', 'tokens']} />
+    <Related ids={['hdrmodes']} />
   </>
 }

@@ -1,4 +1,4 @@
-import { Lead, Sec, Steps, Step, Shot, Info, Keys, Related } from '../parts.jsx'
+import { Lead, Sec, Steps, Step, Shot, Info, Keys, Path, ShowMe, Related } from '../parts.jsx'
 import editor from '../shots/mv-note-editor.webp'
 
 export default function Article() {
@@ -33,6 +33,12 @@ export default function Article() {
       <Info title="One note, two places">A Waterfall note shows here on the day its date names. With no date, a note that stays with
         a phase sits on that phase’s first day that week, and any other on the week’s Monday. Editing it here edits the Waterfall’s note too. Holidays and automatic notes always keep their own day.</Info>
     </Sec>
-    <Related ids={['wfnotes', 'linked', 'bulk']} />
+    <Sec title="Many notes at once">
+      <p><b>Paste notes…</b> adds many Month view notes from a list. It’s in <Path>Settings › Preferences › Month view</Path>, while
+        the Month view is on screen. <ShowMe at="#paste-notes-btn" view="month" tab="settings" sw="Preferences" /></p>
+      <p>Write one note per line: the date, the text and, if you like, a color, such as <b>7/6/27, Location scout, pale
+        blue</b>. A color is a swatch’s name or a #RRGGBB code. Columns copied from a spreadsheet work too.</p>
+    </Sec>
+    <Related ids={['wfnotes', 'linked', 'month']} />
   </>
 }

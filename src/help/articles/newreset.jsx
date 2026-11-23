@@ -16,6 +16,6 @@ export default function Article() {
     <p>The two notes resets and Reset holidays ask first (the notes resets say how many notes they clear, and Reset Waterfall
       Notes clears them in the Month view too). Reset Columns, Reset Bar Order and the Header’s Auto switch just do it. Each
       is one Undo step, so <Keys k="Mod+Z" /> brings it back.</p>
-    <Related ids={['save', 'regiontab', 'hdrmodes']} />
+    <Related ids={['save', 'region', 'hdrmodes']} />
   </>
 }
