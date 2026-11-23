@@ -4,7 +4,7 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### 📖 21 Nov 2026: THE NEW HELP — BUILDING on branch `help-center` (worktree `.claude/worktrees/help-center`, NOT pushed, NOT merged). Tracker card `help-center-redesign` (building). Plan page `mockups/help-docs-plan.html` (main checkout, untracked).
+### 📖 21–23 Nov 2026: THE NEW HELP — BUILT and tested on branch `help-center` (worktree `.claude/worktrees/help-center`, NOT pushed, NOT merged). Tracker card `help-center-redesign` (building). Plan page `mockups/help-docs-plan.html` (main checkout, untracked).
 - **What it is:** the one-page Guide (`#help-overlay`, ~10,700 words) is replaced by `src/help/`: a ~1,120 px Mantine window with a
   sidebar of 14 sections / 64 articles, search, "On this page", Show me (rings the real control), `?` opening on the open
   Shift box / Build Around box / note editor / day menu / Settings (else the last article read; else Month view's article or
@@ -71,16 +71,39 @@
   said *"absolutely not, i want less on-screen text as it looks ugly. I'd rather hide it behind 'i' symbols or in the help
   page."* All reverted, never committed. So what the screen does not say lives in an ⓘ hint or in Help. Don't mock up printed
   helper lines again; adding an ⓘ where a control has none is a UI change he hasn't seen, so show it first.
-  5. The `help` leg (`tests/harness/t/help.js`, `HARNESS_PAGE=/dist/index.html HARNESS_STATE=help-demo ./run.sh help`):
-     opens, every article has its title and no "being written", every picture loads, every `data-showme` target exists,
-     search, Esc, context (Shift box → "Shift in detail"), Month-only switch, Help's controls add no undo step, an ⓘ link
-     opens its article, stale wording absent (Export App With Data, Background graphics, Reset All, "three modes", old
-     file-name shapes…), must-say phrases ("calendar weeks after Production begins" in `simpost`; the file-name example in
-     `names`). Then strip the old Guide's text checks from `filekeys` H1, `firstrun` (Help block), `noresetall` A4,
-     `simpostlabel` S2, `exportnames` X7 (moved into `help`); rewrite `oskeys` H1/H2 to read the Keyboard shortcuts article;
-     `dblclickdlg` D10–D12: `helpOpen` = `!!document.querySelector('.help-dlg')`. Add `help` to `gate.sh`.
-  6. README changelog, a What's New entry (src/whats-new.js: "A new Help"), this entry, the tracker card; then the
-     owner's commit/push picker. Merge into `main` only on their word.
+  5. ✅ **The `help` leg is written and in `gate.sh` (23 Nov 2026)**: `tests/harness/t/help.js`, `HARNESS_PAGE=/dist/index.html
+     HARNESS_STATE=help-demo ./run.sh help 400`, 12 cases: opens (H0, H1), every article's title / lead / pictures / "being
+     written" (H2), search + Esc (H4), the Month-only switch (H7), Esc closes (H5), Help changes no field and no Undo step
+     (H8), every Show me (22 buttons) rings its control (H3), `?` by context incl. each Settings tab and "the last article"
+     (H6), no stale wording in any article (H10), the facts that mattered most still said (H11), E0. Red on a planted stale
+     phrase (H10) and a dead Show me selector (H3). Its first run found three bugs, fixed: Esc in the search box closed
+     Help (Mantine closes a modal on Esc in the CAPTURE phase: the input now carries `data-mantine-stop-propagation` while
+     there is a query); Show me took the first match even when hidden (`.si-tandem-in` is drawn once per Schedule by mode;
+     it now takes the first VISIBLE match, and the Region ShowMe points at `.region-mirror`, since `#union-place` is in a
+     closed Settings window); `?` with Settings open never matched (`.side-settings-btn.active` never existed: it reads
+     `aria-expanded` and routes by tab: prefs / regiontab / presets). H3, H6 and the Show me test read the real UI, so a
+     new article with a ShowMe is covered for free.
+     ⚠️ Not in the leg: an ⓘ hint's "More in Help" (a headless run draws no frames, so a Mantine HoverCard never opens;
+     `mouseover` opens it in the real browser, tried by hand). `node tools/check-help-jsx.mjs` instead fails on any
+     `help="…"` or `openHelp('…')` in `src/chrome` that names no article, and `HelpWindow` logs a console error at load for
+     a `?` context id that is not in `toc.js` (the leg's E0 catches it).
+     The old Guide's text checks moved out of `filekeys` H1, `firstrun` H1, `noresetall` A4, `simpostlabel` S2,
+     `exportnames` X7 and `swapwords` R6 (the last was not on the original list); `oskeys` H1 / H2 now open Help and read
+     the Keyboard shortcuts article and the one on selecting cells, per platform. Results on the build, each with its
+     gate arguments: help 12/12, oskeys win / mac / linux 10/10 each, filekeys 15/15, firstrun 21/21, noresetall 4/4,
+     simpostlabel 2/2, exportnames 11/11, swapwords 2/2 and 5/5; `npm run check` 46/46.
+     ⚠️ A leg that needs Help's TEXT must open Help first (`#help-fab` after a `pointerdown`) and read `.hp-art`; use
+     `textContent`, not `innerText`, when a folded "More detail" must count (innerText leaves a closed <details> out).
+  6. ✅ README changelog ("Unreleased — a new Help…") and a What's New entry (`2026-11-23`, "A new Help", "Help for Month
+     view users") are written; the tracker card `help-center-redesign` is `ready`.
+  **WHAT IS LEFT (owner's call):** (a) the commit / push picker. ⛔ Before any push, merge `origin/main` in: it has the
+  holiday rename from Settings › Region's list (`6be10871`), which `regiontab` and `holnotes` already describe, and
+  README / HANDOFF / What's New will conflict at their tops (keep both sides). (b) The ~20 page merges (64 → ~44) from the
+  audits, which change article ids (re-point the ⓘ `help=` links, the `?` context table and the Month-only filter's
+  needs; the leg and `check-help-jsx` will say what broke). (c) Left on the owner's own "do not add back" list and still
+  mentioned: `newreset` bullets Reset Waterfall / Month Notes, and `heading-editor.webp` shows "Hide column": ask. (d) The
+  engine's ⓘ list says `{version}` is "Version, as typed" (it prints v3); an ⓘ edit, not Help. (e) Owner ruling: no
+  printed captions, see above.
 
 ### 🙈 21 Nov 2026: THE MONTH VIEW'S HOLIDAY EDITOR HAS "HIDE HOLIDAY" — committed `a3ed0a2e` on `scenario-version-offer`, cherry-picked onto `origin/main` and pushed on the owner's picker. README "Unreleased". Tracker card `month-hide-holiday`.
 - **Owner:** *"We need to add the same hide holiday button in the waterfall pop-up to the month view pop-up"*.

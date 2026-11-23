@@ -49,9 +49,16 @@ export default function Article() {
 
 - `Shot`: `w` is the width it is drawn at in CSS px (half the picture's pixel width, since shots are taken at 2x);
   leave it out for a whole-window shot. Pins are `[left %, top %]` of the picture; `items` explain them in order.
-- `ShowMe at=` must be a selector the app keeps (an id where there is one). `view="month"` / `tab="phases"` go there
-  first. The `help` leg presses every one.
+- `ShowMe at=` must be a selector the app keeps (an id where there is one; the first match ON SCREEN is rung). `view="month"` /
+  `tab="phases"` go there first, and with `tab="settings"` `sw="Region"` picks the Settings window's tab. The `help` leg presses every one.
 - `Timeline`: see `articles/move.jsx`.
+
+## Checking a change
+
+`node tools/check-help-jsx.mjs` (a second: parses articles, checks ids, pictures, links and every ⓘ `help="…"`), `npm run
+check`, and the one leg: `cd tests/harness && HARNESS_PAGE=/dist/index.html HARNESS_STATE=help-demo ./run.sh help 400`
+(about 2 minutes; it opens every article and presses every Show me). Never the full gate. A leg that needs an article's text
+opens Help first and reads `.hp-art` (`textContent`, so folded "More detail" counts).
 
 ## Pictures
 

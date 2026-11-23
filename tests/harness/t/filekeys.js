@@ -31,7 +31,7 @@
 //       dialog tier (z-index 400), so a question opened under it could be neither seen nor answered
 //   K14 like a press, the key blurs first: a Manual header line typed but not yet left (it commits on
 //       focusout) is IN the file ⇧⌘S writes
-//   H1  the Help has a "Keyboard shortcuts" section naming them
+//   (H1, the Help naming the keys, moved into oskeys, which reads the Keyboard shortcuts article on each platform, 23 Nov 2026)
 //   E0  0 console errors
 //
 // ⛔ memoryIDB() runs synchronously, here at the top, before the engine boots: Save As awaits
@@ -280,12 +280,6 @@ window.addEventListener('load', function () { (async function () {
     kase('K12', '⌘N end to end: New’s question appears over unsaved work, and "Start new" leaves a blank calendar',
          p12 && asked && before12.title !== '' && before12.prod !== '' && after12.title === '' && after12.prod === '' && after12.empty && after12.modals === 0,
          { observed: { prevented: p12, asked: asked, question: question, before: before12, after: after12 } });
-
-    var help = (document.getElementById('help-overlay') || {}).textContent || '';
-    var keys = ['⌘N', '⌘S', '⇧⌘S', '⇧⌘E', '⌘P'];
-    kase('H1', 'the Help has a Keyboard shortcuts section naming ⌘N, ⌘S, ⇧⌘S, ⇧⌘E and ⌘P',
-         /Keyboard shortcuts/.test(help) && keys.every(function (k) { return help.indexOf(k) >= 0; }),
-         { observed: { section: /Keyboard shortcuts/.test(help), missing: keys.filter(function (k) { return help.indexOf(k) < 0; }) } });
 
     var errs = (T.appHealth().errors || []);
     kase('E0', '0 console errors', errs.length === 0, { errors: errs.slice(0, 5) });

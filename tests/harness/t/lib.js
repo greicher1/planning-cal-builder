@@ -587,7 +587,7 @@ window.__T = (function(){
     return dbs;
   }
   // The app's OWN dialogs (uiAlert / uiConfirm) are Mantine modals. ⛔ Never read them with
-  // document.querySelector('[role="dialog"]'): the four toolbar tool popovers and #help-overlay are
+  // document.querySelector('[role="dialog"]'): the four toolbar tool popovers and Help (.help-dlg) are
   // also role="dialog" and come FIRST in the document, so a first-match selector never sees the
   // modal -- which made one audit result claim "no dialog" when the app had shown one.
   function modalText(){

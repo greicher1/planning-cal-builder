@@ -17,7 +17,7 @@
 //   A1  the engine booted with it gone: 0 console errors, and the reference calendar renders
 //   A2  New still clears everything Reset All cleared: title, dates, a typed note, the Region
 //   A3  no divider is left dangling at the end of the header
-//   A4  the Help no longer points at Reset All or at a "Reset (bottom of the panel)" control
+//   (A4, the Help no longer pointing at Reset All, moved into the help leg's H10, 23 Nov 2026)
 window.__T.memoryIDB();
 window.addEventListener('load', function () { (async function () {
   var T = window.__T, cases = [];
@@ -64,10 +64,7 @@ window.addEventListener('load', function () { (async function () {
       !!last && !last.classList.contains('app-toolbar-div'),
       {last: last ? (last.id || last.className) : null}, 'the last control is a button');
 
-    var help = (document.getElementById('help-overlay') || {}).textContent || '';
-    add('A4', 'the Help no longer points at Reset All or at a "Reset (bottom of the panel)" control',
-      !/Reset All/.test(help) && !/bottom of the panel/.test(help),
-      {resetAll: /Reset All/.test(help), bottomOfPanel: /bottom of the panel/.test(help)}, 'neither');
+    // (A4, the Help no longer pointing at Reset All, moved into the help leg (tests/harness/t/help.js) on 23 Nov 2026: Help is a window now, and the one-page Guide this text check read is gone: its H10 holds the stale wording.)
   } catch (e) { cases.push({id: 'EX', title: 'harness', pass: null, observed: String(e && e.stack || e)}); }
   T.done({test: 'noresetall', cases: cases, err: (window.__ERR || []).slice(0, 10)});
 })(); });

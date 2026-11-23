@@ -28,6 +28,44 @@ way a user would notice or a future session would need to return to. See
 [`CLAUDE.md`](CLAUDE.md) → "⛔ Changelog every substantial change" for when and how.
 
 <!-- Newest first. Add new entries directly under this line. -->
+### Unreleased — a new Help: a window with a sidebar, search, pictures and Show me (23 Nov 2026)
+
+The owner asked for a refined Help (21 Nov 2026): a sidebar of sections, a wider window, screenshots, diagrams and color.
+Picks from the plan page: a wide window, the "Docs" design, "picture first, details folded", crisp pictures, plus search,
+a ? that opens the page for what you are doing, ⓘ links, an "I only use the Month view" switch, a What's New history and
+reopening the last page. Mid-build: it must stay cheap to update, with no big new gates.
+
+- **What it is.** `src/help/` (its `README.md` is the cheat-sheet): a Mantine window with 14 sections and 64 short
+  articles, one file each (`articles/<id>.jsx`), the list in `toc.js`. It replaced the one-page Guide (`#help-overlay`,
+  about 10,700 words, no pictures). Each article opens with a lead and folds its details; keys are written for the computer
+  in use (⌘ on a Mac, Ctrl elsewhere); 22 **Show me** buttons close Help and ring the real control, switching view or
+  Settings tab first. Pictures (33) are made by `node tools/help-shots.mjs` from the built app on a made-up show,
+  "Harbor Lights" (`tests/fixtures/help-demo.sptcal`), so none is a real schedule and a retake is one command.
+- **? and the ⓘ hints.** With the Shift box, Build Around, a note editor, a day's menu or Settings open (by tab: Preferences,
+  Region, Presets), ? opens that page; otherwise the last page read, else the view's own. Nine hints say "More in Help →".
+  Search reads every article. Chrome only: nothing here is frozen, saved in a calendar or in any export.
+- **Two read-only audits** asked of all 64 pages whether a newcomer needs the page or the app already says it (once letting
+  the reader use hover text and ⓘ, once not). About 20 wrong or stale claims were fixed and the facts only a hover said
+  were added (autosave rewrites your real file, a new calendar starts on no Region, Auto throws header lines away, "12 + 1" is
+  not 13 days, the 19 Nov "a new note stays with its phase" default, Blocks mode, which resets ask first…). A separate reader
+  then checked every new claim against the code and five more were corrected. No page was merged, renamed or removed.
+- **Owner ruling: no printed captions.** Ten one-line captions under controls were built on localhost and rejected (*"i
+  want less on-screen text as it looks ugly. I'd rather hide it behind 'i' symbols or in the help page"*); all reverted.
+- **Found by the new test.** Esc in the search box closed all of Help instead of clearing the search (Mantine closes a
+  modal on Esc in the capture phase). A Show me aimed at a control that was hidden (Show info draws some boxes twice, one
+  per Schedule by mode; the Region's real select lives in a closed Settings window). And `?` with Settings open never
+  matched: it tested a class (`.active`) the Settings button never had, so it now reads `aria-expanded` and routes by tab.
+- **Tests.** One `help` leg (12 cases, in `gate.sh`) opens every article and checks title, lead, pictures, search, Esc, the
+  Month-only switch, that Help changes nothing in the calendar (no field, no Undo step), every Show me, the ? contexts, no
+  stale wording in any article and the facts that mattered most; red on a stale phrase and on a dead Show me. The Guide's
+  text checks in six legs moved into it (`filekeys` H1, `firstrun` H1, `noresetall` A4, `simpostlabel` S2, `exportnames` X7,
+  `swapwords` R6); `oskeys` H1 / H2 read the Keyboard shortcuts article on each platform. `tools/check-help-jsx.mjs`
+  parses articles in a second and fails on any ⓘ `help="…"` that names no article. A Help change is gated by those, never
+  the full gate.
+- **Verified:** `help` 12/12, `oskeys` ×3, `filekeys`, `firstrun`, `noresetall`, `simpostlabel`, `exportnames`, `swapwords`
+  (results in HANDOFF), `npm run check` 46/46, and by hand in the browser (every article, a Show me through Settings, the ⓘ
+  link). Not pushed; `main` (the holiday rename from the Settings list) still has to be merged in before it ships.
+
 ### Unreleased — every bar in the Month view reorders, Tandem and Prep included (21 Nov 2026)
 
 Owner, 21 Nov 2026: *"Ensure all phases of any type (including sim post, episodic/block prep, and tandem, can be

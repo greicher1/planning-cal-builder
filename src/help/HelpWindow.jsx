@@ -41,10 +41,20 @@ const CONTEXT = [
   [() => shown('.mv-note-pop') || (shown('.note-pop') && inMonth()), 'mvnotes'],
   [() => shown('.note-pop'), 'wfnotes'],
   [() => shown('.day-menu'), 'daymenu'],
-  [() => !!document.querySelector('.side-settings-btn.active'), 'prefs'],
+  // Settings is open when its button says so (aria-expanded; it never carried an "active" class, so an earlier version of this
+  // line never matched). Its tabs have an article each.
+  [() => !!document.querySelector('.side-settings-btn[aria-expanded="true"]'), () => {
+    const tab = [...document.querySelectorAll('.sw-tab')].find(t => t.getAttribute('aria-selected') === 'true')
+    const name = tab && tab.textContent.trim()
+    return name === 'Region' ? 'regiontab' : name === 'Presets' ? 'presets' : 'prefs'
+  }, ['prefs', 'regiontab', 'presets']],
 ]
+// A table that names an article that is gone would send ? nowhere, silently: say so at load (the help leg's console check).
+for (const [, target, ids] of CONTEXT) for (const id of (ids || [target])) if (!ARTICLE[id]) console.error(`help: the ? context names "${id}", which is not in toc.js`)
 function contextArticle() {
-  for (const [test, id] of CONTEXT) { try { if (test() && ARTICLE[id]) return id } catch (e) { /* a test that fails is no match */ } }
+  for (const [test, target] of CONTEXT) {
+    try { if (test()) { const id = typeof target === 'function' ? target() : target; if (ARTICLE[id]) return id } } catch (e) { /* a test that fails is no match */ }
+  }
   return null
 }
 const fitsView = (id, month) => ARTICLE[id] && (ARTICLE[id].view === 'both' || ARTICLE[id].view === (month ? 'month' : 'waterfall'))
@@ -158,7 +168,10 @@ export function HelpWindow() {
           <nav className="hp-side" aria-label="Help sections">
             <label className="hp-search">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><circle cx="11" cy="11" r="7" /><path d="m20 20-3.5-3.5" /></svg>
+              {/* Esc clears a typed search first. Mantine's modal closes on Esc in the CAPTURE phase, before this handler runs,
+                  unless the target says data-mantine-stop-propagation: so it says so while there is something to clear. */}
               <input type="search" placeholder="Search Help" value={q} data-autofocus
+                data-mantine-stop-propagation={q ? 'true' : undefined}
                 onChange={e => setQ(e.target.value)}
                 onKeyDown={e => { if (e.key === 'Escape' && q) { e.stopPropagation(); e.preventDefault(); setQ('') } }} />
             </label>

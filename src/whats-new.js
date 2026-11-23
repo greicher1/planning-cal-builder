@@ -17,6 +17,20 @@
 //     machine remembers as seen (localStorage 'sptcal.whatsNew'), so never change an id once it has shipped.
 export const WHATS_NEW = [
   {
+    id: '2026-11-23',
+    date: '23 Nov 2026',
+    items: [
+      {
+        title: 'A new Help',
+        text: 'Press ? for a window with a sidebar of articles, search, pictures of the real screen and “Show me” buttons that point at the control. Open it with the Shift box, Build Around, a note, a day’s menu or Settings up and it goes straight to that page.',
+      },
+      {
+        title: 'Help for Month view users',
+        text: 'Switch on “I only use the Month view” at the bottom of the Help sidebar to hide the Waterfall pages. The ⓘ hints now say “More in Help” and open their page.',
+      },
+    ],
+  },
+  {
     id: '2026-11-21-2',
     date: '21 Nov 2026',
     items: [

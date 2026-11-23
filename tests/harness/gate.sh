@@ -2326,6 +2326,14 @@ done
 # startrecents (owner, 16 Nov 2026, version 7 of mockups/start-recents.html): the recents on an empty start as two cards,
 #   the last calendar's own card and "Other recent calendars" with Load…, one file and none, names without .sptcal, the
 #   when-lines, a row's click loading it; 7 of 10 red on releases/v1.15.0.html (C1-C4, L2, O1, O0).
+# help (23 Nov 2026; the new Help window, src/help/): the ONE leg for all of Help, on help-demo. It opens, every article
+#   opens under its own title with its pictures and nothing "being written", search (and Esc), the Month-only switch,
+#   Help's controls change nothing in the calendar (no field, no Undo step), every Show me rings its control, ? opens the
+#   article for what is open (Shift, Build Around, a note editor, the day menu, each Settings tab), no stale wording in
+#   any article, and the facts that mattered most are still said. It replaced the one-page Guide's text checks in
+#   filekeys H1, firstrun H1, noresetall A4, simpostlabel S2, exportnames X7 and swapwords R6 (oskeys H1 / H2 now read the
+#   Keyboard shortcuts article). Found, on its first run, that Esc in the search box closed all of Help, and a Show me
+#   that aimed at a hidden control. 12 cases. Help is chrome only: this leg and npm run check gate it, never the full gate.
 for AFSPEC in pwagate:-:120 pwagatelogic:-:120 cfmove:-:180 whatsnew:-:240 settingswin:-:240 newtab:-:120 \
               interfonts:-:60 monthlayout:-:150 monthlayout:colswap-simpost-refuse:150 \
               loadcarry:-:90 hiatusblank:hiatus-blank:90 hostile:xss-mixed:240 hostile:xss-proto:240 sharecopy2:-:90 loadfail:-:1500 \
@@ -2340,6 +2348,7 @@ for AFSPEC in pwagate:-:120 pwagatelogic:-:120 cfmove:-:180 whatsnew:-:240 setti
               regioncaveat:-:150 simpostlabel:-:120 prodspan:-:150 winansi:-:150 \
               numclamp:v1.4.0-saved:150 cmdprint:v1.4.0-saved:150 \
               noresetall:-:120 hdrcontrols:carry-rich:170 noswapbtns:colswap-gesture:60 \
+              help:help-demo:400 \
               colswappartial:colswap-widened:120 colswappartial:colswap-widened-reuse:120 \
               swapsplitreuse:swapsplit-reuse:120 \
               hdrrow:-:400 \

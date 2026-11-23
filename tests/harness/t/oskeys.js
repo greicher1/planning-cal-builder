@@ -18,7 +18,7 @@
 //
 // CASES
 //   P0  the page reports the platform asked for
-//   H1  Help's VISIBLE text names this platform's keys: on Windows and Linux Ctrl+S, Ctrl+Shift+S, Ctrl+Shift+E, Ctrl+P,
+//   H1  Help's Keyboard shortcuts article (and the one on selecting cells) names this platform's keys: on Windows and Linux Ctrl+S, Ctrl+Shift+S, Ctrl+Shift+E, Ctrl+P,
 //       Ctrl+O, Ctrl+Z, Ctrl+Shift+Z, Ctrl+Y, Ctrl+C / X / V and Ctrl-click, and no ⌘ ⇧ ⌥ glyph at all; on a Mac ⌘N, ⌘O,
 //       ⌘S, ⇧⌘S, ⇧⌘E, ⌘P, ⌘Z, ⇧⌘Z, ⌘Y, ⌘C / X / V and ⌘-click, and no "Ctrl" (the old "⌘S or Ctrl+S" pairs are gone)
 //   H2  New (WIN-2): a Mac is offered ⌘N; Windows and Linux are offered no key for New (the browser keeps Ctrl+N) and
@@ -112,26 +112,38 @@ window.addEventListener('load', function () { (async function () {
     add('P0', 'the page reports the platform asked for (' + OSQ + ')', plat.platform === OSFAKE.platform && plat.uad === OSFAKE.uad, plat, OSFAKE);
 
     // ---- H1, H2: Help ----
-    var help = shown($('help-body'));
-    var keysSec = (function () {
-      var h = qa('#help-body h3').filter(function (x) { return /Keyboard shortcuts/.test(x.textContent); })[0], s = '';
-      for(var n = h && h.nextElementSibling; n && n.tagName !== 'H3'; n = n.nextElementSibling) s += ' ' + shown(n);
-      return s;
-    })();
-    var want = MAC ? ['⌘N', '⌘O', '⌘S', '⇧⌘S', '⇧⌘E', '⌘P', '⌘Z', '⇧⌘Z', '⌘Y', '⌘C', '⌘X', '⌘V', '⌘-click']
+    // Help (src/help/) is drawn only while it is open, and writes every key through Keys (src/help/parts.jsx), which reads the
+    // platform the way keys.js does. So: open it, read the Keyboard shortcuts article and the one on selecting cells.
+    q('#help-fab').dispatchEvent(new PointerEvent('pointerdown', {bubbles: true}));
+    q('#help-fab').click();
+    await T.until(function () { return !!q('.help-dlg'); }, 'Help to open', 60, 50);
+    async function helpArticle(title){
+      var b = qa('.help-dlg .hp-nav .hp-i').filter(function (x) { return txt(x) === title; })[0];
+      if(b) b.click();
+      await T.sleep(120);
+      return q('.help-dlg .hp-art');
+    }
+    var sc = await helpArticle('Keyboard shortcuts'), keysSec = txt(sc);
+    var sel = await helpArticle('Selecting with the mouse and keyboard');
+    var help = keysSec + ' ' + txt(sel);
+    var rows = qa('tr', sc).map(function (r) { return qa('td', r).map(txt); });
+    var want = MAC ? ['⌘O', '⌘S', '⇧⌘S', '⇧⌘E', '⌘P', '⌘Z', '⇧⌘Z', '⌘Y', '⌘C', '⌘X', '⌘V', '⌘-click']
                    : ['Ctrl+O', 'Ctrl+S', 'Ctrl+Shift+S', 'Ctrl+Shift+E', 'Ctrl+P', 'Ctrl+Z', 'Ctrl+Shift+Z', 'Ctrl+Y', 'Ctrl+C', 'Ctrl+X', 'Ctrl+V', 'Ctrl-click'];
     var missing = want.filter(function (k) { return help.indexOf(k) < 0; });
     var foreign = MAC ? (help.match(/.{0,30}\bCtrl\b.{0,30}/g) || []) : (help.match(/.{0,30}[⌘⇧⌥⌃].{0,30}/g) || []);
-    add('H1', 'Help names this platform\'s keys and no other platform\'s', missing.length === 0 && foreign.length === 0,
+    add('H1', 'Help (Keyboard shortcuts, and selecting cells) names this platform\'s keys and no other platform\'s', missing.length === 0 && foreign.length === 0,
       {missing: missing, foreign: foreign.slice(0, 6)}, MAC ? 'every ⌘ key, no Ctrl' : 'every Ctrl key, no ⌘ ⇧ ⌥ ⌃');
+    var newRow = rows.filter(function (r) { return r[0] === '⌘N' || r[0] === 'New'; })[0] || [];
     var h2 = {
-      newKey: MAC ? /⌘N — New\b/.test(keysSec) : !/Ctrl\+N|⌘N/.test(keysSec),
-      fileMenu: MAC ? true : /New[^.]*New button at the top/.test(keysSec),
-      macMenuBar: /Mac menu bar/.test(help) === MAC,
-      windowsAside: !/On Windows, use/.test(help),
+      newKey: MAC ? (newRow[0] === '⌘N' && newRow[1] === 'New') : (newRow[0] === 'New' && !/Ctrl\+N|⌘N/.test(keysSec)),
+      fileMenu: MAC ? true : /New[^.]*New button at the top/.test(newRow.join(' ')),
+      macMenuBar: /Mac menu bar/.test(keysSec) === MAC,
+      windowsAside: !/On Windows, use/.test(keysSec),
     };
     add('H2', MAC ? 'New is ⌘N on a Mac, and the Mac menu bar paragraph shows' : 'no key is offered for New (Chrome keeps Ctrl+N), the New button is; no Mac menu bar paragraph',
-      h2.newKey && h2.fileMenu && h2.macMenuBar && h2.windowsAside, {checks: h2, keys: keysSec.slice(0, 700)}, 'all true');
+      h2.newKey && h2.fileMenu && h2.macMenuBar && h2.windowsAside, {checks: h2, newRow: newRow, keys: keysSec.slice(0, 700)}, 'all true');
+    q('.help-dlg .hp-x').click();
+    await T.until(function () { return !q('.help-dlg'); }, 'Help to close', 40, 50);
 
     // ---- T1: the Undo / Redo hover hints ----
     function tipOf(id){ var p = propsUp($(id), function (p) { return typeof p.label === 'string' && 'withArrow' in p; }); return p ? p.label : null; }

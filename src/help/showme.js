@@ -21,8 +21,9 @@ export async function showMe({ at, view, tab, sw }) {
     if (sw) { [...document.querySelectorAll('.sw-tab')].find(t => t.textContent.trim() === sw)?.click(); await wait(250) }
   }
   else if (tab) { document.querySelector(`.side-tab-btn[data-tab="${tab}"]`)?.click(); await wait(250) }
-  const el = document.querySelector(at)
-  if (!visible(el)) return false
+  // The first match that is on screen: Show info draws some boxes twice (one per Schedule by mode), the hidden one first.
+  const el = [...document.querySelectorAll(at)].find(visible)
+  if (!el) return false
   el.scrollIntoView({ block: 'nearest', inline: 'nearest' })
   await wait(120)
   ring(el)

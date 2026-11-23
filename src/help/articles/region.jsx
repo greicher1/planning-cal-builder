@@ -7,7 +7,7 @@ export default function Article() {
       <b> A new calendar starts on None, so no holiday is skipped until you pick a region.</b></Lead>
     <Sec title="Pick your region">
       <p>Choose <Ui>Production Region</Ui> in Show info: U.S. Area Standards, New York, each Canadian province, and more. The
-        same choice is in <Path>Settings › Region</Path>, with the holiday list and notes about where the region’s list comes from. <ShowMe at="#union-place" tab="show" /></p>
+        same choice is in <Path>Settings › Region</Path>, with the holiday list and notes about where the region’s list comes from. <ShowMe at=".region-mirror" tab="show" /></p>
       <Shot src={pic} w={265} pins={[[75.5, 19.9], [84.9, 54.3], [87.9, 74.1]]}
         items={[
           <><b>Production Region</b></>,
