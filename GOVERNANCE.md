@@ -4,7 +4,7 @@
 and the 43 outside-framework proposals folded in. In force from the commit that added it to the repo (governance Phase 4,
 23 Nov 2026). Rule IDs are permanent.*
 
-**Three files, edited by hand only (OUT-20).** The rules are this file, GOVERNANCE-UI.md and GOVERNANCE-ENG.md, with their
+**Three files, edited by hand only (INTRO-4, OUT-20).** The rules are this file, GOVERNANCE-UI.md and GOVERNANCE-ENG.md, with their
 history in GOVERNANCE-HISTORY.md. They are the only source: the script that drafted them is a record kept outside the repo
 and is never run again (a rerun would wipe hand edits).
 
@@ -32,7 +32,7 @@ withdrawn rule stays, struck through. Cite rules by ID in new code comments and 
 
 **Answering a question about a rule (INTRO-3).** When asked about a rule, cite its ID and whether it is In force, Proposed or Withdrawn, quote the owner's words where they matter, and say plainly when no rule settles it (then it's the owner's call by picker).
 
-**Declined rules are recorded (INTRO-2).** A rule declined on the review page goes into GOVERNANCE-HISTORY.md as Declined with the owner's note; a card moved to rejected carries a one-line reason and a date.
+**Declined rules are recorded (OUT-38).** A rule declined on the review page goes into GOVERNANCE-HISTORY.md as Declined with the owner's note; a card moved to rejected carries a one-line reason and a date.
 
 ## Contents
 Loaded in every session (this file):
