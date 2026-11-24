@@ -6,6 +6,23 @@
 
 *Older entries are in [`handoff/`](handoff/), one file per month, carrying no authority. The rules are GOVERNANCE.md and its two companions; open work is on the feature tracker.*
 
+### 🚚 24 Nov 2026: THE DEPLOY'S ARTIFACT RACE — fixed in `deploy.yml`, waiting on one push picker. Branch `deploy-artifact-race` (worktree `.claude/worktrees/optimistic-kapitsa-37e8e8`, from `origin/main` `36c31c15`). Asked for by the governance Phase 5 session, which found it in its REL-3 check. Tracker card `deploy-artifact-race`.
+- **The fault:** `actions/deploy-pages` lists the run's artifacts about 0.5 s after the upload step ends, and GitHub
+  sometimes lists the new `github-pages` artifact later than that, so it stops ("No artifacts named github-pages") and
+  the Cloudflare step is skipped. **Every deploy that failed from 19 to 24 Nov was this: 7 of 54 pushes to main.** Each of
+  the 4 re-runs among them then failed on "Multiple artifacts named github-pages" (deploy-pages counts every attempt's
+  artifacts), which is REL-14's reason, measured.
+- **The fix:** the deploy job waits (at most about 60 s) until the run's artifact list holds the exact artifact its
+  upload made, then deploys; if that Deploy still fails, it pauses 15 s and runs deploy-pages once more with the same
+  artifact. Added `actions: read` (read-only) for the wait. Rollback and Cloudflare conditions unchanged. Why each piece
+  is there: the comment above the wait step.
+- **Tested:** the YAML parses with the intended steps and conditions; the wait script, under GitHub's `bash -eo pipefail`
+  against the real API, finds the 24 Nov run's artifact on try 1, and times out with a warning (exit 0) for an unlisted
+  id or a missing run. **Not yet seen:** the deploy itself (it runs on `main` only, so the push that carries it is the
+  first proof) and the retry path (it runs only on a race).
+- **Next:** the owner's push picker, then REL-3 (run green with the Cloudflare step, GitHub Pages file byte-identical to
+  `dist/index.html`). No approval carries over to the next session.
+
 ### 📜 24 Nov 2026: GOVERNANCE PHASE 5, HOLD — done: every piece live or waiting on one push picker. Asked for by the Phase 4 session (the owner's plan, §7f); one piece per branch from `origin/main`, each shown to the owner. Worktree `.claude/worktrees/wonderful-kilby-2dfd33`. Tracker card `governance-sheet`.
 - ✅ **LIVE on `origin/main` (`45939e89`), each on its own push picker:**
   - **Piece 1, the guard fix** (`a5b32e8b`): `tools/hooks/pre-push` lets through a push into this same repository (`.`,
@@ -21,7 +38,9 @@
     rules are recorded" is OUT-38.
   - ⚠️ That push's deploy run (45487646293) **failed on GitHub's side**: the Deploy step looked for the Pages artifact
     one second after it was uploaded and didn't find it, so the Cloudflare step was skipped. App bytes were unchanged
-    (live file still `6e8bdfc1…`). Per REL-14 nothing was re-run; the next push redeploys.
+    (live file still `6e8bdfc1…`). Per REL-14 nothing was re-run. *Corrected 24 Nov 2026:* this said "the next push
+    redeploys"; it did not. The next push (`36c31c15`, run 45507307429) failed the same way. It is a recurring race,
+    fixed in `deploy.yml` by the deploy-artifact-race entry above.
 - ✅ **Piece 3, the reminder hook, installed** (picker *"Install both lines"*): `~/.claude/hooks/sptcal-rules-changed.sh`
   in `~/.claude/settings.json` (backup `settings.json.before-rules-hook-20261124`). It compares the blob ids of the three
   rule files on `origin/main` per session: once per change, "the rules changed since this session started: re-read

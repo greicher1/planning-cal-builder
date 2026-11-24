@@ -131,9 +131,12 @@ jobs:
     permissions:
       pages: write
       id-token: write
+      # Read-only, for "Wait until the run lists the Pages artifact" below: it reads this run's artifact list.
+      actions: read
     environment:
       name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
+      # From whichever Deploy attempt ran (the second runs only when the first failed; see below).
+      url: ${{ steps.deployment.outputs.page_url || steps.deployment_retry.outputs.page_url }}
     env:
       # The rollback's release, '' for every normal deploy (a push has no inputs). Read from here and never
       # interpolated into a script, so the typed text cannot run as shell.
@@ -189,12 +192,63 @@ jobs:
         uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d # v6.0.0
 
       - name: Upload the Pages artifact
+        id: pages_artifact
         uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
         with:
           path: dist
 
+      # ⭐ THE ARTIFACT RACE (24 Nov 2026, tracker card deploy-artifact-race). deploy-pages starts by listing this run's
+      # artifacts and stops at once if "github-pages" is not among them. GitHub lists a just-finished upload a moment
+      # late, and deploy-pages asks about half a second after the upload step ends, so sometimes it finds only the build
+      # job's dist-index-html: "Found 1 artifact(s)", "No artifacts named github-pages were found". The Deploy failed and
+      # the Cloudflare step after it was skipped. Measured 24 Nov 2026: that was 7 of the 54 pushes to main from 19 to
+      # 24 Nov, and every failed deploy in that span. Runs that worked had the same half-second gap and won the race; the
+      # artifact was always listed when asked again later. Each of the 4 re-runs among the 7 then failed on "Multiple
+      # artifacts named github-pages": deploy-pages counts every attempt's artifacts, so a re-run never deploys (REL-14).
+      # Two steps make it robust:
+      #  1. This one waits, at most about 60 s, until the run's artifact list holds the exact artifact the upload step
+      #     just made (by its id, not just its name). If it never shows, it warns and goes on, so deploy-pages still
+      #     reports the real error.
+      #  2. deploy-pages lists artifacts through the artifact service, not the REST API this step can call, so the two
+      #     could still disagree for a moment. The Deploy below therefore gets one more try, 15 s later, if its first
+      #     attempt fails. The retry reuses the same artifact (nothing is uploaded again), so it is not the re-run REL-14
+      #     forbids, whose harm is a second artifact.
+      - name: Wait until the run lists the Pages artifact
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ARTIFACT_ID: ${{ steps.pages_artifact.outputs.artifact_id }}
+        run: |
+          set -u
+          case "$ARTIFACT_ID" in
+            ''|*[!0-9]*) echo "::warning::The upload gave no usable artifact id; waiting for any github-pages artifact instead."; ARTIFACT_ID='' ;;
+          esac
+          for i in $(seq 1 30); do
+            ids=$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID/artifacts?name=github-pages&per_page=100" \
+                    --jq '.artifacts[].id' 2>/dev/null || true)
+            if [ -n "$ids" ] && { [ -z "$ARTIFACT_ID" ] || grep -qx "$ARTIFACT_ID" <<< "$ids"; }; then
+              echo "The run lists the Pages artifact (${ARTIFACT_ID:-by name}) after ${SECONDS} s, try $i."
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "::warning::After ${SECONDS} s the run still does not list the Pages artifact (${ARTIFACT_ID:-by name}); deploying anyway."
+
       - name: Deploy
         id: deployment
+        # continue-on-error so a failed first attempt leaves the job running for the retry below; if the retry fails
+        # too, the job fails and the Cloudflare step is skipped, as before.
+        continue-on-error: true
+        uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5.0.1
+
+      - name: Pause before trying the deploy once more
+        if: steps.deployment.outcome == 'failure'
+        run: |
+          echo "::warning::The first Deploy attempt failed; trying once more in 15 s with the same artifact."
+          sleep 15
+
+      - name: Deploy (second attempt)
+        id: deployment_retry
+        if: steps.deployment.outcome == 'failure'
         uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5.0.1
 
       # ⭐ CLOUDFLARE PAGES: sptcal.pages.dev, behind a Cloudflare Access sign-in (CLOUDFLARE-ACCESS-PLAN.md, owner,

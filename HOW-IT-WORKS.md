@@ -493,6 +493,12 @@ machinery behind them works:*
   Cloudflare Pages project `sptcal` behind the sign-in (and, for the switch-over window, to GitHub Pages, where it
   shows the "moved" screen). Its `release` input publishes `releases/<version>.html` instead: that is the rollback
   (REL-11).
+- **The artifact race (since 24 Nov 2026):** GitHub lists a just-uploaded Pages artifact a moment late, and
+  `actions/deploy-pages` gives up at once when it isn't listed, which failed every deploy that failed from 19 to 24 Nov
+  (7 of 54). So the deploy job waits, at most about 60 s, until the run lists the exact artifact it just uploaded, then
+  deploys, and tries the Deploy step once more 15 s later if the first attempt fails (same artifact, nothing
+  re-uploaded). A whole re-run still never deploys: deploy-pages then sees two `github-pages` artifacts (REL-14). The
+  reasons are in the comment above the wait step in `deploy.yml`.
 - **The update bar:** since 19 Nov 2026 it shows for any build whose bytes differ (`tools/build-stamp.mjs`), so it no
   longer waits for a version cut. A version cut bumps `APP_VERSION` in `src/legacy/app.js`, `version.json` and
   `package.json` together (REL-10); the root `index.html` stays at 1.2.0 on purpose.

@@ -24,6 +24,29 @@ way a user would notice or a future session would need to return to. See
 REL-9 and REL-10 in [`GOVERNANCE.md`](GOVERNANCE.md) for when and how.
 
 <!-- Newest first. Add new entries directly under this line. -->
+### Unreleased — the deploy waits for its Pages artifact instead of failing on a race (24 Nov 2026)
+
+The last two pushes' deploys (runs 45487646293 and 45507307429) failed at the Deploy step, and the Cloudflare publish
+after it was skipped. `actions/deploy-pages` lists the run's artifacts about half a second after the upload step ends,
+and GitHub sometimes lists the new `github-pages` artifact a moment later than that: "Found 1 artifact(s)" (only the build
+job's), "No artifacts named github-pages were found". Every deploy that failed from 19 to 24 Nov was this, 7 of the 54
+pushes to main; the runs that worked had the same gap and won the race. Each of the 4 re-runs among them then failed on
+"Multiple artifacts named github-pages", which is why REL-14 forbids re-running.
+
+`deploy.yml`'s deploy job now waits, at most about 60 s, until the run's artifact list (REST API, which needs the new
+read-only `actions: read`) holds the exact artifact its upload step made, by id. Then it deploys. If that first Deploy
+attempt fails anyway (deploy-pages lists through the artifact service, which could lag the REST list), it pauses 15 s and
+runs deploy-pages once more with the same artifact; the environment's URL comes from whichever attempt ran. If the
+second attempt fails too, the job fails and the Cloudflare step is skipped, as before. Every action stays pinned by
+commit SHA; the rollback (`release` input) goes through the same steps.
+
+Verified: the workflow parses (Ruby's YAML) with the step order and conditions intended; the wait script, run under
+GitHub's own `bash -eo pipefail` against the real API, finds the 24 Nov run's Pages artifact on the first try, waits out
+and warns (exit 0) for an id the run doesn't list or a run that doesn't exist, and falls back to the name when the id is
+empty or not a number. The deploy itself can only run on `main`, so the first proof is the push that carries this. The
+retry path runs only when a race happens, so it is not yet seen working. No app change: `dist/` is byte-identical, no
+saved-file change, no full gate owed (REL-6).
+
 ### Unreleased — Help opens on top of every menu (23 Nov 2026)
 
 The owner: "More in Help" from the ⓘ in the Shift or Build Around box opened Help *under* that box, *"any menu should never
