@@ -3,21 +3,17 @@
 A TV production scheduling tool. Phase start dates + durations in, and out comes a week-by-week
 waterfall calendar, a month calendar, an Excel workbook and a printable PDF.
 
-**Live:** <https://greicher1.github.io/planning-cal-builder/>
-**v1.0.0 (frozen):** `releases/v1.0.0.html` — also reachable at
-<https://greicher1.github.io/planning-cal-builder/releases/v1.0.0.html> **once this commit and the
-`v1.0.0` tag are pushed.** Until then the copy is local only; `git push && git push --tags`.
+**Live:** <https://sptcal.pages.dev/>, behind a sign-in, as an installed app (since v1.21.0; the old GitHub Pages
+address shows a "moved" screen). Every version is kept as `releases/vX.Y.Z.html`.
 
-One self-contained `index.html`. No build system, no package manager, no server. Open the file and
-it runs.
+The app is one self-contained file, built with Vite from `src/` (`npm run build` → `dist/index.html`). The root
+`index.html` is the legacy v1.2.0 app, kept unchanged.
 
-**Browser:** use **Chrome or Edge.** A calendar will *open* in any modern browser, but saving in
-place — writing back to the same file, the recent-files list, autosave — needs the File System
-Access API, which only Chromium browsers have. In Safari or Firefox, Save falls back to downloading
-a new copy each time, and printing has not been tested.
+**Browser:** **Chrome or Edge** only. Saving and loading need the File System Access API, which only Chromium
+browsers have: in other browsers there is no Load, Save downloads a `.sptcal`, and printing has not been tested.
 
-**For contributors and agents, the reading order is:** [`HANDOFF.md`](HANDOFF.md) →
-[`CLAUDE.md`](CLAUDE.md) → [`PROJECT-CONTEXT.md`](PROJECT-CONTEXT.md).
+**For contributors and agents:** the rules are [`GOVERNANCE.md`](GOVERNANCE.md) and its two companions;
+[`CLAUDE.md`](CLAUDE.md) loads them and gives the reading order (WORK-8).
 
 ---
 
@@ -25,7 +21,7 @@ a new copy each time, and printing has not been tested.
 
 This project versions the **built app**, not the repo. A version is cut when the app changes in a
 way a user would notice or a future session would need to return to. See
-[`CLAUDE.md`](CLAUDE.md) → "⛔ Changelog every substantial change" for when and how.
+REL-9 and REL-10 in [`GOVERNANCE.md`](GOVERNANCE.md) for when and how.
 
 <!-- Newest first. Add new entries directly under this line. -->
 ### Unreleased — Help opens on top of every menu (23 Nov 2026)
@@ -14127,6 +14123,9 @@ that long — the likeliest moment for a new deploy to have appeared under a lon
 > Bump them in the same commit. `version.json` alone makes every user see an update that does not
 > exist; `APP_VERSION` alone makes a real update invisible. Both live at the top of their files
 > with this warning attached.
+>
+> ⚠️ *Corrected 23 Nov 2026 (governance Phase 4):* a version cut now bumps three files together: `APP_VERSION` in `src/legacy/app.js`,
+> `version.json` and `package.json`, never the root `index.html` (REL-10).
 
 **Also in this release:** the two notice strips now share one set of CSS rules and differ only in
 hue — amber for *"your file is an old format"*, blue for *"the app has a newer version"*. This app

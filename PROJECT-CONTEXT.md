@@ -1090,7 +1090,7 @@ Long, explanatory commit messages: **what changed, why, what was verified**, and
 where relevant. Look at `git log` for the established tone. Every commit ends with:
 
 ```
-Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>
+Co-Authored-By: <the attribution line the session gives, naming the model actually used>
 ```
 
 (Match whatever model is actually doing the work.)
@@ -1324,6 +1324,11 @@ column widths ≤ 255, style indices < `cellXfs count`, control characters in `s
 
 ### Verifying a deploy
 
+⚠️ *Corrected 23 Nov 2026 (governance Phase 4):* since v1.21.0 the app is served at https://sptcal.pages.dev/ behind a sign-in, which answers an
+unsigned fetch with a redirect. Until the GitHub Pages copy is retired, compare that copy (below) and read the deploy
+run's "Deployment complete"; once it is retired there is no unsigned copy to byte-compare, and a new method is needed
+(REL-3).
+
 ```bash
 node -e "const https=require('https');
 https.get('https://greicher1.github.io/planning-cal-builder/?t='+Date.now(),r=>{
@@ -1475,9 +1480,10 @@ separate Calendar tab until the owner merged the two, the same night).
 
 - **New Calendar intake screen: declined for now.** Asked again after the toolbar work; the owner's
   answer was to keep the app as is. The design above stands if it is ever picked up.
-- **The toolbar wraps to two lines below 1280 px window width.** Measured, accepted. It never
+- ~~**The toolbar wraps to two lines below 1280 px window width.** Measured, accepted. It never
   overflows or clips (tested to 900 px) — it just goes to 75 px tall. Shortening the labels or
-  collapsing them to icons was considered and rejected as worse.
+  collapsing them to icons was considered and rejected as worse.~~ ⚠️ *Corrected 23 Nov 2026 (governance Phase 4):* stale since 16 Nov 2026: the toolbar
+  is always one line, folds to icons and then a More menu (UX-12).
 
   ⚠️ **Re-measured 29 Aug 2026 — "the toolbar" here is the PREVIEW toolbar (`.view-toggle-row`),
   and its wrap point is ~1185 px, not 1280.** The 75 px is exactly right and identifies which
@@ -1608,5 +1614,5 @@ after any edit to `index.html`, and believe it over your memory of where a funct
 > browser before telling me anything works; and never push to `main` without being asked for that
 > specific push — it auto-deploys to a live public site.
 
-In Claude Code all three files load automatically via `CLAUDE.md`, which points at the other two
-in reading order. Keep them current — `HANDOFF.md` especially, in the same breath as the code.
+In Claude Code, `CLAUDE.md` loads the rules (GOVERNANCE.md) by itself and gives the reading order (WORK-8): HANDOFF's
+current part, then only what the task touches. Keep `HANDOFF.md` current in the same breath as the code (WORK-7).

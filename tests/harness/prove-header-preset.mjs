@@ -1,3 +1,8 @@
+// ⚠️ KNOWN MISMATCH, 23 Nov 2026 (governance Phase 4, TEST-5): this prover TESTS NOTHING today. Its text anchor
+// "sheet: p.lines ?" matches nothing in src/legacy/app.js on origin/main, so the slice it evaluates is not the app's
+// code. gate.sh mentions it only in a comment. Never count it as passing; fix its anchor or retire it (found by the
+// Single HTML file architecture session, 21 Nov 2026).
+//
 // Proves the .spthdr PRESET FILE format -- the v2 two-section shape, its forward-only migration
 // from v1, and the strict up-front version check (MONTH-HEADER-PLAN.md §2 and §6 rulings 1 and 4).
 //

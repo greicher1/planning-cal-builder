@@ -12,9 +12,9 @@ This is **Mantine Stage 2** — the design pass that `MANTINE-MIGRATION.md` §6 
 chrome is built, and that `HANDOFF.md` §5c asks for as *"explain to me exactly how X will work
 before you build it."* **No code was written into `index.html` for this document.**
 
-Reading order is unchanged: [`CLAUDE.md`](CLAUDE.md) → [`HANDOFF.md`](HANDOFF.md) →
-[`PROJECT-CONTEXT.md`](PROJECT-CONTEXT.md). Read [`MANTINE-SEAM.md`](MANTINE-SEAM.md) before acting
-on anything here.
+Reading order (WORK-8, 23 Nov 2026): the rules (GOVERNANCE.md, loaded by [`CLAUDE.md`](CLAUDE.md), and
+GOVERNANCE-UI.md for UI work), then [`HANDOFF.md`](HANDOFF.md)'s current part, then only what the task touches. Read
+[`MANTINE-SEAM.md`](MANTINE-SEAM.md) before acting on anything here.
 
 ---
 
@@ -465,7 +465,8 @@ asked in order:
 
 1. Must the user answer before anything happens? → **Destructive confirmation**
 2. Did the thing they tried fail, or is a value unusable? One named control → **Inline field error**;
-   otherwise → **Blocking error**
+   otherwise → **Blocking error**. (⚠️ *Corrected 23 Nov 2026 (governance Phase 4):* a refused edit on the calendar is a short note by the spot, never
+   a dialog; only a whole job that fails, an export or a load, keeps its dialog. UX-1, owner's picker 21 Nov 2026.)
 3. Does the text change as they work? No → **Explanatory copy**
 4. What does it name? One control → **Inline hint/readout**. The calendar → **Advisory warning**.
    The app or the file → **Persistent strip**. An empty region → **Empty state**. Something that
@@ -547,7 +548,9 @@ explained after it. `firstDayOfWeek={1}` makes Monday column one so the band rea
 **Union holidays and hiatus weeks get marked in the calendar** — `getDayProps` emits `data-holiday`
 / `data-hiatus`, and `renderDay` adds a 3 px dot rather than recolouring the number. **Mark, never
 exclude:** a scheduler must be able to *choose* a date that lands on a holiday and see the
-consequence, which is the whole point of the day-level Production simulation.
+consequence, which is the whole point of the day-level Production simulation. (⚠️ *Corrected 23 Nov 2026 (governance Phase 4):* this covers
+holidays and hiatus weeks; a field still leaves out days it cannot take: snapped Mondays or Fridays, a phase's own
+hiatus outside its phase, non-shoot days for the wrap. UX-23.)
 
 Absence of the week band is what will distinguish the single-day custom-holiday field from the six
 week-snapped fields — a distinction that is currently invisible.
