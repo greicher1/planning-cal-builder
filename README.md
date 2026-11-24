@@ -24,6 +24,41 @@ way a user would notice or a future session would need to return to. See
 REL-9 and REL-10 in [`GOVERNANCE.md`](GOVERNANCE.md) for when and how.
 
 <!-- Newest first. Add new entries directly under this line. -->
+### Unreleased — four full-gate tests brought up to date with the live app (24 Nov 2026)
+
+The governance trial gate (24 Nov 2026, on the build that is live, sha256 `6e8bdfc1…`) found four tests that fail on
+their own. None of them found a bug in the app. Tests only: no app code, no saved-file change, nothing a user sees.
+
+- **`notelook` M2 was out of date.** It expected a holiday opened in the month view to have no button. The owner asked
+  for the waterfall's **Hide Holiday** there too on 21 Nov ("The month view's holiday editor has Hide Holiday", below);
+  that change updated `holidayrename` but not this test, which only the full gate runs. M2 now expects Hide Holiday at
+  the top right, as the waterfall's W4 does.
+- **`dblclickdlg` D10-D12 were out of date.** They looked for the old one-page Guide (`#help-overlay`), which the new
+  Help replaced (owner's picks 21 Nov, live 23 Nov: "a new Help: a window…", below). With it gone the check failed
+  inside the page and read as "Help closed". They now look for the new Help window. A double-click on ? still sends its
+  second press onto Help's overlay (recorded on D11), so the test still exercises the trap it was written for.
+- **`settingswin` W10 and `sideboxes` S12 depended on the machine's scroll bars.** Where a scroll bar takes room
+  (Windows, and a Mac's headless Chrome whenever a mouse is plugged in), the sidebar on the Phases tab and the side-box
+  column show a 15 px scroll bar; where scroll bars float over the content (a Mac with only a trackpad) they take none.
+  W10 compared the open Settings window with the sidebar's width measured later, closed, on the scrolled Phases tab
+  (383 against 368 px): it now measures the sidebar inside its border while the window is open. S12 compared box sizes
+  at 50% zoom, where this calendar's side column fits and drops its scroll bar (boxes 109 px wide), with 100%, where it
+  scrolls (94 px): it now reserves the scroll bar's room during the check, so only the zoom is judged. Both were already
+  seen red on untouched `main` on 16 Nov for this reason (handoff/2026-11.md). Earlier gates passed them only because
+  scroll bars floated during those runs.
+
+Verified (single tests on private ports, gate.sh's own pass rules): on the live build `notelook` 13/13, `dblclickdlg`
+14/14, `settingswin` 21/21 (alone; once under load it timed out loading a file before W10), `sideboxes` 78/78. The old
+versions are red there (12/13, 11/14, 20/21, 77/78). Each new check is red on a mutant of what it guards: M2 with the
+month Hide Holiday button removed; D11 (and D12) with Help's double-click guard removed; W10 with the window 20 px
+narrower, and with the sidebar keeping its scroll bar while Settings is open; S12 (and R9, R14) with the side columns
+following the zoom. With scroll bars made to take no room (`scrollbar-width:none` on every element, standing in for
+floating scroll bars), the new W10 and S12 are green, and so are the OLD ones (21/21, 78/78), which confirms the cause.
+No full gate: no app, export or saved-file code changed (REL-6), and every baseline was byte-identical in the trial
+gate. Found while measuring, put to the owner (card `windows-scrollbar-shifts`): where scroll bars take room, opening
+Settings on a long sidebar tab widens the Show / Phases / Settings buttons by 5 px each, and a side box in a column
+that scrolls is drawn 15-17 px narrower than its column, so a line can wrap onto more screen rows than it prints on.
+
 ### Unreleased — the deploy waits for its Pages artifact instead of failing on a race (24 Nov 2026)
 
 The last two pushes' deploys (runs 45487646293 and 45507307429) failed at the Deploy step, and the Cloudflare publish

@@ -6,6 +6,25 @@
 
 *Older entries are in [`handoff/`](handoff/), one file per month, carrying no authority. The rules are GOVERNANCE.md and its two companions; open work is on the feature tracker.*
 
+### 🧪 24 Nov 2026: THE FOUR GATE TESTS THAT FAILED ALONE, BROUGHT UP TO DATE — tests only, committed on branch `gate-legs-behind-main` (worktree `.claude/worktrees/bold-khayyam-9b9fb5`, from `origin/main` `36c31c15`, rebased onto `8a10a996`, the deploy fix), NOT merged, NOT pushed. Asked for by the Phase 5 session (its trial gate found them). Tracker card `gate-legs-behind-main`.
+- **No app regression in any of the four.** README "Unreleased — four full-gate tests…" has each cause:
+  `notelook` M2 and `dblclickdlg` D10-D12 tested the app from before Hide Holiday in the month editor (21 Nov) and the
+  new Help (`#help-overlay` gone, 21-23 Nov); `settingswin` W10 and `sideboxes` S12 depend on whether the machine's
+  scroll bars take room (red on this Mac whenever a mouse is plugged in; seen 16 Nov too, handoff/2026-11.md).
+- **Tested** on the live build (`dist/index.html` 6e8bdfc1, private ports 8341-8345): all four green, old versions red,
+  each new check red on a mutant (README lists them), old and new W10 / S12 green with scroll bars taking no room.
+  No full gate owed (tests only, REL-6).
+- ⚠️ **Harness trap found:** `dblclickdlg.mjs` (and the other CDP `.mjs` drivers) load the page WITHOUT `?test=`, so
+  `srv.js` leaves the Content-Security-Policy on. A mutant that edits the page's JavaScript then fails its script hash
+  and never boots ("timed out waiting for the engine"); take the CSP meta out of the mutant copy. CSS-only mutants boot.
+- ⚠️ **Chrome updated itself to 158 on 23 Nov 15:43** (157 before). It did not cause these four (the scroll bar
+  depends on macOS's setting and a mouse), but worth knowing when a gate result moves overnight.
+- **Waiting on the owner:** (1) the push picker for this branch (tests and docs only); (2) card
+  `windows-scrollbar-shifts`, found while measuring: where scroll bars take room, opening Settings on a long sidebar tab
+  widens the Show / Phases / Settings buttons by 5 px each (UX-11), and a side box in a scrolling column is drawn
+  15-17 px narrower than its column, so its lines can take more screen rows than they print on. Not built; a look
+  question. No approval carries over to the next session.
+
 ### 🚚 24 Nov 2026: THE DEPLOY'S ARTIFACT RACE — fixed in `deploy.yml`, waiting on one push picker. Branch `deploy-artifact-race` (worktree `.claude/worktrees/optimistic-kapitsa-37e8e8`, from `origin/main` `36c31c15`). Asked for by the governance Phase 5 session, which found it in its REL-3 check. Tracker card `deploy-artifact-race`.
 - **The fault:** `actions/deploy-pages` lists the run's artifacts about 0.5 s after the upload step ends, and GitHub
   sometimes lists the new `github-pages` artifact later than that, so it stops ("No artifacts named github-pages") and

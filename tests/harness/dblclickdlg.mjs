@@ -24,8 +24,14 @@
 //   D8  a double-click on Compare (150 ms) leaves it open
 //   D9  a click outside Compare once it has been up a while closes it
 //   D10 a single click on ? (bottom right) opens Help (control), Escape closes it
-//   D11 a double-click on ? leaves Help open (the app's own #help-overlay, the same click-away trap)
+//   D11 a double-click on ? leaves Help open (the same click-away trap: the second press lands on Help's overlay, which
+//       covers the ? button)
 //   D12 a click outside Help once it has been up a while closes it
+//   ⭐ D10-D12 look for the NEW Help (src/help/HelpWindow.jsx, a Mantine Modal of class .help-dlg at zIndex 500, with this
+//   same useOutsideCloseGuard) since 24 Nov 2026. They looked for the one-page Guide's #help-overlay, which the new Help
+//   replaced (owner's picks 21 Nov 2026, live 23 Nov 2026, README "a new Help: a window…"). With #help-overlay gone, the
+//   old helpOpen() threw inside the page and read as "closed", so all three went red on the live build (the 24 Nov
+//   trial gate) although Help behaves as they ask. Card gate-legs-behind-main.
 //   E0  no page errors
 //
 // Fixtures (synthetic): hover-expand (the waterfall), scenlist-20 (20 scenarios).
@@ -221,8 +227,13 @@ try {
   out.D9 = { outsideIsOverlay: d9over, openAfter: await cmpOpen() };
   kase('D9', 'a click outside Compare once it has been up a while closes it', d9over && !out.D9.openAfter, out.D9);
 
-  // ---- Help (the ? button bottom right): the app's own overlay, not a Mantine Modal, with the same click-away ----
-  const helpOpen = () => ev(`document.getElementById('help-overlay').classList.contains('open')`);
+  // ---- Help (the ? button bottom right): a Mantine Modal since 21 Nov 2026 (.help-dlg), with the same guard ----
+  // Open = its window is on screen. Help renders nothing while closed (HelpWindow returns null), so a missing
+  // .help-dlg is a real "closed", never a selector that throws (the old #help-overlay check did, and read as closed).
+  const helpOpen = () => ev(`(() => { const d = document.querySelector('.help-dlg .mantine-Modal-content');
+    return !!d && d.getBoundingClientRect().height > 0; })()`);
+  // What a press on ? meets while Help is up: its overlay (the trap D11 is about), or the button itself.
+  const topAt = p => ev(`(() => { const t = document.elementFromPoint(${p.x}, ${p.y}); return t ? (t.id || String(t.className).slice(0, 80)) : null; })()`);
   const fab = await pointOf('#help-fab');
   await click(fab.x, fab.y); await sleep(700);
   const d10 = await helpOpen();
@@ -230,7 +241,9 @@ try {
   kase('D10', 'a single click on ? opens Help (control), Escape closes it', d10 && !(await helpOpen()), { opened: d10 });
   await sleep(700);
   await dbl(fab.x, fab.y, 150); await sleep(900);
-  out.D11 = { open: await helpOpen() };
+  // fabCoveredBy: what sits on the ? button now Help is up, i.e. what the double-click's second press met (recorded, not
+  // judged: a mutant without the guard is what proves D11 can fail, 24 Nov 2026).
+  out.D11 = { open: await helpOpen(), fabCoveredBy: await topAt(fab) };
   kase('D11', 'a double-click on ? leaves Help open', out.D11.open, out.D11);
   await sleep(400);
   await click(OUTSIDE.x, OUTSIDE.y); await sleep(600);

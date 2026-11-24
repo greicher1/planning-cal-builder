@@ -153,6 +153,20 @@ window.addEventListener('load', function () { (async function () {
         var r = e.getBoundingClientRect(); return Math.round(r.width) + 'x' + Math.round(r.height);
       }).join(',');
     };
+    // ⭐ THE SCROLLBAR HELD STILL, SO ONLY THE ZOOM IS JUDGED (24 Nov 2026). Each .sb-stack scrolls (overflow-y:auto). At
+    // 100% and 200% this fixture's column is longer than the grid box (1,201 / 2,412 px in 787), at 50% it fits. Where a
+    // scrollbar takes room (Windows; a Mac's headless Chrome whenever a mouse is plugged in, macOS's "Automatically") it
+    // comes and goes with the zoom and takes 15-17 px from every box (109 -> 94 px here), and the text rewraps (a line
+    // 21 -> 34 px tall): S12 went red there, 77/78 on untouched origin/main since 16 Nov (handoff/2026-11.md), and green
+    // only on runs where scrollbars overlay. That width is the scrollbar's, not the zoom's (the column's own zoom is
+    // checked as `side` below), so for S12 alone the gutter is reserved whether or not the column overflows; with overlay
+    // scrollbars this reserves nothing and changes nothing. A box drawn narrower than its column where scrollbars take
+    // room is a separate screen-only matter (it also lets a line grow past its print rows there), put to the owner on card
+    // windows-scrollbar-shifts, not something this check holds.
+    var gutter = document.createElement('style');
+    gutter.textContent = '.side-col .sb-stack{ scrollbar-gutter:stable; }';
+    document.head.appendChild(gutter);
+    await T.sleep(100);
     var sizes100 = sbSizes();
     out.zoomSides = {};
     for(var zi = 0, zs = [0.5, 2]; zi < zs.length; zi++){
@@ -165,10 +179,13 @@ window.addEventListener('load', function () { (async function () {
     }
     document.dispatchEvent(new CustomEvent('sptcal-zoom', {detail: {zoom: 1}}));
     await T.sleep(400); await settle();
+    var back100 = sbSizes();
+    gutter.remove();
+    await T.sleep(100);
     check([0.5, 2].every(function (z) {
       var o = out.zoomSides[z];
       return o.grid === z && o.side === 1 && o.same && Math.abs(o.cap - o.gridCap) <= 1 && o.scroll <= 1;
-    }) && sbSizes() === sizes100,
+    }) && back100 === sizes100,
           'S12 at 50% and 200% the grid zooms and the side boxes keep their size, capped at the grid box\'s screen height ('
           + JSON.stringify(out.zoomSides) + ')');
 

@@ -23,7 +23,11 @@
 //   W7  the heading editor is a .note-pop too, and keeps its own look (not A2)
 //   M1  month view, an automatic note: "Auto-Note" then "Mon 6/29/26", Hide Auto-Note at the top right, the line under the
 //       box, Colour, and a foot of "Enter to save · Esc to cancel" and Save
-//   M2  a holiday: "Holiday" then "Fri 7/3/26", no button, Colour, the same foot
+//   M2  a holiday: "Holiday" then "Fri 7/3/26", Hide Holiday at the top right, Colour, the same foot. ⭐ "no button" until
+//       21 Nov 2026, when the owner asked for the waterfall's Hide Holiday in the month editor too ("add the same hide
+//       holiday button in the waterfall pop-up to the month view pop-up"; README "The month view's holiday editor has
+//       Hide Holiday"). That change updated holidayrename (H1) but not this leg, which only the full gate runs, so M2 went
+//       red on the live build (the 24 Nov 2026 trial gate); re-expected 24 Nov 2026 (card gate-legs-behind-main)
 //   M3  a waterfall line: "Waterfall line" then "Tue 11/3/26", Delete Note; Stays with, Colour, Show in waterfall; Save only
 //   M4  a "+": "Note"; a swatch renames Colour; Save adds the note and closes the editor
 //   S1  focused, the selects draw no outline or ring and Stays with ends above its hint, in both editors (owner, 16 Nov
@@ -309,8 +313,8 @@ window.addEventListener('load', function () { (async function () {
       var p = await openMv('July 2026', '2026-07-03', /Independence/);
       var f = look(p);
       await closeMv();
-      kase('M2', 'a holiday: "Holiday" then "Fri 7/3/26", no button, its line under the box, Colour, the same foot',
-           f.a2 && f.name === 'Holiday' && f.when === 'Fri 7/3/26' && f.button === ''
+      kase('M2', 'a holiday: "Holiday" then "Fri 7/3/26", Hide Holiday at the top right (owner, 21 Nov 2026), its line under the box, Colour, the same foot',
+           f.a2 && f.name === 'Holiday' && f.when === 'Fri 7/3/26' && f.button === 'Hide Holiday' && f.btnTopRight
              && f.hint === 'Renames this holiday wherever it shows. Color is for the month view.' && same(f.rows, ['Color'])
              && same(f.foot, { keys: 'Enter to save · Esc to cancel', save: 'Save', last: true, saveRight: true }),
            f);
