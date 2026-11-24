@@ -6,29 +6,44 @@
 
 *Older entries are in [`handoff/`](handoff/), one file per month, carrying no authority. The rules are GOVERNANCE.md and its two companions; open work is on the feature tracker.*
 
-### 📜 24 Nov 2026: GOVERNANCE PHASE 5, HOLD — the rest of Phase 5 after the push guard, one piece per branch from `origin/main`, each shown to the owner before merge. Worktree `.claude/worktrees/wonderful-kilby-2dfd33`. Tracker card `governance-sheet`.
-- **Piece 1, the guard fix** (branch `gov5-guard-local`): the guard refused `git push . governance-phase5:main`, a
-  local-only move. `tools/hooks/pre-push` now lets through a push whose target is this same repository (`.`, or its own
-  path or `file://` URL, from any worktree); a path to any other repository still needs the approval. ⚠️ Git exports
-  `GIT_DIR` into a hook run from a linked worktree, so the hook clears it before asking git about the target. Proof
-  `test-pre-push.sh`: red on the old hook (9a-9c), 19/19 fixed, mutants red. Committed `9a075735` ("Governance:").
-  ✅ **LIVE** (owner's picker *"Install it, then push"*, 24 Nov 2026): installed in the shared `.git/hooks`, pushed
-  `ee0b655a..a5b32e8b`; local main then moved by `git push . gov5-guard-local:main` with no approval (the fix, live),
-  and an unapproved dry-run push to GitHub is still refused.
-- **Piece 2, the governance checker** (branch `gov5-checker`): `tools/check-governance.mjs`, `npm run governance`.
-  Blocks on the import line, links through the old public address, IDs unique / never reused, replaced-by pairs,
-  links with exact case (OUT-26, OUT-27), the owner's pick behind any rule added since the review-page commit
-  `578bd46a` (OUT-28), and no ID lost or renumbered against `origin/main` (OUT-33). Everything else warns. Owner's
-  picker 24 Nov 2026 on the size budget: *"Warn only"* (against the recommendation to fail): CLAUDE.md over 12 KB or
-  GOVERNANCE.md over 80 KB warns. The push guard now runs the pushed commit's own checker and refuses on a failure (or
-  if it can't run); the deploy runs it `--warn-only`. Proof: `--self-test` 28/28 on broken samples (OUT-40), checker
-  mutants red; `test-pre-push.sh` 23/23 with stand-in checkers, the piece-1 hook red on 11b-11d; the real hook
-  refused a throwaway commit with the import line deleted. On today's files: passed, 61 warnings (60 plans without a
-  status line, piece 5; INTRO-2 labels two paragraphs, see below). ⚠️ Learned: Apple's `git grep -E` has no `\b`, and on
-  macOS `process.exit()` after a write to a pipe cuts the output short.
-- ⚠️ **For the owner:** GOVERNANCE.md's intro labels both "Protected files" and "Declined rules are recorded" as
-  INTRO-2; the second is really proposal OUT-38, and INTRO-4 ("Two files: the rules and their history", accepted on
-  the review page) appears nowhere. Fixing it is a protected edit.
+### 📜 24 Nov 2026: GOVERNANCE PHASE 5, HOLD — done: every piece live or waiting on one push picker. Asked for by the Phase 4 session (the owner's plan, §7f); one piece per branch from `origin/main`, each shown to the owner. Worktree `.claude/worktrees/wonderful-kilby-2dfd33`. Tracker card `governance-sheet`.
+- ✅ **LIVE on `origin/main` (`45939e89`), each on its own push picker:**
+  - **Piece 1, the guard fix** (`a5b32e8b`): `tools/hooks/pre-push` lets through a push into this same repository (`.`,
+    its own path or `file://` URL, from any worktree). Any other repository still needs `SPTCAL_PUSH_OK`. ⚠️ Git exports
+    `GIT_DIR` into a hook run from a linked worktree, so the hook clears it before asking git about the target.
+  - **Piece 2, the governance checker** (`446de9a1`): `tools/check-governance.mjs`, `npm run governance`. It blocks on
+    OUT-26/27/28/33 (import line, old address, IDs, replaced-by pairs, link case, the owner's pick behind a new rule, no
+    ID lost against `origin/main`), warns on the rest. The size budget only warns (owner's picker *"Warn only"*,
+    **against** the recommendation). The push guard runs the pushed commit's own checker and refuses on a failure; the
+    deploy runs it `--warn-only`. Proof: `--self-test` 28/28, `test-pre-push.sh` 23/23. ⚠️ Apple's `git grep -E` has no
+    `\b`; on macOS `process.exit()` after a write to a pipe cuts the output short.
+  - **The INTRO slip** the checker found (`45939e89`, picker *"Relabel both"*): "Three files" is INTRO-4, "Declined
+    rules are recorded" is OUT-38.
+  - ⚠️ That push's deploy run (45487646293) **failed on GitHub's side**: the Deploy step looked for the Pages artifact
+    one second after it was uploaded and didn't find it, so the Cloudflare step was skipped. App bytes were unchanged
+    (live file still `6e8bdfc1…`). Per REL-14 nothing was re-run; the next push redeploys.
+- ✅ **Piece 3, the reminder hook, installed** (picker *"Install both lines"*): `~/.claude/hooks/sptcal-rules-changed.sh`
+  in `~/.claude/settings.json` (backup `settings.json.before-rules-hook-20261124`). It compares the blob ids of the three
+  rule files on `origin/main` per session: once per change, "the rules changed since this session started: re-read
+  GOVERNANCE.md"; at a session's first message, a line if its branch lacks main's latest rules. Seen live with stand-in
+  session ids around a real push; not yet seen in a real old-worktree session.
+- ✅ **Piece 4, decision 3's trial** (picker *"Plugged in, start it"*): `gate.sh` now prints and saves
+  (`tests/harness/gate-record.txt`) the commit, any uncommitted changes in `src/ tools/ tests/`, and the served page's
+  sha256, and fails if the page changes mid-run (OUT-29). The first full gate in its own throwaway worktree ran at
+  `2176244f`, port 8291, 13:06 to 14:59 (load average 5 to 7): **GATE FAILED, 9 checks in 7 tests; every baseline (gates
+  1 to 13) byte-identical.** Alone (TEST-5, gate.sh's own judges, port 8293): `hdrverload`, `hostile` (xss-proto) S2 and
+  `phasekeys` pass (load); **`notelook` M2, `dblclickdlg` D10-D12, `settingswin` W10 and `sideboxes` S12 fail on the live
+  build too**. The first two test the app from before the 21 Nov Hide Holiday and 23 Nov Help changes, which shipped on
+  targeted tests. Card `gate-legs-behind-main`, with a proposed session. TEST-6's known mismatch is settled (picker
+  *"Settle it"*). The stale-build refusal was seen too (a touched `src/main.jsx`: exit 2).
+- ✅ **Piece 5:** "Held by" on the 34 rules something holds (OUT-39), every gate-held one on a test that passed in the
+  trial; the review-only rules listed in GOVERNANCE-HISTORY.md as known gaps; a status line under every plan's title
+  (OUT-32), many old headers corrected. The checker: 0 warnings.
+- **Waiting on one push picker:** branch `gov5-held-by` = piece 5, the gate record, TEST-6 and these docs. Last tested:
+  `npm run check` 47/47, `npm run governance` 0 warnings, `--self-test` 28/28, `test-pre-push.sh` 23/23 (docs, tools
+  and tests only: no full gate owed, REL-6).
+- **Still open, outside Phase 5:** OUT-36 (host rule) waits on the private-repo decision; nothing is held by a permission
+  prompt in desktop sessions (REL-1's known mismatch); OUT-35 is Phase 6. No approval carries over to the next session.
 
 ### 📜 23 Nov 2026: GOVERNANCE PHASE 4, THE REWIRE — the rules land in the repo and CLAUDE.md imports them. Branch `governance-phase4` (worktree `.claude/worktrees/governance-phase4`, from `origin/main` `2e3d3fa3`). ✅ **LIVE at `578bd46a`** (owner's pickers 23 Nov 2026: *"Merge into local main"*, *"Push main after the merge"*; pushed `2e3d3fa3..578bd46a`, which also carried local main's `54473204`; deploy run 45473455825 green, Cloudflare step included; the GitHub Pages file is byte-identical to the build, sha256 `6e8bdfc1…`, the same bytes as before, so users see no update bar). Tracker card `governance-sheet`.
 - **What is on the branch:**

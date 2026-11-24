@@ -1,8 +1,9 @@
 # GOVERNANCE-PLAN.md: one rules sheet for SPTCal
 
-**Status:** building (Phases 0-4 live; Phase 5 under way) · 24 Nov 2026 · card `governance-sheet`
+**Status:** building (Phases 0-5 done; Phase 6 next) · 24 Nov 2026 · card `governance-sheet`
 
-**Progress:** Phases 0-4 done (Phase 4, the rewire, on 23 Nov 2026: §7e). Phase 5 (the checker and the hooks) is next.
+**Progress:** Phases 0-5 done (Phase 4, the rewire, on 23 Nov 2026: §7e; Phase 5, the checker and the hooks, on 24 Nov
+2026: §7f). Phase 6 is next.
 Tracker card `governance-sheet`.
 
 *The rules themselves are GOVERNANCE.md, GOVERNANCE-UI.md and GOVERNANCE-ENG.md, edited by hand. Paths below under
@@ -575,14 +576,16 @@ Downloads, and the template was unpacked only into a session scratchpad. Everyth
   per change it tells a running session "the rules changed since this session started: re-read GOVERNANCE.md", and at
   a session's first message it tells one on an older branch that its rules are out of date. Seen live 24 Nov.
 - **Piece 4, decision 3's trial**: the gate records the commit, the tree and the build it tested (OUT-29), and the first
-  full gate ran in its own throwaway worktree at the commit being tested (TEST-6).
+  full gate ran in its own throwaway worktree at the commit being tested (TEST-6): `2176244f`, 1 h 53 min beside other
+  sessions' work, every baseline byte-identical. It failed 9 checks: 3 passed alone (load), 4 tests main had outgrown
+  failed alone too (card `gate-legs-behind-main`). TEST-6's known mismatch settled on the owner's picker.
 - **Piece 5**: every rule held by something says so after its Why (OUT-39); the rest are listed in
   GOVERNANCE-HISTORY.md as the known gaps; every plan has a status line (OUT-32).
 - **Found by the checker:** two intro paragraphs both labelled INTRO-2; relabelled on the owner's picker (INTRO-4, OUT-38).
 - **The owner's pickers, 24 Nov 2026:** guard fix *"Install it, then push"*; the size budget *"Warn only"* (**against**
   the recommendation to fail: CLAUDE.md over 12 KB or GOVERNANCE.md over 80 KB warns); the checker *"Install new guard,
   push"*; the reminder hook *"Install both lines"*; the INTRO slip *"Relabel both"*; the trial *"Plugged in, start it"*;
-  the relabel *"Push it"*. All others as recommended.
+  the relabel *"Push it"*; TEST-6 *"Settle it"*. All others as recommended.
 - **Decisions made without a picker** (WORK-4; each is a constant or a few lines in `tools/check-governance.mjs`, easy to
   change):
   - HANDOFF's live part warns over 150 KB (`HANDOFF_LIVE_BUDGET`); it was about 120 KB.
