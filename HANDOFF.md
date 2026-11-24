@@ -23,7 +23,7 @@
 - **Tried by hand** in the browser pane at `localhost:8765/dist/index.html?state=help-demo` (`srv.js` started by hand: the
   pane's five-server limit was full with other chats').
 
-### 📖 21–23 Nov 2026: THE NEW HELP — BUILT and tested on branch `help-center` (worktree `.claude/worktrees/help-center`, NOT pushed, NOT merged). Tracker card `help-center-redesign` (building). Plan page `mockups/help-docs-plan.html` (main checkout, untracked).
+### 📖 21–23 Nov 2026: THE NEW HELP — ✅ LIVE (pushed to `main` 23 Nov 2026, `8056c32a`, on the owner's "push"); branch `help-center` (worktree `.claude/worktrees/help-center`, NOT pushed, NOT merged). Tracker card `help-center-redesign` (building). Plan page `mockups/help-docs-plan.html` (main checkout, untracked).
 - **What it is:** the one-page Guide (`#help-overlay`, ~10,700 words) is replaced by `src/help/`: a ~1,120 px Mantine window with a
   sidebar of 14 sections / 45 articles (64 were written; 23 Nov: 20 folded into others, then "What is SPTCal?" added, see below), search, "On this page", Show me (rings the real control), `?` opening on the open
   Shift box / Build Around box / note editor / day menu / Settings (else the last article read; else Month view's article or
@@ -137,11 +137,124 @@
      opens on in the Waterfall when nothing is open and nothing was read (the Month view still opens `month`); the tour links to
      it. 45 articles; the `help` leg's H1 / H6 expect it. No picture (the tour has the numbered one); wording kept vague on
      purpose (nothing about a studio or a real show).
-  **WHAT IS LEFT (owner's call):** (a) the final go-ahead: merge `help-center` into `main` and push (`main` auto-deploys;
+  10. ✅ **PUSHED and LIVE (23 Nov 2026).** `git push origin HEAD:main` from the worktree: `920c8f81..8056c32a`, a fast-forward
+     (origin/main was an ancestor, 13 commits). "Build and deploy" run 45285294363: both jobs succeeded (Setup Pages, Deploy,
+     Publish to Cloudflare Pages). The GitHub Pages `index.html` is byte-identical (sha256) to the tested `dist/` and holds
+     the new pages; `sptcal.pages.dev` is behind the sign-in, so it was not fetched. ⚠️ The run's "Check the docs' line
+     references" step exits 1 (9 prose line numbers in old HANDOFF text; the same on the 22 Nov run; the job still passes).
+     Local `main` was left alone (it is not an ancestor of the pushed head; the main checkout is on another branch).
+  **WHAT WAS LEFT (owner's call), now done:** (a) the final go-ahead: merge `help-center` into `main` and push (`main` auto-deploys;
   verify the live URL after, ~40-60 s). (b) (done, item 7). (c) Left on the owner's own "do not add back" list and still
   mentioned: `newreset` bullets Reset Waterfall / Month Notes, and `heading-editor.webp` shows "Hide column": ask. (d) The
   engine's ⓘ list says `{version}` is "Version, as typed" (it prints v3); an ⓘ edit, not Help. (e) Owner ruling: no
   printed captions, see above.
+### 🎨 22 Nov 2026: A LOOK-AND-FEEL REVIEW AGAINST IMPECCABLE, ANALYSIS ONLY: no app code changed. Report https://claude.ai/artifact/C5fwjQyJhPbiJ53zqGyv48 (private, "SPTCal Look and Feel"; its `audit.json` holds every raw finding). Tracker card `ui-polish-motion-impeccable` (planned, waiting on the owner).
+- **Owner:** a deep analysis of the UI/UX around the calendar with Impeccable.style as the basis: where Mantine works and
+  where it doesn't, cleaner and more polished, what a redesign would entail, and where animation would add clarity and a
+  friendlier feel. The waterfall and month calendars themselves out of scope.
+- **How:** 34 captures of the dist build (v1.22.1, 21 Nov) at 1440×900 @2x in headless Chrome on the owner-approved
+  Harbor Lights S1 (`help-demo.sptcal` from the help-center worktree), a computed-style census of every element outside
+  `#table-wrap` in 7 states, then a 4-lens workflow (layout, panels/feedback, design system, motion: Opus) with a Sonnet
+  checker per lens. 55 findings: 13 confirmed, 27 confirmed with a detail corrected, 0 wrong, 15 not cheap to check;
+  merged into 31 in the report. Sized "lean" on the owner's picker (weekly all-models usage was at 91%).
+- **The verdict:** refine, don't replace (Impeccable "Operate" mode; a new visual world would break the Outlook/Excel bar).
+  The drift is measurable: 14 font sizes on screen vs the theme's 6, 22 radii vs 5, ~12 button styles, 4 dialog frames,
+  23 uppercase-label rules, 27 transition timings all on `ease`, 2 of ~41 alerts titled (the rest "Notice").
+- **Facts learned, checked by hand:** `theme.js` sets no `transitionProps` and `main.jsx` never sets
+  `respectReducedMotion`, so every Mantine Modal drops 30 px over 200 ms each way and ignores reduced motion; the theme's
+  Modal `radius: 'xl'` is overridden to `lg` in all six dialogs (a dead default); `flashSaveBtn` pushes `disabled:true`, so a
+  successful Save paints grey; `runShift`'s readout says "earlier/later" against the Pushed/Pulled rule; `dayMonth()`
+  (app.js ~14451) writes menu dates day-first on month-first calendars, against the 13 Nov date-order rule; `.info-hint`
+  is gray-5 (2.58:1) in an 18 px box with a stock blue focus ring.
+- **Proposed signature motion, "the move lands":** after a Shift, Build Around or ▲/▼, phase-coloured ghosts glide and a
+  ring holds on what moved (Date column for whole-calendar moves); generalises `playSwapSettle`. ⚠️ Today's swap layer
+  (`ensureSelLayer`) lives inside `.sheet-grid-wrap`, i.e. inside `#table-wrap`; the report recommends a body-level layer
+  and lists the placement as an owner decision.
+- ⚠️ **Prerequisite for ANY new motion:** headless Chrome draws no frames, so a `motionOK()` switch + a localhost
+  motion-off flag set by `t/lib.js` must land first, or legs stall the way the Settings slide once did.
+- **Next:** the owner's picks in the report's "Your calls" table (14 decisions; steps 0–3 need no ruling changed). Help
+  findings (copy drift: Version text, "Header button in the toolbar") belong to the help-center branch.
+
+### 📜 21 Nov 2026: A GOVERNANCE SHEET, PLAN ONLY — `GOVERNANCE-PLAN.md` (untracked), NO app code or doc rules changed. Tracker card `governance-sheet` (planned, waiting on the owner).
+- **Owner:** write up a plan for a proper governance sheet built from everything they've said about how the app is
+  built, designed, featured and how they like things to work.
+- **The plan:** one `GOVERNANCE.md`, the only home of standing rules, each with an ID (`REL-1`, `FILE-4`…), the
+  rule, why, the owner's words and date, what applies, what holds it, and its status; loaded into every session by an
+  `@GOVERNANCE.md` import in CLAUDE.md (so worktree sessions finally see the rules that today live only in private
+  memory). §4 is a first-cut inventory of ~75 rules in nine chapters; §7 the phases (sweep, reconcile, draft with the
+  owner chapter by chapter, rewire, a `check-governance` script); §9 seven decisions for the owner.
+- ✅ **Owner's pickers, same day (all seven, recorded in the plan's §9):** a repo file; SPTCal only; trim CLAUDE.md;
+  archive HANDOFF entries older than the current version into monthly files; cite rule IDs in new work only; build the
+  push guard (`pre-push`) and a standing-rule reminder hook, no tracker Rules tab; review chapter by chapter with
+  pickers.
+- ✅ **Phase 1, the sweep, done the same day.** Eight Sonnet reader agents covered HANDOFF (four parts), the plans (two
+  halves), README and the reference docs, and CLAUDE.md and memory were read by hand. The result is 584 candidate
+  entries, 60 noticed conflicts and 13 superseded/unclear entries, in `governance-work/INVENTORY.md`. That folder is
+  local to the main checkout and kept out of git by `.git/info/exclude`; `merge.py` there rebuilds the inventory. 260
+  of 281 owner quotes check out verbatim, and the 21 that don't are marked ⚠. Coverage limits are in the plan's §7a.
+  Next: Phase 2, reconcile (merge duplicates, put each real conflict to the owner).
+- ✅ **Phase 2, reconcile, done the same day.** Four Opus merge agents and `governance-work/finalize.py` turned the 584
+  entries into **181 numbered rules** (IDs provisional), 78 feature decisions (they stay in their plans), 22 reference
+  notes and 61 doc fixes, all in `governance-work/DRAFT-RULES.md`. ⚖ **The owner's six rulings (pickers, 21 Nov 2026),
+  in force now:**
+  - A session may **commit freely on its own working branch**; merging into main and every push are still asked.
+  - The **full gate** runs before any push that changes behaviour, a grid cell, an export, a saved file or a
+    dependency, or cuts a version. Chrome-only look and label changes are exempt, and the owner can waive it by picker.
+    This **replaces the 18 Sep gate policy**.
+  - The **month PDF's output is frozen** (a moved page needs the owner's yes plus gate 13); the writer's code isn't.
+  - The waterfall editor's move toward its PDF look is **decided only through WATERFALL-PDF-LOOK-PLAN**.
+  - **Folding controls that apply, to cut clutter, is case by case**: the phase cards stay unfolded; anywhere else a
+    fold needs a mockup and the owner's yes.
+  - A **refused edit gets a short note by the spot**; a failed job (export, load) keeps its dialog.
+
+  CLAUDE.md and §0 / §5a still say the old thing on commits and the gate (in the draft's doc-fix list for Phase 4).
+  Next: Phase 3, the owner's chapter-by-chapter review. The plan's §7b proposes the slimmer two-file format and a
+  one-picker-per-chapter review.
+- ✅ **The code comments were swept too** (owner: "Sweep comments first", after the 31 Aug ⓘ ruling turned out to
+  exist only in README and `InfoHint.jsx`). Three Sonnet readers covered every comment that cites the owner, about
+  1,600 in `src/` and `tools/`, with every quote verified. They added 8 rules and 5 additions, and corrected UX-38:
+  since the owner's D6 (a) (13 Nov) the note editors save on Enter and Esc keeps typed text. The draft is now
+  **189 rules**; details in the plan's §7a. UX-4 now says where descriptions go: the control's name on screen, a
+  one-to-three-line description behind the grey ⓘ, anything longer in Help, and warnings never hidden.
+- 🗳 **Phase 3, the owner's review, runs on a page now** (owner, 21 Nov: *"can you give me an interactive page to
+  accept/decline/edit every single part of the governance doc"*, after accepting the PRD chapter as written in chat):
+  https://claude.ai/artifact/5BFJezZG1edDdq2GtAaN5q, private, "SPTCal Rules Review". It covers all 189 rules, their 29
+  exceptions and the sheet's 4 intro parts, each with Accept / Decline / Edit and a note, plus suggested new rules.
+  Picks save to the page's database. **To act on them:** ArtifactData `list` on `reviews` and `additions` (shapes in
+  the plan's §7c), write them into `governance-work/review.json`, then run `make_gov.py`. The two-file draft
+  (`GOVERNANCE.md` 102 KB + `GOVERNANCE-HISTORY.md`) is in `governance-work/`.
+- 🧭 **An outside governance framework was studied** (owner, 21 Nov: an installer doc and its template in Downloads;
+  *"dont copy to repo"*). Nothing was copied, run or installed. A workflow ran 5 readers, 3 comparers and 9 skeptics, then
+  a completeness check: 30 of 51 adopt/adapt/strengthen calls survived. The result is `governance-work/compare/SYNTHESIS.md`
+  plus **41 proposals added to the review page as chapter OUT** (4 new rules: INTRO-5, WORK-25, WORK-26, REL-15; additions
+  to 14 rules; Phase 4-6 changes). Summary and the five owner decisions are in GOVERNANCE-PLAN §10.
+  - ⚠️ **Found while verifying, left for the owner:** `.claude/settings.local.json` allows `git push *` and `gh api *`
+    with no prompt; no git hook is installed; there are 180 worktree folders. Decision 1 in §10 covers it. Don't change
+    the permission settings without the owner.
+- ✍️ **The review page is in plain words now** (owner: "reword everything more simply ... what it is now, why it would
+  change and how"). Version 3 at the same address shows every item as a gist plus Today / Why / What changes. Six
+  writers and two meaning-check editors produced it (`governance-work/plain/`); details in GOVERNANCE-PLAN §10a. The
+  Single HTML file architecture session's critique is folded in, checked on origin/main:
+  - CODE-5 (one file) is marked "Suggested: decline".
+  - New proposals OUT-42 (the lock file is the frozen list) and OUT-43 (release copies out of the repo, 66 MB).
+  - The FILE-3 field-order addition is dropped.
+  - OUT-14 protects only `tools/frozen-lock.mjs`.
+  - ⚠️ `tests/harness/prove-header-preset.mjs` tests nothing: its anchor `sheet: p.lines ?` matches nothing in the engine.
+- ✅ **23 Nov 2026: PHASE 3 DONE, the owner reviewed every item.** 233 accepted and 3 declined: CODE-5 one file,
+  COPY-6 help text only says what sets an option apart, UX-19 "same style" means colours only. All 43
+  outside-framework proposals were accepted. The draft is now `governance-work/GOVERNANCE.md`, **190 rules, 108 KB**,
+  plus `GOVERNANCE-HISTORY.md` (declines recorded; the 21 accepted plan-work items listed). Details are in
+  GOVERNANCE-PLAN §7d.
+  - **Next: Phase 4 (rewire) in a fresh session:** slim CLAUDE.md and import GOVERNANCE.md, archive old HANDOFF
+    entries, and do the accepted Phase 4 items (measure the session load first, settle open branches, prove the import
+    loads).
+  - **Owner decisions still open:** §10's 1, 3, 4 and 5, then 2 once the load is measured.
+  - Nothing committed: this checkout's branch holds another session's uncommitted work.
+- ⚠️ **Seven contradictions found while reading, NOT fixed yet** (the plan's §1 lists them, Phase 2 rules them):
+  CLAUDE.md's "localStorage is used nowhere" (app.js uses it 21 times); HANDOFF §5b's reading order; §5g's version-cut
+  files (and `package.json`, which `npm run check` requires and neither names); §4's "saved calendars are copies of
+  index.html"; §4's `@layer` fence (built by import order); §5a's GitHub Pages deploy (now Cloudflare); "Chrome/Edge"
+  against the owner's "only chrome, but do test windows".
 
 ### 🗄️ 21 Nov 2026: SPLITTING THE ENGINE INTO FILES IS SHELVED (owner, *"Shelve it"*). Decision only, no code. Tracker cards `engine-split-modules` (held), `post-schedule-version`, `holiday-data-own-file`, `multi-file-output`.
 - **Asked:** whether the single-file design holds the app back, especially with post-production coming. A read-only
@@ -218,7 +331,7 @@
   say SEVEN unguarded `#table-wrap` listeners; `getElementById('table-wrap').addEventListener` appears 21 times.
   `prove-header-preset`'s text anchor `sheet: p.lines ?` matches nothing in `app.js`, so that prover tests nothing.
 
-### ✏️ 21 Nov 2026: A HOLIDAY IS RENAMED FROM THE HOLIDAYS LIST (Settings › Region) — committed on `scenario-version-offer` (its hunks only), NOT PUSHED. README "Unreleased". Tracker card `holiday-rename-in-settings`.
+### ✏️ 21 Nov 2026: A HOLIDAY IS RENAMED FROM THE HOLIDAYS LIST (Settings › Region) — committed `6be10871` on `scenario-version-offer` (its hunks only), cherry-picked onto `origin/main` as `79d6bea2` and LIVE: pushed on the owner's picker, deploy green, the GitHub Pages file carries `hv-name-edit` (the Cloudflare address is behind the sign-in, not fetched). README "Unreleased". Tracker card `holiday-rename-in-settings`.
 - **Owner:** asked whether a holiday's name should be editable from the Holidays list, then *"No text box until you hover
   over the title similar to how the episode names in the production phase section work"*.
 - **Done:** `renderHolidayVisList`'s row puts the name in `.hv-name-edit`, a `contenteditable="plaintext-only"` span
@@ -242,8 +355,12 @@
   `regionlock` 14/14, `mvmenu` 81/81 (halfdays), `npm run check` 46/46; in the browser on `holidayrename` (hover, rename,
   ⌘Z, Esc, clear, a redraw mid-typing). ⚠️ `holidayrename` and `mvmenu` time out at "the fixture" without their
   `HARNESS_STATE` (holidayrename, halfdays): that is a harness call, not a failure. No full gate (chrome only).
+  ⛔ **Run legs on a private `HARNESS_PORT`.** `run.sh` defaults to 8231 and `pkill`s any srv.js there, and other
+  sessions' gates use it: a bare run killed the `note-ellipsis` gate's server (its results 09:50-10:50 are suspect)
+  and once tested another worktree's code (a "14/14" holidayrename with no H1 or S cases). The legs above were
+  re-run on 8437 against the pushed tree: all green.
 
-### 🙈 21 Nov 2026: THE MONTH VIEW'S HOLIDAY EDITOR HAS "HIDE HOLIDAY" — committed `a3ed0a2e` on `scenario-version-offer`, cherry-picked onto `origin/main` and pushed on the owner's picker. README "Unreleased". Tracker card `month-hide-holiday`.
+### 🙈 21 Nov 2026: THE MONTH VIEW'S HOLIDAY EDITOR HAS "HIDE HOLIDAY" — committed `a3ed0a2e` on `scenario-version-offer`, cherry-picked onto `origin/main` as `21af8e8b` and LIVE: pushed on the owner's picker, deploy green, the GitHub Pages file carries `mv-holiday-hide` (the Cloudflare address is behind the sign-in, not fetched). README "Unreleased". Tracker card `month-hide-holiday`.
 - **Owner:** *"We need to add the same hide holiday button in the waterfall pop-up to the month view pop-up"*.
 - **Done:** `openMvNoteEditor`'s head gives a holiday (`isHol`) a `note-pop-delete mv-holiday-hide` button, "Hide
   Holiday", where the Auto-Note editor has Hide Auto-Note (it had none). Its click goes through the existing
@@ -259,7 +376,7 @@
   ticked to show), while the leg sees them on. Not investigated: likely the pane's own leftover state (a recovery offer
   came up at launch).
 
-### 🔨 4 Nov 2026: DATE BOXES TAKE AND SHOW A TWO-DIGIT YEAR (01/04/26) — branch `two-digit-year` (worktree `.claude/worktrees/two-digit-year`, from `origin/main` at `75003f1`; its `node_modules` is a symlink, so unlink it before `git worktree remove`). Not merged, not pushed. Tracker card `two-digit-year-dates`
+### ✅ 4 Nov 2026: DATE BOXES TAKE AND SHOW A TWO-DIGIT YEAR (01/04/26) — ✅ **LIVE at `a0819c0e`** (21 Nov 2026, owner: *"push it"*; pushed `81575e55..a0819c0e` from branch `two-digit-year`; deploy run `44928963342` green to GitHub Pages and Cloudflare; the GitHub Pages copy is the tested build byte for byte, sha256 `11bc4e797f52d411…`; the Cloudflare address is behind the sign-in, so not fetched). Worktree `.claude/worktrees/two-digit-year` (its `node_modules` is a symlink, so unlink it before `git worktree remove`). Tracker card `two-digit-year-dates`
 - **Asked** (owner, 4 Nov 2026): *"Would it be a small enough change so that all phases, hiatuses, etc use a date box
   in the left side panel that has the year as 25 or 26"*, then *"you can type 26 instead of 2026"* and *"it should
   read 01/04/26"*. Owner: *"Yes, build it"*. The toolbar's two date boxes (then Anchor To / Rebuild From, now Shift's
@@ -292,8 +409,7 @@
   and the newer panels' legs `panelstale` 16/16, `buildaround` 36/36, `anchorside` 39/39, `finishbefore` 16/16. Real
   keystrokes over CDP (the preview-server limit was full): 0 1 0 5 2 6 → `0026-01-05` with no refusal, Enter →
   `2026-01-05`; 0 3 0 2 2 0 2 6 → `2026-03-02`; the box reads 03/02/26 beside the phase card's ▲ / ▼, nothing clipped.
-
-### 📐 20 Nov 2026: SHIFT KEEPS EVERY PHASE'S DISTANCE FROM THE WRAP — BUILT on branch `shift-wrap-follow` (worktree `.claude/worktrees/shift-wrap-follow`, from `origin/main` `a85ca47c`), full gate run (every baseline identical; no failure from this branch), README "Unreleased" and What's New entries in, committed locally; `origin/main` (`07d681ed`, the 13" toolbar) merged in and local `main` moved to the merge on the owner's picker *"Merge, don't push"*; then `origin/main` (`b093115`, the four re-premised checks) merged in again and PUSHED on the owner's *"push it"* (20 Nov 2026). Plan and rulings: [`SHIFT-WRAP-FOLLOW-PLAN.md`](SHIFT-WRAP-FOLLOW-PLAN.md). Tracker card `shift-keeps-wrap-gap` (ready).
+### 📐 20 Nov 2026: SHIFT KEEPS EVERY PHASE'S DISTANCE FROM THE WRAP — BUILT on branch `shift-wrap-follow` (worktree `.claude/worktrees/shift-wrap-follow`, from `origin/main` `a85ca47c`), full gate run (every baseline identical; no failure from this branch), README "Unreleased" and What's New entries in, committed locally; `origin/main` (`07d681ed`, the 13" toolbar) merged in and local `main` moved to the merge on the owner's picker *"Merge, don't push"*; then `origin/main` (`b093115`, the four re-premised checks) merged in again and PUSHED on the owner's *"push it"* (20 Nov 2026) as `81575e55`: LIVE. Deploy run 44854769982 green (Build and check, GitHub Pages, Cloudflare Pages); the GitHub Pages file is byte-identical to the build (sha256 `0225542c…`) and carries the What's New entry; sptcal.pages.dev answers 302 to its sign-in, as it should. (The two deploys before it, for `b093115`, had failed at GitHub's own `deploy-pages` step, "No artifacts named github-pages", a GitHub-side fault; this push carried that change out too.) Plan and rulings: [`SHIFT-WRAP-FOLLOW-PLAN.md`](SHIFT-WRAP-FOLLOW-PLAN.md). Tracker card `shift-keeps-wrap-gap` (ready).
 - **Owner:** Shift moves Production onto new holidays, the shoot gains or loses a week, and a 1-week gap or overlap opens before Post.
   Rulings by chat and picker (plan §1): R1 every phase Production's length affects, not just Post; R2 any cause (holidays, Off days,
   worked holidays, worked weekends); R3 a phase alongside the shoot follows only if it ended in the wrap week; R4 Production's own ▲ / ▼
@@ -327,8 +443,7 @@
   writes for those fixtures; unexplained, unfixed. After the gate: README "Unreleased" + What's New `2026-11-20` added,
   rebuilt, `npm run check` 46/46, `whatsnew` 12/12. ⚠️ `origin/main` has moved on (`07d681ed`, the 13" toolbar): merging
   will meet README / What's New / HANDOFF conflicts at their tops (keep both sides).
-
-### 🧪 20 Nov 2026: FOUR RED HARNESS CHECKS ON `main` EXPLAINED AND RE-PREMISED — branch `fix-showinfo-order-legs` (worktree `.claude/worktrees/sweet-dijkstra-49037f`), `01c3e2c`, PUSHED to `main` on the owner's picker (20 Nov 2026). Tests and docs only; no app code, so the deploy changes no app byte.
+### 🧪 20 Nov 2026: FOUR RED HARNESS CHECKS ON `main` EXPLAINED AND RE-PREMISED — branch `fix-showinfo-order-legs` (worktree `.claude/worktrees/sweet-dijkstra-49037f`), `01c3e2c`, PUSHED to `main` (merge `b093115`) on the owner's picker (20 Nov 2026). Tests and docs only; no app code, so the live app is unchanged either way. ⚠️ Its deploy failed in GitHub's Pages "Deploy" step, the known GitHub-side failure (no `github-pages` artifact; two on the re-run): push run `44852551879` and its re-run, and a fresh `workflow_dispatch` (`deploy=true`) run `44852738909`, which fixed it last time, failed the same way. Cloudflare's step comes after it, so it did not run. Nothing live is stale (the last green deploy, `a64f7d3`, builds the same app); the next push's deploy carries this along.
 - **Red since `368f9e2`** (19 Nov, Show info's field order per mode, below): `hidewf` F1 (`sameIds: false`) + F3 (not byte
   for byte the fixture), `phasesui` P1 (all 46 fixtures' `fields.byId`, the leg lists 12) and `hiatusripple` R0.
 - **Cause:** `fields.byId` is built in DOCUMENT order, and that commit moved the markup to `num-blocks, days-per-block,
@@ -344,7 +459,6 @@
   changes. Before calling a markup reorder "nothing saved changed", run `hidewf`, `phasesui` and `hiatusripple`; the
   `restore` leg (gate 5) compares the key SET only and stays green.
 - **Verified:** `hidewf` 19/19, `phasesui` 8/8, `hiatusripple` 19/19 (each alone, on `dist/`), `npm run check` 46/46.
-
 ### 💻 19–20 Nov 2026: THE WHOLE TOOLBAR FITS ON A 13" MACBOOK AIR — branch `toolbar-13in` (worktree `.claude/worktrees/toolbar-13in`, from `origin/main` `2ef16d2`; `node_modules` is a symlink, unlink it before `git worktree remove`). Owner tried it on localhost and on another computer, then *"Finish it"*, then *"commit and push it"*: committed `67c729c`, `origin/main` (`a85ca47`) merged in (README and HANDOFF conflicts, both sides kept), re-checked (`npm run check` 46/46; `toolbarfit`, `spancounts`, `stylebarplace`, `calzoom`, `finaldelivery`, `hdrtemplate` green on the merged build), PUSHED to `main` (`07d681e`). ✅ LIVE: the push's own deploy run failed in GitHub's Pages step (no `github-pages` artifact, as on 19 Nov); a manual "Build and deploy" run ⛔ WITH ITS `deploy` INPUT ON (`gh workflow run "Build and deploy" --ref main -f deploy=true`; without it the deploy job is skipped) published it, Cloudflare step included; the GitHub Pages file is byte-identical to the tested build. Tracker card `toolbar-fits-13in`. A follow-up the owner looked at and declined (*"nevermind just leave it as is"*): fitting Production's weeks on the dashed line at 13" widths (`mockups/span-weeks-13in.html`, main checkout, untracked; card `span-weeks-on-line-13in`).
 - **Owner:** *"is a standard 13" macbook air screen not big enough to show the entire menu bar in its full form?"* (no: the
   line needed ~1,690 px; the Air's window is 1,470, or 1,440 on an M1), then *"Make it fit"*, *"mock up the options"*,
@@ -383,9 +497,8 @@
   and up (so at the gate's 1,600 px window), and every leg it touched is green on it.
 - No What's New entry (a small UI change). README "Unreleased".
 
-||||||| 2ef16d26
 
-### ↕️ 21 Nov 2026: EVERY BAR KIND REORDERS IN THE MONTH VIEW, TANDEM AND PREP INCLUDED — branch `mv-order-all` (worktree `.claude/worktrees/mv-order-all`, from `origin/main` at `a0819c0e`; its `node_modules` is a symlink, unlink it before `git worktree remove`). NOT committed until the owner's picker, NOT pushed. README "Unreleased", What's New `2026-11-21-2`. Tracker card `month-reorder-every-bar`.
+### ↕️ 21 Nov 2026: EVERY BAR KIND REORDERS IN THE MONTH VIEW, TANDEM AND PREP INCLUDED — branch `mv-order-all` (worktree `.claude/worktrees/mv-order-all`, from `origin/main` at `a0819c0e`; its `node_modules` is a symlink, unlink it before `git worktree remove`). Committed as `f0ffbc7b` (rebased onto the month holiday editor's Hide Holiday, `21af8e8b`) and LIVE: pushed to `main` on the owner's "Commit and push" after trying it in the pane, deploy run 44930553358 green, the GitHub Pages file is byte-identical to the build (the Cloudflare address is behind the sign-in, not fetched); `mvorderdu` 10/10 and `npm run check` 46/46 re-run on the rebased build. README "Unreleased", What's New `2026-11-21-2`. Tracker card `month-reorder-every-bar`.
 - **Owner:** *"Ensure all phases of any type (including sim post, episodic/block prep, and tandem, can be arranged up and
   down in any order in the month view"*.
 - **What was already true (checked in the browser on `doubleups`):** Sim Post reorders (SO1, live 11 Nov). Episodic /
@@ -407,8 +520,7 @@
   live 20/20, doubleups 50/50, doubleups-half 3/3, doubleups-blocks 2/2 (0 console errors each), `npm run check` 46/46;
   in the browser pane on `doubleups` with the real mouse: Prep above Production, Tandem 305 above Shoot 305, Tandem 306
   taking Production below Prep. No full gate: no frozen code, no output moves on a calendar that never reorders.
-
-### 🔤 19 Nov 2026: THE TEMPLATE EDITOR OPENS ON VARIABLES, NOT A MANUAL HEADER'S PLAIN TEXT — committed `5ee3a54e` on `scenario-version-offer`, cherry-picked onto `origin/main`, pushed on the owner's picker. README "Unreleased". Tracker card `template-editor-variables`.
+### 🔤 19 Nov 2026: THE TEMPLATE EDITOR OPENS ON VARIABLES, NOT A MANUAL HEADER'S PLAIN TEXT — committed `5ee3a54e` on `scenario-version-offer`, cherry-picked onto `origin/main` as `a85ca47c` and LIVE: pushed on the owner's picker, deploy green, the GitHub Pages file is byte-identical to the build (the Cloudflare address is behind the sign-in, not fetched). README "Unreleased". Tracker card `template-editor-variables`.
 - **Owner:** *"by default when you open the template editor, all the labels of the default auto-header should be the
   dynamic variables as opposed to plain text"*; asked which plain text, picked **"Header was on Manual"**. (From Auto the
   editor already seeded `DEFAULT_HEADER_TEMPLATE`; only "Planning Calendar" and the month's "Full Prelim Production
@@ -430,15 +542,14 @@
 
 ### 📅 19 Nov 2026: BUILD AROUND'S "ENDS BY" PICKS A FRIDAY (PRODUCTION: ANY WEEKDAY) — branch `endsby-picker` (worktree `.claude/worktrees/endsby-picker`, from `origin/main`; `node_modules` is a symlink, unlink it before `git worktree remove`), LIVE: committed `f33015c` (rebased onto `2ef16d2`, the wrap-picker hint removal: its deletion kept, this `weekday` hint added beside it), pushed to `main` on the owner's "commit and push", deploy run green, the GitHub Pages file carries the new hint (sptcal.pages.dev is behind Access, same run). Owner: *"why can i only select mondays? ... it should be only fridays except for production which should be any weekday"*. Chrome only: `fieldKind()` in `src/chrome/DatePop.jsx` read `#tool-solve-date` by the start's rule on both edges. Now on `tool-solve-edge` = end: `friday` for a phase whose `phaseSnapped()` is true (Snap on, or Ends), `weekday` (new kind, weekends greyed) for Production and Days / Dates / unsnapped phases. The engine is untouched (it already took any date as the deadline). ⚠️ Shift's To a date "ends by" is still `day` (any day, weekends too): the owner asked about Build Around only. Legs `datepick` 21/21 (E1-E4 new), `buildendsby`, `buildaround`; `npm run check` 46/46. What's New `2026-11-19-3`. README "Unreleased". Tracker card `build-around-endsby-picker`.
 
-### ✂️ 19 Nov 2026: THE WRAP-DATE PICKER'S "ONLY SHOOT DAYS" LINE IS GONE — uncommitted on `scenario-version-offer`, NOT pushed
+### ✂️ 19 Nov 2026: THE WRAP-DATE PICKER'S "ONLY SHOOT DAYS" LINE IS GONE — committed `b7c3b6f` on `scenario-version-offer`, cherry-picked onto `origin/main` as `2ef16d2` and LIVE: pushed on the owner's picker, deploy green, the GitHub Pages file is byte-identical to the build (the Cloudflare address is behind the sign-in, not fetched). Tracker card `wrap-picker-hint-removed`
 - **Owner:** *"delete: the shoot wraps on a shoot day, so only shoot days can be picked."*
 - **Done:** the `kind === 'wrap'` hint in `src/chrome/DatePop.jsx` is deleted; the picker still greys every non-shoot
   day. The Monday / Friday / hiatus hints stay. Leg `prodends` E5 now expects no `.dp-hint`.
 - **Verified:** `npm run check` 46/46, `prodends` 8/8 on `/dist/index.html`. No full gate (chrome text only). No What's
-  New entry (a small UI change). Commit only `DatePop.jsx`, `prodends.js`, README and this entry: the tree holds other
-  sessions' uncommitted work.
+  New entry (a small UI change).
 
-### 🇺🇸 19 Nov 2026: "COLOUR" READS "COLOR" IN THE APP — uncommitted on `scenario-version-offer` (owner: *"Change "Colour" in all places to "Color""*). Every USER-VISIBLE spelling (tooltips, aria-labels, the note editors' Color row and hints, Reset Notes questions, Paste notes' hint and error, toolbar tooltips, the Holidays hint, the Help window) in `src/legacy/app.js`, `src/index.html`, `Sidebar.jsx`, `Header.jsx`, `PreviewToolbar.jsx`. ⛔ Code names, CSS classes (`note-colour-*`), comments, docs and saved keys keep "colour" on purpose: renaming them moves leg selectors and risks the save format for no user gain. New user-facing copy says "color". Legs `notelook`, `hiatuscolour`, `notesreset` updated. README "Unreleased". Tracker card `color-spelling`.
+### 🇺🇸 19 Nov 2026: "COLOUR" READS "COLOR" IN THE APP — `d777f66` on `scenario-version-offer`, cherry-picked onto `origin/main` as `22551d6` and LIVE: pushed on the owner's picker; the push's Pages step failed twice on GitHub's side ("Fetching artifact metadata failed", then "Multiple artifacts" on a re-run of the job: never re-run just that job), so it went out through "Build and deploy" with deploy=true, and the live file is byte-identical to the build (owner: *"Change "Colour" in all places to "Color""*). Every USER-VISIBLE spelling (tooltips, aria-labels, the note editors' Color row and hints, Reset Notes questions, Paste notes' hint and error, toolbar tooltips, the Holidays hint, the Help window) in `src/legacy/app.js`, `src/index.html`, `Sidebar.jsx`, `Header.jsx`, `PreviewToolbar.jsx`. ⛔ Code names, CSS classes (`note-colour-*`), comments, docs and saved keys keep "colour" on purpose: renaming them moves leg selectors and risks the save format for no user gain. New user-facing copy says "color". Legs `notelook`, `hiatuscolour`, `notesreset` updated. README "Unreleased". Tracker card `color-spelling`.
 
 ### 🗓️ 19 Nov 2026: THE NOTE EDITOR'S DAY DEFAULT READS "Default (Monday)" — branch `note-day-default-label` (worktree `.claude/worktrees/note-day-default-label`, from `origin/main` `9a71d11`), owner tried it on localhost, then *"Finish it"*, then the picker *"Push to main"*: LIVE, `a3b3da2` + `a881295` fast-forwarded onto `main`. Its own deploy run failed twice in GitHub's Pages step (no `github-pages` artifact, then two on the re-run: the same failure `1afc25b` and `22551d6` hit that evening); it went live with the next push's manual (`workflow_dispatch`) run from `22551d6`, live build `1bbc2e936e61`. ⚠️ A re-run of a failed push run does NOT fix that failure; a fresh `workflow_dispatch` run did. Then the Help overlay's "Leave it on “No date”" sentence (`src/index.html`), missed in the first push, fixed as `b78fad1`. README "Unreleased". Tracker card `note-day-default-rename`. Supersedes the 17 Nov "No date" label (entry below, `note-day-default-no-date`).
 - **Owner:** *"Putting "No Date" as default selection in waterfall might not make sense as even tho there is no typed
@@ -457,7 +568,7 @@
   (the refactor), `npm run check` 46/46. No full gate: no output reads the label, and the placement rule is moved, not
   changed.
 
-### 🧵 19 Nov 2026: THE WATERFALL HEADINGS' TOP LINE NO LONGER SPLITS AFTER A SCROLL — committed `5c31a38` on `scenario-version-offer` (its hunks only), cherry-picked onto `origin/main` (v1.23.0) in a temp worktree and pushed to `main` on the owner's picker *"Merge and push"*. The CSS is one `@media screen` block after the heading hover rule in `src/styles/legacy.css`. README "Unreleased". Tracker card `waterfall-header-double-line`.
+### 🧵 19 Nov 2026: THE WATERFALL HEADINGS' TOP LINE NO LONGER SPLITS AFTER A SCROLL — committed `5c31a38` on `scenario-version-offer`, cherry-picked onto `origin/main` (v1.23.0) as `9a71d11` and LIVE: pushed on the owner's picker *"Merge and push"*, deploy green, the GitHub Pages file carries the strip (the Cloudflare address is behind the sign-in, not fetched). ⚠️ This branch still lacks `origin/main` (v1.23.0 and `9a71d11`): merge it before the next push. The CSS is one `@media screen` block after the heading hover rule in `src/styles/legacy.css`. README "Unreleased". Tracker card `waterfall-header-double-line`.
 - **Owner:** *"when i first launch the app i see the solid black line but when i scroll down and then scroll back up, the
   line is now this double line"*; then *"Yes, fix it"* to a screen-only frozen-surface edit.
 - **Cause:** the line is the table's collapsed `tr:first-child th{border-top:2px}` plus the sticky `th`'s
@@ -509,8 +620,7 @@
   16/16, `wfnoteeditor` 14/14. No version cut. Local `main` NOT moved.
 - **Next:** nothing. Once nothing else needs the worktree: unlink `node_modules`, then `git worktree remove`.
 
-||||||| parent of 5c31a38 (The waterfall headings' top line no longer splits after a scroll (owner))
-### 🤫 19 Nov 2026: "ENTER A WEEK COUNT TO INCLUDE THIS PHASE" WAITS TO BE ASKED FOR — on `scenario-version-offer`, BUILT, NOT COMMITTED (the working tree also holds the What's New work below, uncommitted: commit only these files). README "Unreleased". Tracker card `week-count-prompt-on-enter`.
+### 🤫 19 Nov 2026: "ENTER A WEEK COUNT TO INCLUDE THIS PHASE" WAITS TO BE ASKED FOR — committed `8a21a59` on `scenario-version-offer` (its hunks only; the What's New work stays uncommitted), `origin/main` (`2215aa5`, notes follow their phase week) merged in a temp worktree as `e53e38b`, LIVE: pushed to `main` on the owner's picker, deploy green, the live file carries `.phase-meta.phase-meta.is-quiet`. ⚠️ This checkout's branch does NOT have `e53e38b` yet (the dirty tree overlaps it): merge `origin/main` before the next push. README "Unreleased". Tracker card `week-count-prompt-on-enter`.
 - **Owner:** *"this message should only show up when someone clicks enter (even tho i know the app doesn't need enter to
   be clicked) or when they click the start after or finish before buttons"*.
 - **Done:** frozen `render()` still writes the red line the moment a Weeks card has a start and no length; it is HIDDEN
@@ -527,7 +637,7 @@
 - **Legs:** new `weekprompt` 8/8 (P1-P7, E0; in gate.sh after `finishbefore`), `finishbefore` 16/16, `npm run check`
   46/46. Not tried in the browser pane (all five server slots held by other chats); the leg drives the real build.
 
-### 🆕 19 Nov 2026: THE UPDATE BAR ON EVERY RELEASE + A "WHAT'S NEW" WINDOW — on `scenario-version-offer`, FINISHED (owner: *"Yes, finish it"*), not pushed. README "Unreleased"; CLAUDE.md's release rules gain the What's New step; leg `whatsnew` (12/12, in gate.sh's loop). Tracker card `whats-new-dialog`.
+### 🆕 19 Nov 2026: THE UPDATE BAR ON EVERY RELEASE + A "WHAT'S NEW" WINDOW — on `scenario-version-offer`, LIVE: `240589f` on `main` (cherry-picked onto origin/main from `9ba2ac5`), pushed on the owner's picker, deploy green, the live file and `version.json` carry build `4b46fbbf27cd`. README "Unreleased"; CLAUDE.md's release rules gain the What's New step; leg `whatsnew` (12/12, in gate.sh's loop). Tracker card `whats-new-dialog`.
 - **Owner:** *"Whenever theres a new update to the app, lets add the blue update bar to the top as we've done previously.
   When a new update launches lets add a quick dialogue that explains what new features/updates were added. But only for
   things the user would actually care about - small UI changes, tiny bug fixes (not major ones), and anything behind the
@@ -564,6 +674,9 @@
   U1-U4; 9 of 12 red on `releases/v1.22.1.html`. ⚠️ Two harness traps learned: lib.js writes `sptcal.prefs` at the top
   of EVERY leg page (Ripple Hiatus off), so a leg playing a first-ever launch must delete it in its synchronous top
   block; and `location.reload` cannot be stubbed in Chrome (unforgeable), so U4 lets the bar's Reload really reload.
+- ⚠️ **Old copies don't see this release's bar:** a machine still running the build BEFORE this one has the old check
+  (version numbers only), and this shipped as 1.22.1, so its bar waits for a version cut or the user's next relaunch.
+  From this build on, every release shows it.
 - ⛔ **For every later session:** a release users would care about adds an entry to `src/whats-new.js` (CLAUDE.md's
   changelog rules say what qualifies). The bar needs nothing.
 
@@ -581,7 +694,7 @@
 - ⚠️ **Learned:** every automatic-note kind was one note per calendar, and its name, Delete, drag and
   `followLineId()` (`'k:' + kind`) all assume it. This kind is one per unit, so the plan gives each a per-unit answer.
 
-### ✅ 19 Nov 2026: "FINAL DELIVERY" STARTS ON FOR NEW CALENDARS — on `scenario-version-offer`, committed locally, NOT pushed. README "Unreleased". Tracker card `final-delivery-default-on`.
+### ✅ 19 Nov 2026: "FINAL DELIVERY" STARTS ON FOR NEW CALENDARS — committed `7b961fe` on `scenario-version-offer`, cherry-picked onto `origin/main` as `c90c43b` with the What's New line (`2026-11-19-4`), LIVE: pushed on the owner's picker ("Push it"; scope "New calendars only"), deploy green, the live file carries `finalDeliveryTest` and `2026-11-19-4`. ⚠️ `main`'s own copy of this entry still says "committed locally, NOT pushed". README "Unreleased". Tracker card `final-delivery-default-on`.
 - **Owner:** *"Final Delivery note should be enabled by default"*.
 - **As built:** `newCalendarAutoNotesOn()` (beside `AUTO_NOTE_OPT_IN`) returns `{postEnd: true}`; the boot sets
   `autoNotesOn` from it just before `restoreSavedState()`, and `resetAll()` (New, Reset All) does the same. colReuse's
@@ -595,13 +708,12 @@
   before the app boots (the hiatus ripple's pattern); the reference calendar and every baseline are untouched.
   `t/finaldelivery.js` removes the key to test the users' default. An `.mjs` driver without lib.js that dates Post on a
   NEW page would now see the note: none does today (hiatusdrag / hiatusripple load `?state=` fixtures, which reset it).
-- ⚠️ What's New: `main` has moved past this branch (its `whats-new.js` has `2026-11-19-2` / `-3`), so the user-facing line
-  is to be added on `main`'s file at push time, not here.
+- What's New: added on `main` only (`2026-11-19-4`), since `main`'s `whats-new.js` is ahead of this branch's.
 - **Legs (build):** `finaldelivery` 4/4, `autonotephases` 27/27, `autonoteview` 18/18 and `autonoterename` 25/25
   (`HARNESS_STATE=autonoterename`), `autonote` 9/9 (`HARNESS_STATE=v1.3.0-saved`), `autonotekinds` 16/16, `loadsparse`
   8/8, `firstrun` 22/22, `noresetall` 5/5, `npm run check` 46/46. No full gate: nothing frozen, no saved key added.
 
-### 🔨 19 Nov 2026: A NEW NOTE STAYS WITH ITS PHASE WEEK BY DEFAULT — BUILT; owner said "Finish it"; ✅ FULL GATE GREEN (every failure load, green alone); owner's pickers *"Commit on the branch"*, *"Merge into main and push"*: committed `df1a209`, `origin/main` (`2b77e98`) merged in as `ccce702`, PUSHED to `main`. Branch `notes-follow-phase` (worktree `.claude/worktrees/notes-follow-phase`, from `origin/main` `1b45340`; `node_modules` is a symlink, unlink it before `git worktree remove`). Uncommitted. Tracker card `notes-default-stay-with-phase`.
+### ✅ 19 Nov 2026: A NEW NOTE STAYS WITH ITS PHASE WEEK BY DEFAULT — BUILT; owner said "Finish it"; ✅ FULL GATE GREEN (every failure load, green alone); owner's pickers *"Commit on the branch"*, *"Merge into main and push"*: committed `df1a209`, `origin/main` (`2b77e98`) merged in as `ccce702`, ✅ **LIVE at `2215aa5`** (pushed from the branch `2b77e98..2215aa5` at 12:52:30 19 Nov 2026; "Build and deploy" succeeded at 12:53:28; the live GitHub Pages `index.html` matched the local build `35999a1e…` byte for byte at 12:53:31; `sptcal.pages.dev` answered with its Access sign-in). Branch `notes-follow-phase` (worktree `.claude/worktrees/notes-follow-phase`, from `origin/main` `1b45340`; `node_modules` is a symlink, unlink it before `git worktree remove`). Tracker card `notes-default-stay-with-phase`.
 - **Owner:** *"New default, notes should stay with their specifc phase week and not the specific actual week"*. Pickers:
   which phase in a shared week = **First in the list** (`wfLinkOptions[0]`, the row's left-most phase cell); saved notes
   = **Leave them on their week**; **Yes, both editors**; **Yes, pasted notes too**.
@@ -665,8 +777,6 @@
   `scenversion` 11/11, `autonotephases` 27/27. Merge conflicts: Help (main removed the "Reset hiatus bands" sentence
   from the paragraph this branch rewrote), README and HANDOFF (both sides' entries kept). No version cut. Local `main`
   NOT moved.
-
-||||||| parent of 9ba2ac5 (The update bar on every update, and a What's New window (owner))
 ### 📦 19 Nov 2026: POST'S END NOTE READS "FINAL DELIVERY 9/22/28" — on `scenario-version-offer` (`2b77e98`), LIVE: pushed to `main` on the owner's "Yes, push it", deploy green, the live file carries `text:`Final Delivery``. README "Unreleased". Tracker card `post-end-final-delivery`.
 - **Owner:** *"the auto note for the final friday of the last week of post production should be changed to "Final
   Delivery 9/22/28" - where 9/22/28 is the friday date"*.
@@ -738,7 +848,7 @@
   scenariofacts 12, scenlist (rt) 9, changessince 15, comparebreaks 10, exportnames 12, comparehiatus 8, lastedited 22;
   `npm run check` 43/43. No full gate (chrome + scenario engine, nothing frozen, no saved key).
 
-### ✂️ 19 Nov 2026: SHOW INFO'S BOXES HAVE NO "e.g." EXAMPLES — uncommitted on `scenario-version-offer`, NOT pushed
+### ✂️ 19 Nov 2026: SHOW INFO'S BOXES HAVE NO "e.g." EXAMPLES — committed `97320af` on `scenario-version-offer`, cherry-picked onto `origin/main` as `1afc25b` and LIVE: pushed on the owner's "commit and push", the GitHub Pages file has none of the seven (the Cloudflare address is behind the sign-in, not fetched). ⚠️ The push's own run failed at GitHub's Pages step (its artifact could not be fetched; a re-run of the failed job then found TWO artifacts), so a fresh "Build and deploy" was dispatched on `main` and went green. Next time: dispatch a new run, never re-run the failed job. A "Show Title" label was tried and withdrawn by the owner the same turn: it stays "Title".
 - **Owner:** *"remove all these e.g. labels"* (a screenshot of Show info).
 - **Done:** the seven `placeholder="e.g. …"` in `src/chrome/Sidebar.jsx` are gone (Title, Number of Episodes, Shooting
   Days per Episode, Version, Location, and Blocks mode's Number of Blocks / Shooting Days per Block). Tandem Days keeps
@@ -751,7 +861,7 @@
   month note editor's prompt is untouched (not asked). README "Unreleased". Checked in the build (attribute absent, empty
   box blank). Its own commit, after the scenario-version commit, so either can be dropped alone.
 
-### ↩️ 19 Nov 2026: FINISH BEFORE ON AN EMPTY CARD BEFORE A DATED PHASE (ruling R5; branch `finish-before-dated`, worktree `.claude/worktrees/finish-before-dated`, from `origin/main` `1b45340`; `node_modules` is a symlink, unlink it before `git worktree remove`). README "Unreleased". Tracker card `finish-before-dated`.
+### ↩️ 19 Nov 2026: FINISH BEFORE ON AN EMPTY CARD BEFORE A DATED PHASE (ruling R5; branch `finish-before-dated`, worktree `.claude/worktrees/finish-before-dated`, from `origin/main` `1b45340`; `node_modules` is a symlink, unlink it before `git worktree remove`). **LIVE:** merged with `origin/main` (scenario versions, Tandem Days in Show info) as `b6abd67`, pushed on the owner's picker; deploy green to GitHub Pages and Cloudflare, the GitHub address serves it (Cloudflare is behind the sign-in, not fetched). README "Unreleased". Tracker card `finish-before-dated`.
 - **Owner,** with a screenshot (only Production dated, 11/23/26; Writer's Rm, Pre-Prep, Prod Prep empty): *"when you give a
   start date to a later phase, previous phases should allow you to click Finish before"*. Tried on localhost: *"Looks
   good, finish it"*.
@@ -766,7 +876,6 @@
 - **Legs:** `finishbefore` R5a-R5d (16/16); `endsdate`, `prodends`, `spancounts`, `overrides` (dayoverrides),
   `snaptools` (dayoverrides), `builtindates` (live + restored) green; `npm run check` 43/43. No full gate: sidebar chrome,
   no frozen code, writer or saved key.
-
 ### 🏷️ 19 Nov 2026: SCENARIO TABS SHOW THEIR VERSION, A COPY IS OFFERED THE NEXT — merged with origin/main (v1.22.0 + the Tandem / Show info / zoom pushes) and pushed to `main` on the owner's picker. README "Unreleased". Tracker card `scenario-version-bump`.
 - **Owner, in order:** asked whether a new scenario should take the Version as its name or the Version show in the bottom
   bar; then *"it could automatically set the version number to the next number"*; *"could there be a dialogue that asks"*;
@@ -792,7 +901,7 @@
   comparehiatus 8/8, retiredplaces 8/8, recoverfail mode=scen 3/3, loadsparse v=scen 7/7, changessince 15/15. `npm run check` 43/43. No full gate
   (chrome + scenario engine, nothing frozen, no saved key).
 
-### 🔨 19 Nov 2026: SHOW INFO'S FIELD ORDER PER MODE — built on `show-info-tandem` (after the Tandem push), NOT pushed. Tracker card `show-info-field-order`.
+### ✅ 19 Nov 2026: SHOW INFO'S FIELD ORDER PER MODE — LIVE (`368f9e2`, pushed on the owner's picker; deploy green to GitHub Pages and Cloudflare; the GitHub Pages file is byte-identical to the build). Tracker card `show-info-field-order`.
 - **Owner:** Episodes mode reads Schedule by, Number of Episodes, Shooting Days per Ep + Tandem, Version, Region, Location;
   Blocks mode reads Number of Blocks, Shooting Days per Block + Tandem, then Number of Episodes, *"it can still be optional
   but remove that it says so"*.
@@ -802,7 +911,6 @@
 - **Legs:** `doubleups` SI8 (both orders), `labelsetup` B1u re-premised to the plain label.
 - ⚠️ **20 Nov 2026:** the move changed `fields.byId`'s KEY ORDER (built in document order), which turned four checks red;
   re-premised, see the 20 Nov entry at the top.
-
 ### ✅ 19 Nov 2026: TANDEM DAYS IN SHOW INFO — LIVE (`4562e9d`, pushed on the owner's picker; deploy green to GitHub Pages and Cloudflare, the GitHub Pages copy fetched and carries `si-tandem-in`; the Cloudflare address is behind the sign-in, so not fetched). Branch `show-info-tandem` (worktree `.claude/worktrees/show-info-tandem`, from `origin/main` `1b45340`; `node_modules` is a symlink, unlink it before `git worktree remove`). Mockup [`mockups/show-info-tandem.html`](mockups/show-info-tandem.html) (main checkout, untracked). Tracker card `show-info-tandem`.
 - **Owner:** *"add double-up/tandem days in the Show Info section. To the right of the Shooting days per episode should be a big plus symbol and then to the right of that another box"*; then *"the plus doesn't need to be that big"*, *"could all be on one line"*, *"remove the subtext below it, then build it"*.
 - **Built:** Show info's days row is `days box + Tandem Days` on one line, in Episodes and in Blocks mode (`TandemDaysBox` in `Sidebar.jsx`, `.si-days-tandem` in `legacy.css`). The box is a SECOND view of the Tandem card's "Default tandem days" (`doubleUpDays`, saved as `doubleUps.days`): a delegated `input` listener writes it as the card's box does, `reflectShowInfoTandem()` (from `update()`) writes it back. Undo, both directions and Blocks mode checked in the pane; `npm run check` 43/43.
@@ -813,7 +921,7 @@
   text in the Tandem paragraph; README "Unreleased". "One value in two places" was never ruled; the owner tried it and said
   finish. No full gate (chrome + a sidebar listener, nothing frozen).
 
-### 🤏 18 Nov 2026: PINCH, CTRL-SCROLL AND ⌘+ / ⌘− ZOOM THE CALENDAR, NOT THE APP (branch `pinch-zoom`, worktree `.claude/worktrees/pinch-zoom`, from `origin/main` `0aaf387` = v1.22.0; NOT pushed). README "Unreleased". Tracker card `pinch-zoom-calendar`.
+### 🤏 18 Nov 2026: PINCH, CTRL-SCROLL AND ⌘+ / ⌘− ZOOM THE CALENDAR, NOT THE APP — LIVE (`1b45340`, pushed on the owner's ask, "work on pushing the pinch zoom update"; deploy green, GitHub Pages serves the exact `dist/index.html` (sha256 `d97d131f…`), Cloudflare deploy reported complete; behind the sign-in, so not fetched). README "Unreleased". Tracker card `pinch-zoom-calendar`.
 - **Owner:** *"Allow trackpad pinch and related mouse zoom buttons to control the viewport of the waterfall and month
   view rather than just zooming in the entire UI of the app"*.
 - **Done:** app.js "PINCH, CTRL-SCROLL AND THE ZOOM KEYS", right after the slider's `sptcal-zoom` listener. A capture
@@ -828,13 +936,14 @@
   the box's own px drifts. And a pinch keeps ONE anchor for the whole gesture (`pinchHold`, dropped after 400 ms idle,
   a render, or 8 px of pointer travel): where the box cannot scroll yet (a window wider than the month page at 100%),
   the point slides off and a per-step anchor kept that slide for good. Zoomed out until the grid fits, it sits on the
-  box's left edge as at 100%, and no point right of that can be held (the leg's P9 stops before then).
+  box's left edge as at 100%, and no point right of that can be held (the leg's P9 stops before then). The owner asked
+  why both views hug the left; told the convention (spreadsheets hug top-left, page viewers centre the page) and
+  offered centring the month view only; the owner said never mind (18 Nov 2026), so nothing is owed.
 - ⛔ Chrome hands these to the page before it zooms; the leg's events are synthetic, so it reads `defaultPrevented`.
-  **Not yet tried with a real trackpad in an installed window.** Touchscreen pinch (pointer events, not wheel) is not
+  The owner tried a real pinch on localhost ("works well"), not yet in the installed window. Touchscreen pinch (pointer events, not wheel) is not
   handled.
 - **Legs:** new `pinchzoom` 20/20 (in `gate.sh`, after `calzoom`), `calzoom` 26/26, `zoomresize` 40/40, `npm run
   check` 43/43. No full gate (chrome only, no frozen code).
-
 ### 🧩 18 Nov 2026: PHASE CARDS LOSE THEIR SWITCH ROWS — Snap to Monday in the date picker, Hide in waterfall in the head's corner (branch `claude/snap-in-picker`, worktree `.claude/worktrees/snap-in-picker`, from `origin/main` `7c2e34e` = v1.20.1). README "Unreleased". Tracker cards `snap-switch-in-date-picker`, `hide-in-waterfall-corner`.
 - **Owner:** *"putting snap to monday slider inside the mini calendar pop up box, at the bottom where the message
   currently is"* → *"Yes, build it"*; then a mockup of four ways to move Hide in waterfall to the card's top right corner
@@ -942,8 +1051,7 @@
   46 keys, 77 ids), byte-identical to v1.20.0's but `lastEdited`. Tag `v1.20.1` (annotated). v1.20.0 (`7fe53b4`) was
   merged in first (README / HANDOFF conflicts only); the size legs re-ran green on the merged build.
 
-||||||| bf6e235
-### 🛠️ 18 Nov 2026: EXPORT FILE NAMES (WRO date, "a.o." date, the File name list) + THE VERSION GETS ITS "v" BACK — FINISHED on branch `export-name-wro` (worktree `.claude/worktrees/export-name-wro`, from `origin/main` `1c9b008`). NOT merged, NOT pushed; full gate below. Tracker cards `save-name-wro-date`, `export-file-name-parts`, `version-auto-v`.
+### 🛠️ 18 Nov 2026: EXPORT FILE NAMES (WRO date, "a.o." date, the File name list) + THE VERSION GETS ITS "v" BACK — ✅ LIVE as v1.20.0 (`7fe53b4`), built on branch `export-name-wro` (worktree `.claude/worktrees/export-name-wro`, from `origin/main` `1c9b008`). NOT merged, NOT pushed; full gate below. Tracker cards `save-name-wro-date`, `export-file-name-parts`, `version-auto-v`.
 - **Export names** (`exportNameParts()` → `exportNameFrom()`, through `exportFileName()`, which the frozen workbook / waterfall-PDF name
   lines already call: NO frozen edit). ⭐ THE DEFAULT, the owner's last word (18 Nov 2026): "Test Show S3 Planning Calendar v3 WRO 1.4.27
   - a.o. 11.18.26.pdf": title, season, words, Version, WRO, then the scenario and the edited date, each SET OFF by " - " (a spaced
@@ -997,16 +1105,11 @@
 - 🚀 **CUT AS v1.20.0 and pushed on the owner's picker *"Cut v1.20.0"* + *"Push and deploy now"* (18 Nov 2026):** `APP_VERSION`,
   `version.json`, `package.json` at 1.20.0 (`npm run check` 42/42); README's entry under `## v1.20.0`; `releases/v1.20.0.html`
   cmp-identical to the build (sha256 `6e8336bee5d8b5ca…`, 2,302,428 bytes); `tests/fixtures/v1.20.0-saved.sptcal` a real Save
-  (mintfixture: 46 keys, 77 ids), byte-identical to v1.19.2's but `lastEdited`; tag `v1.20.0` (annotated). The push and the live
-  check are the next line.
-
-||||||| 1c9b008
-
-### 🚀 18 Nov 2026: v1.19.0 — THE MONTH SHRINK AND THE 10-LINE DAY, RELEASED TOGETHER from `claude/dreamy-keller-2ed2c2` (the two entries below are the features)
-||||||| a3fac82
-### 🚀 18 Nov 2026: v1.19.0 — THE MONTH SHRINK AND THE 10-LINE DAY, RELEASED TOGETHER from `claude/dreamy-keller-2ed2c2` (the two entries below are the features)
-
-### 🔨 18 Nov 2026: v1.19.2 — A CROWDED MONTH SHRINKS IN THE INSTALLED APP TOO (branch `claude/dreamy-keller-2ed2c2`)
+  (mintfixture: 46 keys, 77 ids), byte-identical to v1.19.2's but `lastEdited`; tag `v1.20.0` (annotated).
+- ✅ **LIVE at `7fe53b4`** (pushed `bf6e235..7fe53b4` as a fast-forward from `export-name-wro`, tag `v1.20.0` pushed; "Build and
+  deploy" run 44431140060 success): the live `version.json` reads 1.20.0 and the live `index.html` is `releases/v1.20.0.html` byte
+  for byte (sha256 `6e8336bee5d8b5ca…`). The main checkout's local `main` was not touched and is behind `origin/main`.
+### ✅ 18 Nov 2026: v1.19.2 — A CROWDED MONTH SHRINKS IN THE INSTALLED APP TOO (branch `claude/dreamy-keller-2ed2c2`). PUSHED (`d535b5a..bf6e235`, tag `v1.19.2`) on the owner's picker *"Push it as v1.19.2"* AND VERIFIED LIVE at 16:25 on 18 Nov: `version.json` 1.19.2, the live page byte-identical to `releases/v1.19.2.html`
 - **Owner, after v1.19.0 went live:** a crowded calendar's May was still full size in a card taller than a page, in
   the installed app, after several Cmd+Shift+R. Their console (a read-only snippet): v1.19.0, standalone,
   `#table-wrap` carrying the page fit's numbers and `zoom: 0.5` but NO `--mvk`, and `document.fonts` holding dozens of
@@ -1033,7 +1136,6 @@
   no calendar), `monthrowlimit` 17 + 3 + 3, `mvnotesize` 12/12 on `month-dense60` and `mvnotes`, `monthlanes` 6/6,
   `autonoterename` 25/25 (also at 1584 x 1200), `softlines` 6/6 x 2; **gate 13** byte-identical on `reference`,
   `monthscale` and `month-dense60` (`monthexport` 9/9 each); **gate 10** identical on `reference` and `month-lanecap`.
-
 ### 🏷️ 18 Nov 2026: v1.19.1 — THE VERSION UNDER THE SPTCal NAME. Branch `header-version-label` (worktree `.claude/worktrees/header-version-label`, from `origin/main` `a3fac82` = v1.19.0). Tracker card `header-version-label`.
 - **The ask:** *"in small grey text, add v1.19 or whatever the current version of the app is right below the SPTCal
   header in the top left corner of the app. Mock it up before you build it"*. Mockup `mockups/header-version-label.html`;
@@ -1476,9 +1578,11 @@
   `wfkeys` 84, `noteviews` 15, `mvnotes` 30 + 14, `holidayrename` 14, `autonoterename` 25, `doubleups` live 11 / 50 / 3 /
   2, `hidewf` 19, `phasesui` 8, `wfnotelines` drag 9, `mvdragcarry` 15. No second full gate (the two sides touch
   different code, each fully gated on its own).
-- **Pushed** on the owner's *"push"* (18 Nov 2026) as a fast-forward of `origin/main` `f48df5b`. No version cut (README:
-  Unreleased; `APP_VERSION` stays 1.17.5).
-
+- **Pushed** on the owner's *"push"* (18 Nov 2026) as a fast-forward of `origin/main` `f48df5b`: `f48df5b..1c9b008`. No
+  version cut (README: Unreleased; `APP_VERSION` stays 1.17.5). ✅ **LIVE at `1c9b008`**: the deploy run succeeded and
+  the live `index.html` is the tested build byte for byte (sha256 `fbb8f7fd…`). This bullet is a local commit on the
+  branch, carried by the next push. The main checkout's own `main` was not touched (behind, with its own uncommitted
+  files).
 ### 🚀 17 Nov 2026: DOUBLE-UP DAYS — v1.17.0, built on branch `claude/double-up-days-037393` (worktree `.claude/worktrees/double-up-days-037393`, from `main` at `aa16ffe`), full gate green, cut as v1.17.0 and pushed to `main` on the owner's picker *"Push now as v1.17.0"* (the push and the live check are the last bullet). The owner chose *"Leave them, I'll handle it"* for the main checkout's own uncommitted double-up files: this session did not touch the main checkout, so its local `main` is behind `origin/main`. Plan + as-built record: [`DOUBLE-UP-DAYS-PLAN.md`](DOUBLE-UP-DAYS-PLAN.md) §10; mockup [`mockups/double-up-days-ui.html`](mockups/double-up-days-ui.html). Tracker card `double-up-days`.
 - **What it is:** "10+1" = 10 first-unit days plus 1 double-up day (two crews, two episodes, one day). It never lengthens
   Production. NOT a half day (`.5` is one crew splitting a day, already built). All 17 rulings (owner, 17 Nov 2026) are
@@ -1512,6 +1616,10 @@
   `releases/v1.17.5.html` cmp-identical, sha256 `64a895b53d6a52e6…`; `v1.17.5-saved.sptcal` identical to v1.17.4's but
   `lastEdited`; on the cut the waterfall PDF identical bar the stamp, gate 13 reference byte-identical, `monthexport` 9/9,
   `pdfmark` 6/6), tagged `v1.17.5` and pushed with the branch.
+  - ✅ **PUSHED AND LIVE:** ONE `git push origin HEAD:main refs/tags/v1.17.5` at 22:55:18 (`84466ee..f48df5b`, a
+    fast-forward after a re-fetch; it also carried v1.17.4's HANDOFF note `c30334f`). Deploy run 44254913885 succeeded
+    (48 s). At 22:56:09 the live `version.json` read 1.17.5 and the live `index.html` was byte-identical to the build
+    (sha256 `64a895b53d6a52e6…`). This sub-bullet is a later, unpushed docs commit.
 - 🔨 **After v1.17.3 (owner: *"i should be able to extend tandem day just like any other phase"*, picker "Both ends"):**
   grips on both ends of a tandem pill (`installDoubleUpGrips`, body-level `.phase-edge-handle`, made only on hover). End:
   days change, start held, still joined. Start: days change, end held, start becomes a moved position. Stops at R9/R20's
@@ -1592,7 +1700,6 @@
 - ⚠️ **Merging into `main` in the main checkout:** that checkout still has its own UNCOMMITTED `DOUBLE-UP-DAYS-PLAN.md`,
   `mockups/double-up-days-*.html`, `mockups/double-up-join-line.html` and a 17 Nov HANDOFF entry; move them aside first
   (this branch carries all of them, newer).
-
 ### 🚂 v1.16.0 — wave 4. Branch `release-wave4` (worktree `.claude/worktrees/release-wave4`), cut from `origin/main` `7e1d8b4`; `origin/main` `8af4298` merged in at `91619e1`. The owner said *"Yes, prep it"* (16 Nov 2026): merge the newest live changes, write the owed docs and test wiring, cut v1.16.0. Tagged v1.16.0 and pushed to `main` on 17 Nov 2026 (owner's picker *"Push v1.16.0 now"*), after two full gates and the merges of `d44a52e` and `b8f4ccf`.
 - ⛔ **This section SUPERSEDES the "WIP", "NOT merged, NOT pushed", "the owner tries it first", "not in gate.sh yet" and
   "no README / HANDOFF yet" lines in each wave-4 item's own section below and in its branch's commits** (`ripple-marks`,
@@ -1927,7 +2034,7 @@
 - ✅ `month-page-fit` carried the same edit to `PreviewToolbar.jsx`, uncommitted (the bug was found and first fixed
   there); that copy was dropped and `origin/main` merged in on 17 Nov 2026.
 
-### ✅ 16 Nov 2026: "MORE OPTIONS" IS GONE: EVERY PHASE CARD SHOWS ALL ITS SWITCHES AGAIN (undoes half of audit 2.14's AUD2-036). Branch `no-more-options` (worktree `.claude/worktrees/more-options-toggle`, from `origin/main` `7e1d8b4`; `node_modules` is a symlink, unlink it before `git worktree remove`): since pushed: it is `8af4298` on `origin/main`, and ships in v1.16.0 (the wave-4 release merged it at `91619e1`). Tracker card `remove-phase-more-options`; `more-options-toggle` is rejected (superseded).
+### ✅ 16 Nov 2026: "MORE OPTIONS" IS GONE: EVERY PHASE CARD SHOWS ALL ITS SWITCHES AGAIN (undoes half of audit 2.14's AUD2-036). Branch `no-more-options` (worktree `.claude/worktrees/more-options-toggle`, from `origin/main` `7e1d8b4`; `node_modules` is a symlink, unlink it before `git worktree remove`): ✅ **LIVE**, pushed to `main` as `8af4298` (a fast-forward of `7e1d8b4`) on the owner's picker *"Push and deploy"*; the deploy run succeeded and the live page is byte-identical to the tested build (sha256 `e3a1e4b2f5bbf4af…`). This HANDOFF update is a later local commit, not pushed. No version cut (README: Unreleased). Tracker card `remove-phase-more-options`; `more-options-toggle` is rejected (superseded).
 - **How it went:** the owner first asked for the line to read "More Options" with a right-pointing arrow and open IN
   PLACE to "Hide Options" (mockup `mockups/more-options-toggle.html`, untracked in the main checkout; arrow "Before
   the words"). That was built and tried on localhost (flex-ordered open card, a measured `--more-hold` to keep the line
@@ -1949,7 +2056,7 @@
 - ⚠️ **Local `main` in the main checkout is BEHIND `origin/main`** (at `5f1b67a`, v1.13.0, with uncommitted HANDOFF edits
   and two untracked files from another session): this branch was cut from `origin/main`, not from it.
 
-### ✅ 16 Nov 2026: UI SCALING AT EVERY WINDOW SIZE (toolbar folds, sidebar never stacks). FINISHED on branch `ui-scaling` (worktree `.claude/worktrees/ui-scaling`, from `origin/main` `ad48e11`): since pushed (`6bf3607`, merged on `origin/main` at `7e1d8b4`), and ships in v1.16.0. Tracker card `ui-scaling-screen-sizes`; takes over audit 3.12 (AUD2-065), dropped from wave 4 on the owner's picker. Owner tried it on localhost and said *"Looks good, finish it"*.
+### ✅ 16 Nov 2026: UI SCALING AT EVERY WINDOW SIZE (toolbar folds, sidebar never stacks). ✅ **LIVE at `7e1d8b4`** (branch `ui-scaling`, worktree `.claude/worktrees/ui-scaling`, from `origin/main` `ad48e11`, `origin/main` `4be2d02` merged in; pushed `4be2d02..7e1d8b4` on the owner's picker *"Push and deploy"*; deploy run 44000200160 green; the live `index.html` is the tested build byte for byte, sha256 `7a1e9a6d…`, ~60 s after the push). No version cut: README Unreleased. Local `main` in the main checkout was NOT moved (another session's uncommitted HANDOFF edit there). Tracker card `ui-scaling-screen-sizes`; takes over audit 3.12 (AUD2-065), dropped from wave 4 on the owner's picker. Owner tried it on localhost and said *"Looks good, finish it"*.
 - **Owner:** the toolbar "only looks right on a normal sized laptop screen"; on a big monitor it "should stay the same
   size and just have extra space on the sides rather than adding a bunch of space between the buttons"; on smaller
   screens it doesn't scale down right; the sidebar "should always stay on the left, I never want the UI to start
@@ -2009,10 +2116,8 @@
   conflicts only, both entries kept). On the merge: `npm run check` 42/42, toolbarfit 12/12, paneldrag 12, panelstale
   16, stylebarplace 15, buildaround 36, laptopfit 1280 × 800 11/11 (Z green: the scrollbar fix also clears the
   ResizeObserver errors that commit saw red on origin/main), hdrcontrols 12.
-- **Next:** the owner's push picker. `git fetch` first; if `origin/main` is still `4be2d02` the branch fast-forwards it
-  (`git push origin ui-scaling:main`), else merge `origin/main` into the branch and re-run `toolbarfit` + `stylebarplace`.
-  After the push, check the live `index.html` is this build byte for byte. Local `main` (the main checkout) is behind
-  `origin/main` and has another session's uncommitted HANDOFF edit; leave it alone.
+- **Next:** nothing for this feature. Open threads it surfaced: `calzoom` M1/M3 and `sideboxes` S12 compare widths
+  strictly and trip on a classic scrollbar (make them scrollbar-aware when next touched); `settingswin` W10 likewise.
 
 
 ### ✅ 16 Nov 2026: A CLICK OUTSIDE CLOSES THE SHIFT / BUILD AROUND PANEL, UNLESS IT HAS BEEN DRAGGED. Branch `tool-pop-outside-close` (worktree `.claude/worktrees/tool-pop-outside-close`, from `origin/main` `ad48e11`), one commit, pushed to `main` as a fast-forward on the owner's *"looks good commit and push"* after trying it on localhost. No version cut (README: Unreleased). Tracker card `tool-pop-click-outside`
@@ -20703,7 +20808,7 @@ answers. They are listed first because a wrong guess there wastes a whole stage.
 
 | # | Decision | Blocks | Where it's laid out |
 |---|---|---|---|
-| D1 | **Encryption threat model: A, B or C.** Public repo means an embedded app key is not a secret. ⏸ **Deferred 29 Aug 2026** — asked and explicitly parked, not unanswered. Ask again before starting §2g. | all of §2g | `SPTCAL-ENCRYPTION.md` §0 |
+| D1 | **Encryption threat model: A, B or C.** Public repo means an embedded app key is not a secret. ⏸ **Deferred 29 Aug 2026** — asked and explicitly parked, not unanswered. Ask again before starting §2g. ⏸ **Parked again 19 Nov 2026** (owner) after a fourth option was raised: since v1.21.0 the key can come from a Pages Function behind the Access sign-in, never in the app or the repo (`SPTCAL-ENCRYPTION.md` §0a). **Revisit after `CLOUDFLARE-ACCESS-PLAN.md` Phase E** (owner, 19 Nov 2026): the old GitHub address shut and the repo private. | all of §2g | `SPTCAL-ENCRYPTION.md` §0 |
 | D2 | **Is losing "a saved calendar is readable" acceptable?** Largely answered by `.sptcal` shipping — the thing you inspect is now 4.5 KB of JSON. Worth confirming. | Mantine Stage 4 | `MANTINE-MIGRATION.md` §7 Q1 |
 | D3 | ~~**Committed `dist/` or a GitHub Action?**~~ ✅ **ANSWERED 29 Aug 2026: a GitHub Action** builds and publishes `dist/` (§2b-3's ruling table; `.gitignore` records the same decision). Unbuilt, but no longer an open question. | Mantine Stage 1 | `MANTINE-MIGRATION.md` §7 Q3 |
 | D4 | ~~**Repo visibility.**~~ ✅ **ANSWERED 28 Aug 2026: the repo is PUBLIC** (`gh repo view` → `isPrivate:false`, `visibility:PUBLIC`). So an app key baked into `index.html` is *published*, and D1 must be decided knowing that. What remains open is only the **hosting plan** — whether it ever moves behind GHEC private Pages. | §2f, §2g | §2f |
