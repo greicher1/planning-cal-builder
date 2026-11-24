@@ -409,7 +409,7 @@ export function PreviewToolbar() {
                 floating control may sit over the list's rows at any width). The list is directly under this
                 title now, so the default position ("right", which can flip) would lay the card over its first
                 rows. Above is always clear: the toolbar and the app header are there. */}
-            <InfoHint label="Shift" width={300} position="top-start" middlewares={{ flip: false, shift: true }}>
+            <InfoHint label="Shift" help="shift" width={300} position="top-start" middlewares={{ flip: false, shift: true }}>
               Moves the ticked phases by a number of weeks or to a date. The gaps between them are kept; use Build Around to close them.
             </InfoHint>
             {/* THE PANEL'S OWN CONTROLS (owner, 11 Nov 2026: the panel covered the dates being read). The title row is
@@ -505,7 +505,7 @@ export function PreviewToolbar() {
             Build Around
             {/* ⛔ Opens ABOVE the title and never flips, as Shift's does: the list is directly under it, and
                 nothing may float over its rows. */}
-            <InfoHint label="Build Around" width={300} position="top-start" middlewares={{ flip: false, shift: true }}>
+            <InfoHint label="Build Around" help="build" width={300} position="top-start" middlewares={{ flip: false, shift: true }}>
               Pin one phase to a date and build the ticked phases around it, end to end, from their lengths. Phases with no dates yet get them. Type a length right in the list. Unticked phases stay where they are. Nothing changes until you press Build. Use Shift to move phases and keep the gaps between them.
             </InfoHint>
             {/* THE PANEL'S OWN CONTROLS (owner, 11 Nov 2026: the panel covered the dates being read). The title row is

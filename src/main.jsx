@@ -89,6 +89,8 @@ import '@mantine/core/styles/Table.layer.css'
 import '@mantine/core/styles/Tabs.layer.css'
 import './styles/inter.css'
 import './styles/legacy.css'
+// Help's own rules, all under .help-dlg (and the body-level "Show me" ring): chrome only, after the app's sheet.
+import './help/help.css'
 
 import { theme } from './theme.js'
 import { InfoHint } from './chrome/InfoHint.jsx'
@@ -107,6 +109,7 @@ import { ScenarioTabs } from './chrome/ScenarioTabs.jsx'
 import { CompareDialog } from './chrome/CompareDialog.jsx'
 import { ChangesDialog } from './chrome/ChangesDialog.jsx'
 import { WhatsNewDialog } from './chrome/WhatsNewDialog.jsx'
+import { HelpWindow } from './help/HelpWindow.jsx'
 import { StartRecents } from './chrome/StartRecents.jsx'
 import { APP_ICON } from './chrome/appIcon.js'
 import { initLegacyApp } from './legacy/app.js'
@@ -156,7 +159,7 @@ function Chrome() {
           React component -- but its header is static markup, so its "i" portals in here. Keeps
           one InfoHint implementation rather than a CSS-only lookalike for this one card. */}
       {portal(
-        <InfoHint label="All-phase hiatus" width={300}>
+        <InfoHint label="All-phase hiatus" help="hiatus" width={300}>
           A production-wide pause (e.g. a winter break) that stops every phase at once and pushes
           the whole schedule out. For pausing a single phase, use its own hiatus toggle above. With
           Ripple Hiatus Periods on (in Settings), the phases that start after a hiatus move with it when you change it.
@@ -186,6 +189,8 @@ function Chrome() {
       <ChangesDialog />
       {/* What's New, once after an update (owner, 19 Nov 2026). In #react-root for DatePop's reason. */}
       <WhatsNewDialog />
+      {/* Help (owner's picks, 21 Nov 2026), opened by the ? button. In #react-root for DatePop's reason. */}
+      <HelpWindow />
     </>
   )
 }

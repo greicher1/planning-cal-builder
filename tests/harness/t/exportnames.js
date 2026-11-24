@@ -22,7 +22,7 @@
 //   X8  two seasons ticked (Season 3 and 4, through the Season dropdown): "Harbor Test S3 & S4 Planning Calendar
 //       <today> v2 – Scenario A.xlsx", the header's own "S3 & S4" beside the title
 //   X6  no season and no Version: "Harbor Test Planning Calendar <today> – Scenario A.xlsx"
-//   X7  Help's example names the new shape, "Show Title S1 Planning Calendar 2026-11-12 v3.xlsx"
+//   (X7, Help's example file name, moved into the help leg's H11, 23 Nov 2026)
 //   X9  ⭐ ADDED 16 Nov 2026 (WIN-5, owner's picker "Cut long titles"): a 200-character title is cut to 150 characters
 //       at a word in the workbook's and the waterfall PDF's names (exportFileName() cuts what the frozen lines hand it)
 //   X10 a title of exactly 150 characters is kept whole
@@ -170,13 +170,7 @@ window.addEventListener('load', function () { (async function () {
     add('X12', 'no Writers\' Room date: the name has no WRO and no gap for it',
       xl12 === want12, {name: xl12}, want12);
 
-    // X7 -- Help's example.
-    var help = txt(el('help-body'));
-    var examples = help.match(/\(e\.g\.[^)]*Planning Calendar[^)]*\)/g) || [];
-    add('X7', 'Help\'s examples name the new shape, the season beside the title, and neither older one ("Show Title - Season 1 Planning Calendar.xlsx", "Show Title Planning Calendar S1 …")',
-      help.indexOf('Show Title - Season 1 Planning Calendar.xlsx') === -1 && help.indexOf('Show Title Planning Calendar S1') === -1 &&
-      examples.length >= 2 && examples.every(function(e){ return e.indexOf('Show Title S1 Planning Calendar v3 WRO 1.5.26 - a.o. 11.12.26.xlsx') !== -1; }),
-      {examples: examples}, 'every example: Show Title S1 Planning Calendar v3 WRO 1.5.26 - a.o. 11.12.26.xlsx');
+    // (X7, Help's example file name, moved into the help leg (tests/harness/t/help.js) on 23 Nov 2026: Help is a window now, and the one-page Guide this text check read is gone: its H11.)
   } catch(e){
     add('ERR', 'the leg threw', false, String(e && e.stack || e), 'no error');
   }

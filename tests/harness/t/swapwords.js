@@ -13,7 +13,7 @@
 // T.buildFixture: ⌘-click Post 3/1/27, the one week it shares with Localization. The swap is offered and would change
 // other weeks of 2027 (Post's lone weeks widen, Localization's change shape).
 //   R5  those weeks are shaded amber as soon as the circle shows, before any press                       (red before)
-//   R6  the Help says what a swap can change: no "aren't touched", no "same widths", and a click is enough  (red before)
+//   (R6, the Help saying what a swap can change, moved into the help leg's H10, 23 Nov 2026)
 //
 // ⚠️ Run against the BUILD (HARNESS_PAGE=/dist/index.html).
 var T = window.__T, cases = [];
@@ -78,11 +78,7 @@ window.addEventListener('load', function () { (async function () {
       out.knobs = knobs();
       out.amber = qa('.grid-sel-layer .grid-swap-collateral').length;
       C('R5', 'the weeks a swap would change are shaded amber as soon as its circle shows (' + out.knobs.join(' | ') + ')', out.amber > 0, out.amber, 'amber boxes > 0');
-      var help = (document.body.textContent || '').replace(/\s+/g, ' ');
-      var i = help.indexOf('Swapping two phases'), para = i >= 0 ? help.slice(i, i + 1600) : '';
-      out.help = para.slice(0, 700);
-      C('R6', 'Help: no "aren\'t touched", no "same widths", and a click with Alt+arrow is enough',
-        !!para && !/aren.t touched/.test(para) && !/same widths/.test(para) && /Click a cell of the phase you want to move/.test(para), out.help, 'corrected Help');
+      // (R6, the Help saying what a swap can change, moved into the help leg (tests/harness/t/help.js) on 23 Nov 2026: Help is a window now, and the one-page Guide this text check read is gone: its H10 holds "aren't touched" and "same widths".)
     }
     C('E0', 'no console errors, no native alert', T.appHealth().errors.length === 0 && window.__alerts.length === 0, {errors: T.appHealth().errors.slice(0, 5), alerts: window.__alerts}, 'none');
   } catch (e) { C('EX', 'the leg threw', false, String(e && e.stack || e).slice(0, 600), 'no exception'); }

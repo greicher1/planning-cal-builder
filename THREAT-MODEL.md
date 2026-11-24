@@ -5,6 +5,11 @@ H-1 lands. Record it in the threat model"). There was no threat model for the ap
 `SPTCAL-ENCRYPTION.md` §0 covers only the separate question of encrypting `.sptcal` files. Symbols,
 never line numbers; the audit's evidence is in `AUDIT-REPORT.md`.
 
+> ⚠️ *Corrected 23 Nov 2026 (governance Phase 4):* this was written for the app on GitHub Pages with a shareable-copy export. Since v1.21.0
+> (18 Nov 2026) the app has its own origin, https://sptcal.pages.dev/, behind a Cloudflare Access sign-in, and no
+> button writes a shareable copy (SEC-3, SEC-4). The shared `github.io` origin risk below applies only to the old
+> address while it still shows its "moved" screen.
+
 ## What there is to protect
 
 | Asset | Where it lives | Who can reach it |

@@ -3,21 +3,17 @@
 A TV production scheduling tool. Phase start dates + durations in, and out comes a week-by-week
 waterfall calendar, a month calendar, an Excel workbook and a printable PDF.
 
-**Live:** <https://greicher1.github.io/planning-cal-builder/>
-**v1.0.0 (frozen):** `releases/v1.0.0.html` — also reachable at
-<https://greicher1.github.io/planning-cal-builder/releases/v1.0.0.html> **once this commit and the
-`v1.0.0` tag are pushed.** Until then the copy is local only; `git push && git push --tags`.
+**Live:** <https://sptcal.pages.dev/>, behind a sign-in, as an installed app (since v1.21.0; the old GitHub Pages
+address shows a "moved" screen). Every version is kept as `releases/vX.Y.Z.html`.
 
-One self-contained `index.html`. No build system, no package manager, no server. Open the file and
-it runs.
+The app is one self-contained file, built with Vite from `src/` (`npm run build` → `dist/index.html`). The root
+`index.html` is the legacy v1.2.0 app, kept unchanged.
 
-**Browser:** use **Chrome or Edge.** A calendar will *open* in any modern browser, but saving in
-place — writing back to the same file, the recent-files list, autosave — needs the File System
-Access API, which only Chromium browsers have. In Safari or Firefox, Save falls back to downloading
-a new copy each time, and printing has not been tested.
+**Browser:** **Chrome or Edge** only. Saving and loading need the File System Access API, which only Chromium
+browsers have: in other browsers there is no Load, Save downloads a `.sptcal`, and printing has not been tested.
 
-**For contributors and agents, the reading order is:** [`HANDOFF.md`](HANDOFF.md) →
-[`CLAUDE.md`](CLAUDE.md) → [`PROJECT-CONTEXT.md`](PROJECT-CONTEXT.md).
+**For contributors and agents:** the rules are [`GOVERNANCE.md`](GOVERNANCE.md) and its two companions;
+[`CLAUDE.md`](CLAUDE.md) loads them and gives the reading order (WORK-8).
 
 ---
 
@@ -25,9 +21,171 @@ a new copy each time, and printing has not been tested.
 
 This project versions the **built app**, not the repo. A version is cut when the app changes in a
 way a user would notice or a future session would need to return to. See
-[`CLAUDE.md`](CLAUDE.md) → "⛔ Changelog every substantial change" for when and how.
+REL-9 and REL-10 in [`GOVERNANCE.md`](GOVERNANCE.md) for when and how.
 
 <!-- Newest first. Add new entries directly under this line. -->
+### Unreleased — Help opens on top of every menu (23 Nov 2026)
+
+The owner: "More in Help" from the ⓘ in the Shift or Build Around box opened Help *under* that box, *"any menu should never
+appear on top of the help menu"*. Help's window was at Mantine's default layer, 200; the two boxes and every other menu sit
+at 300, the ⓘ cards and the header-template and Paste notes dialogs at 400. Help's `Modal` now has `zIndex={500}`, above all
+of them (only the load-failure screen and the install gate are higher). A box left open waits behind Help's scrim; a dragged
+one is still there when Help closes, an undragged one closes on the first click inside Help (the 16 Nov click-outside rule,
+unchanged). Verified: the `help` leg's new H12 drags each box open, opens Help, and finds Help at every point of both boxes,
+and scans every app stylesheet rule outside Mantine's layer for a z-index of 500 or more (none). With the fix taken out, H12
+is red (both boxes over Help, Help at 200). The whole `help` leg is green (13/13) and `npm run check` 47/47. Help-only and
+chrome-only: no grid, export or saved-file change.
+
+### Unreleased — a new Help: a window with a sidebar, search, pictures and Show me (23 Nov 2026)
+
+The owner asked for a refined Help (21 Nov 2026): a sidebar of sections, a wider window, screenshots, diagrams and color.
+Picks from the plan page: a wide window, the "Docs" design, "picture first, details folded", crisp pictures, plus search,
+a ? that opens the page for what you are doing, ⓘ links, an "I only use the Month view" switch, a What's New history and
+reopening the last page. Mid-build: it must stay cheap to update, with no big new gates.
+
+- **What it is.** `src/help/` (its `README.md` is the cheat-sheet): a Mantine window with 14 sections and 45 short
+  articles, one file each (`articles/<id>.jsx`), the list in `toc.js`. It replaced the one-page Guide (`#help-overlay`,
+  about 10,700 words, no pictures). Each article opens with a lead and folds its details; keys are written for the computer
+  in use (⌘ on a Mac, Ctrl elsewhere); 20 **Show me** buttons close Help and ring the real control, switching view or
+  Settings tab first. Pictures (33) are made by `node tools/help-shots.mjs` from the built app on a made-up show,
+  "Harbor Lights" (`tests/fixtures/help-demo.sptcal`), so none is a real schedule and a retake is one command.
+- **? and the ⓘ hints.** With the Shift box, Build Around, a note editor, a day's menu or Settings open (by tab: Preferences,
+  Region, Presets), ? opens that page; otherwise the last page read, else the view's own. Nine hints say "More in Help →".
+  Search reads every article. Chrome only: nothing here is frozen, saved in a calendar or in any export.
+- **Two read-only audits** asked of all 64 pages written whether a newcomer needs the page or the app already says it (once letting
+  the reader use hover text and ⓘ, once not). About 20 wrong or stale claims were fixed and the facts only a hover said
+  were added (autosave rewrites your real file, a new calendar starts on no Region, Auto throws header lines away, "12 + 1" is
+  not 13 days, the 19 Nov "a new note stays with its phase" default, Blocks mode, which resets ask first…). A separate reader
+  then checked every new claim against the code and five more were corrected. Then, at the owner's pick, twenty small pages were folded into the page that explains the same thing (64 to 44: custom and
+  hide-a-phase into phase cards, one-phase hiatus into hiatus, nudge and drag into Shift or Build Around, Compare into
+  scenarios, holiday notes into automatic notes, Paste notes into Month notes, three settings pages into Preferences, the
+  day menu into the Month view, template variables and Date Last Edited into Header, Excel into the PDF page, the File
+  menu, autosave and troubleshooting into Save, and the Region tab and holiday lists into Region). None had shipped. The owner then asked for a "What is SPTCal?" page: a plain overview (what it does, what it is good at, where
+  your calendar lives), first in the sidebar and the page Help opens on in the Waterfall.
+- **Owner ruling: no printed captions.** Ten one-line captions under controls were built on localhost and rejected (*"i
+  want less on-screen text as it looks ugly. I'd rather hide it behind 'i' symbols or in the help page"*); all reverted.
+- **Found by the new test.** Esc in the search box closed all of Help instead of clearing the search (Mantine closes a
+  modal on Esc in the capture phase). A Show me aimed at a control that was hidden (Show info draws some boxes twice, one
+  per Schedule by mode; the Region's real select lives in a closed Settings window). And `?` with Settings open never
+  matched: it tested a class (`.active`) the Settings button never had, so it now reads `aria-expanded` and routes by tab.
+- **Tests.** One `help` leg (12 cases, in `gate.sh`) opens every article and checks title, lead, pictures, search, Esc, the
+  Month-only switch, that Help changes nothing in the calendar (no field, no Undo step), every Show me, the ? contexts, no
+  stale wording in any article and the facts that mattered most; red on a stale phrase and on a dead Show me. The Guide's
+  text checks in six legs moved into it (`filekeys` H1, `firstrun` H1, `noresetall` A4, `simpostlabel` S2, `exportnames` X7,
+  `swapwords` R6); `oskeys` H1 / H2 read the Keyboard shortcuts article on each platform. `tools/check-help-jsx.mjs`
+  parses articles in a second and fails on any ⓘ `help="…"` that names no article. A Help change is gated by those, never
+  the full gate.
+- **Verified:** `help` 12/12, `oskeys` ×3, `filekeys`, `firstrun`, `noresetall`, `simpostlabel`, `exportnames`, `swapwords`
+  (results in HANDOFF), `npm run check` 46/46, and by hand in the browser (every article, a Show me through Settings, the ⓘ
+  link). `origin/main` (23 Nov 2026: the holiday rename from the Settings list, the frozen-code guard, the cut-note "…")
+  is merged in and re-checked: `npm run check` 47/47, `help` 12/12, `oskeys` ×3, `filekeys`, `firstrun`, `noresetall`,
+  `simpostlabel`, `exportnames`, `swapwords`, `holidayrename` 20/20, `wfnoteellipsis` 11/11.
+
+### Unreleased — the frozen code is locked by a check, not just by a rule (21 Nov 2026)
+
+Owner, 21 Nov 2026: *"Build the guard"*.
+
+- **`npm run check` now fails when any of the 55 frozen engine declarations changes** (the grid, the width model, text
+  fitting, direct manipulation, the writers, and the four functions named frozen edits made frozen). `tools/frozen-lock.mjs`
+  fingerprints each one's exact text and compares it with `tools/frozen-lock.json`; the deploy runs the check before
+  publishing, so a frozen change without an approved re-lock cannot reach the live site.
+- **An approved frozen edit re-locks in the same commit**, quoting the owner's approval:
+  `node tools/frozen-lock.mjs --approve "<words, date, what changed>"`. The approval is stored on each re-locked entry, and
+  `git log` of the lock file lists every frozen edit from now on.
+- **Not covered:** behaviour (the gate still guards the outputs) and the frozen CSS, which waits on an owner ruling.
+- **Verified:** the check runs in 0.23 s; its self-test catches a one-space change to each of the 55 and a rename;
+  `npm run check` 47/47, and red with a comment added inside `renderMonthView`. Replayed over the last 30 days of `main`, it
+  would have stopped all 38 commits that changed frozen text. No product file changed, so no gate and no What's New.
+### Unreleased — every bar in the Month view reorders, Tandem and Prep included (21 Nov 2026)
+
+Owner, 21 Nov 2026: *"Ensure all phases of any type (including sim post, episodic/block prep, and tandem, can be
+arranged up and down in any order in the month view"*.
+
+- **Tandem bars now have the six-dot reorder grip.** A loose Tandem (moved, the last episode's, or on a calendar
+  labelled by Production Week) is its own row in the order, like any phase: drag it above or below Production, Prep or
+  anything else, and it keeps that place in every week, on screen and in the month PDF. A Tandem drawn on its
+  episode's line moves that whole line (Production) with it, so it never leaves its episode (ruling R6).
+- **Sim Post and Episodic / Block Prep** already reordered (Prep as one row: its bars still stack among themselves by
+  episode); now checked by a leg with the rest.
+- Saved as `doubleUp` in `mvPhaseOrder` (a segment key the sanitizer already kept), so no new save key and no version
+  bump. Back to date order (the header button) puts it back. Help's "What sits on top" paragraph says so.
+- **No frozen edit:** only the reorder grip (`installMonthOrderDrag`) changed, which used to skip every Tandem pill;
+  frozen E1 / SO1 already ordered the loose double-up segment and prep. A calendar that never reorders draws exactly as
+  before.
+- **Verified:** new leg `mvorderdu` 10/10 (in `gate.sh` after `mvordersp`), red on the build before (no grip on a
+  Tandem bar); `mvorder`, `mvordersp`, `doubleups` (live, doubleups, doubleups-half, doubleups-blocks); `npm run check`;
+  in the browser on `doubleups`: Prep above Production, a loose Tandem above its Shoot, a joined Tandem taking
+  Production below Prep.
+
+
+### Unreleased — A holiday is renamed from the Holidays list (21 Nov 2026)
+
+The owner asked for a holiday's name to be editable from the Holidays list in Settings › Region, with no text box until
+you point at it, as the episode names in Production's settings work. Each name now reads as plain text; pointing at it
+draws the box and a click edits it in place. Enter or clicking away renames the holiday everywhere it shows (the
+waterfall, the month view, the workbook and both PDFs), the same rename the month view's holiday editor makes, for that
+date only. Esc puts the name back (and leaves the Settings window open), and clearing it brings back the holiday's own
+name, shown in gray while the box is empty. One undo step. The name is a plaintext contenteditable rather than an input,
+so a long name still wraps as before; the box moves nothing (every row's height and name position measured unchanged). A
+name being typed survives the list redrawing under it. The scenario probe now waits while any contenteditable field is
+being typed in (it missed plaintext-only ones). Nothing saved changes shape (`holidayNames` as before) and nothing frozen
+was edited. Help and the card's hint say so. Verified: `holidayrename` with new S1-S5, `holidayenable`, `settingswin`,
+`regionlock`, `mvmenu`, `npm run check` 46/46, and in the browser.
+
+### Unreleased — The month view's holiday editor has Hide Holiday (21 Nov 2026)
+
+The owner asked for the waterfall note editor's **Hide Holiday** button in the month view's editor too. A holiday opened
+in the month view now shows Hide Holiday at the editor's top right, in the same place and look as the waterfall's. It is
+the waterfall's twin: it sets the holiday's Month box off (`holidayView[hid].month = false`), so the month view and both
+month PDFs leave it out, while its Waterfall box keeps whatever it was and the day stays off (no date moves). A rename or
+colour typed before the click is saved with it, as the waterfall's Hide saves the rest of its editor. One undo step. The
+Help window says so. Nothing saved changes shape (the key and its values already existed) and nothing frozen was edited.
+Verified: `holidayrename` 15/15 with a new H1 (the button, month only, Waterfall box and the next day's holiday
+untouched, undo), `npm run check` 46/46, and in the browser on the `holidayrename` fixture (hide, undo, redo, rename
+then hide).
+
+### Unreleased — date boxes take and show a two-digit year: 01/04/26 (21 Nov 2026)
+
+Owner, 4 Nov 2026: *"you can type 26 instead of 2026"*, and the box *"should read 01/04/26"*.
+
+- **Every date box in the sidebar, and the toolbar's two (Shift's To a date, Build Around's), shows the year as two digits:**
+  01/04/26, and an empty box reads mm/dd/yy.
+- **Typing 26 means 2026.** Any year under 100 becomes 20xx once you finish it: when you leave the box, press Enter or
+  Tab, or press any key but a digit. Four digits still work, and 2, 0, 2, 6 still types 2026.
+- **No "Check that year" while you type.** A half-typed year (0026, or 0002 / 0020 / 0202 on the way to 2026) no longer
+  reaches the calendar until it is finished, so the red message and the blank preview don't flash mid-typing. A
+  three-digit year left in the box (a typo) is still refused and ringed, as before.
+- A snapped start still shows its Monday, and an Ends box its Friday, exactly as for a typed 2026; one undo takes the
+  edit back.
+- What's New tells users: "Type a two-digit year".
+
+The box still holds the full date (2026-01-04), so saved files, the grid and every export are unchanged; the two
+digits are paint only (`legacy.css` clips Chrome's year field to its last two digits, with tabular figures so 2011
+reads 11, not 011). The typing half is `holdUnfinishedYear` / `finishTypedYear` in `app.js`, capture-phase on the
+document so the Monday snap, the Ends boxes and the tools all see 2026. No frozen code. New leg `twodigityear` 13/13
+(red on a no-expansion mutant: Y2, K1, K2, B1, B2); `snapbox`, `datepick`, `endsdate`, `prodends`, `calrange`,
+`snaptools`, `builtindates`, `badyear`, `snapoff`, `undokeys` green; `npm run check` 40/40; real keystrokes in the
+browser pane (0 1 0 5 2 6 then Enter → 2026-01-05, no refusal while typing). Built 4 Nov; re-checked on 21 Nov after
+merging `main`: `npm run check` 46/46, the legs above plus `panelstale`, `buildaround`, `anchorside`, `finishbefore`
+green, and real typing beside the phase cards' ▲ / ▼.
+
+### Unreleased — A waterfall note or hiatus band cut off by its row ends in "…" (21 Nov 2026)
+
+The owner asked that a note made bigger than its row holds stop being cut off silently and end in an ellipsis instead.
+A waterfall note or hiatus band given its own size (or a pinned row the automatic shrink cannot fit) was cut by the
+cell's height mid-line, with nothing to say text was missing. Now, on screen and in the waterfall PDF, the lines the
+row shows are kept and the last ends in "…" (frozen edit EL1, owner's pickers "Screen + PDF" and "Notes and hiatus
+bands": `cellClampLines` / `cellClampCss` in `renderSpreadsheetView` and `applyCellFitLive`, `wfPdfEllipsize` in
+`buildWaterfallPdf`). A line counts as shown when at least half of it is in the row, so the familiar two-line note in a
+20 px row keeps its second line and changes in no way. Excel is unchanged: it keeps every note whole in its cell. The
+month view already did this. The same holds for a note with more lines than even the smallest automatic size fits: the
+reference calendar's 6/29/26 cell (three lines in a 20 px row) now reads "Independence Day (Observed) 7/3/26…", and its
+third line, which the cell already hid, is no longer drawn into the PDF. Gate 2's `base.pdf` was re-cut for that one
+cell (owner's picker *"Accept, update refs"*; its README). Verified: new leg `wfnoteellipsis` 11/11 (7 of 11 red on the
+build before), `npm run check` 46/46, the full gate (green but for that cell and three legs that expected the PDF to
+write hidden lines: `notewrap` A/D, `noteviews` P1, `phasenotes` X2, now 16/16, 15/15, 21/21; six legs that failed
+under load passed when rerun alone).
+
 
 ### Unreleased — Shift keeps every phase's distance from the wrap (20 Nov 2026)
 
@@ -13965,6 +14123,9 @@ that long — the likeliest moment for a new deploy to have appeared under a lon
 > Bump them in the same commit. `version.json` alone makes every user see an update that does not
 > exist; `APP_VERSION` alone makes a real update invisible. Both live at the top of their files
 > with this warning attached.
+>
+> ⚠️ *Corrected 23 Nov 2026 (governance Phase 4):* a version cut now bumps three files together: `APP_VERSION` in `src/legacy/app.js`,
+> `version.json` and `package.json`, never the root `index.html` (REL-10).
 
 **Also in this release:** the two notice strips now share one set of CSS rules and differ only in
 hue — amber for *"your file is an old format"*, blue for *"the app has a newer version"*. This app

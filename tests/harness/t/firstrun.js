@@ -28,9 +28,7 @@
 //   Y2  Windows: Ctrl+Y redoes
 //   Y3  inside a text box Cmd+Y is the box's own (not prevented)
 //   R5  a click on a recent in the list loads that calendar (the file menu then names it) and the list goes away
-//   H1  AUD2-032 / WIN-2: Help is up to date (no Today button, no plain "Reset", no "informational", ten fixes;
-//       Scenarios, Compare, Calendar range, Date format, Date Last Edited, the day menu, Blocks, prep, Paste
-//       notes; Cmd+O and Cmd+Y listed; New's key is a Mac key, and Windows is pointed at the New button)
+//   (H1, AUD2-032 / WIN-2: Help is up to date, moved into the help leg (tests/harness/t/help.js) on 23 Nov 2026: Help is a window now, and the one-page Guide this text check read is gone; the keys moved to oskeys)
 //   E0  0 console errors
 //
 // ⛔ memoryIDB() runs synchronously, here at the top, before the engine boots, and is seeded with two recent files:
@@ -310,46 +308,7 @@ window.addEventListener('load', function () { (async function () {
          !!item && label().indexOf('show-a') !== -1 && (q('#show-title') || {}).value === 'SHOW A' && !r5.shown && window.__H.a.reads > 0,
          { observed: { label: label(), title: (q('#show-title') || {}).value, list: r5, reads: window.__H.a.reads } });
 
-    // ---- AUD2-032 + WIN-2: Help --------------------------------------------------------------------------------
-    var help = txt(q('#help-body'));
-    var keysSec = (function () {
-      var h = qa('#help-body h3').filter(function (x) { return /Keyboard shortcuts/.test(x.textContent); })[0], s = '';
-      for (var n = h && h.nextElementSibling; n && n.tagName !== 'H3'; n = n.nextElementSibling) s += ' ' + txt(n);
-      return s;
-    })();
-    var stale = {
-      informational: /informational/i.test(help),
-      today: /\bToday\b/.test(help),
-      threeModes: /three modes/.test(help),
-      plainReset: /Export to Excel, and Reset\b/.test(help),
-      resetNotesAlone: /\bReset Notes\b/.test(help),
-      unionHeading: /checklist under Union holidays/.test(help),
-      fiveDefault: /Pre-Prep, Prod Prep, Production, and Post are provided/.test(help),
-      zeroPadded: /11\/02\/26|11\/04\/26/.test(help),
-      localStorage: /local storage/.test(help),
-      seasonFileName: /Season 1 Planning Calendar/.test(help),
-      simPostBlocksProduction: /can’t be moved while Simultaneous Post|can't be moved while Simultaneous Post/.test(help),
-      settingsCalendar: /Settings → Calendar|Settings &rarr; Calendar/.test(help)
-    };
-    var has = {
-      scenarios: /Scenario/.test(help), compare: /Compare/.test(help), range: /Calendar range/i.test(help),
-      dateFormat: /Date format/i.test(help), lastEdited: /Date Last Edited/i.test(help), hideWf: /Hide in waterfall/i.test(help),
-      dayMenu: /half day/i.test(help) && /Work this day/.test(help) && /\bOff\b/.test(help) && /Full day/.test(help),
-      blocks: /Schedule by Blocks/.test(help), prep: /Episodic Prep/.test(help) && /Default prep/.test(help),
-      numberDays: /Number Production Days/.test(help), paste: /Paste notes/.test(help),
-      cmdO: /⌘O/.test(keysSec), cmdY: /⌘Y/.test(keysSec),
-      // WIN-2: New's key is offered as a Mac key, and Windows is pointed at the New button (never at Ctrl+N; the File
-      // menu's New item was removed by the owner, 18 Nov 2026).
-      // ⚠️ Re-expected for W.2 (WIN-3, audit 2026-11): Help now shows ONE of two New lines, by platform (data-os), so the
-      // Mac's reads "⌘N — New" and the other one points at New in the File menu. keysSec is textContent, which holds
-      // both lines; which one SHOWS on which platform is oskeys' H2.
-      fileMenuNew: /⌘N — New\b/.test(keysSec) && /New has no key here[^.]*New button at the top/.test(keysSec) && !/Ctrl\+N/.test(keysSec),
-      gettingStarted: /Getting started/.test(help) && /Pick up where you left off/.test(help) && /Other recent calendars/.test(help)
-    };
-    var staleHits = Object.keys(stale).filter(function (k) { return stale[k]; });
-    var missing = Object.keys(has).filter(function (k) { return !has[k]; });
-    kase('H1', 'Help matches the app: no stale statement, every main feature named, the keys right', staleHits.length === 0 && missing.length === 0,
-         { observed: { stale: staleHits, missing: missing, keys: keysSec.slice(0, 600) } });
+    // (AUD2-032 + WIN-2's H1, Help matching the app, moved into the help leg, tests/harness/t/help.js, 23 Nov 2026: Help is a window now, and the one-page Guide these text checks read is gone.)
 
     var errs = (T.appHealth().errors || []);
     kase('E0', '0 console errors', errs.length === 0, { errors: errs.slice(0, 5) });

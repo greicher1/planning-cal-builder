@@ -17,6 +17,40 @@
 //     machine remembers as seen (localStorage 'sptcal.whatsNew'), so never change an id once it has shipped.
 export const WHATS_NEW = [
   {
+    id: '2026-11-23',
+    date: '23 Nov 2026',
+    items: [
+      {
+        title: 'A new Help',
+        text: 'Press ? for a window with a sidebar of articles, search, pictures of the real screen and “Show me” buttons that point at the control. Open it with the Shift box, Build Around, a note, a day’s menu or Settings up and it goes straight to that page.',
+      },
+      {
+        title: 'Help for Month view users',
+        text: 'Switch on “I only use the Month view” at the bottom of the Help sidebar to hide the Waterfall pages. The ⓘ hints now say “More in Help” and open their page.',
+      },
+    ],
+  },
+  {
+    id: '2026-11-21-2',
+    date: '21 Nov 2026',
+    items: [
+      {
+        title: 'Reorder Tandem bars in the Month view',
+        text: 'Tandem bars now have the reorder grip, like every other bar: drag one up or down and it keeps that place in every week, on screen and in the PDF. A Tandem on its episode’s line moves that line with it.',
+      },
+    ],
+  },
+  {
+    id: '2026-11-21',
+    date: '21 Nov 2026',
+    items: [
+      {
+        title: 'Type a two-digit year',
+        text: 'Date boxes now show the year as two digits, like 01/04/26, and you can type 26 for 2026. The year fills in when you leave the box or press Enter.',
+      },
+    ],
+  },
+  {
     id: '2026-11-20',
     date: '20 Nov 2026',
     items: [
@@ -71,7 +105,7 @@ export const WHATS_NEW = [
       },
       {
         title: 'Zoom just the calendar',
-        text: 'Pinch, Ctrl-scroll and ⌘+ / ⌘− now zoom the waterfall and month view, and leave the rest of the app as it is.',
+        text: 'Pinch, Ctrl-scroll, and ⌘ (Mac) or Ctrl (Windows) with + or − now zoom the waterfall and month view, and leave the rest of the app as it is.',
       },
       {
         title: '“Final Delivery” on Post’s last day',

@@ -12,7 +12,7 @@
 // CALENDAR weeks after Production's first week (working weeks would put it two weeks later).
 //
 //   S1  the offset row reads "Starts [n] calendar weeks after Production begins"
-//   S2  the Help overlay describes the offset in calendar weeks too
+//   (S2, the Help describing the offset in calendar weeks, moved into the help leg's H11, 23 Nov 2026)
 //   S3  the words are true: Production 6/29/26, a hiatus 7/6-7/19, offset 3 -> Sim Post from 7/20/26
 window.__T.memoryIDB();
 window.addEventListener('load', function () { (async function () {
@@ -46,11 +46,7 @@ window.addEventListener('load', function () { (async function () {
     add('S1', 'the offset row says "calendar weeks after Production begins"',
       !!rowText && rowText.indexOf('Starts') === 0 && rowText.indexOf('calendar weeks after Production begins') > 0,
       {row: rowText}, 'Starts [n] calendar weeks after Production begins');
-    var help = document.getElementById('help-overlay');
-    var helpText = help ? (help.textContent || '').replace(/\s+/g, ' ') : '';
-    add('S2', 'the Help overlay describes the offset in calendar weeks too',
-      helpText.indexOf('calendar weeks after Production begins') >= 0 && helpText.indexOf('how many weeks after Production begins') < 0,
-      {help: (helpText.match(/offset[^.]*\./) || [''])[0].slice(0, 200)}, 'calendar weeks');
+    // (S2, the Help describing the offset in calendar weeks, moved into the help leg (tests/harness/t/help.js) on 23 Nov 2026: Help is a window now, and the one-page Guide this text check read is gone: its H11.)
 
     // S3: a two-week hiatus inside a three-week offset.
     var hs = document.querySelector('#hiatus-list .hiatus-entry .hiatus-start');

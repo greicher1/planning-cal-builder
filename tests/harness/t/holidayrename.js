@@ -27,6 +27,15 @@
 //       neighbour, in the waterfall too
 //   W1  renaming Labor Day in the WATERFALL's editor renames the holiday: the cell stays automatic (no waterfall
 //       note), the month view and the Holidays list follow
+//   H1  the MONTH editor's Hide Holiday (owner, 21 Nov 2026) hides Thanksgiving from the month view only: its Month
+//       box unticked, its Waterfall box and Day After untouched; one undo brings it back
+//   S1  the Holidays list in Settings (owner, 21 Nov 2026): a holiday's name is the edit box itself (plaintext-only, no
+//       id, the first thing in .hv-name), drawn with no border or fill until pointed at, and no row moved for it
+//   S2  typed there and Enter: renamed everywhere it shows (the list, the month view, the file's holidayNames, no new
+//       field id); one undo takes it back, redo puts it back
+//   S3  Esc puts the name back, renames nothing, and the Settings window stays open
+//   S4  a redraw while a name is being typed keeps the typing, the caret and the focus
+//   S5  its own date typed after the name is not doubled; cleared, it shows its own name as a hint and goes back to it
 //   X1  the workbook prints the renamed Labor Day
 //   E0  no console errors, apart from the one warning F2's values are meant to raise
 //
@@ -292,6 +301,120 @@ window.addEventListener('load', function () { (async function () {
              && s.holidayNames && s.holidayNames['labor-day@2026'] === 'Labor Day (closed)' && same(mv, ['Labor Day (closed) 9/7/26']) && !!row,
            { before: before, after: after, userNote: s.userNotes && s.userNotes['2026-09-07'], names: s.holidayNames, month: mv, listRow: row && row.title });
     });
+    await step('H1', async function () {
+      // Hide Holiday in the MONTH view's holiday editor (owner, 21 Nov 2026): the waterfall editor's button, mirrored.
+      await toMonth('November 2026');
+      var box = function (v) { return q('#holiday-vis-list input[data-view="' + v + '"][data-hid="thanksgiving@2026"]'); };
+      var sheet0 = box('sheet') ? box('sheet').checked : null, fri0 = lines('2026-11-27');
+      var pop = await openMv('2026-11-26', /^Thanksgiving/);
+      var btn = q('.note-pop-head .mv-holiday-hide', pop);
+      var label = btn ? txt(btn) : null;
+      if (!btn) throw new Error('no Hide Holiday button');
+      btn.click();
+      await settle();
+      var thu = lines('2026-11-26'), fri = lines('2026-11-27'), s = JSON.parse(await save());
+      var hv = (s.holidayView || {})['thanksgiving@2026'] || {};
+      var monthBox = box('month') ? box('month').checked : null, sheet1 = box('sheet') ? box('sheet').checked : null;
+      await undo();
+      var back = lines('2026-11-26');
+      kase('H1', 'the month holiday editor has Hide Holiday at its top right: it hides Thanksgiving from the month view only (its Month box unticked, its Waterfall box and Day After untouched), and one undo brings it back',
+           label === 'Hide Holiday' && !byId('mv-note-pop') && thu.length === 0 && fri.length === 1 && same(fri, fri0)
+             && hv.month === false && monthBox === false && sheet1 === sheet0 && back.length === 1 && /^Thanksgiving/.test(back[0]),
+           { label: label, thu: thu, fri: fri, holidayView: hv, monthBox: monthBox, sheet: [sheet0, sheet1], afterUndo: back });
+    });
+    // ===== S1-S5: rename from the Holidays list in Settings (owner, 21 Nov 2026) ====================================
+    // "No text box until you hover over the title similar to how the episode names in the production phase section
+    // work": the name reads as text and edits in place (.hv-name-edit). Memorial Day 2026: no Enable box, Month ticked.
+    var MEM = 'memorial-day@2026';
+    function hvName(hid) { return qa('#holiday-vis-list .hv-name-edit').filter(function (e) { return e.getAttribute('data-hid') === hid; })[0] || null; }
+    function press(el, k) { var ev = new KeyboardEvent('keydown', { key: k, bubbles: true, cancelable: true }); el.dispatchEvent(ev); return ev.defaultPrevented; }
+    function typeName(hid, text) {
+      var el = hvName(hid); if (!el) throw new Error('no list name for ' + hid);
+      el.scrollIntoView({ block: 'center' }); el.focus();
+      el.textContent = text; el.dispatchEvent(new InputEvent('input', { bubbles: true }));
+      return el;
+    }
+    await step('S1', async function () {
+      await T.openSettings('region');
+      var el = hvName(MEM), nm = el && el.closest('.hv-name'), cs = el && getComputedStyle(el);
+      // The box moves nothing: every row's height and every name's left edge, against the same name as plain text.
+      var moved = [];
+      qa('#holiday-vis-list .hv-name-edit').forEach(function (e) {
+        var row = e.closest('.hv-row'), h1 = row.getBoundingClientRect().height, l1 = e.getBoundingClientRect().left + 5;
+        var p = document.createElement('span'); p.textContent = e.textContent; e.parentNode.insertBefore(p, e); e.style.display = 'none';
+        var h0 = row.getBoundingClientRect().height, l0 = p.getBoundingClientRect().left;
+        p.remove(); e.style.display = '';
+        if (Math.abs(h1 - h0) > 0.01 || Math.abs(l1 - l0) > 0.01) moved.push([e.textContent, h0, h1, l0, l1]);
+      });
+      kase('S1', 'the list\'s name is the edit box: plaintext-only, no id, the first thing in .hv-name, no border or fill until pointed at, and no row moved',
+           !!el && el.getAttribute('contenteditable') === 'plaintext-only' && !el.id && nm.firstChild === el && txt(el) === 'Memorial Day'
+             && cs.borderTopColor === 'rgba(0, 0, 0, 0)' && cs.backgroundColor === 'rgba(0, 0, 0, 0)' && moved.length === 0,
+           { editable: el && el.getAttribute('contenteditable'), first: !!nm && nm.firstChild === el, name: txt(el), border: cs && cs.borderTopColor, fill: cs && cs.backgroundColor, moved: moved.slice(0, 3) });
+    });
+    await step('S2', async function () {
+      await toMonth('May 2026');
+      var mv0 = lines('2026-05-25'), ids0 = Object.keys(JSON.parse(await save()).fields.byId).sort();
+      var el = typeName(MEM, 'Memorial Day (office closed)');
+      var prevented = press(el, 'Enter');
+      await settle();
+      var row = holidayRow(/^Memorial Day \(office closed\) · 5\/25\/26/), mv1 = lines('2026-05-25'), s = JSON.parse(await save());
+      var focused = !!(document.activeElement && document.activeElement.classList && document.activeElement.classList.contains('hv-name-edit'));
+      await undo();
+      var undone = txt(hvName(MEM)), mv2 = lines('2026-05-25');
+      await redo();
+      var redone = txt(hvName(MEM));
+      kase('S2', 'typed in the list and Enter: renamed everywhere it shows (the list with "renamed from", the month view, the file\'s holidayNames, no new field id), focus leaves; one undo takes it back, redo puts it back',
+           prevented && !focused && !!row && /renamed from Memorial Day/.test(row.title)
+             && same(mv0, ['Memorial Day 5/25/26']) && same(mv1, ['Memorial Day (office closed) 5/25/26'])
+             && (s.holidayNames || {})[MEM] === 'Memorial Day (office closed)' && same(Object.keys(s.fields.byId).sort(), ids0)
+             && undone === 'Memorial Day' && same(mv2, ['Memorial Day 5/25/26']) && redone === 'Memorial Day (office closed)',
+           { prevented: prevented, focused: focused, listRow: row && row.title, month: [mv0, mv1, mv2], name: (s.holidayNames || {})[MEM], undone: undone, redone: redone });
+    });
+    await step('S3', async function () {
+      var before = JSON.parse(await save()).holidayNames;
+      var el = typeName(MEM, 'Something else');
+      var prevented = press(el, 'Escape');
+      await settle();
+      var after = JSON.parse(await save()).holidayNames;
+      kase('S3', 'Esc puts the name back and renames nothing, and the Settings window stays open (the key is taken)',
+           prevented && txt(hvName(MEM)) === 'Memorial Day (office closed)' && same(before, after) && byId('settings-window').classList.contains('is-open'),
+           { prevented: prevented, name: txt(hvName(MEM)), names: after, open: byId('settings-window').classList.contains('is-open') });
+    });
+    await step('S4', async function () {
+      // A redraw lands while a name is being typed (the list is rewritten on every render): toggling another holiday's
+      // Month box redraws it. The typing, the caret and the focus carry over to the new row.
+      var el = typeName(MEM, 'Memorial Day typed');
+      var r = document.createRange(); r.setStart(el.firstChild, 7); r.collapse(true); getSelection().removeAllRanges(); getSelection().addRange(r);
+      var other = q('#holiday-vis-list input[data-view="month"]:not([data-hid="' + MEM + '"])');
+      other.checked = !other.checked; other.dispatchEvent(new Event('change', { bubbles: true }));
+      await T.sleep(100);
+      var a = document.activeElement, sameRow = !!a && a.getAttribute && a.getAttribute('data-hid') === MEM;
+      var kept = { replaced: !el.isConnected, focused: sameRow, text: a && a.textContent, caret: getSelection().anchorOffset };
+      press(a, 'Escape');
+      other = q('#holiday-vis-list input[data-view="month"][data-hid="' + other.getAttribute('data-hid') + '"]');
+      other.checked = !other.checked; other.dispatchEvent(new Event('change', { bubbles: true }));
+      await settle();
+      kase('S4', 'a redraw while a name is being typed keeps the typing, the caret and the focus in the new row',
+           kept.replaced && kept.focused && kept.text === 'Memorial Day typed' && kept.caret === 7 && txt(hvName(MEM)) === 'Memorial Day (office closed)', kept);
+    });
+    await step('S5', async function () {
+      // Its own date typed after the name is dropped (the date is added back), then cleared: its own name again.
+      var el = typeName(MEM, 'Memorial Day (closed) 5/25/26');
+      el.blur();
+      await settle();
+      var dated = { list: txt(hvName(MEM)), month: lines('2026-05-25') };
+      el = typeName(MEM, '');
+      var hint = getComputedStyle(el, '::before').content;
+      el.blur();
+      await settle();
+      var s = JSON.parse(await save());
+      kase('S5', 'its own date typed after the name is not doubled; cleared, it shows its own name as a hint and goes back to it, and its key leaves the file',
+           dated.list === 'Memorial Day (closed)' && same(dated.month, ['Memorial Day (closed) 5/25/26']) && hint === '"Memorial Day"'
+             && txt(hvName(MEM)) === 'Memorial Day' && same(lines('2026-05-25'), ['Memorial Day 5/25/26']) && !((s.holidayNames || {})[MEM]),
+           { dated: dated, hint: hint, name: txt(hvName(MEM)), month: lines('2026-05-25'), names: s.holidayNames });
+      await T.closeSettings();
+    });
+
     await step('X1', async function () {
       await view('sheet');
       await T.sleep(700);

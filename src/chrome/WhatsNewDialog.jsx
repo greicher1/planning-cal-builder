@@ -71,12 +71,11 @@ function launchMode() {
   return location.protocol === 'https:' ? 'live' : null
 }
 
-// Up, and nothing else in front: the engine has drawn the phase cards, and no Mantine window, the Guide, or a print
+// Up, and nothing else in front: the engine has drawn the phase cards, and no Mantine window (Help is one) or a print
 // is open.
 function readyToShow() {
   return !!document.getElementById('start-production')
     && !document.querySelector('.mantine-Modal-root')
-    && !document.querySelector('#help-overlay.open')
     && !document.body.classList.contains('printing-calendar')
 }
 

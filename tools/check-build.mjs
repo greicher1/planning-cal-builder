@@ -14,6 +14,7 @@ import path from 'node:path';
 import zlib from 'node:zlib';
 import crypto from 'node:crypto';
 import { fileURLToPath } from 'node:url';
+import { verifyFrozen } from './frozen-lock.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const DIST = path.join(ROOT, 'dist', 'index.html');
@@ -94,6 +95,18 @@ check(
   'SIM_KEY NUL sentinel survives minification',
   nulSurvives,
   src.includes(NUL) ? 'as a literal byte' : 'as an escape sequence (equivalent)'
+);
+
+// --- 3b. The frozen code is unchanged (the frozen-code guard, owner, 21 Nov 2026) ------------
+// Reads the SOURCE, not dist: the minifier renames and reflows everything. Every frozen engine
+// declaration's exact text must match tools/frozen-lock.json; a frozen edit the owner approved
+// re-locks it in the same commit (`node tools/frozen-lock.mjs --approve "..."`). The header of
+// tools/frozen-lock.mjs says what this does NOT guard.
+const frozen = verifyFrozen(ROOT);
+check(
+  `the frozen code is unchanged (${frozen.total} declarations match tools/frozen-lock.json)`,
+  frozen.ok,
+  frozen.ok ? '' : `${frozen.summary}. Put it back, or re-lock ONLY with the owner's approval: node tools/frozen-lock.mjs --approve "..."`
 );
 
 // --- 4. The features that define the product ----------------------------------------------

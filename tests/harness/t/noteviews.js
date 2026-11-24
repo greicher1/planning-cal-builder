@@ -313,8 +313,13 @@ window.addEventListener('load', function () { (async function () {
     });
     await step('P1', async function () {
       var c = await wfPdf('the waterfall PDF');
-      var a = c.indexOf('(Crew party 8/12/26) Tj') !== -1, b = c.indexOf('(Lunch with network 8/13/26) Tj') !== -1;
-      kase('P1', 'the waterfall PDF draws "Crew party 8/12/26" and "Lunch with network 8/13/26"', a && b, { crew: a, lunch: b });
+      // ⚠️ Since 21 Nov 2026 (frozen edit EL1, owner: a note cut off by its row ends in "…") the 8/10 cell's four lines in its
+      // 20 px row draw as the two it shows, "Cast fittings" and "Network call…". The "…" is the proof the month notes reached
+      // the writer: the typed note alone is those two lines whole, with no "…" (wfnoteellipsis P4).
+      var a = c.indexOf('(Cast fittings) Tj') !== -1, b = c.indexOf('(Network call\\205) Tj') !== -1;
+      var hid = c.indexOf('(Crew party 8/12/26) Tj') !== -1 || c.indexOf('(Lunch with network 8/13/26) Tj') !== -1;
+      kase('P1', 'the waterfall PDF draws the 8/10 cell as the two lines its row shows, "Cast fittings" and "Network call…": the "…" is the two month notes after them',
+           a && b && !hid, { cast: a, networkEllipsis: b, monthLinesDrawn: hid });
     });
 
     // ===== E1, E2: edits follow it (R2) ===============================================================================

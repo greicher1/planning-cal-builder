@@ -19,7 +19,7 @@ checked by hand against the source, and every one held:
 
 | Claim | Verified |
 |---|---|
-| **Seven** `document.getElementById('table-wrap').addEventListener(...)` calls, all unguarded, all at IIFE-body scope | ✅ seven, all at indent 2, none null-checked |
+| **Seven** `document.getElementById('table-wrap').addEventListener(...)` calls, all unguarded, all at IIFE-body scope | ✅ seven, all at indent 2, none null-checked. ⚠️ *Corrected 23 Nov 2026 (governance Phase 4):* 21 such calls on 21 Nov 2026 (up to 39 counting local-variable forms) |
 | The print selectors are **child** combinators — `body.printing-calendar > *:not(#print-root)` and the `printing-waterfall` twin | ✅ both, exactly as written |
 | `#sheet-scroll-container` is emitted by `renderSpreadsheetView`, so a print-fallback export puts **two** elements under that id | ✅ one id, one renderer, injected into `#print-root` too |
 | `.card.tab-hidden{display:none !important}` is why an inactive sidebar tab still has live inputs, and `computeHeaderDefaults` has **three unguarded** field reads | ✅ `show-title`, `shoot-days-per-ep`, `num-episodes` — all bare `.value`. ⚠️ **Still three after `show-version` joined (8 Sep 2026)**: it is read through `versionLabel()`, which guards. Do not correct this to four. |
@@ -47,7 +47,8 @@ betting a stage on one.
 two: the Excel workbook (`exportExcel`), the direct waterfall PDF (`buildWaterfallPdf` →
 `exportWaterfallPdfDirect`), the print-fallback waterfall PDF (`exportWaterfallPdf`, live when
 `WF_PDF_MODE === 'print'`), and the month PDF (`exportMonthPdf`). The first two never read the
-DOM. **The last two ARE the DOM** — they inject `renderSpreadsheetView()` / `renderMonthView()`
+DOM. (⚠️ *Corrected 23 Nov 2026 (governance Phase 4):* since 2 Oct 2026 the month PDF users get comes from the direct writer, which reads the frozen
+month renderer's HTML; `exportMonthPdf`'s print path is only the rollback. FRZ-5, FRZ-13.) **The last two ARE the DOM** — they inject `renderSpreadsheetView()` / `renderMonthView()`
 into `#print-root`, style it with the app's own stylesheet, measure it with
 `getBoundingClientRect()`, and print it. So the test is not "did I edit a frozen function"; it is
 **"can this markup, this CSS rule, this constant, or this element id be seen by one of those four

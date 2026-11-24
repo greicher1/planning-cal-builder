@@ -173,6 +173,9 @@ export const chrome = {
   // () → Promise, settled when this launch's What's New is closed, or at once when there is none. The engine's backup
   // recovery question waits on it (owner, 19 Nov 2026: What's New comes first).
   whatsNewDone: () => Promise.resolve(),
+  // (id?) — opens Help (src/help/HelpWindow.jsx), on article `id` (src/help/toc.js) when given. The ⓘ hints' "More in
+  // Help" link calls it.
+  openHelp: noop,
 }
 
 export function installChrome(impl) {

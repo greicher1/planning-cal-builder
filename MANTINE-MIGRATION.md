@@ -4,8 +4,8 @@
 **Decision recorded:** 28 Aug 2026 — the owner chose **Option B**: redesign the surrounding UI on
 Mantine, **freeze the grid and the exports permanently**.
 
-Reading order (owner-revised 29 Aug 2026): [`CLAUDE.md`](CLAUDE.md) → [`HANDOFF.md`](HANDOFF.md) →
-[`PROJECT-CONTEXT.md`](PROJECT-CONTEXT.md). This document is the working plan for the redesign.
+Reading order: the rules (GOVERNANCE.md, loaded by [`CLAUDE.md`](CLAUDE.md)), then [`HANDOFF.md`](HANDOFF.md),
+then only what the task touches (WORK-8, 23 Nov 2026). This document is the working plan for the redesign.
 
 ---
 
@@ -25,9 +25,9 @@ Reading order (owner-revised 29 Aug 2026): [`CLAUDE.md`](CLAUDE.md) → [`HANDOF
 > - **The OUTPUT is frozen** — the Excel workbook and the waterfall PDF must look exactly as
 >   v1.0.0's did, and the writers themselves should not even be rewritten ("same render engine").
 >   That part is now *stricter* than what follows: it freezes appearance, not just code.
-> - **The on-screen waterfall MAY be redesigned on Mantine.** That part is *looser*, and it
+> - ~~**The on-screen waterfall MAY be redesigned on Mantine.** That part is *looser*, and it
 >   contradicts "React renders `#table-wrap` as an empty container and never touches its children"
->   below.
+>   below.~~ ⚠️ *Corrected 23 Nov 2026 (governance Phase 4):* withdrawn by the owner on 29 Aug 2026: the waterfall editor keeps its look (FRZ-3).
 >
 > ⚠️ **"the grid" now means two different things** depending on who is speaking — these docs use it
 > for the frozen thing, the owner used it for the whole calendar system. **Read the freeze rule by

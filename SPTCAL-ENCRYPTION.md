@@ -6,6 +6,9 @@ Status: **design only, not implemented.** No change has been made to `index.html
 
 ## 0. The assumption, and what it actually requires
 
+⚠️ *Corrected 23 Nov 2026 (governance Phase 4):* the four preconditions below describe the public GitHub Pages app with an emailable shareable
+copy. Since v1.21.0 the app is behind a sign-in at its own address and no button writes a copy. Encryption is parked (tracker card `encrypted-files`, held).
+
 The owner's stated assumption is: **the app's HTML is never accessed — only `.sptcal` files are.**
 Under that assumption an app key embedded in `index.html` is a real secret, and the app-key mode
 below gives real confidentiality rather than obfuscation. The design is built on that assumption.

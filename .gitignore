@@ -1,8 +1,12 @@
 # macOS
 .DS_Store
 
-# Claude Code local settings
-.claude/
+# Claude Code local settings. Everything under .claude/ stays local (worktrees, launch.json, settings.local.json)
+# EXCEPT the shared settings file: it carries the permission prompts every worktree must get (REL-1, the owner's
+# picker 23 Nov 2026, "Yes, for a short list"). A tracked .claude/settings.json reaches every checkout of a branch
+# that has it; a .githooks-style folder would not.
+.claude/*
+!.claude/settings.json
 
 # Harness working output. Run artifacts land beside the scripts; keep a copy in
 # tests/baselines/ when one is worth keeping, but don't track the scratch ones.

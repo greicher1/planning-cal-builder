@@ -11,7 +11,7 @@ Written 25 Sep 2026. Covers **every** entry in [`AUDIT-REPORT.md`](AUDIT-REPORT.
 | R3 | Frozen edits | **All four groups approved:** waterfall-PDF note wrap; the Excel writer fixes (header trimmer, width/height clamps, cached dates); the month-print Letter pin; the month-view renderer fixes (holidays under edited notes, lane cap, nav clamp, blank hiatus label) |
 | R4 | File changed on disk since it was loaded | **Pause and ask:** autosave stops; Save offers overwrite, load the newer version, or save a copy |
 | R5 | Edited auto-notes after a shift | **Rewrite on shift**, with no save-format change |
-| R6 | Safari/Firefox | **Chrome/Edge only:** a notice on other browsers, plus correcting HANDOFF §3 B |
+| R6 | Safari/Firefox | **Chrome/Edge only:** a notice on other browsers, plus correcting HANDOFF §3 B. (⚠️ *Corrected 23 Nov 2026 (governance Phase 4):* supported: Chrome and Edge; tested: Chrome only, on macOS and Windows, owner 13 Nov 2026, PRD-9 / TEST-1.) |
 | R7 | Shared github.io origin | **Scope the service-worker cleanup now; plan a custom domain as a later, separate step** |
 | R8 | Shipping | **Batches, each a release; batch 1 is v1.3.0.** Every push needs its own explicit OK |
 | R9 | Shareable copy | **Keep it and fix it** |
