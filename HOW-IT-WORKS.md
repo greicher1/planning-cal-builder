@@ -505,6 +505,13 @@ machinery behind them works:*
   `install-hooks.sh --check` compares the installed copy with the source; `test-pre-push.sh` proves it on a throwaway
   bare remote. The repo's `.claude/settings.json` ask rules do NOT stop a push in desktop sessions (probed
   23-24 Nov 2026); this hook does.
+- **The governance checker (since 24 Nov 2026):** `tools/check-governance.mjs` (`npm run governance`) reads only the
+  rules files, CLAUDE.md, HANDOFF and the plans, plus a `git grep` for "per X-N" citations. Its blocking checks are the
+  ones the accepted proposals say fail (OUT-26, 27, 28, 33); everything else warns, and a new check starts as a warning
+  (OUT-31). A rule counts as the owner's pick if it was in the review-page commit `578bd46a`; any rule added since must
+  carry `*Owner:*` words with a date, `*Ruled:*` with a date and source, or say `*Proposed*`. The push guard runs the
+  pushed commit's own copy with `--rev` and refuses on a failure (and if it can't run); the deploy workflow runs it
+  with `--warn-only`. Its broken samples are in `tools/governance-samples.mjs` (`-- --self-test`).
 - **Checking a deploy is live (REL-3):** since v1.21.0 the signed-in address answers an unsigned fetch with a redirect
   to the sign-in, so read the deploy run's "Deployment complete" and byte-compare the GitHub Pages copy while it is
   still published. Once that copy is retired there is no unsigned copy to compare, and a new method is needed

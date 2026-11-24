@@ -11,8 +11,24 @@
   local-only move. `tools/hooks/pre-push` now lets through a push whose target is this same repository (`.`, or its own
   path or `file://` URL, from any worktree); a path to any other repository still needs the approval. ⚠️ Git exports
   `GIT_DIR` into a hook run from a linked worktree, so the hook clears it before asking git about the target. Proof
-  `test-pre-push.sh`: red on the old hook (9a-9c), 19/19 fixed, mutants red. Committed `9a075735` ("Governance:");
-  **not installed** until the owner says yes (`sh tools/hooks/install-hooks.sh`).
+  `test-pre-push.sh`: red on the old hook (9a-9c), 19/19 fixed, mutants red. Committed `9a075735` ("Governance:").
+  ✅ **LIVE** (owner's picker *"Install it, then push"*, 24 Nov 2026): installed in the shared `.git/hooks`, pushed
+  `ee0b655a..a5b32e8b`; local main then moved by `git push . gov5-guard-local:main` with no approval (the fix, live),
+  and an unapproved dry-run push to GitHub is still refused.
+- **Piece 2, the governance checker** (branch `gov5-checker`): `tools/check-governance.mjs`, `npm run governance`.
+  Blocks on the import line, links through the old public address, IDs unique / never reused, replaced-by pairs,
+  links with exact case (OUT-26, OUT-27), the owner's pick behind any rule added since the review-page commit
+  `578bd46a` (OUT-28), and no ID lost or renumbered against `origin/main` (OUT-33). Everything else warns. Owner's
+  picker 24 Nov 2026 on the size budget: *"Warn only"* (against the recommendation to fail): CLAUDE.md over 12 KB or
+  GOVERNANCE.md over 80 KB warns. The push guard now runs the pushed commit's own checker and refuses on a failure (or
+  if it can't run); the deploy runs it `--warn-only`. Proof: `--self-test` 28/28 on broken samples (OUT-40), checker
+  mutants red; `test-pre-push.sh` 23/23 with stand-in checkers, the piece-1 hook red on 11b-11d; the real hook
+  refused a throwaway commit with the import line deleted. On today's files: passed, 61 warnings (60 plans without a
+  status line, piece 5; INTRO-2 labels two paragraphs, see below). ⚠️ Learned: Apple's `git grep -E` has no `\b`, and on
+  macOS `process.exit()` after a write to a pipe cuts the output short.
+- ⚠️ **For the owner:** GOVERNANCE.md's intro labels both "Protected files" and "Declined rules are recorded" as
+  INTRO-2; the second is really proposal OUT-38, and INTRO-4 ("Two files: the rules and their history", accepted on
+  the review page) appears nowhere. Fixing it is a protected edit.
 
 ### 📜 23 Nov 2026: GOVERNANCE PHASE 4, THE REWIRE — the rules land in the repo and CLAUDE.md imports them. Branch `governance-phase4` (worktree `.claude/worktrees/governance-phase4`, from `origin/main` `2e3d3fa3`). ✅ **LIVE at `578bd46a`** (owner's pickers 23 Nov 2026: *"Merge into local main"*, *"Push main after the merge"*; pushed `2e3d3fa3..578bd46a`, which also carried local main's `54473204`; deploy run 45473455825 green, Cloudflare step included; the GitHub Pages file is byte-identical to the build, sha256 `6e8bdfc1…`, the same bytes as before, so users see no update bar). Tracker card `governance-sheet`.
 - **What is on the branch:**

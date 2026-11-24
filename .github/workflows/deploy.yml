@@ -91,6 +91,13 @@ jobs:
         continue-on-error: true
         run: python3 tools/check-refs.py
 
+      - name: Check the rules files (warn only)
+        # tools/check-governance.mjs (governance plan Phase 5, OUT-31): it blocks on the owner's computer and inside the
+        # push guard, which already ran it on this exact commit before the push could happen. Here it only warns: a
+        # deploy never stops over a rules file. A shallow checkout has no older main to compare rule IDs with.
+        continue-on-error: true
+        run: node tools/check-governance.mjs --warn-only
+
       - name: Upload the built file
         # A plain artifact, downloadable from the run summary. This is NOT the Pages artifact --
         # uploading one of those is what the deploy job does, deliberately separately.
