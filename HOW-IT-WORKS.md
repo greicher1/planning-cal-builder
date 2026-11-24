@@ -497,6 +497,12 @@ machinery behind them works:*
   longer waits for a version cut. A version cut bumps `APP_VERSION` in `src/legacy/app.js`, `version.json` and
   `package.json` together (REL-10); the root `index.html` stays at 1.2.0 on purpose.
 - **What's New** entries live in `src/whats-new.js`, newest first (REL-12).
+- **The push guard (REL-1, since 24 Nov 2026):** `tools/hooks/pre-push`, installed by `tools/hooks/install-hooks.sh` into
+  the shared hooks folder inside `.git` (one copy every worktree runs). A push goes through only with
+  `SPTCAL_PUSH_OK=<sha>` naming the commit every branch or tag it sends points at; `delete:<ref>` for a remote delete.
+  `install-hooks.sh --check` compares the installed copy with the source; `test-pre-push.sh` proves it on a throwaway
+  bare remote (13 cases). The repo's `.claude/settings.json` ask rules do NOT stop a push in desktop sessions (probed
+  23-24 Nov 2026); this hook does.
 - **Checking a deploy is live (REL-3):** since v1.21.0 the signed-in address answers an unsigned fetch with a redirect
   to the sign-in, so read the deploy run's "Deployment complete" and byte-compare the GitHub Pages copy while it is
   still published. Once that copy is retired there is no unsigned copy to compare, and a new method is needed

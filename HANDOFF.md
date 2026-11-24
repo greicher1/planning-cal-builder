@@ -58,7 +58,14 @@
 - **When this merges into a checkout:** the main checkout's untracked `GOVERNANCE-PLAN.md` must be moved aside first (the
   committed copy is newer), and `scenario-version-offer` will conflict on HANDOFF.md, because the entries it edits moved
   to the archive. Resolve by keeping this branch's HANDOFF and re-adding any new entry at the top of START HERE.
-- **Next:** Phase 5 (the checker, the pre-push guard, the reminder hook with
+- ✅ **24 Nov 2026, Phase 5's first piece: THE PUSH GUARD IS INSTALLED** (owner: *"Start Phase 5"*, then picker *"Install
+  it"*). `tools/hooks/pre-push` is in the shared `.git/hooks` (every worktree runs it): **a push goes through only as
+  `SPTCAL_PUSH_OK=<the approved commit> git push …`**, otherwise git refuses it and lists what it would carry. Proved on a
+  throwaway bare remote 13/13 (`tools/hooks/test-pre-push.sh`; mutants red), then live: a dry-run push with no approval
+  was refused from this worktree, the main checkout and the old `ui-scaling` worktree. Built on branch `governance-phase5`
+  (worktree `.claude/worktrees/governance-phase4`, which now has that branch checked out), from local main. Sessions still
+  on the old CLAUDE.md will meet the refusal, whose message says what to do.
+- **Next:** the rest of Phase 5 (the checker, the pre-push guard, the reminder hook with
   decision 5's line, the gate-in-its-own-worktree trial run).
 
 ### 🪟 23 Nov 2026: HELP OPENS ON TOP OF EVERY MENU — branch `help-on-top` (worktree `.claude/worktrees/help-on-top`, off
