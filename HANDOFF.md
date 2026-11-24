@@ -6,6 +6,14 @@
 
 *Older entries are in [`handoff/`](handoff/), one file per month, carrying no authority. The rules are GOVERNANCE.md and its two companions; open work is on the feature tracker.*
 
+### 📜 24 Nov 2026: GOVERNANCE PHASE 5, HOLD — the rest of Phase 5 after the push guard, one piece per branch from `origin/main`, each shown to the owner before merge. Worktree `.claude/worktrees/wonderful-kilby-2dfd33`. Tracker card `governance-sheet`.
+- **Piece 1, the guard fix** (branch `gov5-guard-local`): the guard refused `git push . governance-phase5:main`, a
+  local-only move. `tools/hooks/pre-push` now lets through a push whose target is this same repository (`.`, or its own
+  path or `file://` URL, from any worktree); a path to any other repository still needs the approval. ⚠️ Git exports
+  `GIT_DIR` into a hook run from a linked worktree, so the hook clears it before asking git about the target. Proof
+  `test-pre-push.sh`: red on the old hook (9a-9c), 19/19 fixed, mutants red. Committed `9a075735` ("Governance:");
+  **not installed** until the owner says yes (`sh tools/hooks/install-hooks.sh`).
+
 ### 📜 23 Nov 2026: GOVERNANCE PHASE 4, THE REWIRE — the rules land in the repo and CLAUDE.md imports them. Branch `governance-phase4` (worktree `.claude/worktrees/governance-phase4`, from `origin/main` `2e3d3fa3`). ✅ **LIVE at `578bd46a`** (owner's pickers 23 Nov 2026: *"Merge into local main"*, *"Push main after the merge"*; pushed `2e3d3fa3..578bd46a`, which also carried local main's `54473204`; deploy run 45473455825 green, Cloudflare step included; the GitHub Pages file is byte-identical to the build, sha256 `6e8bdfc1…`, the same bytes as before, so users see no update bar). Tracker card `governance-sheet`.
 - **What is on the branch:**
   - The rules: `GOVERNANCE.md` (loaded in every session by CLAUDE.md's `@GOVERNANCE.md` import: the intro, PRD, FRZ, FILE,
