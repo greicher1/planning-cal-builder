@@ -557,3 +557,42 @@ Downloads, and the template was unpacked only into a session scratchpad. Everyth
   to `handoff/YYYY-MM.md` (no authority) and its sections 0, 2, 4, 5, 6 became pointers; the doc-fix list applied; the
   shared `.claude/settings.json` (decision 1); memory files point at rule IDs.
 - **OUT-24, the import proved:** see HANDOFF's 23 Nov entry for the two sessions' answers.
+
+### 7f. Phase 5: hold (24 Nov 2026, one branch per piece, each shown to the owner before merge)
+
+- **The push guard** (`tools/hooks/pre-push`, installed in the shared `.git/hooks`): live since 24 Nov (§10, OUT-30). Then
+  **piece 1**: it lets through a push into this same repository (`git push . topic:main`, or this repository's own
+  path), which sends nothing anywhere; a path to any other repository still needs the approval. Live at `a5b32e8b`.
+- **Piece 2, the governance checker** `tools/check-governance.mjs` (`npm run governance`), live at `446de9a1`. Its own
+  script, not part of `npm run check` as §7's table first said: OUT-31 (accepted later) has it block on this computer
+  and inside the push guard, which runs the pushed commit's own copy, and only warn in the deploy.
+  - **Blocking**, the checks the accepted proposals say fail: the import line exactly once and no link through the old
+    public address (OUT-26); IDs unique and never reused, replaced-by pairs, links with exact case (OUT-27); the owner's
+    pick behind any rule added since the review-page commit `578bd46a` (OUT-28); no rule ID lost or renumbered against
+    `origin/main` (OUT-33). Each has two or three broken samples (OUT-40): `--self-test`.
+  - **Warnings**: everything else, including every check beyond the OUT list (OUT-31's "new checks start as warnings").
+- **Piece 3, the reminder hook** (decision 5): `~/.claude/hooks/sptcal-rules-changed.sh`, beside the tracker hook. Once
+  per change it tells a running session "the rules changed since this session started: re-read GOVERNANCE.md", and at
+  a session's first message it tells one on an older branch that its rules are out of date. Seen live 24 Nov.
+- **Piece 4, decision 3's trial**: the gate records the commit, the tree and the build it tested (OUT-29), and the first
+  full gate ran in its own throwaway worktree at the commit being tested (TEST-6).
+- **Piece 5**: every rule held by something says so after its Why (OUT-39); the rest are listed in
+  GOVERNANCE-HISTORY.md as the known gaps; every plan has a status line (OUT-32).
+- **Found by the checker:** two intro paragraphs both labelled INTRO-2; relabelled on the owner's picker (INTRO-4, OUT-38).
+- **The owner's pickers, 24 Nov 2026:** guard fix *"Install it, then push"*; the size budget *"Warn only"* (**against**
+  the recommendation to fail: CLAUDE.md over 12 KB or GOVERNANCE.md over 80 KB warns); the checker *"Install new guard,
+  push"*; the reminder hook *"Install both lines"*; the INTRO slip *"Relabel both"*; the trial *"Plugged in, start it"*;
+  the relabel *"Push it"*. All others as recommended.
+- **Decisions made without a picker** (WORK-4; each is a constant or a few lines in `tools/check-governance.mjs`, easy to
+  change):
+  - HANDOFF's live part warns over 150 KB (`HANDOFF_LIVE_BUDGET`); it was about 120 KB.
+  - OUT-34's second half is read as "an entry older than START HERE's *since* date sits in the live part": START HERE
+    names the version's start, so "older than the newest entry", as written, would always fire.
+  - Rules accepted on the review page count as the owner's pick through the commit they landed in (`578bd46a`,
+    `REVIEW_BASELINE`), rather than by adding a line to each of 190 rules.
+  - "Held by" is written only on rules something holds, with review only as the stated default, to keep the loaded file
+    small: +2.2 KB; writing "review only" on the other rules there would add about 2 KB more.
+  - The reminder hook says each change once, not on every message.
+  - Not built: OUT-33's optional warning (a new code comment citing an owner ruling with no rule ID).
+- **Still open, outside Phase 5:** OUT-36's host rule waits on the private-repo decision; nothing is held by a permission
+  prompt in desktop sessions (REL-1's known mismatch); OUT-35 belongs to Phase 6.
