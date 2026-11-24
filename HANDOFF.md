@@ -6,7 +6,7 @@
 
 *Older entries are in [`handoff/`](handoff/), one file per month, carrying no authority. The rules are GOVERNANCE.md and its two companions; open work is on the feature tracker.*
 
-### 📜 23 Nov 2026: GOVERNANCE PHASE 4, THE REWIRE — the rules land in the repo and CLAUDE.md imports them. Branch `governance-phase4` (worktree `.claude/worktrees/governance-phase4`, from `origin/main` `2e3d3fa3`), committed on the branch, NOT merged, NOT pushed. Tracker card `governance-sheet`.
+### 📜 23 Nov 2026: GOVERNANCE PHASE 4, THE REWIRE — the rules land in the repo and CLAUDE.md imports them. Branch `governance-phase4` (worktree `.claude/worktrees/governance-phase4`, from `origin/main` `2e3d3fa3`). ✅ **LIVE at `578bd46a`** (owner's pickers 23 Nov 2026: *"Merge into local main"*, *"Push main after the merge"*; pushed `2e3d3fa3..578bd46a`, which also carried local main's `54473204`; deploy run 45473455825 green, Cloudflare step included; the GitHub Pages file is byte-identical to the build, sha256 `6e8bdfc1…`, the same bytes as before, so users see no update bar). Tracker card `governance-sheet`.
 - **What is on the branch:**
   - The rules: `GOVERNANCE.md` (loaded in every session by CLAUDE.md's `@GOVERNANCE.md` import: the intro, PRD, FRZ, FILE,
     SEC, REL and WORK in full, and the title of every other rule), `GOVERNANCE-UI.md` (UX, COPY: read before UI or wording
@@ -55,7 +55,7 @@
 - **When this merges into a checkout:** the main checkout's untracked `GOVERNANCE-PLAN.md` must be moved aside first (the
   committed copy is newer), and `scenario-version-offer` will conflict on HANDOFF.md, because the entries it edits moved
   to the archive. Resolve by keeping this branch's HANDOFF and re-adding any new entry at the top of START HERE.
-- **Next:** the owner's pickers to merge and to push; then Phase 5 (the checker, the pre-push guard, the reminder hook with
+- **Next:** the settings probe (the owner picked *"Run it now"*; a session can be started from branch `gov-probe` only on the owner's own message, not from an automated turn, and a proposal card drops the branch), then Phase 5 (the checker, the pre-push guard, the reminder hook with
   decision 5's line, the gate-in-its-own-worktree trial run).
 
 ### 🪟 23 Nov 2026: HELP OPENS ON TOP OF EVERY MENU — branch `help-on-top` (worktree `.claude/worktrees/help-on-top`, off
