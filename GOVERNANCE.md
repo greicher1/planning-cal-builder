@@ -34,6 +34,8 @@ withdrawn rule stays, struck through. Cite rules by ID in new code comments and 
 
 **Declined rules are recorded (OUT-38).** A rule declined on the review page goes into GOVERNANCE-HISTORY.md as Declined with the owner's note; a card moved to rejected carries a one-line reason and a date.
 
+**Held by (OUT-39).** A rule something holds says so after its Why: *Held by:* check, gate, deploy check, push guard, permission prompt, host rule or reminder, what does it, and the date it was seen to work. A rule with no *Held by* is held by review only, a session remembering it; GOVERNANCE-HISTORY.md lists those as the known gaps.
+
 ## Contents
 Loaded in every session (this file):
 - [PRD: What the product is for](#prd) (12)
@@ -76,12 +78,12 @@ The waterfall and the month view are two views of one schedule, always live. The
 
 ### PRD-7 · On screen, the month view looks like its PDF
 On screen, the month view is drawn as the page its PDF will print: the same page, week heights and shrink for a crowded month. Line colour and weight (Soft Lines) are the one intended difference; any other screen-only difference needs the owner's word.
-<br>*Why:* People plan from the printed month, so what they see while editing must be what prints. · *Owner:* "essentially the live viewer should look just like what it will look like in the pdf export" (2026-11-16)
+<br>*Why:* People plan from the printed month, so what they see while editing must be what prints. · *Owner:* "essentially the live viewer should look just like what it will look like in the pdf export" (2026-11-16) · *Held by:* gate (monthpage), seen 2026-11-24
 - Exception, 2026-10-27: Soft Lines (lighter lines and tints, on screen only: 'Screen only for now') stay; line colour and weight are the one intended difference (kept by picker 2026-11-16).
 
 ### PRD-8 · Installed app only, behind the sign-in
 People use SPTCal as the installed app, never in a browser tab, and since v1.21.0 only behind the sign-in. The hosted address in a plain tab shows the install screen; the check for the installed window runs first and fails open, so an installed user is never locked out; saved copies on file:// and localhost are never gated.
-<br>*Why:* A July attempt at a gate locked installed users out, because the installed app loads the same address. · *Owner:* "users should only use SPTCal as the installed PWA" (2026-09-30)
+<br>*Why:* A July attempt at a gate locked installed users out, because the installed app loads the same address. · *Owner:* "users should only use SPTCal as the installed PWA" (2026-09-30) · *Held by:* check (the install gate runs first in the build), seen 2026-11-24
 
 ### PRD-9 · Chrome and Edge supported; Chrome is what gets tested
 SPTCal supports Chrome and Edge only (both Chromium), because saving and loading need the File System Access API. In other browsers there is no Load and a strip says so; never call that graceful degradation, because printing has never been measured there. Testing targets Chrome, on Mac and on Windows (see the TEST chapter).
@@ -97,14 +99,14 @@ When a screen gets confusing, simplify it (drop repeated labels, 'also' lines an
 
 ### PRD-12 · SPTCal is an online app, and says so when the network is needed
 SPTCal is an online app: it loads the Excel library from its one allowed server and promises no offline use. When a step that needs the network fails, it says so plainly (couldn't download, offline, still downloading) and the next press tries again; it never blames a block or stays stuck until relaunch.
-<br>*Why:* A refused or slow library fetch once broke Excel export for the whole session with a misleading message.
+<br>*Why:* A refused or slow library fetch once broke Excel export for the whole session with a misleading message. · *Held by:* gate (excelretry), seen 2026-11-24
 
 <a id="frz"></a>
 ## FRZ: The frozen surface
 
 ### FRZ-1 · The grid, width model and writers are frozen, read by the symbol list
 Never restyle, refactor, modernise, wrap in components or migrate to a UI library the frozen surface: the waterfall and month-view grids, the print paths, the width model, the layout and text-fitting functions and the Excel and PDF writers. Decide what is frozen from the symbol list, never from the word "grid", which the owner uses for the whole calendar system: tools/frozen-lock.json is THE list of frozen code, MANTINE-SEAM.md maps the frozen CSS, element ids and structure, and CLAUDE.md only points to them. No checker parses CLAUDE.md's prose.
-<br>*Why:* Every number in it answers a measured past failure (Excel floors the character width to 7; cells have a 3.75 px padding budget; one shared phase layout feeds every output), and none of the reasons are visible in the code. · *Owner:* "the full calendar system (the grid, is that what we're calling it?) can be redesigned under MANTINE" (2026-08-29)
+<br>*Why:* Every number in it answers a measured past failure (Excel floors the character width to 7; cells have a 3.75 px padding budget; one shared phase layout feeds every output), and none of the reasons are visible in the code. · *Owner:* "the full calendar system (the grid, is that what we're calling it?) can be redesigned under MANTINE" (2026-08-29) · *Held by:* check (the frozen-code lock in npm run check), seen 2026-11-24
 - Exception, 2026-09-21: month-view frozen edits approved from PDFs the owner saw, among them hiatus bands that skip Saturday and Sunday, the half-day overlay and the Production bar's span.
 - Exception, 2026-10-20 to 2026-11-11: feature-gated frozen edits that do nothing until their feature is used (side boxes, paper size, text styles, editable headings, hidden Notes columns, month order and note places, month text styles, bar size, Sim Post's name and month order, per-view automatic notes, holiday and automatic-note colours), each proved byte-identical while unused.
 - Exception, 2026-10-27: Soft Lines: on screen only, the month view gets soft grey lines and tints and hides its frozen month arrows; paint only. Whether the PDFs follow has not been ruled.
@@ -118,7 +120,7 @@ Never restyle, refactor, modernise, wrap in components or migrate to a UI librar
 
 ### FRZ-2 · The workbook and waterfall PDF look exactly as v1.0.0 made them
 The Excel workbook and the waterfall PDF must look exactly as the v1.0.0 build made them, from the same writers: never rewrite exportExcel or buildWaterfallPdf. A change that leaves the writers alone but moves or re-widths what comes out is still out of bounds without an owner-approved frozen edit.
-<br>*Why:* Users come from the old version, and the printout has to be the document they already know. · *Owner:* "the output must not be changed - how the excel looks and the pdf looks should be exactly as 1.0.0 was" (2026-08-29)
+<br>*Why:* Users come from the old version, and the printout has to be the document they already know. · *Owner:* "the output must not be changed - how the excel looks and the pdf looks should be exactly as 1.0.0 was" (2026-08-29) · *Held by:* gate (gates 2 and 3, byte for byte), seen 2026-11-24
 - Exception, 2026-11-02: MK1: both written PDFs carry an invisible SPTCal mark, appended after the writer's own bytes.
 - Exception, 2026-11-04: SM1: in the waterfall PDF, touching fills get seam strips so viewers show no light line between weeks.
 - Exception, 2026-11-14: R4: a row nobody sized whose Notes cell holds only two or more holiday lines is 23 px instead of 20, in the waterfall, Excel and the waterfall PDF; a dragged row still wins (worked out afresh on every pass since 16 Nov).
@@ -132,7 +134,7 @@ Keep the waterfall editor as it is (formatting, auto-shrinking, font, size, widt
 
 ### FRZ-4 · A frozen edit needs the owner's yes to that exact change and its gate
 When a change truly needs frozen code, stop and ask: name the edit, say what it can move, and name the measured gate first (usually gates 10 and 13 byte-identical with the feature off, a clipped-cell count, or a PDF diff against a pre-change export). The yes covers that edit and that gate only: a grant for one behaviour (such as column order) is not a grant for a cell's look or the width model. If measurement shows a wider effect, or the owner says 'show me first', go back with before/after outputs. Record each approved edit by id, date and the owner's picker words. A machine check holds this since 21 Nov 2026: npm run check (so every deploy) fails when the text of any of the 55 frozen declarations changes, unless it was re-locked with tools/frozen-lock.mjs --approve "<the owner's words>", which stores the approval on the entry. Like the push guard, it catches a forgotten approval, not one a session types itself.
-<br>*Why:* Frozen edits move outputs people rely on. · *Owner:* "Approve with that gate" (2026-10-19)
+<br>*Why:* Frozen edits move outputs people rely on. · *Owner:* "Approve with that gate" (2026-10-19) · *Held by:* check (the frozen-code lock in npm run check), seen 2026-11-24
 
 ### FRZ-5 · If any output can see it, it is frozen
 Before changing markup, a CSS rule, a constant or an element id near the calendar, ask whether any output (the workbook, the written waterfall PDF, the print-path waterfall PDF, the month PDF) can see it, directly, through a shared store or through a measurement. If yes, it is frozen however much it looks like styling; if you can't tell in a minute, treat it as frozen. The month view is an export renderer, not chrome, and CSS is judged by where it lands in the page, not by the comment above it.
@@ -152,11 +154,11 @@ Mantine's CSS must never reach #table-wrap or #print-root. The fence is import o
 
 ### FRZ-9 · Cell CSS never spends more padding than the width model budgets
 Grid cell CSS spends no more than the width model's 3.75 px of total padding; extra breathing room goes in COL_PAD_CHARS so every output gets it. Gate any change near cell CSS with a clipped-cell count.
-<br>*Why:* Extra padding silently cut off 64 of 255 cells, then 9 of 52 date cells; and a row drag stores the rendered height, so one gesture carries a CSS mistake into both exports for good. · *Derived*
+<br>*Why:* Extra padding silently cut off 64 of 255 cells, then 9 of 52 date cells; and a row drag stores the rendered height, so one gesture carries a CSS mistake into both exports for good. · *Derived* · *Held by:* gate (gate 1: no clipped cell), seen 2026-11-24
 
 ### FRZ-10 · Carlito never drifts, and Inter changes reach the month PDF
 Carlito, the grid and export face, feeds the width model: change it only through tools/subset-font.py with the export gates. Inter, the chrome face, also sets the month PDF (the writer's embedded Inter programs and the month view's note line counts), so a change to Inter is a month-PDF change: rerun tools/subset-inter.py and the month gates.
-<br>*Why:* Frozen measurements read these fonts; a drift moves every column width or every note's line count. · *Derived*
+<br>*Why:* Frozen measurements read these fonts; a drift moves every column width or every note's line count. · *Derived* · *Held by:* check (the month PDF's Inter fonts match this build's Inter), seen 2026-11-24
 
 ### FRZ-11 · Leave the known screen, Excel and PDF differences alone
 Keep the known small disagreements between screen, workbook and PDF (line height 1.35 against 1.3, the date column measured from the short date, the PDF heading row's size, the 20 px row's line budget). Never 'unify' them inside a chrome change; changing either side moves an export.
@@ -168,11 +170,11 @@ Use as few columns as possible: a column must earn its place (not opened for a o
 
 ### FRZ-13 · The month PDF's output is frozen; its writer's code is not ⚖
 Anything that would move a printed month page needs the owner's yes, with the fit's before/after in front of them, and gate 13 byte for byte otherwise. The direct month-PDF writer's code may be tidied and extended under that check; the month renderer it reads stays frozen.
-<br>*Why:* Gate 13 already holds the writer's output byte for byte, but the docs say the owner never ruled whether the writer itself is frozen, so sessions treat it differently. · *Ruled:* 2026-11-21, picker: Freeze its output (as recommended)
+<br>*Why:* Gate 13 already holds the writer's output byte for byte, but the docs say the owner never ruled whether the writer itself is frozen, so sessions treat it differently. · *Ruled:* 2026-11-21, picker: Freeze its output (as recommended) · *Held by:* gate (gates 10 and 13), seen 2026-11-24
 
 ### FRZ-14 · A new option leaves every old calendar byte for byte as it was
 Build a new option so that its default (the key absent) leaves every output and saved file byte for byte unchanged, and prove it with the gates.
-<br>*Why:* Every older calendar must look and save exactly as before; day-first dates, paper size, header off and double-ups were all built this way. · *Owner:* "Yes, this setting only" (2026-10-27)
+<br>*Why:* Every older calendar must look and save exactly as before; day-first dates, paper size, header off and double-ups were all built this way. · *Owner:* "Yes, this setting only" (2026-10-27) · *Held by:* gate (the baselines' calendars, byte for byte), seen 2026-11-24
 
 ### FRZ-15 · Never retint the legacy colour tokens; chrome reads Mantine's
 Chrome CSS reads the --mantine-* variables. The app's legacy tokens (--text, --border-strong and the rest) keep their literal values because frozen CSS reads them; never retint them.
@@ -195,7 +197,7 @@ Editing tints, outlines and dashed slot boxes (the purple Manual or Template hea
 
 ### FILE-1 · Every saved calendar keeps opening, forever
 A calendar saved by any past version must open in every future version; this outranks tidiness, consistency and any refactor. Load reads only the file's snapshot JSON, through the one reader (parseCalendarText), and never parses or runs an old file's HTML, CSS or JavaScript.
-<br>*Why:* A file that stops opening is a user's plan destroyed, and often their only copy.
+<br>*Why:* A file that stops opening is a user's plan destroyed, and often their only copy. · *Held by:* gate (gate 4, and the legs on files old builds saved), seen 2026-11-24
 
 ### FILE-2 · Saved keys are permanent
 Never rename, remove or repurpose a snapshot key: add new ones and keep old ones readable. A feature or control can leave the screen but never the file format: a redesign keeps old keys readable, and keys older builds still read keep being written.
@@ -203,7 +205,7 @@ Never rename, remove or repurpose a snapshot key: add new ones and keep old ones
 
 ### FILE-3 · Saved field ids are part of the file format
 The page's field ids are the keys of every saved file's field list (fields.byId): keep them, or ship an explicit old-id to new-state migration. A new numbered id becomes permanent the first time it is saved. Custom-phase ids end in -<key>, 'color-' is a reserved prefix, and the hidden weeks-production field is part of the format.
-<br>*Why:* None of these throws when broken; the setting just stops coming back. · *Derived*
+<br>*Why:* None of these throws when broken; the setting just stops coming back. · *Derived* · *Held by:* gate (gate 5: the saved ids' set), seen 2026-11-24
 
 ### FILE-4 · Restore unconditionally; a missing key means a new calendar's default
 Restore every key unconditionally (snap.x ? {...snap.x} : {}), and when a file lacks a key use a new calendar's value, never what is already in memory. Every new field, flag, store or list needs a new-calendar default (a line in savedFieldDefault() for an id'd field whose default isn't blank).
@@ -219,7 +221,7 @@ Add saved keys additively: write a new key only when it differs from its default
 
 ### FILE-7 · Only calendar data goes in the file
 Per-user preferences live in localStorage, never in the snapshot, and their controls sit inside a .prefs-card or carry no id. Session state (dirty flags, autosave status, notice visibility, the saved baseline) is never saved. A calendar setting shown among the preferences keeps its own snapshot key and no id'd input, so it isn't stored twice.
-<br>*Why:* How one person likes the app is not the calendar; a preference baked into a file travels in someone else's plan, and getting it backwards fails silently both ways.
+<br>*Why:* How one person likes the app is not the calendar; a preference baked into a file travels in someone else's plan, and getting it backwards fails silently both ways. · *Held by:* gate (prefs: no preference reaches a file), seen 2026-11-24
 
 ### FILE-8 · Keep transient controls out of the field sweep
 The save sweeps every id'd input, select and textarea into the file and the undo stack, so a control that isn't calendar data carries no id or sits in a panel the sweep skips by class (.tools-menu, .prefs-card, .export-pdf-dlg, .compare-dlg), never by id; add a new body-level panel to the skip list first. Leaving out an id doesn't make a Mantine input id-less (wrappers, Checkbox, Switch, SegmentedControl and NativeSelect mint one), so use a plain input or exclude the container, and decide the id strategy before placing one. A change in the saved-id count needs the owner's sign-off.
@@ -239,7 +241,7 @@ Migrate old files into the new app only (new into old can't be supported), follo
 
 ### FILE-12 · Bump SNAPSHOT_VERSION only when older builds must refuse the file
 Raise SNAPSHOT_VERSION only for a change an older build must refuse rather than misread: since v1.3.0 every older build refuses a file with a higher version. A file with no version is a pre-v1.1.0 calendar and must keep opening.
-<br>*Why:* A needless bump locks every older build out of new files. · *Derived*
+<br>*Why:* A needless bump locks every older build out of new files. · *Derived* · *Held by:* gate (scenariocompat: an older build refuses a newer file), seen 2026-11-24
 
 ### FILE-13 · Never convert a file unasked; the first save always opens the picker
 Never convert a user's file without asking: opening a legacy .html recommends upgrading, saving one asks and writes a new .sptcal, and Cancel changes nothing. The first save always opens the save picker, and autosave never chooses a location; it says the calendar needs a file instead.
@@ -255,7 +257,7 @@ Load, Undo, a scenario switch, a crash backup and boot restore all go through sa
 
 ### FILE-16 · Recovered work goes back into its own file, and only if it applied
 Recovered unsaved work returns to the file it came from, with the backup's stamp; keep the recovery picker call synchronous from the click. If a backup can't be applied, say so, keep it, and never write over its file.
-<br>*Why:* Reopening the app once loaded the last calendar as untitled, and an unapplied backup could have let autosave write a blank calendar over the user's file. · *Owner:* "sometimes when we reopen the app, it loads the last calendar we were on but as an" (2026-11-04)
+<br>*Why:* Reopening the app once loaded the last calendar as untitled, and an unapplied backup could have let autosave write a blank calendar over the user's file. · *Owner:* "sometimes when we reopen the app, it loads the last calendar we were on but as an" (2026-11-04) · *Held by:* gate (recoverfail), seen 2026-11-24
 
 ### FILE-17 · A changed default reaches new calendars only
 A new default (a setting, a default name, a year's default hiatus, how a field prints) applies to new calendars only: first launch, New and Reset All. A saved calendar opens and prints exactly as it was saved, and no export of it moves: store things so an absent key still means the old behaviour, and when a field's meaning changes, rewrite it on load to what it used to print.
@@ -264,7 +266,7 @@ A new default (a setting, a default name, a year's default hiatus, how a field p
 
 ### FILE-18 · A change that would re-lay old calendars goes through a stamp
 When a layout or behaviour change would move an old calendar, tie it to a stamp saved in the file: a calendar without the stamp keeps its old result byte for byte and is offered the change once in a dismissible strip (Update, one undo step, or Keep as is). Nothing changes on its own, never through undo or recovery, and the restore default is never flipped to match a new calendar's default. Changing the layout rules themselves needs the owner's approval, with the rule fixtures reproduced and every other baseline byte-identical.
-<br>*Why:* Old saved plans must keep their columns and widths forever; flipping the absent default would have re-laid every older calendar. · *Owner:* "this can just be for calendars going forward not old ones" (2026-11-02)
+<br>*Why:* Old saved plans must keep their columns and widths forever; flipping the absent default would have re-laid every older calendar. · *Owner:* "this can just be for calendars going forward not old ones" (2026-11-02) · *Held by:* gate (colreuse: an unstamped file keeps its layout), seen 2026-11-24
 
 ### FILE-19 · What's tied to the schedule moves with it
 Store anything tied to the schedule against what it's tied to (a phase and its working week, or a shoot-day number), never a calendar date, so it travels with every mover and the shift tools never re-key it. A mover that moves a phase carries that phase's own hiatus, band, spans, column swaps and text styles; every mover runs inside asShootDayMove, so Production's day marks move by shoot-day number. Holidays, locked all-phase hiatuses and notes carrying a date never move.
@@ -302,15 +304,15 @@ SPTCal is served only from addresses the sign-in covers: never publish to a host
 
 ### SEC-5 · The installed-window check runs first and fails open
 On the hosted address the app boots only in the installed app window; an ordinary tab gets the install screen. The installed-window check runs before anything looks at the address and fails open. Never gate file:// or localhost.
-<br>*Why:* A July gate that asked the address first locked installed users out, because the installed app loads the same address.
+<br>*Why:* A July gate that asked the address first locked installed users out, because the installed app loads the same address. · *Held by:* check (the install gate runs first in the build), seen 2026-11-24
 
 ### SEC-6 · The installed identity never changes without a plan
 The manifest's computed id is the installed identity: never add an id key, never change name, start_url or scope, and list only that id in related_applications. Another address means every user reinstalls.
-<br>*Why:* The v1.21.0 move made every user reinstall once. · *Derived*
+<br>*Why:* The v1.21.0 move made every user reinstall once. · *Derived* · *Held by:* check (the manifest's identity is unchanged), seen 2026-11-24
 
 ### SEC-7 · Anything loaded from a new place must be added to the CSP by hand
 Anything that loads from a new place (a font, image, fetch, frame, worker or CDN) must be added to the Content-Security-Policy by hand. No inline on* handler and no javascript: URL.
-<br>*Why:* The test server strips the policy, so every leg passes while the product refuses the resource. · *Derived*
+<br>*Why:* The test server strips the policy, so every leg passes while the product refuses the resource. · *Derived* · *Held by:* check (the policy's hashes and hosts) + gate (cspproof: no violation), seen 2026-11-24
 
 ### SEC-8 · Calendars and deploy secrets stay off the host and out of sessions
 Calendars never go to the hosting provider; they stay as files on users' computers. The deploy token never passes through a Claude session.
@@ -333,7 +335,7 @@ The app's code goes to everyone who runs it, so it can hold no secret: only secr
 
 ### REL-1 · Every push needs its own approval, asked by picker
 Never push without the owner's approval for that specific push, asked with a picker that names what the push carries. An earlier yes, 'looks good', a tracker click or a remark like 'merge and push everything' is not approval. 'Push when green' means a fully green gate, no unexplained failure, and any moved baseline signed off first. ⚖ The repo's shared Claude Code settings (.claude/settings.json, so every worktree has them) ask before a push, a deploy or rollback run, a release, skipping hooks or wiping uncommitted work; that click is the owner's, never a session's (picker, 23 Nov 2026: "Yes, for a short list").
-<br>*Why:* main auto-deploys to the live app other people use. · *Owner:* "Every push needs its own explicit OK" (2026-09-25)
+<br>*Why:* main auto-deploys to the live app other people use. · *Owner:* "Every push needs its own explicit OK" (2026-09-25) · *Held by:* push guard (no push without the approved commit), seen 2026-11-24
 - Held by the push guard since 2026-11-24 (owner's picker "Install it"): a pre-push hook in the shared .git/hooks, so every worktree runs it, refuses any push unless `SPTCAL_PUSH_OK=<sha>` names the commit every branch or tag it sends points at (a delete needs `delete:<ref>`). Set it only to the commit the owner's push picker named, in that turn. Seen to refuse a dry-run push from this branch's worktree, the main checkout and an old worktree; source, installer and proof in tools/hooks/. It catches a forgotten approval, not a forged one or --no-verify (REL-15).
 - Known mismatch, 2026-11-23/24: the shared .claude/settings.json holds nothing in desktop sessions: in auto mode neither its ask rule (a `git push --dry-run` ran unprompted) nor a deny rule (a probe on a harmless echo) applied, though Claude Code's docs say both should. The push guard above is the stop that works.
 
@@ -371,7 +373,7 @@ Write a README.md changelog entry, newest first, in the same commit as any chang
 
 ### REL-10 · A version cut bumps three version files and adds four things
 Cut a version when the app reaches a state worth returning to; the owner picks it, usually in the push picker ('Push as v1.x.y'). A cut bumps APP_VERSION in src/legacy/app.js, version.json and package.json together, never the root index.html, and adds a changelog entry, an annotated tag (pushed on its own), a byte-identical releases/vX.Y.Z.html checked with cmp, a new saved fixture, and a What's New entry if users would care. A version that was never public is not cut after the fact. build the releases/ copy in a clean worktree at the tagged commit. Keep each version's single-file copy as a GitHub Release asset instead of committing it under releases/; the deploy's rollback input fetches the asset. The tag stays in git.
-<br>*Why:* version.json alone shows every user an update that doesn't exist; APP_VERSION alone hides a real one.
+<br>*Why:* version.json alone shows every user an update that doesn't exist; APP_VERSION alone hides a real one. · *Held by:* check (the three version numbers agree), seen 2026-11-24
 
 ### REL-11 · Roll back by redeploying the previous release
 To pull a bad release, run the Build and deploy workflow on main with release set to the previous version. Never serve the root index.html: it is v1.2.0 and stays byte-identical to releases/v1.2.0.html as the legacy app.
@@ -379,7 +381,7 @@ To pull a bad release, run the Build and deploy workflow on main with release se
 
 ### REL-12 · What's New tells users only what they'd care about
 Add a What's New entry for a release users would care about (features, changes to how something works or prints, fixes for bugs users hit), as a plain list in user words, in the same commit as its changelog entry. Leave out small UI tweaks, tiny fixes, tests, docs, the build, and anything with ids, plan names or confidential details. An entry's id never changes once shipped.
-<br>*Why:* Small tweaks and behind-the-scenes work are noise to users, and the entries ship inside the app. · *Owner:* "only for things the user would actually care about - small UI changes, tiny bug fixes (not major ones), and anything behind the scenes, don't tell the user." (2026-11-19)
+<br>*Why:* Small tweaks and behind-the-scenes work are noise to users, and the entries ship inside the app. · *Owner:* "only for things the user would actually care about - small UI changes, tiny bug fixes (not major ones), and anything behind the scenes, don't tell the user." (2026-11-19) · *Held by:* check (entry ids unique, newest first), seen 2026-11-24
 
 ### REL-13 · Commit messages say what changed, why and what was checked
 Write long, explanatory commit messages in the established style: what changed, why, what was verified, and any bug history. End with the attribution line the session specifies, naming the model actually used.
@@ -426,7 +428,7 @@ Update HANDOFF.md alongside any substantial change: a feature, a fix that taught
 
 ### WORK-8 · Read the rules, then HANDOFF's current part, then only what the task touches
 GOVERNANCE.md (loads by itself), GOVERNANCE-UI.md before UI or wording work and GOVERNANCE-ENG.md before code, test or build work, HANDOFF's current part, then only the plan and reference sections the task touches, found by searching for the feature or symbol; UI-CONVENTIONS for UI work only. A "see also" list is a map, not homework.
-<br>*Why:* HANDOFF is the only doc that reflects right now; reading it late meant acting on stale context.
+<br>*Why:* HANDOFF is the only doc that reflects right now; reading it late meant acting on stale context. · *Held by:* reminder (the rules-changed hook), seen 2026-11-24
 
 ### WORK-9 · Warn before a long session degrades
 Watch the context window and, without being asked, tell the owner when a session is getting long, before quality drops: save the work, update HANDOFF, and start fresh pointed at HANDOFF. a hand-off's HANDOFF entry names what the owner asked for (and what the session only suggested), the branch and last commit, the last commit actually tested and how, questions still waiting on the owner, one next step, and "no approval carries over to the next session".
@@ -438,7 +440,7 @@ Before asking to merge or push a change that alters an export or anything with a
 
 ### WORK-11 · Every feature the owner mentions goes on the tracker
 Add every feature, change or fix the owner mentions to the feature tracker as 'requested' in the same turn, and move its card when its stage changes. A click on the board is a signal, never a merge or push approval. when a card or plan moves to live or dropped, its closing note says where each unbuilt step went: a new card (with its ID), an existing card, or dropped on the owner's word (with the date). ⚖ The tracker is the one list of open work: every open item is a card, and HANDOFF holds only what is in flight right now, each with its card ID (picker, 23 Nov 2026: "The tracker").
-<br>*Why:* The board is how the owner sees everything they've asked for. · *Owner:* "whenever i even mention a feature i want it should be added" (2026-10-21)
+<br>*Why:* The board is how the owner sees everything they've asked for. · *Owner:* "whenever i even mention a feature i want it should be added" (2026-10-21) · *Held by:* reminder (the tracker hook), seen 2026-11-24
 
 ### WORK-12 · Check plan usage before a big multi-agent run
 Before any run of more than about five heavy agents, check plan usage, tell the owner the rough cost against what's left, and size it with them: stage it, use cheaper models for reading, or spend a reset they choose. a feature request or bug report never licenses an audit or big agent run (say what a wider look would cost and find, then ask). Don't split a run to stay under the five-agent line. Give each agent a slice that doesn't overlap, no agent starts agents of its own unless the owner said so, and report actual usage afterwards.
@@ -458,7 +460,7 @@ Document any debt the UI promises but doesn't deliver (a grip drawn before its d
 
 ### WORK-16 · Retire a rule by striking it through, never deleting it
 When a rule in a doc is retired or replaced, strike it through, point at its replacement, and record the owner's words and date. Nothing is deleted.
-<br>*Why:* The history shows why the current rule exists. · *Derived*
+<br>*Why:* The history shows why the current rule exists. · *Derived* · *Held by:* check (npm run governance: no rule ID lost against main), seen 2026-11-24
 
 ### WORK-17 · Audit fixes: approval first, one at a time, with the gate
 Fix nothing from an audit without approval; do the fixes one at a time, each with the gate, and finish them before starting a new risky project.

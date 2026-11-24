@@ -710,6 +710,23 @@ An option's description says only what sets it apart; anything true of every opt
 ### ~~UX-19 · 'Same style as X' means X's colours only~~ (declined)
 When asked to make something look like another control, change its paint only (fill, text colour, hover) and keep its shape, size, radius, spacing and layout; offer any geometry change as a question.
 
+## Held by review only: the known gaps (OUT-39, 24 Nov 2026)
+
+These rules in force have no *Held by*: nothing but a session remembering them holds them. Every other rule says what holds it, after its Why. A rule moves off this list when something is seen to hold it.
+
+- **PRD:** PRD-1, PRD-2, PRD-3, PRD-4, PRD-5, PRD-6, PRD-9, PRD-10, PRD-11
+- **FRZ:** FRZ-3, FRZ-5, FRZ-6, FRZ-7, FRZ-8, FRZ-11, FRZ-12, FRZ-15, FRZ-16, FRZ-17, FRZ-18
+- **FILE:** FILE-2, FILE-4, FILE-5, FILE-6, FILE-8, FILE-9, FILE-10, FILE-11, FILE-13, FILE-14, FILE-15, FILE-17, FILE-19, FILE-20, FILE-21
+- **SEC:** SEC-1, SEC-2, SEC-3, SEC-4, SEC-8, SEC-9, SEC-10, SEC-11
+- **REL:** REL-2, REL-3, REL-4, REL-5, REL-6, REL-7, REL-8, REL-9, REL-11, REL-13, REL-14, REL-15
+- **WORK:** WORK-1, WORK-2, WORK-3, WORK-4, WORK-5, WORK-6, WORK-7, WORK-9, WORK-10, WORK-12, WORK-13, WORK-14, WORK-15, WORK-17, WORK-18, WORK-19, WORK-20, WORK-21, WORK-22, WORK-23, WORK-24, WORK-25, WORK-26, WORK-27
+- **UX:** UX-1, UX-2, UX-3, UX-4, UX-5, UX-6, UX-7, UX-9, UX-10, UX-11, UX-13, UX-14, UX-15, UX-16, UX-17, UX-18, UX-20, UX-21, UX-22, UX-23, UX-24, UX-25, UX-26, UX-27, UX-28, UX-29, UX-31, UX-32, UX-33, UX-34, UX-35, UX-36, UX-37, UX-38, UX-39, UX-40, UX-41, UX-42, UX-43
+- **COPY:** COPY-1, COPY-2, COPY-3, COPY-4, COPY-5, COPY-7, COPY-8, COPY-9, COPY-10, COPY-11, COPY-12
+- **TEST:** TEST-1, TEST-2, TEST-3, TEST-4, TEST-5, TEST-7, TEST-8, TEST-10, TEST-11, TEST-12, TEST-13, TEST-14, TEST-15
+- **CODE:** CODE-1, CODE-2, CODE-4, CODE-8, CODE-9, CODE-10, CODE-11, CODE-13, CODE-14, CODE-15, CODE-16, CODE-17, CODE-18, CODE-19
+
+Nothing is held by a **permission prompt** (desktop sessions ignore the rules in `.claude/settings.json`: REL-1's known mismatch, probed 23-24 Nov 2026) or a **host rule** (OUT-36 waits on the private-repo decision).
+
 ## Accepted proposals that are plan work, not rules (GOVERNANCE-PLAN §10)
 
 - **OUT-18 · Plan §7c · The draft binds nothing yet**: Add one line: until Phase 4 lands, the draft binds nothing beyond rulings the owner has already picked, and sessions keep following CLAUDE.md and HANDOFF.

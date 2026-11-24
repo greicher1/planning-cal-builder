@@ -39,7 +39,7 @@ Resize, fill, rename and choose by dragging, double-clicking or a control on the
 
 ### UX-8 · The grid works like Excel
 A single click highlights; double-click, Enter or typing opens the editor; a press never opens an editor by itself. Highlighted text is styled from the style bar, typing adds to a note rather than replacing it, and keys follow Excel's (arrows, Tab, Delete on cells).
-<br>*Why:* SPTCal replaces Excel for waterfalls, so users bring Excel's habits, and a stray key must never wipe a note. · *Owner:* "double-click (or Enter, or typing) opens a note or hiatus band's editor; a single click highlights it, like Excel." (2026-10-21)
+<br>*Why:* SPTCal replaces Excel for waterfalls, so users bring Excel's habits, and a stray key must never wipe a note. · *Owner:* "double-click (or Enter, or typing) opens a note or hiatus band's editor; a single click highlights it, like Excel." (2026-10-21) · *Held by:* gate (wfkeys), seen 2026-11-24
 
 ### UX-9 · Undo covers every edit, one step each; a view switch isn't one
 Cmd Z and Shift Cmd Z work after every kind of edit (checkboxes, switches, date boxes, grid drags, menu items, renames, hides), one step per user action, with a burst of nudges as one step. Switching between Waterfall and Month view is never an undo step: undo and redo never change the view, and a switch keeps the redo stack. Only a real text field keeps the browser's own typing undo. Nor is a view switch an unsaved change: on a clean calendar it never marks the file unsaved, arms the leave warning or starts an autosave (the view is saved with the next real save).
@@ -55,7 +55,7 @@ Toggling a view, mode, tool or the style bar never shifts, wraps or resizes the 
 
 ### UX-12 · A standard app window: never stacks, scrolls sideways under 960 px
 The app is a fixed window: the page never scrolls, and the sidebar, the waterfall and the month view each scroll in their own box while menus and toolbars stay put. The sidebar stays on the left and nothing ever stacks; on a wide screen the toolbar keeps its size with spare room on the right, on a small one it folds to icons and then a More menu, and below 960 px the window scrolls sideways.
-<br>*Why:* It should behave like a standard desktop app (Excel shows fewer columns on a small screen), not a web page that reflows. · *Owner:* "the left side bar (show, phases, settings) should always stay on the left, I never want the UI to start stacking up and down....the app should basically just force you to use it on a screen size that is wide enough" (2026-11-16)
+<br>*Why:* It should behave like a standard desktop app (Excel shows fewer columns on a small screen), not a web page that reflows. · *Owner:* "the left side bar (show, phases, settings) should always stay on the left, I never want the UI to start stacking up and down....the app should basically just force you to use it on a screen size that is wide enough" (2026-11-16) · *Held by:* gate (toolbarfit), seen 2026-11-24
 
 ### UX-13 · Never cut text off: no ellipses, no truncated labels
 Windows size to their content, narrow layouts wrap or scroll, and wide tables scroll sideways rather than squeeze; never cut text with an ellipsis or drop a fact. Header controls keep their natural width and give up room in deliberate steps (icons first, the status text last), so a label is never clipped; test at a narrow window with a selection live.
@@ -124,7 +124,7 @@ A drag moves day by day rather than snapping to weeks, and a drag that lands off
 
 ### UX-30 · Everything works at every zoom level
 Every calendar feature, including column and row resizing and the text highlight, works at every zoom; anything drawn in grid pixels is redrawn after each zoom change.
-<br>*Why:* Resize handles were hidden while zoomed, and the text highlight drifted up to 76 px at 200%. · *Owner:* "are there any other features that dont work at every zoom level" (2026-10-22)
+<br>*Why:* Resize handles were hidden while zoomed, and the text highlight drifted up to 76 px at 200%. · *Owner:* "are there any other features that dont work at every zoom level" (2026-10-22) · *Held by:* gate (calzoom, zoomresize, hdrfit, pinchzoom), seen 2026-11-24
 
 ### UX-31 · Panels and menus appear at once, with no slide or fade
 Don't add slide or fade animations to chrome without asking.

@@ -28,7 +28,7 @@ Before calling a failure a flake, delete its old result file and re-run that tes
 
 ### TEST-6 · One full gate at a time, and leave the checkout alone while it runs
 Before starting a gate, check that no other gate or queued gate script is running, and stagger with other sessions waiting on the same one. Run it on a quiet machine, on power with the lid open. While it runs, don't edit app.js or gate.sh, rebuild dist/, merge into the checkout or clear the result files. Build first: gate.sh tests dist/ as it stands and refuses a stale one. ⚖ The full gate runs in its own throwaway worktree checked out at the exact commit being tested, so other sessions keep working and the result names that commit (picker, 23 Nov 2026: "Gate in its own worktree"). Known mismatch, 23 Nov 2026: no gate has run this way yet; the first is a trial run (plan Phase 5).
-<br>*Why:* Two gates share a port and kill or stall each other; a gate across a closed lid took 789 minutes; clearing results under a live run fakes failures. · *Derived*
+<br>*Why:* Two gates share a port and kill or stall each other; a gate across a closed lid took 789 minutes; clearing results under a live run fakes failures. · *Derived* · *Held by:* gate (refuses a stale build; fails if the build changes mid-run), seen 2026-11-24
 
 ### TEST-7 · Pass HARNESS_PAGE=/dist/index.html when testing the build
 gate.sh tests the build (/dist/index.html) but run.sh defaults to the legacy root /index.html, so always pass HARNESS_PAGE=/dist/index.html when re-running a test alone. A test that reports nothing is not a test that passed.
@@ -40,7 +40,7 @@ Run a single test on its own HARNESS_PORT, checking it with lsof first in a sepa
 
 ### TEST-9 · Test loading with real files saved by old builds
 Prove the load path with files the old builds themselves saved (the v1.0.0 saved calendar and the fixture cut at every version), never with files the current code wrote.
-<br>*Why:* A round trip through today's code proves nothing about old files, and synthesised files miss what real saves contain. · *Derived*
+<br>*Why:* A round trip through today's code proves nothing about old files, and synthesised files miss what real saves contain. · *Derived* · *Held by:* gate (gate 4, rowmigrate, blocks: files old builds saved), seen 2026-11-24
 
 ### TEST-10 · A dispatched event doesn't prove a gesture works
 For any new control, check that it is really what sits under its own centre (document.elementsFromPoint), and drive real clicks where it is a gesture.
@@ -79,7 +79,7 @@ Work out a layout or rule in one place and have the screen and every writer read
 
 ### CODE-3 · Dates are UTC midnights, built with the helpers
 Handle every date as a UTC midnight through parseDateUTC, addDays, mondayOf and isoOf; weeks snap to Monday. 'Today' is the user's local day turned into a UTC midnight, never Date.now().
-<br>*Why:* Raw Date math drifts across time zones; the date picker's Today was wrong near midnight. · *Derived*
+<br>*Why:* Raw Date math drifts across time zones; the date picker's Today was wrong near midnight. · *Derived* · *Held by:* gate (datetoday), seen 2026-11-24
 
 ### CODE-4 · Holidays are generated, never hand-edited
 Holiday lists come from the crew agreements the owner confirmed, generated from rules in tools/gen_holidays.py (2024-2031) and validated, never edited by hand and never fed live. A correction that moves saved calendars is stamped in the file and announced once. A holiday's id (its original name and date) never changes when it is renamed; region caveat text lives only in the generator's BOX table.
@@ -88,11 +88,11 @@ Holiday lists come from the crew agreements the owner confirmed, generated from 
 
 ### CODE-6 · Never mix up the two embedded fonts
 Carlito is the grid and export face and feeds the frozen width model; Inter is the chrome face and, since October 2026, the month PDF writer's. Touching Carlito changes every export; touching Inter changes the month PDF. Re-run subset-inter.py after fetch-inter.py.
-<br>*Why:* Each font reaches different outputs, and confusing them changes exports nobody meant to touch. · *Derived*
+<br>*Why:* Each font reaches different outputs, and confusing them changes exports nobody meant to touch. · *Derived* · *Held by:* check (the month PDF's Inter fonts match this build's Inter), seen 2026-11-24
 
 ### CODE-7 · Docs name symbols, never line numbers or live counts
 Name functions and symbols in docs, never line numbers; line numbers live only in PROJECT-CONTEXT §14, checked by tools/check-refs.py (which can't see src/legacy/app.js). Don't state a live count in prose; keep an inventory in one place, pinned to a fixture.
-<br>*Why:* A wrong line number reads as precision; one commit once invalidated about 107 references twice in a day, and an id count went stale within days. · *Derived*
+<br>*Why:* A wrong line number reads as precision; one commit once invalidated about 107 references twice in a day, and an id count went stale within days. · *Derived* · *Held by:* check (tools/check-refs.py; only warns in the deploy), seen 2026-11-24
 
 ### CODE-8 · Comments explain why, and existing ones stay
 Code comments explain why (the bug, the browser constraint, the failure), at length when needed. Keep existing explanatory comments intact when editing nearby.
@@ -112,7 +112,7 @@ Drop a click guard on the next press or key, never after a timeout.
 
 ### CODE-12 · Excel headers and footers stay within 255 characters
 Keep each Excel header and footer string within 255 characters in total, counted as Excel stores it.
-<br>*Why:* One character over and Excel reports the whole file as corrupt. · *Derived*
+<br>*Why:* One character over and Excel reports the whole file as corrupt. · *Derived* · *Held by:* gate (hdrexcel), seen 2026-11-24
 
 ### CODE-13 · Declare new top-level state before any boot code reads it
 Declare new top-level state with let near the top of the engine, before any boot code that reads it.
