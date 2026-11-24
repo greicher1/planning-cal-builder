@@ -106,7 +106,7 @@ def main():
 
     # All the prose docs, not just the original four: MANTINE-SEAM.md and STAGE-8.md both
     # cite the frozen surface heavily and are exactly where a line number would creep back.
-    for md in ('PROJECT-CONTEXT.md', 'CLAUDE.md', 'HANDOFF.md', 'SPTCAL-ENCRYPTION.md',
+    for md in ('PROJECT-CONTEXT.md', 'CLAUDE.md', 'HOW-IT-WORKS.md', 'HANDOFF.md', 'SPTCAL-ENCRYPTION.md',
                'MANTINE-SEAM.md', 'MANTINE-MIGRATION.md', 'STAGE-8.md',
                'UI-CONVENTIONS.md'):
         text = (ROOT / md).read_text(encoding='utf-8')
