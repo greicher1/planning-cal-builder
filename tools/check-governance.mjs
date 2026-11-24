@@ -338,13 +338,16 @@ export function runChecks(src) {
     }
   }
 
-  // OUT-39 · "Held by" in the fixed vocabulary
+  // OUT-39 · "Held by" in the fixed vocabulary, written after a rule's Why as
+  //   *Held by:* <mechanism> (<what holds it>)[ + <mechanism> (<what>)], seen YYYY-MM-DD
+  // Only a real mechanism gets the date it was seen to work; a rule with no *Held by* is held by review only.
   for (const r of live) {
     for (const m of r.body.matchAll(/\*Held by:\*\s*([^·\n<]+)/g)) {
-      const v = m[1].trim().toLowerCase();
-      for (const part of v.split(/\s*(?:,|;| and | \+ )\s*/)) {
-        if (!HELD_BY.some(h => part === h || part.startsWith(h + ' '))) warn('OUT-39 held by', `${r.file}:${r.line}: ${r.id} is held by "${part}", which is not one of: ${HELD_BY.join(', ')}`);
-      }
+      const raw = m[1].trim();
+      const dated = /,\s*seen \d{4}-\d{2}-\d{2}$/.test(raw);
+      const mechs = raw.replace(/,\s*seen \d{4}-\d{2}-\d{2}$/, '').replace(/\([^)]*\)/g, '').split('+').map(x => x.trim().toLowerCase()).filter(Boolean);
+      for (const part of mechs) if (!HELD_BY.includes(part)) warn('OUT-39 held by', `${r.file}:${r.line}: ${r.id} is held by "${part}", which is not one of: ${HELD_BY.join(', ')}`);
+      if (!dated && mechs.some(x => x !== 'review only')) warn('OUT-39 held by', `${r.file}:${r.line}: ${r.id} names a mechanism but not the date it was seen to work (", seen YYYY-MM-DD")`);
     }
   }
 
