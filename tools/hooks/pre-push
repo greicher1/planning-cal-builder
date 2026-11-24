@@ -32,6 +32,32 @@ approval="${SPTCAL_PUSH_OK:-}"
 lines=$(cat)
 [ -z "$lines" ] && exit 0          # nothing to push
 
+# A push INTO THIS SAME REPOSITORY sends nothing off this computer. `git push . topic:main` (remote ".") only
+# moves a local branch, and so does naming this repository's own path from another worktree. That is not a push
+# in REL-1's sense (moving local main is a merge, which REL-5 leaves to the owner's picker), so it goes through
+# with no approval. Only a target that resolves to this same .git folder counts: a local path or file:// URL to
+# ANY OTHER repository (a clone, a bare mirror) is still a push and still needs one. Fixed 24 Nov 2026: the guard
+# had refused `git push . governance-phase5:main` (tools/hooks/test-pre-push.sh cases 9 and 10).
+same_repo() {
+  target="$1"
+  case "$target" in
+    file://*) target="${target#file://}" ;;
+    *://*) return 1 ;;                       # https://, ssh://, git://: never this computer's repository
+  esac
+  [ -d "$target" ] || return 1               # rules out remote names and scp-style host:path too
+  mine=$(cd "$(git rev-parse --git-common-dir)" 2>/dev/null && pwd -P) || return 1
+  # Git exports GIT_DIR into a hook run from a linked worktree; left set, git would describe THIS repository
+  # whatever folder it was pointed at, and every local path would look like home (test case 10c). The ceiling
+  # stops git climbing out of the target into a repository that merely contains it: only a second layer, since
+  # git itself refuses a push to a plain folder before this hook runs, so no test case can reach it.
+  theirs=$(unset GIT_DIR GIT_WORK_TREE GIT_COMMON_DIR GIT_INDEX_FILE GIT_OBJECT_DIRECTORY GIT_PREFIX
+           abs=$(cd "$target" 2>/dev/null && pwd -P) || exit 1
+           cd "$abs" && d=$(GIT_CEILING_DIRECTORIES=$(dirname "$abs") git rev-parse --git-common-dir 2>/dev/null) \
+             && cd "$d" && pwd -P) || return 1
+  [ -n "$theirs" ] && [ "$theirs" = "$mine" ]
+}
+same_repo "${2:-$remote}" && exit 0
+
 carried() {
   # The commits each ref would send, for the refusal message (at most 15 per ref).
   printf '%s\n' "$lines" | while read -r lref lsha rref rsha; do

@@ -62,6 +62,22 @@ SPTCAL_PUSH_OK="delete:refs/heads/main" git push -q origin :refs/heads/old 2>/de
 SPTCAL_PUSH_OK="delete:refs/heads/old" git push -q origin :refs/heads/old 2>/dev/null \
   && ! git --git-dir="$t/remote.git" rev-parse --verify --quiet refs/heads/old >/dev/null \
   && ok "8c delete with delete:refs/heads/old: deleted" || bad "8c approved delete failed"
+# 9. a push INTO THIS SAME repository sends nothing off the computer, so it needs no approval (fixed 24 Nov 2026:
+#    the guard had refused `git push . governance-phase5:main`)
+git push -q . main:copy 2>/dev/null && [ "$(git rev-parse copy)" = "$(git rev-parse main)" ] \
+  && ok "9a git push . main:copy (remote '.'): let through" || bad "9a a push into this same repository was refused"
+( cd "$t/wt" && git push -q . side:copy2 2>/dev/null ) && git rev-parse --verify --quiet copy2 >/dev/null \
+  && ok "9b the same from a linked worktree: let through" || bad "9b a worktree's push into its own repository was refused"
+( cd "$t/wt" && git push -q "$t/work" side:copy3 2>/dev/null ) && git rev-parse --verify --quiet copy3 >/dev/null \
+  && ok "9c this repository named by its own path, from a worktree: let through" || bad "9c a push to this repository's own path was refused"
+# 10. a local path to ANY OTHER repository is still a real push (origin here is itself a local path, so 1-8 cover it by name)
+other() { git --git-dir="$t/remote.git" rev-parse --verify --quiet "refs/heads/$1" >/dev/null; }
+git push -q "$t/remote.git" main:other 2>/dev/null; other other && bad "10a another repository by its path: pushed" \
+  || ok "10a another repository named by its path: refused"
+git push -q "file://$t/remote.git" main:other 2>/dev/null; other other && bad "10b another repository by file:// URL: pushed" \
+  || ok "10b another repository named by a file:// URL: refused"
+( cd "$t/wt" && git push -q "$t/remote.git" side:other2 2>/dev/null ); other other2 && bad "10c another repository by path, from a worktree: pushed" \
+  || ok "10c the same from a linked worktree (git hands the hook GIT_DIR there): refused"
 
 echo ""
 echo "push guard: $pass passed, $fail failed"
