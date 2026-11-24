@@ -1,0 +1,101 @@
+#!/bin/sh
+# SPTCal's PUSH GUARD (REL-1, REL-15; governance plan Phase 5, accepted proposal OUT-30).
+#
+# Every push to this repo needs the owner's approval for THAT push (REL-1). Until now nothing but a
+# session's memory held that: the 23-24 Nov 2026 probes showed desktop Claude sessions apply neither the
+# "ask" nor the "deny" rules in .claude/settings.json. Git runs this hook for every `git push` from every
+# worktree, whatever tool started it, so it is the one stop that does not depend on a session remembering.
+#
+# HOW TO PUSH (the owner's own pushes included): name the commit the push was approved for.
+#
+#     SPTCAL_PUSH_OK=<sha> git push origin main
+#
+# The push goes through only if every branch or tag it sends points at that commit (a tag is peeled to
+# its commit, so `main` plus a version tag on the same commit is one approval). Deleting a remote branch
+# or tag needs SPTCAL_PUSH_OK=delete:<remote ref>, e.g. delete:refs/heads/old-branch. A push the hook
+# can't read, a missing approval, or an approval naming another commit is refused, with the commits the
+# push would have carried listed so the owner can be asked about exactly those (REL-2).
+#
+# ⛔ ITS LIMIT, said plainly: it catches a FORGOTTEN approval, not a forged one. A session can type the
+# variable itself, or skip the hook with --no-verify. Both break REL-1 and REL-15 ("never route around a
+# guard"): set SPTCAL_PUSH_OK only to the commit the owner's push picker named, in the same turn.
+#
+# The installed copy lives in the shared hooks folder inside .git (`git rev-parse --git-common-dir`),
+# which every worktree uses. Install or check it with tools/hooks/install-hooks.sh; prove it with
+# tools/hooks/test-pre-push.sh. This file is protected (GOVERNANCE INTRO-2): change it only on the
+# owner's yes, in a commit touching nothing else, with a message starting "Governance:".
+
+z40=0000000000000000000000000000000000000000
+remote="$1"
+approval="${SPTCAL_PUSH_OK:-}"
+
+lines=$(cat)
+[ -z "$lines" ] && exit 0          # nothing to push
+
+carried() {
+  # The commits each ref would send, for the refusal message (at most 15 per ref).
+  printf '%s\n' "$lines" | while read -r lref lsha rref rsha; do
+    if [ "$lsha" = "$z40" ]; then
+      echo "  delete $rref"
+      continue
+    fi
+    echo "  $lref -> $rref:"
+    if [ "$rsha" != "$z40" ] && git cat-file -e "$rsha^{commit}" 2>/dev/null; then
+      git log --format='    %h %s' -n 15 "$rsha..$lsha" 2>/dev/null
+    else
+      git log --format='    %h %s' -n 15 "$lsha" 2>/dev/null
+      echo "    (new on $remote: showing its latest commits)"
+    fi
+  done
+}
+
+refuse() {
+  {
+    echo ""
+    echo "PUSH REFUSED by the SPTCal push guard (REL-1): $1"
+    echo ""
+    echo "This push would send:"
+    carried
+    echo ""
+    echo "Every push needs the owner's approval for that push, asked by picker, naming what it carries (REL-1, REL-2)."
+    echo "Once the owner has approved THIS push, run it again as:"
+    echo "    SPTCAL_PUSH_OK=<the approved commit> git push ..."
+    echo "Setting the variable without that approval, or skipping this hook, breaks REL-1 and REL-15."
+    echo ""
+  } >&2
+  exit 1
+}
+
+[ -n "$approval" ] || refuse "no approval given (SPTCAL_PUSH_OK is not set)."
+
+approved=""
+case "$approval" in
+  delete:*) ;;
+  *)
+    case "$approval" in
+      *[!0-9a-fA-F]*) refuse "SPTCAL_PUSH_OK='$approval' is not a commit id." ;;
+    esac
+    [ ${#approval} -ge 7 ] || refuse "SPTCAL_PUSH_OK='$approval' is too short to name one commit (7 characters at least)."
+    approved=$(git rev-parse --verify --quiet "$approval^{commit}") \
+      || refuse "SPTCAL_PUSH_OK='$approval' names no commit in this repository."
+    ;;
+esac
+
+# Check every ref the push sends. The loop runs in a subshell, so it reports through its exit status.
+printf '%s\n' "$lines" | {
+  bad=0
+  while read -r lref lsha rref rsha; do
+    if [ "$lsha" = "$z40" ]; then
+      [ "$approval" = "delete:$rref" ] || { echo "  delete $rref is not the approved action" >&2; bad=1; }
+      continue
+    fi
+    peeled=$(git rev-parse --verify --quiet "$lsha^{commit}") \
+      || { echo "  can't tell what $lref points at" >&2; bad=1; continue; }
+    [ "$peeled" = "$approved" ] \
+      || { echo "  $lref is $(git rev-parse --short "$peeled"), not the approved $(git rev-parse --short "$approved" 2>/dev/null || echo "$approval")" >&2; bad=1; }
+  done
+  exit $bad
+}
+[ $? -eq 0 ] || refuse "the approval does not match what this push sends (see above)."
+
+exit 0
