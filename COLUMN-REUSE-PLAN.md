@@ -1,5 +1,7 @@
 # COLUMN-REUSE-PLAN.md
 
+**Status:** live in v1.6.0 · 20 Oct 2026 · card `column-reuse`
+
 **A phase may take over the column of a phase that has just finished, so a long multi-stage
 calendar keeps a few steady lanes instead of drifting right.**
 

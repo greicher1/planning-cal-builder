@@ -1,5 +1,7 @@
 # GRID-DIRECT-MANIPULATION-PLAN.md
 
+**Status:** live in v1.3.0 (its follow-ups were dropped 13 Nov 2026) · 2 Sep 2026 · no card
+
 **Two owner-requested direct-manipulation features for the waterfall editor: batch cell expand
 (Feature 1) and grid column swap (Feature 2).**
 

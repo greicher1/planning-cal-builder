@@ -1,5 +1,7 @@
 # PHASE-WEEK-ARROWS-PLAN.md: move one phase a week at a time from its card
 
+**Status:** live in v1.11.0 · 5 Nov 2026 · card `waterfall-phase-drag`
+
 **Status: RULED. The arrows LIVE since `4a90017` (4 Nov 2026). §5 (the month drag) BUILT on branch `month-drag-carry` (5 Nov 2026), not merged, not pushed; §5a is the as-built record.**
 - **Layout C2** (owner, 4 Nov 2026, after D was built and every layout was drawn on the real card at three window
   widths: *"show me a version of C where you make the up and down button slightly taller and wider (expand the box

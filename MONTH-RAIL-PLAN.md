@@ -1,5 +1,7 @@
 # MONTH-RAIL-PLAN.md: the phase map rail and the Soft Lines month view (option 3d+)
 
+**Status:** live in v1.9.0 · 27 Oct 2026 · card `month-nav-in-toolbar`
+
 *Planned and built 27 Oct 2026 on branch `claude/month-rail`: all six steps done, the third full gate green (§12–§17).
 Not in main, not pushed. Mockup: [`mockups/month-view-redesign.html#o3d2`](mockups/month-view-redesign.html), tab 3d+.
 Tracker cards: `month-nav-in-toolbar`, `month-view-modern-look`.*

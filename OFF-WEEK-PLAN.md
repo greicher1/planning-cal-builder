@@ -1,5 +1,7 @@
 # OFF-WEEK-PLAN.md
 
+**Status:** live in v1.5.0 · 20 Oct 2026 · card `off-weeks`
+
 **Status: STEP A LIVE (`6e868b1`); STEP B BUILT, GATED AND COMMITTED 19–20 Oct 2026 on branch `offweek-step-b`, month baselines re-cut on the owner's sign-off (§12). Not merged, not pushed.** Step A was committed on branch `off-week` (`9174e43`, `f79adc9` the frozen band alone, then the leg and docs; §11). Not merged, not pushed. Q1–Q7 were all answered by
 the owner the same day (§8). That includes Q7, the sign-off on §3.5's frozen edit to `renderMonthView`, approved
 against §3.5's five-point gate.

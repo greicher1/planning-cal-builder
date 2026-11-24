@@ -1,5 +1,7 @@
 # HIDE-NOTES-PLAN.md: hide a year's Notes column in the waterfall
 
+**Status:** live in v1.9.0 · 23 Oct 2026 · card `hide-notes-columns`
+
 **Status: BUILT on branch `hide-notes` (worktree `.claude/worktrees/hide-notes`), 22 Oct 2026.** The owner's picker
 the same day: *"Sign off all"*, which approves every frozen edit in §6, including the on-screen strip, with §6's gate.
 Then *"build it"*. The `notescols` leg passes 48/48 and is red on the pre-change build. §9 records what changed in

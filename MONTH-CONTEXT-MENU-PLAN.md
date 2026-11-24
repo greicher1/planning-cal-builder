@@ -1,5 +1,7 @@
 # MONTH-CONTEXT-MENU-PLAN.md
 
+**Status:** live in v1.5.0 · 20 Oct 2026 · card `month-day-menu`
+
 > ⛔ **TRIMMED BY THE OWNER, 23 Oct 2026 (§13, rulings T1–T4).** The menu described in §2–§3 below is the menu as
 > first built. Add note, Colour… on a bar, both Show in Phases card items, Lock in place, Number weeks and the
 > "Shift + right-click" footer line are GONE, and an item that cannot act on the day is left out rather than greyed.

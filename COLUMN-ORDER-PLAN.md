@@ -1,5 +1,7 @@
 # COLUMN-ORDER-PLAN.md
 
+**Status:** live in v1.3.0 · 2 Sep 2026 · no card
+
 **A genuine column swap: two phases trade sides and neither changes shape. Plus one gesture that
 decides between a whole-column swap and a per-week one from what you selected.**
 

@@ -1,5 +1,7 @@
 # MONTH-PILL-LABEL-PLAN.md
 
+**Status:** live in v1.5.0 · 16 Oct 2026 · card `production-bar-labels`
+
 **Status: STEP 3 (THE CONTROLS) BUILT 16 Oct 2026 in worktree `determined-taussig-70f6a8` (§13), on top of step 2
 as live at `54ffe15`; committed locally, not pushed. Step 2 (the engine) was rebuilt on half-days 15–16 Oct 2026 and is live (§12). Steps 4–6 to
 come.** *(Was: "PLAN, 15 Oct 2026. Nothing built and nothing committed.")* The owner gave five rulings the

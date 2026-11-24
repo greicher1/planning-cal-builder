@@ -1,6 +1,8 @@
 # BLOCKS-PLAN.md
 
-**Status:** ✅ **ALL FOUR STEPS BUILT 22 Sep 2026** (§9, §10) — steps 1–3 touch no frozen code;
+**Status:** live in v1.3.0 · 22 Sep 2026 · no card
+
+**Progress:** ✅ **ALL FOUR STEPS BUILT 22 Sep 2026** (§9, §10) — steps 1–3 touch no frozen code;
 step 4's one frozen edit was shown to the owner as PDFs and approved before committing. **Live at
 `b49556e`** (22 Sep 2026), verified byte-identical to the gated build and driven on production. **Ten rulings**: four on 16 Sep 2026, six more on 22 Sep 2026 (§7).
 **Written:** 16 Sep 2026, against `3338f55`.

@@ -1,5 +1,7 @@
 # A limit on how tall a Month view row can get
 
+**Status:** live in v1.19.0 · 18 Nov 2026 · card `month-row-max-height`
+
 Plan, 17 Nov 2026. Tracker card `month-row-max-height`. Branch `claude/dreamy-keller-2ed2c2`, which sits on top of the
 unpushed month-shrink build (`claude/month-shrink-build-c94fac`, `MONTH-SHRINK-PLAN.md`). The two are independent in
 what they do; this one only shares the branch.

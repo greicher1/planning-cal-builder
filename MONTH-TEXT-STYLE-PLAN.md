@@ -1,5 +1,7 @@
 # MONTH-TEXT-STYLE-PLAN.md
 
+**Status:** live in v1.9.0 · 27 Oct 2026 · card `month-text-style`
+
 **The text style bar, extended to the month view.** Owner, 27 Oct 2026: *"What would it take to allow styling any text
 in the month view calendar with the styling menu"*. Today the bar styles only the month header's lines in the month
 view (TEXT-STYLE-BAR-PLAN.md D4). This plan lets it style the month's bars, bands, notes, month name and weekday row,

@@ -1,5 +1,7 @@
 # HEADER-ROW-PLAN.md — the waterfall's header text and its dates
 
+**Status:** live in v1.6.0 · 20 Oct 2026 · card `header-row`
+
 Owner rulings **2, 4 and 10** of 20 Oct 2026 (HANDOFF, "RULED, NOT YET PLANNED"). Branch
 `claude/header-row-fe6f32`. Status: **✅ SIGNED OFF by the owner, 20 Oct 2026, by picker: "Yes, build
 it"**, with all three questions in §5 answered (a), the recommended option. Building in the order of §7.

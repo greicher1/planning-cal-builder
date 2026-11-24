@@ -1,6 +1,8 @@
 # LABELS-SETUP-PLAN.md — bundle B: six label and setup changes
 
-**Status:** 🔨 BUILT 20 Oct 2026, not merged. The owner's rulings are in §1, the answers to this plan's
+**Status:** live in v1.6.0 · 20 Oct 2026 · card `labels-setup`
+
+**Progress:** 🔨 BUILT 20 Oct 2026, not merged. The owner's rulings are in §1, the answers to this plan's
 questions in §8, the two sign-offs during the build and the as-built record in §10.
 **Branch:** `claude/labels-setup-c74155` (worktree `.claude/worktrees/labels-setup-c74155`), cut from
 local `main` at `be67ca5` (live v1.5.0 + a docs commit).

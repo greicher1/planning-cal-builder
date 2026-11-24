@@ -1,6 +1,8 @@
 # GOVERNANCE-PLAN.md: one rules sheet for SPTCal
 
-**Status:** Phases 0-4 done (Phase 4, the rewire, on 23 Nov 2026: §7e). Phase 5 (the checker and the hooks) is next.
+**Status:** building (Phases 0-4 live; Phase 5 under way) · 24 Nov 2026 · card `governance-sheet`
+
+**Progress:** Phases 0-4 done (Phase 4, the rewire, on 23 Nov 2026: §7e). Phase 5 (the checker and the hooks) is next.
 Tracker card `governance-sheet`.
 
 *The rules themselves are GOVERNANCE.md, GOVERNANCE-UI.md and GOVERNANCE-ENG.md, edited by hand. Paths below under

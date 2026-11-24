@@ -1,5 +1,7 @@
 # WATERFALL-CONTEXT-MENU-PLAN.md
 
+**Status:** live in v1.9.0 · 23 Oct 2026 · card `waterfall-right-click-menu`
+
 **Status: BUILT AND GATED 23 Oct 2026** on branch `claude/goofy-austin-fa2c05` (`d4e5654`; full gate 2,976 / 2, both
 fails load timeouts green alone), not merged, not pushed. §10 has
 what the build changed from this plan. Tracker card `waterfall-right-click-menu`.

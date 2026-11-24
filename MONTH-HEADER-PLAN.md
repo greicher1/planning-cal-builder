@@ -1,6 +1,8 @@
 # MONTH-HEADER-PLAN.md
 
-**Status:** ✅ **BUILT, 21 Sep 2026.** All seven steps of §7, against the four §6 rulings.
+**Status:** live in v1.3.0 · 22 Sep 2026 · no card
+
+**Progress:** ✅ **BUILT, 21 Sep 2026.** All seven steps of §7, against the four §6 rulings.
 Written as a plan against `2863460`; this header is the only part kept up to date after the build —
 the sections below are the plan as it was reasoned, and `README.md`'s changelog entry plus
 `HANDOFF.md` are what shipped.

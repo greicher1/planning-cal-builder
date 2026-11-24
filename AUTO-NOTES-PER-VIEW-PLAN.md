@@ -1,5 +1,7 @@
 # AUTO-NOTES-PER-VIEW-PLAN.md: automatic notes shown per view, and automatic notes for custom phases
 
+**Status:** live in v1.11.0 · 4 Nov 2026 · card `auto-notes-per-view`
+
 **Status: RULED, 2 Nov 2026 (owner, by picker: R1(a), R2(a), R3(a), R4(a), every one the recommendation). STEP 1
 LIVE at `a82506c`** (custom-phase notes), and AUTO-NOTE-RENAME-PLAN.md, which §7 put next, LIVE at `e1ed962`. **STEPS 2-4
 BUILT 4 Nov 2026 on branch `auto-notes-view`** (worktree `.claude/worktrees/auto-notes-view`, from `main` at `61542f5`;

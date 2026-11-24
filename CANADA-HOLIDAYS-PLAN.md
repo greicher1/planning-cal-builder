@@ -1,5 +1,7 @@
 # Canadian holiday lists: plan
 
+**Status:** live in v1.10.0 · 29 Oct 2026 · card `canada-union-holidays-check`
+
 🔨 **BUILT, 29 Oct 2026, on branch `canada-holidays`** (worktree `.claude/worktrees/canada-holidays`), owner: *"Build it
 now"*. All four rulings (§4) were made by the owner the same day: *"Yes, all four"*, every one as recommended. The
 owner then asked for the days that differ from the practical list to be flagged in the app (§6). Everything below is

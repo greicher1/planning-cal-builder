@@ -1,5 +1,7 @@
 # REBUILD-FROM-LENGTHS-PLAN.md: Rebuild From becomes Build Around, lengths in the box, both sides at once
 
+**Status:** live in v1.12.0 (as Build Around) · 6 Nov 2026 · card `rebuild-from-lengths`
+
 **Status: ALL RULED, BUILT 5 Nov 2026 on branch `build-around`** (worktree `.claude/worktrees/build-around`, from
 `main` at `cf75104`). HANDOFF's entry has the as-built record. Mockup:
 [`mockups/rebuild-from-lengths.html`](mockups/rebuild-from-lengths.html): four tabs (Today, A, B, C) and three made-up

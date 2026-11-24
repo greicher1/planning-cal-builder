@@ -1,5 +1,7 @@
 # LAYOUT-STUDY-PLAN.md
 
+**Status:** live in v1.11.0 (the study behind LAYOUT-BUILD-PLAN.md) · 5 Nov 2026 · card `learned-column-layout`
+
 **Find out, from the owner's own picks, how the waterfall's columns should be ordered, reused and spanned —
 then write those rules down and build them, so a calendar lays itself out without "Reuse Empty Columns".**
 

@@ -1,6 +1,8 @@
 # MONTH-PDF-WRITER-PLAN.md
 
-**Status:** ✅ **ALL SIX STEPS BUILT (5 Oct 2026). Export PDF in the month view runs the writer**
+**Status:** live in v1.5.0 · 5 Oct 2026 · card `month-pdf-writer`
+
+**Progress:** ✅ **ALL SIX STEPS BUILT (5 Oct 2026). Export PDF in the month view runs the writer**
 (ruling 4(a)): the file is built from the model alone and saved through the Save dialog, with characters it
 cannot set named first. The print path is the rollback (`MV_PDF_MODE`), and on localhost only the test
 switch's route. The built app's file is held byte for byte to the sliced source's, and since step 6 to its

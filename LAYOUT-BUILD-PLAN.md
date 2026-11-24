@@ -1,5 +1,7 @@
 # LAYOUT-BUILD-PLAN.md
 
+**Status:** live in v1.11.0 · 5 Nov 2026 · card `learned-column-layout`
+
 **Build the nineteen waterfall layout rules of [`LAYOUT-RULES.md`](LAYOUT-RULES.md) §0 into SPTCal, in three
 gated pieces, so a calendar lays itself out the way the owner's own calendars are laid out, and the Reuse Empty
 Columns switch retires.**

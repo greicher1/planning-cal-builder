@@ -1,5 +1,7 @@
 # SCENARIOS-PLAN.md
 
+**Status:** live in v1.9.0 · 23 Oct 2026 · card `scenarios`
+
 **Scenarios: several versions of one calendar, side by side, in one file.** Item 8 of the "what Excel-like
 functionality are we missing" list (22 Oct 2026). Written 22 Oct 2026. **✅ All six decisions RULED the same day, by
 picker, each as recommended (§1).**

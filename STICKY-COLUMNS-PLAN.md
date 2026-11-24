@@ -1,5 +1,7 @@
 # Sticky columns — a phase you move keeps its column (BUILT 6 Nov 2026 on branch `sticky-cols`, not committed — §8)
 
+**Status:** live in v1.13.0 · 11 Nov 2026 · card `no-side-flip-when-nudged`
+
 Owner, 6 Nov 2026, three screenshots of a test phase moved a week at a time around Production (right of it starting
 7/26, LEFT starting 8/2, right at 8/9): *"I think whats still bothering me is this"* … *"its not just about production
 i dont like how it does this for any phase"*. Then, by picker, of three options: **"Plan sticky columns"** (the other

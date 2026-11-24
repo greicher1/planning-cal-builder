@@ -1,5 +1,7 @@
 # MONTH-SHRINK-PLAN.md — a crowded month shrinks on screen exactly as its PDF does
 
+**Status:** live in v1.19.2 · 18 Nov 2026 · card `month-view-shrink-like-pdf`
+
 **Status: STAGE 2 DONE (17 Nov 2026, owner: "finish"): tests re-premised, each red on a mutant, docs written; the full
 gate ran 18 Nov (5,731 pass, 14 timeouts each green alone, gates 10 and 13 byte-identical; §5). Not pushed.** Stage 1 was built on branch `claude/month-shrink-build-c94fac` (worktree
 `.claude/worktrees/month-shrink-build-c94fac`), cut from the planning branch `month-shrink` (`c6b7830`: `origin/main`

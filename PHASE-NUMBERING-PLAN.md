@@ -1,5 +1,7 @@
 # PHASE-NUMBERING-PLAN.md
 
+**Status:** live in v1.5.0 · 20 Oct 2026 · card `phase-number-weeks`
+
 **Status: BUILT 19 Oct 2026 on branch `phase-numbering`** (worktree `.claude/worktrees/phase-numbering`), merged with
 `main` at `6b9eeb4` as `1a21a49` and gated (2,001 PASS, 0 FAIL); `main` not moved, not pushed. Rulings R1 and R2 received from the owner the same day (§2), then Q2–Q4 by picker and Q1 in words (§8),
 all as recommended. §11 records what was built and how it was proven.

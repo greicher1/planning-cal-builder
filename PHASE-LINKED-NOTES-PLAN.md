@@ -1,5 +1,7 @@
 # PHASE-LINKED-NOTES-PLAN.md: a note that moves with its phase
 
+**Status:** live in v1.13.0 · 11 Nov 2026 · card `notes-linked-to-phase`
+
 **Status: RULED; STEPS 1–5 BUILT on branch `phase-notes` (step 1 committed `e13bf95`, step 2 `733a037`, step 3
 `647690b`, step 4 `6b1bd58`; step 5, the month view, on 10 Nov 2026), step 6 not started. R1–R9 all ruled 5 Nov 2026
 by picker, every one the recommendation, and R10 on 10 Nov 2026 (§2). The note editor's LOOK is ruled: A2 (below).

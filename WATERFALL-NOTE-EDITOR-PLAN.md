@@ -1,5 +1,7 @@
 # WATERFALL-NOTE-EDITOR-PLAN.md: the waterfall's note editor says what a line is, and hides it
 
+**Status:** live in v1.11.0 · 4 Nov 2026 · card `wf-holiday-editor-mode`
+
 **Status: RULED, 4 Nov 2026 (owner, by picker: R1(a), R2(b), R3(a)). BUILT the same day on this branch** (steps 1-4; the
 full gate's result is in HANDOFF).
 

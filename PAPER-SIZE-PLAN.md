@@ -1,5 +1,7 @@
 # PAPER-SIZE-PLAN.md — the paper the waterfall is laid out for, and the Export PDF dialog
 
+**Status:** live in v1.7.0 · 21 Oct 2026 · card `paper-size`
+
 Owner, 21 Oct 2026: asked what happens when the waterfall is printed on Legal paper, and whether that needs
 a paper-type setting or a direct system print dialog; then *"Yes, write up a plan for a paper-size setting,
 with the rulings I need to make."* On the feature tracker as `paper-size`. Status: **📝 PLANNED, not built.

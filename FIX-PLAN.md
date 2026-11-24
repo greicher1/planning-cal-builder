@@ -1,5 +1,7 @@
 # FIX-PLAN.md: fixing every finding in AUDIT-REPORT.md
 
+**Status:** live in v1.4.1 (its batches shipped in v1.3.0 to v1.4.1) · 30 Sep 2026 · no card
+
 Written 25 Sep 2026. Covers **every** entry in [`AUDIT-REPORT.md`](AUDIT-REPORT.md): 4 high, 15 medium, 26 low, 10 notes, and the 13 suspected items. It follows CLAUDE.md throughout: symbols, never line numbers; every saved calendar keeps opening; no captureSnapshot key and no `fields.byId` id is renamed or removed; frozen edits only where the owner approved them below.
 
 ## 0. Owner rulings this plan rests on (25 Sep 2026)

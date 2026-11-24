@@ -1,5 +1,7 @@
 # CUSTOM-PHASE-UNITS-PLAN.md
 
+**Status:** live in v1.5.0 · 16 Oct 2026 · card `custom-phase-units`
+
 **Status: steps 1–4 and 6 MERGED INTO `main` as `36db1c1` (16 Oct 2026), full gate 1,593 PASS, 0 FAIL; LIVE at
 `695cadc` the same day.** Steps 1–4 BUILT 15 Oct 2026 on branch `custom-units` (steps 1–3 committed as `fa212d7`; step 4, after the
 owner reviewed them (*"Reviewed. Build step 4"*), as `8e78e2c`). Step 5, the full gate, passed on each. ✅ All seven

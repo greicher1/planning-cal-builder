@@ -1,5 +1,7 @@
 # PWA-ONLY-PLAN.md — the hosted link runs the app only as an installed app
 
+**Status:** live in v1.4.1 · 30 Sep 2026 · no card
+
 **Status: DECIDED and BUILT on branch `pwa-gate`; not merged, not deployed.** Written and ruled on
 30 Sep 2026. The owner answered all nine decisions (§9, now recorded there), approved the wording
 (§10), and chose the help line. §11 is what was built and what was proved.

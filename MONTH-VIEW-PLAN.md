@@ -1,6 +1,8 @@
 # MONTH-VIEW-PLAN.md
 
-**Status:** steps 1–6 SHIPPED (16–18 Sep 2026), plus the `dayOverrides` UI that turns step 6's marks
+**Status:** live in v1.3.0 (step 7's handles in v1.5.0) · 18 Sep 2026 · no card
+
+**Progress:** steps 1–6 SHIPPED (16–18 Sep 2026), plus the `dayOverrides` UI that turns step 6's marks
 on; step 7 is ◐ PART-BUILT: every Production handle was built locally on 15 Oct 2026 (§6.7). The custom
 phases' and built-ins' handles follow CUSTOM-PHASE-UNITS (rulings 8 and 7; 7 re-confirmed as 1c). **All four blocking
 rulings received 16 Sep 2026** (§7). ⚠️ This header used to read *"plan only. No code written."*

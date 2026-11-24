@@ -1,5 +1,7 @@
 # SPAN-NOTES-PLAN.md
 
+**Status:** live in v1.8.0 (the outline part; multi-day notes were dropped 13 Nov 2026) · 22 Oct 2026 · card `phases-stand-out`
+
 **Notes that span several days**, month view. Item 21 of the owner's 20 Oct 2026 gap report (private: nothing about
 the calendars behind it belongs in this repo). Written 21 Oct 2026, after the owner asked whether such notes "would
 feel too much like phases and confuse things". **Not ruled yet, and no code written.** §1 holds the four decisions

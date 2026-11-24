@@ -1,5 +1,7 @@
 # HALF-SQUARE-BARS-PLAN.md
 
+**Status:** live in v1.5.0 · 16 Oct 2026 · card `half-days`
+
 **Status: ✅ BUILT 16 Oct 2026** (worktree `sweet-mestorf-8d18b8`, branch `claude/sweet-mestorf-8d18b8`, on top of
 MONTH-PILL-LABEL-PLAN step 2 `62c62b7`, which is not in `main` yet). ⛔ A FROZEN EDIT, **approved by the owner's picker
 on 16 Oct 2026** against §4's gate. §7 records the rulings, the measurement and what was built, and §8 the proof.

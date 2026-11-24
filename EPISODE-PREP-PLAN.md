@@ -1,5 +1,7 @@
 # EPISODE-PREP-PLAN.md
 
+**Status:** live in v1.5.0 · 20 Oct 2026 · card `episode-prep`
+
 **Status: BUILT 19 Oct 2026 on branch `claude/beautiful-bardeen-00c9f0` (§13), committed locally, not merged, not
 pushed.** *(Was: "PLAN, 15 Oct 2026. Nothing built.")* ✅ **All rulings received 15 Oct 2026** (§9). No frozen line
 changed. Gate 5 moved by the two ids §7 predicted and was re-cut on the owner's sign-off (19 Oct 2026).

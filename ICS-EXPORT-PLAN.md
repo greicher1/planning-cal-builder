@@ -1,5 +1,7 @@
 # ICS-EXPORT-PLAN.md: export the month view as an .ics file for Google Calendar, Outlook and Apple Calendar
 
+**Status:** dropped · 13 Nov 2026 · card `month-calendar-export-ics`
+
 **Status: PLANNED, no code. R1, R2 and R4 RULED (owner, by picker, 27 Oct 2026); R3, R5 and R6 still open.** On the tracker as `month-calendar-export-ics`.
 
 Owner, 26 Oct 2026:

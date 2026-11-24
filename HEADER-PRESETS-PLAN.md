@@ -1,5 +1,7 @@
 # HEADER-PRESETS-PLAN.md
 
+**Status:** live in v1.3.0 · 9 Sep 2026 · no card
+
 **Header templates and presets: every header line can mix literal text with live data tokens, any
 line can be styled, the whole arrangement can be saved as a named preset on the user's computer and
 exported/imported as a file — and a version number typed into Show Info lands in the header's

@@ -1,5 +1,7 @@
 # HIATUS-RIPPLE-PLAN.md — a hiatus change moves the phases after it
 
+**Status:** live in v1.11.0 · 5 Nov 2026 · card `hiatus-ripple`
+
 **Status (4 Nov 2026): BUILT on branch `hiatus-ripple`** (worktree `.claude/worktrees/hiatus-ripple`, from `origin/main`
 at `ae4125f`), after the owner's *"Yes, build it"*. Not merged, not pushed. §10 is the as-built record: where it differs
 from the plan above, §10 is right. Tracker card `hiatus-ripple`.

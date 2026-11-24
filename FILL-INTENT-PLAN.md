@@ -1,5 +1,7 @@
 # FILL-INTENT-PLAN.md — a phase fills its free space (the double-click stores the wish, not the width)
 
+**Status:** live in v1.13.0 · 11 Nov 2026 · card `fill-space-toggle`
+
 Owner, 6 Nov 2026. After the rule 13 discussion (a hand-widened cell behaves "weirdly" once the schedule moves under
 it): *"so theres no way to automate the fix in the background?"* → the proposal below → *"Yes, build it"*.
 

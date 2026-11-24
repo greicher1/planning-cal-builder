@@ -1,5 +1,7 @@
 # MONTH-ORDER-PLAN.md: drag bars and notes up and down in the month view, and see what you drag
 
+**Status:** live in v1.9.0 · 22 Oct 2026 · card `month-reorder`
+
 **Status: §1–§8 BUILT AND LIVE (22 Oct 2026, `ff128dd`).** Rulings R1–R4 by the owner's picker on 21 Oct; R4
 approved frozen edits E1 and E2 with the gate in §6. **§9 (23 Oct 2026) is round two**: the owner's bug report and
 two new asks, two more frozen edits (E3, E4) approved by picker, built on branch `month-drag-fix`. Nothing is merged

@@ -1,5 +1,7 @@
 # MONTH-NOTE-SIZE-PLAN.md: note sizes for the month view, and Phase bar size in the same px steps
 
+**Status:** live in v1.10.0 · 3 Nov 2026 · card `month-note-size`
+
 **Status: STEPS 1–4 DONE (2 Nov 2026) on branch `month-note-size`** (worktree `.claude/worktrees/month-note-size`,
 from `main` at `8125dd0`, with `main` at `fa6aa4b` merged in as `7745a86`; its `node_modules` is a symlink, so unlink it
 before `git worktree remove`).

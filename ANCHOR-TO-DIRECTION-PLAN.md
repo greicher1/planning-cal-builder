@@ -1,5 +1,7 @@
 # ANCHOR-TO-DIRECTION-PLAN.md: Anchor To, choose what moves
 
+**Status:** live in v1.11.0 · 5 Nov 2026 · card `anchor-to-direction`
+
 **Status: RULED (4 Nov 2026); layout C BUILT the same day on branch `shift-tool` (HANDOFF's entry has the as-built record).**
 - **The owner chose layout C, one Shift tool (§6):** *"Ok im going to vote we go with C, one master shift tool"*.
 - **R2(a):** it opens on All phases, By weeks every time, which is today's Shift All form.

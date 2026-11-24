@@ -1,5 +1,7 @@
 # HIATUS-DRAG-PLAN.md — drag a hiatus in the month view
 
+**Status:** live in v1.6.0 · 20 Oct 2026 · card `hiatus-drag`
+
 **Status (19 Oct 2026): BUILT, gated, and committed as `fffb589` on branch `hiatus-drag` (worktree
 `.claude/worktrees/hiatus-drag`). Not merged into `main`, not pushed. The owner ruled on all four decisions (§8). §10 is the as-built record. Where it differs from the
 plan above, §10 is right.**

@@ -1,5 +1,7 @@
 # MONTH-BAR-SIZE-PLAN.md: bigger phase bars in the month view
 
+**Status:** live in v1.9.0 · 27 Oct 2026 · card `month-bar-size`
+
 **Status: PLANNED, no code. ALL EIGHT RULINGS ANSWERED (owner, by picker, 27 Oct 2026): every recommendation taken
 except R1, where the owner chose (b), phase bars AND hiatus bands.** **Step 1 DONE (27 Oct 2026): the screen mechanism
 holds.** **Step 2 DONE (27 Oct 2026) on branch `month-bar-size`:** the setting, the control, E1 and E2, and the

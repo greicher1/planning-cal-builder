@@ -1,5 +1,7 @@
 # WATERFALL-KEYS-PLAN.md — Excel's editing keys in the waterfall
 
+**Status:** live in v1.9.0 · 23 Oct 2026 · card `waterfall-keyboard`
+
 Owner, 22 Oct 2026, from the "what Excel features are we missing" list: item 2 (*arrow keys, Tab and Delete on
 the selection*) and item 3 (*copy, cut and paste notes, and drag a note to another week*). Built together on
 branch `wf-keys-paste` because both act on the same thing: the waterfall's highlight (`textSel`, the text style

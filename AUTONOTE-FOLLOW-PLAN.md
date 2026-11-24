@@ -1,5 +1,7 @@
 # AUTONOTE-FOLLOW-PLAN.md: an edited auto-note follows EVERY schedule change, not only drags and shifts
 
+**Status:** live in v1.15.0 · 16 Nov 2026 · card `audit-typed-notes-follow-calendar`
+
 **Status: BUILT 13 Nov 2026, WIDENED** (branch `audit-1-1`; the November audit's Batch 1 item 1.1, AUD2-001/002/003).
 The owner's decision D1 (a), 13 Nov 2026, widened this plan: a line is also ADDED when its holiday or milestone arrives
 in a typed week (moved in, ticked into the waterfall, switched on), TAKEN OUT when switched off, hidden or removed, and

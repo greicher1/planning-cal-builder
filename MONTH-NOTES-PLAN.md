@@ -1,5 +1,7 @@
 # MONTH-NOTES-PLAN.md
 
+**Status:** live in v1.6.0 · 20 Oct 2026 · card `month-notes`
+
 Bundle A of the owner's 20 Oct 2026 gap list: five month-view note features (items 2, 6, 10, 15, 17). Built in
 worktree `month-notes-2951a8`, branch `claude/month-notes-2951a8`, cut from local `main` at `be67ca5`. Siblings:
 `prep-switch` (item 1, lands first) and `labels-setup` (items 3–5, 7–9). The gap report that produced the list is

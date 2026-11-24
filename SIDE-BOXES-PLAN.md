@@ -1,5 +1,7 @@
 # SIDE-BOXES-PLAN.md
 
+**Status:** live in v1.6.0 · 20 Oct 2026 · card `side-boxes`
+
 **Status: BUILT 20 Oct 2026** (`55cce8d`, `9efd62a`), leg `sideboxes` 58/58, red on the pre-change build, full gate 2,120 / 0. The owner
 answered all eight questions in §9 by picker, each as recommended, and approved the frozen edits E1–E6 (§6). Merged by `merge-all` (`0f47dee`) and **live in v1.6.0** (`138d2e5`). §10 records where the build departs from the plan, §11 what was proven.
 **Branch:** `claude/side-boxes-129c72` (worktree `.claude/worktrees/side-boxes-129c72`).

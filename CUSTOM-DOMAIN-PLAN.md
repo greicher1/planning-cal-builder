@@ -1,5 +1,7 @@
 # CUSTOM-DOMAIN-PLAN.md: moving SPTCal to an origin of its own
 
+**Status:** replaced by [`CLOUDFLARE-ACCESS-PLAN.md`](CLOUDFLARE-ACCESS-PLAN.md) · 18 Nov 2026 · card `custom-domain`
+
 ⛔ **SUPERSEDED 18 Nov 2026 by [`CLOUDFLARE-ACCESS-PLAN.md`](CLOUDFLARE-ACCESS-PLAN.md)**, built as v1.21.0: the app moved
 to `sptcal.pages.dev` behind a Cloudflare Access sign-in, not to a custom domain on GitHub Pages (which cannot put a
 sign-in in front of a site). Its table of what cannot follow a move still holds and is quoted there.

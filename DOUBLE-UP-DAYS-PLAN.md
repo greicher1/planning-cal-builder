@@ -1,5 +1,7 @@
 # DOUBLE-UP-DAYS-PLAN.md
 
+**Status:** live in v1.17.0 · 17 Nov 2026 · card `double-up-days`
+
 **Status: BUILT 17 Nov 2026 on branch `claude/double-up-days-037393` (§10), committed locally, not merged, not pushed.**
 *(Was: "PLAN, 17 Nov 2026. Nothing built.")* Every ruling below was given by the owner on 17 Nov 2026, by picker or in
 their own words. Tracker card: `double-up-days`.

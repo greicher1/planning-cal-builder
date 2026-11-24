@@ -1,5 +1,7 @@
 # HEADINGS-EDITABLE-PLAN.md: column headings editable all the time, no switch
 
+**Status:** live in v1.9.0 · 23 Oct 2026 · card `headings-always-editable`
+
 **Status: BUILT, 22 Oct 2026, on branch `claude/headings-editable-5c2c47`** (worktree
 `.claude/worktrees/headings-editable-5c2c47`), cut from `hide-notes` because that branch was not yet in `main`.
 Owner's picker the same day: Q1 **"Bring them back"** (§4, option a), and the frozen edits H1–H3 in §5 **signed

@@ -1,5 +1,7 @@
 # TEXT-STYLE-BAR-PLAN.md
 
+**Status:** live in v1.8.0 · 22 Oct 2026 · card `text-style-bar`
+
 **One styling bar for every piece of text in the waterfall**, always on screen, under the Waterfall / Month toggle and
 the shift buttons, outside the calendar. Owner request, 21 Oct 2026: *"the styling bar the header uses sits above and
 outside the viewport of the calendar and is permanently there … This menu should allow you to individually style any

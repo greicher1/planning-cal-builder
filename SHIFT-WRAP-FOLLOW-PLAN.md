@@ -1,5 +1,7 @@
 # SHIFT-WRAP-FOLLOW-PLAN.md — Shift keeps every phase's distance from the wrap
 
+**Status:** live, in no version yet · 21 Nov 2026 · card `shift-keeps-wrap-gap`
+
 Status: **built on branch `shift-wrap-follow`, not merged** (20 Nov 2026). Tracker card `shift-keeps-wrap-gap`. Leg `shiftwrapfollow`.
 
 ## 1. The ask and the rulings

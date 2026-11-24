@@ -1,5 +1,7 @@
 # KEY-FACTS-PLAN.md: each scenario's key facts in a band above the tabs, and a Location box in Show info
 
+**Status:** live in v1.9.0 · 23 Oct 2026 · card `scenario-key-facts`
+
 **Status: PLANNED, placement RULED (C), no code.** Mockup: [`mockups/scenario-key-facts.html`](mockups/scenario-key-facts.html).
 On the tracker as `scenario-key-facts` and `show-location-field`.
 

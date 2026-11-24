@@ -1,5 +1,7 @@
 # PHASES-TAB-PLAN.md: month-view-only phases, and a redesigned Phases tab
 
+**Status:** live in v1.9.0 · 24 Oct 2026 · card `phases-tab-redesign`
+
 **Status: BUILT, 23 Oct 2026, on branch `claude/angry-mclean-b408af` (worktree `.claude/worktrees/angry-mclean-b408af`),
 from `main` at `5ce6129`. Both parts are built; legs `hidewf` and `phasesui` are green; full gate 3,069 / 2 (both explained, HANDOFF), every frozen output byte-identical; §5 says what was built and where
 it differs from this plan.** Part 1's rulings are in. Part 2's design is the picked **A + D blend, with Production's big

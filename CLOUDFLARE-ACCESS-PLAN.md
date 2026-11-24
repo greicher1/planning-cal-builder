@@ -1,5 +1,7 @@
 # CLOUDFLARE-ACCESS-PLAN.md: SPTCal behind a sign-in, on an address of its own
 
+**Status:** live in v1.21.0 · 18 Nov 2026 · card `private-repo-password`
+
 **A plan. Nothing in the SPTCal repo is built yet.** Written 18 Nov 2026, after a test that passed
 (§2). It replaces [`CUSTOM-DOMAIN-PLAN.md`](CUSTOM-DOMAIN-PLAN.md) (30 Sep 2026) as the plan for
 moving the app's address: that plan's table of what cannot follow a move (§5 here) still holds, but
