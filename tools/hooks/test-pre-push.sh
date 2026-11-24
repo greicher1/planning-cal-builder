@@ -78,6 +78,27 @@ git push -q "file://$t/remote.git" main:other 2>/dev/null; other other && bad "1
   || ok "10b another repository named by a file:// URL: refused"
 ( cd "$t/wt" && git push -q "$t/remote.git" side:other2 2>/dev/null ); other other2 && bad "10c another repository by path, from a worktree: pushed" \
   || ok "10c the same from a linked worktree (git hands the hook GIT_DIR there): refused"
+# 11. the governance check (OUT-31): an approved push also needs the PUSHED commit's own rules check to pass.
+#     Stand-in checkers here; tools/check-governance.mjs --self-test proves the real one.
+mkdir -p tools
+printf 'console.log("stand-in governance check: pass");\n' > tools/check-governance.mjs
+git add tools/check-governance.mjs && git commit -qm "checker passes"; c=$(git rev-parse HEAD)
+SPTCAL_PUSH_OK="$c" git push -q origin main 2>/dev/null && [ "$(remote_main)" = "$c" ] \
+  && ok "11a approved, and the commit's governance check passes: pushed" || bad "11a approved push with a passing check failed"
+before=$(remote_main)
+printf 'console.log("stand-in governance check: FAIL"); process.exitCode = 1;\n' > tools/check-governance.mjs
+git commit -qam "checker fails"; c=$(git rev-parse HEAD)
+msg=$(SPTCAL_PUSH_OK="$c" git push origin main 2>&1)
+[ "$(remote_main)" = "$before" ] && printf '%s' "$msg" | grep -q "governance check failed" && printf '%s' "$msg" | grep -q "stand-in governance check: FAIL" \
+  && ok "11b approved, but the commit's governance check fails: refused, its report shown, remote unchanged" || bad "11b failing governance check: pushed or no report"
+printf 'this is not javascript (\n' > tools/check-governance.mjs
+git commit -qam "checker broken"; c=$(git rev-parse HEAD)
+SPTCAL_PUSH_OK="$c" git push -q origin main 2>/dev/null; [ "$(remote_main)" = "$before" ] \
+  && ok "11c a governance check that can't run: refused (fails closed)" || bad "11c a broken check let the push through"
+printf 'console.log("pass");\n' > tools/check-governance.mjs          # passes in the working tree, not committed
+SPTCAL_PUSH_OK="$c" git push -q origin main 2>/dev/null; [ "$(remote_main)" = "$before" ] \
+  && ok "11d the pushed commit's own check runs, not the working tree's: refused" || bad "11d the working tree's check was used"
+git checkout -q -- tools/check-governance.mjs
 
 echo ""
 echo "push guard: $pass passed, $fail failed"

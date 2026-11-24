@@ -124,4 +124,38 @@ printf '%s\n' "$lines" | {
 }
 [ $? -eq 0 ] || refuse "the approval does not match what this push sends (see above)."
 
+# THE GOVERNANCE CHECK (OUT-31): an approved push must also leave the rules files sound. The pushed commit's OWN
+# tools/check-governance.mjs runs against that commit's files (never the working tree, which may hold other edits),
+# comparing rule IDs with the remote's main as git last saw it. A commit from before the checker existed (an older
+# branch) is let through with a note. A failure refuses the push; warnings are counted, never refuse. Fails closed:
+# if the check can't run, the push doesn't go.
+if [ -n "$approved" ] && git cat-file -e "$approved:tools/check-governance.mjs" 2>/dev/null; then
+  short=$(git rev-parse --short "$approved")
+  base="refs/remotes/$remote/main"
+  git rev-parse --verify --quiet "$base^{commit}" >/dev/null || base="$remote/main"
+  gdir=$(mktemp -d "${TMPDIR:-/tmp}/sptcal-govcheck.XXXXXX") || refuse "the governance check could not run (no temp folder)."
+  git show "$approved:tools/check-governance.mjs" > "$gdir/check-governance.mjs"
+  if command -v node >/dev/null 2>&1; then
+    node "$gdir/check-governance.mjs" --rev "$approved" --base "$base" --quiet >&2
+    gstatus=$?
+  else
+    echo "node is not on this PATH" >&2
+    gstatus=2
+  fi
+  rm -rf "$gdir"
+  if [ "$gstatus" -ne 0 ]; then
+    {
+      echo ""
+      echo "PUSH REFUSED by the SPTCal push guard: the governance check $( [ "$gstatus" -eq 1 ] && echo failed || echo 'could not run') on $short (OUT-31)."
+      echo "The approval was right; the rules files in that commit are not. Fix what is listed above (run"
+      echo "    npm run governance"
+      echo "to see it in full), commit, and ask the owner to approve the new commit."
+      echo ""
+    } >&2
+    exit 1
+  fi
+elif [ -n "$approved" ]; then
+  echo "push guard: $(git rev-parse --short "$approved") predates the governance checker; check skipped." >&2
+fi
+
 exit 0
