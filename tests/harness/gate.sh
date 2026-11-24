@@ -83,6 +83,40 @@ bad() { say "  FAIL  $1"; FAIL=1 }
 
 say "=== gate: $PAGE ==="
 
+# ---- what this run tests (OUT-29, governance Phase 5, 24 Nov 2026) ----------------------------------------------------
+# A gate result belongs to ONE commit and ONE build. The main checkout often holds other sessions' uncommitted edits,
+# and "the gate passed" has been read as covering a commit it never ran on. So the gate says, first and last, and writes
+# to gate-record.txt beside its results (ignored by git, like every *.txt here):
+#   - the commit it ran on (HEAD of this checkout) and its branch;
+#   - whether src/, tools/ or tests/ held uncommitted changes. If they did, it is a WORKING-TREE run: it tested code no
+#     commit holds, so it backs no push (a re-gate on the commit, or the owner's waiver);
+#   - the sha256 of the page it served (dist/index.html for the build): the build fingerprint that REL-3's check of the
+#     live file compares, and that the push picker quotes beside the gated commit.
+# At the end it hashes the page again: a build that changed under a live run (TEST-6) is a FAIL, not a footnote.
+# Since decision 3 (TEST-6, 23 Nov 2026) the gate runs in its own throwaway worktree at the commit being tested, where
+# all three should come out clean.
+GREPO="$(cd "$HERE/../.." && pwd)"
+GATE_COMMIT="$(git -C "$GREPO" rev-parse HEAD 2>/dev/null || print unknown)"
+GATE_BRANCH="$(git -C "$GREPO" rev-parse --abbrev-ref HEAD 2>/dev/null || print unknown)"
+GATE_DIRTY="$(git -C "$GREPO" status --porcelain --untracked-files=all -- src tools tests 2>/dev/null)"
+GATE_PAGEFILE="$GREPO${PAGE}"
+GATE_BUILD="$( [[ -f "$GATE_PAGEFILE" ]] && shasum -a 256 "$GATE_PAGEFILE" | cut -d' ' -f1 || print "missing: $GATE_PAGEFILE")"
+GATE_START="$(date '+%Y-%m-%d %H:%M:%S %Z')"
+gate_record() {   # $1 = the result so far
+  {
+    print -r -- "commit:  $GATE_COMMIT ($GATE_BRANCH)"
+    if [[ -z "$GATE_DIRTY" ]]; then print -r -- "tree:    clean (src/, tools/, tests/ match the commit)"
+    else print -r -- "tree:    WORKING-TREE RUN: src/, tools/ or tests/ held uncommitted changes, so this result backs no push (OUT-29):"
+         print -r -- "$GATE_DIRTY" | sed 's/^/           /'; fi
+    print -r -- "build:   sha256 $GATE_BUILD ($PAGE)"
+    print -r -- "started: $GATE_START"
+    print -r -- "result:  $1"
+  } > "$HERE/gate-record.txt"
+}
+gate_record "running"
+sed 's/^/  /' "$HERE/gate-record.txt"
+say ""
+
 # ---- base: grid geometry, clipping, both exports ---------------------------------------------
 # ⛔ ON THE LEGACY LAYOUT PATH (LAYOUT-BUILD-PLAN.md §3.2, owner sign-off 5 Nov 2026). The reference calendar is a
 # NEW calendar, and a new calendar carries the layout stamp (`colReuse`) since 2 Nov 2026; under the layout rules
@@ -4380,6 +4414,17 @@ for PROVER in prove-header-template prove-col-permutation; do
   fi
 done
 
+say ""
+# OUT-29: the build must be the one the run started on (TEST-6: never rebuild dist/ under a live gate).
+GATE_BUILD_END="$( [[ -f "$GATE_PAGEFILE" ]] && shasum -a 256 "$GATE_PAGEFILE" | cut -d' ' -f1 || print missing)"
+if [[ "$GATE_BUILD_END" != "$GATE_BUILD" ]]; then bad "the page changed during the run (sha256 now $GATE_BUILD_END): this result tested two builds"; fi
+GATE_HEAD_END="$(git -C "$GREPO" rev-parse HEAD 2>/dev/null || print unknown)"
+[[ "$GATE_HEAD_END" == "$GATE_COMMIT" ]] || say "  note  HEAD moved during the run, to $GATE_HEAD_END: the result is for $GATE_COMMIT"
+if [[ $FAIL == 0 ]]; then GATE_RESULT="PASSED"; else GATE_RESULT="FAILED"; fi
+gate_record "$GATE_RESULT, finished $(date '+%Y-%m-%d %H:%M:%S %Z')"
+say "--- what this run tested (OUT-29; also in tests/harness/gate-record.txt) ---"
+sed 's/^/  /' "$HERE/gate-record.txt"
+[[ -z "$GATE_DIRTY" ]] || say "  ⚠️  WORKING-TREE RUN: it backs no push. Gate the commit itself (in its own worktree, TEST-6)."
 say ""
 if [[ $FAIL == 0 ]]; then say "=== GATE PASSED ==="; else say "=== GATE FAILED ==="; fi
 exit $FAIL
