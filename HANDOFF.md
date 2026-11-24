@@ -6,6 +6,58 @@
 
 *Older entries are in [`handoff/`](handoff/), one file per month, carrying no authority. The rules are GOVERNANCE.md and its two companions; open work is on the feature tracker.*
 
+### 📜 23 Nov 2026: GOVERNANCE PHASE 4, THE REWIRE — the rules land in the repo and CLAUDE.md imports them. Branch `governance-phase4` (worktree `.claude/worktrees/governance-phase4`, from `origin/main` `2e3d3fa3`), committed on the branch, NOT merged, NOT pushed. Tracker card `governance-sheet`.
+- **What is on the branch:**
+  - The rules: `GOVERNANCE.md` (loaded in every session by CLAUDE.md's `@GOVERNANCE.md` import: the intro, PRD, FRZ, FILE,
+    SEC, REL and WORK in full, and the title of every other rule), `GOVERNANCE-UI.md` (UX, COPY: read before UI or wording
+    work), `GOVERNANCE-ENG.md` (TEST, CODE: read before code, test, build or gate work) and `GOVERNANCE-HISTORY.md`.
+    190 rules. From now on these files are edited by hand only (OUT-20).
+  - `CLAUDE.md` 121 KB → 9 KB: the commands as a table (OUT-25), a code map, the reading order (WORK-8), and a table
+    from each old heading to its rule IDs (OUT-19). Its notes moved nearly word for word to `HOW-IT-WORKS.md`.
+  - HANDOFF: the entries before v1.23.0 (19 Nov) moved to `handoff/2026-09.md`, `2026-10.md` and `2026-11.md`, each saying it
+    carries no authority (OUT-21); sections 0, 2, 4, 5 and 6 became pointers, their old text in
+    `handoff/sections-before-governance.md`. 2.07 MB → about 150 KB. Every line of the old file was checked to be kept.
+  - The doc-fix list applied (README, PROJECT-CONTEXT, UI-CONVENTIONS, MANTINE-SEAM, MANTINE-MIGRATION, THREAT-MODEL,
+    SPTCAL-ENCRYPTION, FIX-PLAN, dated "Corrected" lines in the archive), the declined COPY-6 text struck through, and
+    `GOVERNANCE-PLAN.md` committed (§7e has this phase).
+  - `.claude/settings.json`, tracked: Claude Code asks before a push, a deploy or rollback run, a release, skipping hooks
+    or wiping uncommitted work (decision 1). Outside git, the `git push *` / `gh api *` allowances were removed from the
+    main checkout's and 13 worktrees' `.claude/settings.local.json`.
+  - Private memory points at rule IDs, with its stale lines fixed.
+- **The owner's pickers, 23 Nov 2026, all as recommended:** how much loads, *"Core six + all titles"*; the one list of open
+  work, *"The tracker"*; a permission prompt on pushes, *"Yes, for a short list"*; the shared checkout, *"Gate in its own
+  worktree"*; running sessions told of rule changes, *"One line from the hook"*; other branches' HANDOFF notes, *"Fold the
+  recent ones in"*. They are in REL-1, WORK-8, WORK-11, TEST-6 and the plan's §10.
+- **Measured (OUT-22), the app's own "Memory files" count:** **42,176** tokens per session before (CLAUDE.md + memory
+  index); **29,223** after, in a fresh session on this branch (31% less).
+- **OUT-23:** no session was running. Only three old branches still change CLAUDE.md (31 Aug, 22 Oct, 11 Nov). The main
+  checkout's uncommitted HANDOFF entries and 15 branches' unpushed "is live" notes (16-23 Nov) were folded in before the
+  archive; about 40 older branches were left, and their entries are archived as main had them. Full list:
+  `phase4-prereqs.md` in the governance session family's shared notes folder.
+- **OUT-24, the proof** (two fresh Sonnet sessions, auto mode, asked to answer before opening any file):
+  - **New worktree on this branch:** it loaded CLAUDE.md, GOVERNANCE.md and the memory index, quoted REL-15 word for word,
+    and had TEST-15's title only, which is the design (TEST is in GOVERNANCE-ENG.md).
+  - **Worktree on an old branch** (`ui-scaling`, 16 Nov): it loaded only its own 98 KB CLAUDE.md, with no REL-15 and no
+    TEST-15. ⚠️ **Claude Code does not load the main checkout's CLAUDE.md in a worktree session.** A session gets the rules
+    only once its own branch carries this change. Existing worktrees keep the old text until they take `main`, and so does
+    the main checkout, on `scenario-version-offer`, until that branch takes `main`. Decision 5's hook line (Phase 5) is what
+    tells them.
+  - Learned on the way: worktree sessions DO load the main project's memory index (`MEMORY.md`).
+  - ⚠️ **Decision 1 did not hold in auto mode.** In the new-worktree session (auto mode, the shared settings on disk),
+    `git push --dry-run origin HEAD:refs/heads/governance-prompt-test` ran with NO permission prompt (dry run, nothing
+    created; `git ls-remote` confirms). Claude Code's docs (permission-modes, "Rules in auto mode") say an `ask` rule
+    resolves to a prompt even in auto mode, and `Bash(git push:*)` is the right syntax, so either the desktop app does not
+    load the tracked `.claude/settings.json` or ask rules behave differently there. Recorded as a known mismatch on REL-1.
+    **The probe that tells the two apart is ready:** local branch `gov-probe` (never merge it) adds a `deny` rule for the
+    harmless `echo governance-deny-probe`; a fresh session cut from it runs that one command. Refused means the file loads
+    (then report the ask-rule behaviour as a bug, or use a deny rule); printed means the app ignores project settings (then
+    the shared file holds nothing, and the push guard in Phase 5 is the real stop). Delete `gov-probe` afterwards.
+- **When this merges into a checkout:** the main checkout's untracked `GOVERNANCE-PLAN.md` must be moved aside first (the
+  committed copy is newer), and `scenario-version-offer` will conflict on HANDOFF.md, because the entries it edits moved
+  to the archive. Resolve by keeping this branch's HANDOFF and re-adding any new entry at the top of START HERE.
+- **Next:** the owner's pickers to merge and to push; then Phase 5 (the checker, the pre-push guard, the reminder hook with
+  decision 5's line, the gate-in-its-own-worktree trial run).
+
 ### 🪟 23 Nov 2026: HELP OPENS ON TOP OF EVERY MENU — branch `help-on-top` (worktree `.claude/worktrees/help-on-top`, off
 `origin/main` at `8056c32a`), pushed to `main` on the owner's picker. Tracker card `help-above-menus`.
 - **Owner:** "More in Help" from the ⓘ in Shift or Build Around opened Help with the box still on top, *"those two menus. or
@@ -247,6 +299,8 @@
   outside-framework proposals were accepted. The draft is now `governance-work/GOVERNANCE.md`, **190 rules, 108 KB**,
   plus `GOVERNANCE-HISTORY.md` (declines recorded; the 21 accepted plan-work items listed). Details are in
   GOVERNANCE-PLAN §7d.
+  - ✅ **Phase 4 done 23 Nov 2026: see the entry above.** The `governance-work/` paths in this entry are history: a local
+    record on the owner's Mac that no session needs (OUT-20).
   - **Next: Phase 4 (rewire) in a fresh session:** slim CLAUDE.md and import GOVERNANCE.md, archive old HANDOFF
     entries, and do the accepted Phase 4 items (measure the session load first, settle open branches, prove the import
     loads).

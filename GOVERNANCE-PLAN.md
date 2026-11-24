@@ -536,3 +536,22 @@ Downloads, and the template was unpacked only into a session scratchpad. Everyth
   session loads) once Phase 4 has measured it.
 - **Next: Phase 4, rewire, in a fresh session** (this one is long, and the weekly usage limit was at 97% on 23 Nov).
   Start from HANDOFF and this plan's §7d, §10 and §10a.
+
+### 7e. ✅ Phase 4 done: the rewire (23 Nov 2026, branch `governance-phase4`)
+
+- **OUT-22, what every session loads, measured** by the app's own count ("Memory files"):
+  - before: CLAUDE.md (121 KB) + the memory index = **42,176 tokens** per session;
+  - after: CLAUDE.md (9 KB) + GOVERNANCE.md (73 KB) + the memory index = **29,223 tokens**, 31% less, measured in a fresh
+    session on this branch;
+  - the whole 108 KB sheet would have cost about what CLAUDE.md did, hence decision 2 (§10): "Core six + all titles".
+  - **Proposed budget, for the owner to confirm in Phase 5:** CLAUDE.md under 12 KB and GOVERNANCE.md under 80 KB, held by
+    the checker (OUT-26).
+- **OUT-23, open branches:** no session was running. Only three old branches still changed CLAUDE.md. For HANDOFF, this
+  checkout's uncommitted entries and the unpushed "is live" notes of 15 branches from 16-23 Nov were folded in first
+  (owner's picker "Fold the recent ones in"); about 40 older branches were left, their entries archived as main had them.
+- **What changed:** GOVERNANCE.md + GOVERNANCE-UI.md + GOVERNANCE-ENG.md + GOVERNANCE-HISTORY.md at the repo root;
+  CLAUDE.md slimmed to run / build / test notes, a commands table, a code map and one `@GOVERNANCE.md` import, with a
+  table from each old heading to its rule IDs; its notes moved to HOW-IT-WORKS.md; HANDOFF's entries before v1.23.0 moved
+  to `handoff/YYYY-MM.md` (no authority) and its sections 0, 2, 4, 5, 6 became pointers; the doc-fix list applied; the
+  shared `.claude/settings.json` (decision 1); memory files point at rule IDs.
+- **OUT-24, the import proved:** see HANDOFF's 23 Nov entry for the two sessions' answers.
