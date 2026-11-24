@@ -371,11 +371,16 @@ export function runChecks(src) {
     }
   }
 
-  // OUT-32 · a status line under every plan's title
+  // OUT-32 · a status line under every plan's title:
+  //   **Status:** <planned | building | live in vX.Y.Z | parked | dropped | replaced by X> · D Mon YYYY · card `id` (or: no card)
   for (const p of src.plans) {
     const st = planStatus(F.get(p) || '');
     if (!st) warn('OUT-32 plan status', `${p}: no **Status:** line under its title (${PLAN_STATUS.join(', ')})`);
     else if (!st.word) warn('OUT-32 plan status', `${p}: unknown status "${st.raw}" (use ${PLAN_STATUS.join(', ')})`);
+    else {
+      if (!/\b\d{1,2} [A-Z][a-z]{2} \d{4}\b/.test(st.raw)) warn('OUT-32 plan status', `${p}: its status line has no date (D Mon YYYY)`);
+      if (!/\bcards? `[a-z0-9-]+`|\bno card\b/.test(st.raw)) warn('OUT-32 plan status', `${p}: its status line names no tracker card (card \`id\`, or "no card")`);
+    }
   }
 
   // OUT-34 · HANDOFF's live part stays small
