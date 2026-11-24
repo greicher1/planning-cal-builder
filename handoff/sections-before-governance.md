@@ -1,0 +1,2196 @@
+# HANDOFF archive: the numbered sections as they stood before the rules sheet
+
+*History. This file carries no authority (GOVERNANCE.md, INTRO-1). These are HANDOFF.md's sections 0, 2, 4, 5 and 6 as they stood on 23 Nov 2026, when governance Phase 4 turned them into pointers to rule IDs (and section 2's open work into tracker cards). A rule found only here can only be proposed.*
+
+## 0. The rules that override everything else
+
+1. **Never commit or push on your own initiative.** `main` auto-deploys to a live public site with
+   real users on it. Ask, with an interactive checkbox picker, every time. See §5a.
+2. **Never touch the grid or the exports.** `#table-wrap`, `#print-root`, the width model, the
+   layout functions and the Excel/PDF writers are frozen. Not restyled, not refactored, not
+   wrapped in components, not migrated to a UI library. The exact frozen surface is listed in
+   `CLAUDE.md`. See §4.
+3. **Every saved calendar must keep opening, forever.** Open reads *only* the `saved-state` JSON
+   out of a file and replays it into the running app — the old file's code is never executed. The
+   snapshot schema is therefore a permanent contract, and `fields.byId`'s DOM ids are part of the
+   file format. See §4 and §7.
+4. **Changelog every substantial change**, in `README.md`, in the same breath as the code. Cut a
+   version — tag **and** `releases/vX.Y.Z.html` — when the app reaches a state worth returning to.
+   See §5g.
+5. **Watch the context window.** When the session is getting long, stop and tell the owner to save
+   and migrate to a fresh session. See §5b.
+
+## 2. Requested but not yet done
+
+### 2a. Documentation refresh — ✅ **DONE** (Stage 0)
+
+`CLAUDE.md` and `PROJECT-CONTEXT.md` had gone **24 commits** stale and still described the
+pre-`.sptcal` save path and a three-way width situation that no longer exists. Every item on the
+original checklist is now written up:
+
+| Was missing | Now in |
+|---|---|
+| the shared column model and `charsToScreenPx()` | PROJECT-CONTEXT §9a |
+| the embedded font and why measurement can no longer drift | §2, §9a |
+| the resize system (`installGridResizers`, `colWidths`, `rowHeights`, snapping) | §9a, §7 table |
+| the line-budget model (`cellTextFit`) and per-cell font sizes | §9a, §7 table |
+| the direct PDF writer and the shared orientation rule | §9 |
+| `cellSpans` and the even-share rule | §9a, §7 table |
+| scroll preservation (`captureScroll` / `restoreScroll` + the `.form-panel` anchor) | §9a |
+| the note editor being a popover | §6 |
+| the width-unit trap and the 53-Monday asymmetry | §12 |
+
+Two things found while doing it, both fixed:
+
+- **Every inline line-number reference in `PROJECT-CONTEXT.md` was stale — 35 of 37.** The §14 map
+  at the bottom had been regenerated, but the numbers quoted throughout the prose had not, and they
+  were off by 2,000–3,000 lines.
+
+  ⚠️ **Superseded 29 Aug 2026 (`37b877a`) — hand-correcting them was the wrong fix, and it did not
+  survive the next commit.** Prose now quotes **no line numbers at all**: it names symbols, which
+  `grep -n` always finds and which cannot rot. Every number lives in PROJECT-CONTEXT §14 — now
+  **74 verified rows** — and `tools/check-refs.py` checks both halves, the map *and* the absence of
+  numbers from prose. **Do not go back to maintaining numbers inline**, however precise it feels.
+
+- ⛔ **Three more stale references were still hiding after that sweep, found 29 Aug 2026 — and all
+  three slipped past the checker on PUNCTUATION alone.** This is the third time this exact hole has
+  been found in one day (§2b's table was the second), so it is worth stating the shape rather than
+  just the fix:
+
+  | What it said | Actual | Why the checker missed it |
+  |---|---|---|
+  | PROJECT-CONTEXT §4's whole date-helper table — `parseDateUTC` at 1474, and four more | 3407, ~2,000 lines out | separator was a **pipe**; the pattern allowed only space or comma |
+  | §8: parseCalendarText(text) (7352) | 7384 | parenthesised **without the tilde** the pattern required |
+  | §8: showLegacyNotice, 8226 | 8258 | the number had **wrapped onto the next line** |
+
+  (Those two rows are written **without backticks on purpose** — reproduce them faithfully and the
+  checker fires on this very file, which is the intended behaviour and a decent proof it works.)
+
+  The last two are the same **+32** drift as §2b — one commit inserted 32 lines above them, and
+  every reference below moved. **All three are fixed**: §4's table now names symbols only, §8 quotes
+  nothing, and the five date helpers were added to §14 (which is why it is 74 rows, not 69).
+
+  `tools/check-refs.py` now catches all three shapes, scans **seven** docs rather than four, and was
+  regression-tested against the known-bad text before being trusted. The pipe form is deliberately
+  narrow — it fires on a `Line` column header (singular) or a whole-cell number ≥ 1000, so
+  `` `MAX_WEEKS` | 600 `` and MANTINE-MIGRATION's plural `Lines` **count** column do not cry wolf.
+  That restraint is the point: a checker that fires on legitimate numbers gets stopped rather than
+  fixed.
+- **The §7 state table was missing five stores `captureSnapshot()` actually persists** —
+  `noteFontSize`, `hiatusFontSize`, `colWidths`, `rowHeights`, `cellSpans`. The code was right;
+  only the doc was wrong. It now also records `version` / `fields` and the deliberately-not-state
+  list.
+
+⚠️ **§14's numbers rot on every commit that changes `index.html`.** Run
+`python3 tools/check-refs.py` after any edit to it — it verifies all 74 rows *and* fails the run if
+a line number has crept back into any of the seven prose docs. Last run CLEAN, 29 Aug 2026.
+
+### 2b. Settings menu + per-user persistence — ◐ **STORE BUILT, FIRST TENANT SHIPPED** (3 Sep 2026)
+
+✅ **The store exists and grid lines own it.** `PREFS_KEY = 'sptcal.prefs'`, one flat JSON object
+with a `version` field, `loadPrefs()` / `savePrefs()`, try/catch on every access. A **Preferences**
+card sits third in the Settings tab, above *Export App With Data*. Gate leg `prefs`.
+⛔ **None IS the default and there is no "Default" entry** (owner, 3 Sep 2026): an absent key and a
+chosen None are the same output, so choosing None *removes* the key and the store never holds a value
+that changes nothing. ⚠️ The dashed pattern is **1.5pt on / 1pt off** (owner's pick, 3 Sep 2026, from
+three sampled exports). An equal `2 2` reads as a grey hairline at export scale and `3 2` is too
+coarse. ⚠️ Judge it at 100% zoom or on paper — a viewer smears a fine dash into a solid line at low
+zoom, so a value that looks wrong on screen can be right in print. One constant, `interiorDash`,
+feeds both axes.
+
+⛔ **IT IS AN EXPORT SETTING, NOT A VIEW SETTING** (owner, 3 Sep 2026: *"these gridline settings are
+about the pdf export, thats where it matters, not in the live app view"*). An earlier cut of the same
+day drove the on-screen grid from a body class; it was **removed**, and the leg now asserts the editor
+is unchanged in every state. Do not reintroduce a screen variant without a new instruction — the
+appearance convention holds the waterfall editor as it is.
+
+⛔ **`.prefs-card` IS LOAD-BEARING.** `collectFieldValues()` sweeps every `input[id]`/`select[id]`/
+`textarea[id]` in the document; the engine skips that class. Without it the control is baked into
+every saved calendar **and** adds a phantom undo step per change. Matched on the class for the same
+reason `.tools-menu` is. **Any new preference control must live inside that card.**
+
+✅ **E-SIGN-OFF, FROZEN EDIT (owner, 3 Sep 2026).** Three edits in `buildWaterfallPdf` plus one in
+`exportExcel`, because neither could express the setting: `page.line` gained an optional `dash`;
+`interior` gained a `solid` branch (`#D4D4D4`) and a per-style dash array; **the PDF now draws
+interior COLUMN rules, which it never did** (horizontal row separators only, always solid, colour
+only — so Solid and Dashed were indistinguishable in the file); and Excel's `solid` had no branch, so
+choosing it produced dashed borders. ⚠️ **A PDF dash is GRAPHICS STATE** — without the trailing
+`[] 0 d` every later stroke on the page, the black frame included, inherits it; the leg asserts
+set-count equals reset-count. Inertness measured: with nothing stored the waterfall PDF and every
+Excel part are **byte-identical to the baseline**, because every existing `page.line` call site
+passes no dash.
+
+⏭ Still to come: more tenants (`GRID_TEXT_COLOR`, `WF_PDF_MODE`).
+✅ **HEADER PRESETS ARE BUILT — ALL SIX STEPS (8–9 Sep 2026).** ⛔ **And this store is now their
+home:** `prefs.headerPresets` is its second tenant. A preset is *how this person likes headers* and
+lives here, per user and per machine; the APPLIED header is *this calendar's header* and travels in
+`headerManual`/`headerFormat` inside the `.sptcal`. ⛔ Getting that split backwards fails silently in
+both directions, so both are asserted by the `hdrpreset` leg. ⛔ **Presets store TEMPLATES, never
+values** (H8) — which is why Save-as is disabled in Manual mode, with the reason shown. Deleting the
+last preset removes the key, the same rule gridlines follows. Steps 3–6 also added the
+`DEFAULT_HEADER_TEMPLATE`, the **Insert ▾** palette, `.spthdr` files with their own strict reader
+(⛔ **never** `parseCalendarText()`), and an Excel budget meter that warns before the 255-character
+cap silently drops header lines. ⏸ **H2** (a Presets button on the header strip) and **H6** (the
+month-view header) are still deferred — both are further frozen edits with no sign-off.
+
+✅ **THE HEADER TEMPLATE EDITOR, AND THE THIRD LEFT SLOT (9 Sep 2026).** Owner, after using the
+Insert menu: *"I still feel like you miss the Insert button. Would it be crazy for there to be a
+separate screen entirely for building your header templates?"* — then, on the mock: *"left, centre,
+and right should have 3 collumns each… most importantly, I want to actually see a live view of what
+that header will look like while I add the parameters"*, and *"you also need to have all the same
+styling controls… you should be able to edit/change/style in the live viewer itself."* Mocked up
+first, approved, then built.
+
+⛔ **`l3` IS THREE FROZEN EDITS AND THE SIGN-OFF IS THE OWNER'S "3 collumns each" PLUS "build it for
+real". Read that plainly: it is a sign-off inferred from a design instruction, not an H-numbered
+written one like H3b.** The three are `renderSpreadsheetView`'s left column (one `hline('l3','')`),
+`exportExcel`'s `lIds`, and `buildWaterfallPdf`'s `hLeftArr` — each exactly one line, each the same
+shape as the 31 Aug additions of `l2` and `c4`, and gated the same way: the slot is **empty by
+default**, so it is hidden on screen by `.hdr-line.hdr-slot.hdr-empty:not(.hdr-editable)`, dropped
+from the workbook by `withCodes()` and from the PDF by `.filter(x=>x.t)`. Measured, not argued:
+**528 lines of `app.js` changed and exactly 3 are inside a frozen function** — those three — and the
+byte-compare is green (waterfall PDF identical, every Excel part identical, 0 clipped cells).
+
+⛔ **`c4` IS KEPT AND HIDDEN, NOT DELETED — this is the pattern to copy.** Three-per-column retires
+the fourth centre slot from what the editor *offers*, not from the *format*. `c4` shipped 31 Aug and
+is already inside saved files, so it still renders, still exports, still restores, and the editor
+**reveals it, marked `4*`,** for any calendar that has text in it. `HDR_EDITOR_COLUMNS` is what the
+editor offers; `HDR_IDS` is the format; `HDR_LEGACY_SLOTS` is the bridge. A slot can leave the UI; it
+cannot leave the format.
+
+⛔ **The panel is BODY-LEVEL, so `.prefs-card` does not cover it, and it carries NO `id` on anything.**
+Ten text inputs, two colour inputs, a `<select>` and a checkbox — `collectFieldValues()` sweeps
+`input[id], select[id], textarea[id]` and skips only `.tools-menu` and `.prefs-card`, so one `id`
+bakes every one of them into every saved calendar with a phantom undo step per keystroke. The
+`hdreditor` leg asserts `idsInPanel` is empty. If a control in there ever genuinely needs an `id`,
+add `.hde-overlay` to `collectFieldValues()`'s skip list **first**.
+
+⛔ **The live view is not a preview — it is the editing surface, and it must never become a second
+renderer.** The canvas calls `buildHeaderCtx()` + `resolveHeaderTemplate()`, the same pair
+`headerLine()` uses, and the styling bar writes to the same `headerFormat` store the manual header
+does. The leg proves it the only way that means anything: it edits in the panel and reads the result
+off the **real header behind the modal**, asserting both the resolved text and the `style` attribute
+are identical. A preview that draws its own text drifts, and then it is lying about what prints.
+
+⚠️ **Placeholders are editor-only.** A token with no data draws a dashed stand-in
+(`{localization.open}` → *Localization Opens*) so a header can be laid out before the dates exist;
+the real header prints nothing for it. ⚠️ **And a number worth knowing: the DEFAULT template on a
+fully-filled calendar measures 241 of Excel's 255 characters.** Fourteen characters of headroom, and
+a long show title spends them. The `hdreditor` leg now asserts the default still fits, so the next
+person to widen the default template finds out from the gate instead of from Excel.
+
+⚠️ **Two things found while building it.** The mode menu's Template row used to open a read-only
+copy of the token list — it opens the editor now, and `hdrtemplate`'s section 2c-ii was rewritten to
+match (it had been asserting a `.hdr-token-pop` that no longer appears, and would have thrown). And
+`.hde-ph` was the class on **both** the placeholder marker and the show-placeholders checkbox:
+`querySelector('.hde-ph')` found the checkbox only because the toggle happens to sit above the stage
+in the markup, so re-ordering the panel would have bound the change listener to a `<span>` and killed
+the toggle with no error. The checkbox is `.hde-phbox` now.
+
+⛔ **ONE-COLUMN MODE BROKE COLUMN SWAPPING ON FIRST SHIP, SILENTLY — FIXED 10 Sep 2026.** The swap
+and selection machinery identified a column BLOCK by the hovered week's own calendar year
+(`String(weekIso).slice(0,4)`) at **ten sites**, which was correct while there was one block per
+year. One-column mode has a single block labelled with the FIRST year, so a cell in Feb 2027
+reported 2027, the code looked up `y2027:s1`, found no such column and returned — **the Swap Block
+button never appeared, with no error**. ⭐ **`blockYearOf(weekIso)` is now the only way to ask that
+question**; it returns exactly `+weekIso.slice(0,4)` while the setting is off, so existing calendars
+are unaffected by construction. ⚠️ **If you add a new site that needs a block identity, use
+`blockYearOf` — never `slice(0,4)`.** The one remaining raw `slice(0,4)` in that machinery decodes a
+key those sites build, and `holidaySlug`'s is a holiday's year, not a block.
+
+⚠️ **THE GENERAL LESSON, worth more than the bug:** *"one block per calendar year"* was an
+unwritten invariant that ten separate places depended on, none of which named it. A feature that
+merges blocks breaks every one of them at once, and the failure mode was **an affordance that
+quietly stopped existing** rather than anything that throws. When an invariant is implicit, grep for
+the EXPRESSION that encodes it (`slice(0, 4)` here), not for the concept.
+
+✅ **SIZING ACROSS THE TOGGLE — FIXED 10 Sep 2026 (owner: (b) for rows, (c) for columns).**
+- **Row heights are keyed by WEEK now** (`rowHeightsByWeek`, ISO date), because a row index means a
+  different week in each layout — row 4 is `2/2/26` padded and `11/2/26` trimmed. ⛔ **The
+  render-facing `rowHeights` MUST stay index-keyed**: `renderSpreadsheetView`, `exportExcel` and
+  `buildWaterfallPdf` all read `rowHeights[r]` by row number and all three are frozen. It is
+  rebuilt from the by-week map in `update()` — the only place the week list can change, which is
+  why the ~30 bare `render()` calls need no resync. **0 lines inside a frozen function.**
+- **Column widths are per layout**: `colWidths` is the ACTIVE set, `colWidthsAlt` the other, swapped
+  inside the toggle's undo step. `y2026:s0` names a different column in each layout, so one shared
+  set was silently wrong; two are lossless both ways.
+- ⛔ **The migration is the risky part and has its own leg.** Every calendar with a dragged row
+  stores `rowHeights: {"<index>": px}` and no by-week map. `syncRowHeights()` converts on the first
+  `update()`, **detected by state** (index keys present, by-week map empty) rather than a flag — so
+  it cannot run twice, and a calendar with no dragged rows needs nothing. `rowmigrate` drives
+  `tests/fixtures/rowheightlegacy.sptcal`, a genuine minted save with this build's three new keys
+  stripped back out.
+- ⚠️ **`captureSnapshot()` now carries FOUR sizing keys**, and the two legacy ones are not dead
+  weight: `rowHeights` and `colWidths` are what an OLDER build reads, so dropping them would make a
+  calendar saved here open wrong in last week's build.
+
+⛔ **ADDING A MANTINE COMPONENT MEANS ADDING ITS CSS FILE, IN A DERIVED POSITION (10 Sep 2026).**
+`src/main.jsx` imports `@mantine/core` styles **one file per component**. A component used without
+its file renders **unstyled and silently** — `Switch` came through as a bare checkbox until
+`Switch.layer.css` was added. ⚠️ **The order of that list is not alphabetical and must not be
+sorted**: the files share one `@layer`, so order decides the cascade, and sorting it once put
+`UnstyledButton` after `Button` and stripped every button in the app. ⭐ **How to find the right
+position without guessing:** each component's CSS file starts with a hashed `.m_…` class; find that
+class's byte offset in `node_modules/@mantine/core/styles.layer.css` and sort by offset — that is
+Mantine's own order. Switch sits after Stack. Afterwards, check a button still has its background,
+border and padding, because that is the documented way this goes wrong.
+
+⚠️ **THE ONE-COLUMN CONTROL IS A MANTINE `Switch` — an `input[id]` — AND IS SAFE ONLY BECAUSE IT IS
+INSIDE `.prefs-card`.** That class is the one `collectFieldValues()` skips, so it never reaches
+`fields.byId`; the setting travels through `captureSnapshot()`'s `singleColumn` key alone.
+⛔ **A comment here previously claimed a checkbox would be stored twice and disagree with itself.
+That was wrong** — skipped by the sweep means one store. The real hazard is an id'd control placed
+*outside* the card, which lands in both. ⚠️ The `onecol` leg used to assert "it is a `<button>`,
+therefore not swept"; that reason evaporated when it became a Switch, so it now asserts the card
+membership and the absence from `fields.byId`, which are the facts that actually hold.
+
+⚠️ **THE ONE-COLUMN TOGGLE LIVES IN THE PREFERENCES CARD, NOT THE PREVIEW TOOLBAR** (moved 10 Sep
+2026 after the owner asked "wait how do i turn it on"). It launched beside Waterfall/Month because
+it changes that view's shape and because `viewMode` is driven from there — reasoning about the code
+rather than about where a person looks for a setting. ⛔ **It is a `<button>` with an id, inside
+`.prefs-card`, and that combination is deliberate:** the class is what `collectFieldValues()` skips,
+so id'd controls in that card are kept OUT of saved calendars — but this setting is calendar data
+and must travel, which it does through `captureSnapshot()`'s own key. A `<button>` is never swept,
+so both hold. **Never turn it into an `<input type="checkbox" id=…>`**: it would then be skipped by
+the sweep *and* stored by the snapshot, and the two disagree as soon as the file meets a build that
+reads only one. ⚠️ The card's ⓘ had to be rewritten at the same time — it promised nothing in there
+travels in a saved calendar, which this contradicts. ⚠️ It no longer hides itself in Month view.
+
+⭐ **SINGLE COLUMN MODE STRETCHES ITS COLUMNS TO FILL THE PAGE WIDTH (10 Sep 2026).** One column is
+tall and narrow and both writers fit the whole grid to one page, so the scale is pinned by HEIGHT and
+the leftover WIDTH was simply wasted — measured, 358pt printed of a 576pt printable area, 38% empty
+at the sides. `sheetColumnWidths` grows the columns by `f = (availW*gridH)/(availH*gridW)`, taking
+the fill from 62% to **98%** of the page width. ⭐ `gridH` is derived from the row COUNT, not from
+column widths, so there is no feedback loop and one pass is exact.
+
+⛔ **A frozen edit, written as a POST-PASS** on the existing return value so nothing above it moved,
+and dead while `singleColumn` is false — the blocked layout's widths measured identical before and
+after. ⛔ **Hand-dragged columns are NOT stretched**: doing so would move a user's own drag out from
+under them and leave no way to set a width that stayed set; the auto columns take the slack.
+⚠️ It sizes against PORTRAIT (with one block `sheetPageOrientation` prefers portrait and only flips
+if landscape prints 15% larger, which a tall narrow grid never does), and it applies AFTER
+`clampChars`, so the notes column may exceed `COL_MAX_CHARS_NOTES` in this mode — deliberately.
+
+⛔ **ONE-COLUMN MODE COLLAPSED THE PRINTED HEADER, AND STRING ASSERTIONS COULD NEVER HAVE CAUGHT
+IT (fixed 10 Sep 2026).** `buildWaterfallPdf` pinned the header band to the GRID's edges — right
+when the grid fills the page, wrong once the grid is narrow and centred. Measured: 543pt of header
+became 338pt, the date sliding from x=20 to x=123. The band spans the printable width in that mode
+now; **5 code lines, frozen, inert with the setting off** (`hdrLeftX` collapses to `originX`, so
+`midX`/`rightEdge` are the expressions they always were — and the blocked span measured 543pt both
+before and after).
+
+⚠️ **THE LESSON: this was a COORDINATE bug in a feature whose tests all compared TEXT.** Every
+header assertion in the suite checks what the header *says*, and the header said exactly the right
+thing throughout. `onecol` now measures header x-positions out of the real PDF content stream and
+compares the two layouts **against each other**, so the guard does not rot when the header's
+wording changes. ⚠️ The workbook was never affected — `&L`/`&C`/`&R` are page-relative — but that
+is now asserted too, because the report said "the export" and this app has four of them.
+
+⭐ **ONE CONTINUOUS COLUMN (10 Sep 2026) — AND THE REASON IT IS ONE FLAG DOING TWO THINGS.** Owner
+asked for a multi-year calendar that fits in a single column, with a reference running
+`10/5/26 → 10/4/27`. The obvious half — `computeYearBlocks` stops splitting per calendar year — is
+**not enough, and alone it is worse than doing nothing.** `computeSchedule` also pads every calendar
+out to whole years, so a 52-week show straddling a year end really spans Jan(first) → Dec(last).
+⛔ **Both writers fit the WHOLE grid to ONE page** (`fitToWidth:1`/`fitToHeight:1`, and the PDF's own
+`fit()`), so rows drive legibility directly. Measured on that shape: today 52×7 at **0.81**; merging
+blocks only 104×4 at **0.41**; merging *and* dropping the padding 53×4 at **0.80**. Ship the obvious
+half alone and every straddling calendar prints at half size. **If anyone later splits these into
+two settings, the `bothHalves` assertion in `onecol` is the thing that should stop them.**
+
+⭐ **No edit inside any renderer or writer**: `computeBlockLayout`, `sheetColumnWidths`,
+`sheetRowCount`, `exportExcel` and `buildWaterfallPdf` all take `yearBlocks` as DATA.
+
+⛔ **THREE TRAPS, ALL SILENT, ALL HIT WHILE PROTOTYPING:**
+1. **Column keys are `y<year>:s<slot>` and `installGridResizers` matches `/^(y\d+):s(\d+)$/`.**
+   Labelling the merged block `'2026 – 2027'` yields `y2026 – 2027:s0`, fails the regex, and kills
+   column resizing and stint swaps with **no error**. `year` stays numeric; the header shows the
+   start year (which is what the owner's reference does).
+2. **`rowHeights` is keyed by row INDEX**, so dropping leading padding shifts every dragged height.
+   With `colWidths` it is in `captureSnapshot()` — save-format territory. ⚠️ Note the keys also
+   *collide* across layouts: `y2026:s0` names a different column blocked vs single.
+3. **The toggle is a `<button>`, deliberately.** `collectFieldValues()` sweeps `input[id]`, so an
+   id'd `<input>` would store this twice — `fields.byId` **and** the snapshot key — and they could
+   disagree on restore. Waterfall/Month carry ids safely for exactly this reason.
+
+⚠️ **Calendar data, not a preference** (owner's call): in `captureSnapshot()` beside `viewMode`,
+restored **unconditionally** so a file without the key gets `false` rather than the previously open
+calendar's value. ⚠️ **`computeYearBlocks` was missing from CLAUDE.md's frozen symbol list** while
+being in MANTINE-SEAM's — the two documents disagreed. CLAUDE.md now lists it.
+
+⛔ **TEMPLATE MODE IS READ-ONLY ON THE CALENDAR AS OF 10 Sep 2026 — AND THIS IS A FROZEN EDIT.**
+Owner: *"the app needs to freeze editing the header when you're on template mode in the regular app
+view. It should only be editable in the template editor screen. This means also remove the styling
+menu view from there."* Four code lines in `renderSpreadsheetView`: a new
+`manualEdit = manual && !headerTemplates`, used by `contenteditable`, the `hdr-editable` class and
+the format-toolbar ternary. ⚠️ **Inert while `headerTemplates` is false by construction**
+(`manual && !false === manual`), so Auto and Manual are byte-identical and no pre-8-Sep calendar can
+reach the branch. ⛔ **`manual` and `manualEdit` are NOT interchangeable** — `manual` still means
+"hand-controlled" and still drives the mode button and the tint; only editability and the toolbar
+use the narrower one. Conflating them would put the styling bar back.
+
+⭐ **Clicking a read-only header line opens the editor at that line** (not requested; added because
+the change would otherwise leave a header that looks clickable and does nothing). ⚠️ **The CSS
+affordance DERIVES the mode rather than tracking it**:
+`.cal-header-bar.hdr-manual-mode .hdr-line:not(.hdr-editable)` matches Template only — in Manual
+every line has `.hdr-editable`, in Auto the bar has no `.hdr-manual-mode`. No body class, no
+observer, nothing to go stale against the render that produced it. ⛔ Layout-neutral properties
+ONLY (`cursor`, inset `box-shadow`): `--header-h` is measured off this box by a ResizeObserver and
+read by frozen `.sheet-scroll`, and the print-fallback PDF measures it too.
+
+⛔ **CONSEQUENCE: THE ANCHORED Insert ▾ PALETTE IS NOW UNREACHABLE, AND IS AWAITING AN OWNER
+DECISION.** `.hf-insert` renders only when `!mv && headerTemplates`, and it sits inside the bar this
+change removes from that very mode — so nothing can open `.hdr-token-pop` any more.
+`buildHdrTokenList()` is still live (it backs the editor rail); `openHdrTokenPop()` and the
+`.hdr-token-pop` CSS are orphaned. **Left in place and flagged rather than deleted.** ⚠️ Roughly 100
+lines of `hdrtemplate` tested that panel; the assertions worth keeping were **ported to `hdreditor`
+against the rail** (phases under current names, bracket snippets, insert APPENDS to the selected
+line and resolves) rather than deleted — a test whose button moved is not a test that stopped
+mattering. And two `gate.sh` assertions were **inverted**; the old ones were not wrong, they
+recorded the 8 Sep decision this reverses.
+
+⚠️ **THE EDITOR'S HELP COPY WAS CUT BACK (9 Sep 2026), AND THE RULE IT LEAVES BEHIND IS WORTH
+KEEPING.** The owner removed two labels that described what was already visible, and said of the
+bracket paragraph *"im confused what this means"*. The rewrite leads with a worked example and names
+the rule second; the `{{`/`}}` escape came out of the sentence entirely (still supported, still
+proven by `prove-header-template`, still in `HEADER-PRESETS-PLAN` §3.1). ⭐ **The stage note now
+shows only when a dashed placeholder is on screen** — silence is a valid state, and it is `hidden`
+rather than blanked because an empty `<p>` keeps its margin. ⛔ **The near-miss: the new assertions
+first put the panel's entire `textContent` (~2 KB) on the result object, which TRUNCATED the JSON
+and would have made `gate.sh` unable to parse the leg** — and a leg that reports nothing looks a lot
+like a leg that is fine. Grep in a local. A result file is a report, not a DOM dump.
+
+⛔ **THE SIDEBAR NOW HAS TWO `.prefs-card` SECTIONS, NOT ONE (9 Sep 2026).** The owner split
+Preferences into **Export Preferences** (gridlines) and **Headers** (editor + budget + presets).
+`prefs-card` has **no styling** — grep `legacy.css` and you find only comments — and exists solely so
+`collectFieldValues()` skips it. **Both sections carry it, and any third one must.** Nothing in
+Headers has an `id` today; the class is there for the control that gets added later, not for
+anything present now. `hdrpreset` asserts `.hdr-presets` still resolves `.closest('.prefs-card')`,
+which is the guard that would catch a future split done carelessly.
+
+⚠️ **AND A SECOND SHARED-CLASS COLLISION, FOUND THE SAME WAY AS `.hde-ph`.** `.hdr-presets-hint` was
+worn by BOTH the Excel budget and the "why Save-as is disabled" line, so `querySelector` returned
+whichever came first in the markup. Re-ordering them changed what every lookup found, and the
+`hdrpreset` leg silently began comparing the budget string against the save hint. The budget is
+`.hdr-presets-budget` now; they share the CSS **rule**, not the class. ⛔ `hdrexcel` had been living
+with the same collision by scanning every `.hdr-presets-hint` and matching on the rendered words
+*"Excel header"* — a test that keys off user-visible copy passes until someone rewrites a sentence.
+It asks for the class directly now. **Two of these in one day: when two elements must look alike,
+share the rule, never the class.**
+
+⚠️ **TWO OWNER-REPORTED BUGS, FIXED THE SAME DAY THE EDITOR SHIPPED — and both are worth keeping,
+because both were things I added deliberately that turned out to fight the panel's purpose.**
+
+1. **The stage restyled itself on click.** `.hde-line.is-editing` set `font-family:monospace` and
+   `font-size:10.5px` so the raw template would "read as code". But the stage's only job is showing
+   what the header will LOOK like. ⛔ **And it failed in two different ways depending on state, which
+   is why it is worth a note:** per-line size is an INLINE style from `headerFormatCss()` and
+   outranks a stylesheet rule, so a line sized to 18px changed face only, while an unstyled line
+   changed face *and* size. Anything that styles `.hde-line` from the stylesheet is in a fight with
+   the inline style it is supposed to be displaying — don't. The tint alone is the raw-mode signal.
+2. **The Insert rail truncated its live values.** `.hdr-token-desc`'s nowrap/ellipsis is **right**
+   for `.hdr-token-pop` — anchored, narrow, must not grow — and wrong in a fixed rail inside a modal.
+   The panel went 1040 → 1280px, the rail 280 → 400px, and the rail now wraps, **scoped to
+   `.hde-rail-list`** so the popover is untouched. ⛔ The general lesson: `.hdr-token-*` is shared by
+   two hosts with opposite constraints. Override per host; do not change the shared rule.
+
+Both are now asserted by measurement in the `hdreditor` leg — computed type identical across focus,
+and `scrollWidth <= clientWidth` on all 41 rail descriptions. A screenshot would have caught neither.
+
+⛔ **A SECOND HOLE IN THE GATE, AND IT IS STILL OPEN: `gate.sh` HAS NO LOCK (18 Sep 2026).** Two runs
+were executing at once — one left in flight by the previous session, one started by this one — and
+they share **port 8231**. Every `run.sh` begins `pkill -f "srv.js $PORT "`, so each was killing the
+other's server mid-leg; two different legs were observed running against one server. **Both runs'
+results were worthless**, and nothing said so. Same family as the two traps already recorded here:
+*the harness tests a different program than you think it does.*
+⚠️ *Corrected 23 Nov 2026 (governance Phase 4):* still true on 23 Nov 2026: `gate.sh` has no lock (TEST-6 is held by sessions keeping to it, and the owner's 23 Nov pick runs each gate in its own worktree).
+
+⚠️ **The handoff sentence that set it up was "a full gate.sh run was in flight when the session
+ended. RE-RUN IT."** Re-running is right; starting a second one while the first is alive is not, and
+there is nothing to stop you. **Check `ps -Ao command | grep "gate.sh"` before starting a run**, and
+clear `tests/harness/*.json` only when none is running — deleting a result file under a live run
+makes a healthy leg report "produced no result", which reads exactly like a real failure.
+
+⚠️ **A matching trap in how you WAIT for it.** The process presents as `/bin/zsh ./gate.sh`, so
+`pgrep -f "tests/harness/gate.sh"` never matches and an until-loop built on it returns instantly —
+which looks like the run having died early. Match `^/bin/zsh \./gate\.sh`. Cost a wrongly-declared
+"the gate stopped after hdrtemplate" and a clobbered run on 18 Sep 2026.
+
+⏭ **The fix, unbuilt:** a PID/flock guard at the top of `gate.sh` that refuses a second run outright
+— the same "refuse rather than warn" reasoning as the stale-build check below, and for the same
+reason: a warning printed at line 1 scrolls past 285 lines of PASS.
+
+⛔ **A HOLE IN THE GATE ITSELF, FOUND ON THE WAY PAST AND CLOSED (9 Sep 2026).** `gate.sh` serves
+`dist/index.html` and **never rebuilds it**. So the obvious sequence — edit `src/legacy/app.js`, run
+`./gate.sh` — gates **the previous build** and prints `GATE PASSED`. That is the worst failure mode
+this harness can have, because the green is the thing you were trying to earn, and nothing about the
+output looks wrong. It is the same family as the `run.sh` / `gate.sh` different-default-page trap
+`CLAUDE.md` already records: *the harness tests a different program than you think it does.*
+
+`gate.sh` now **refuses** — exit 2, before any leg runs — when any file under `src/` (or
+`vite.config.js` / `package.json`) is newer than `dist/index.html`, and says `Run: npm run build`.
+Refuse rather than warn, deliberately: a warning printed at line 1 scrolls past 285 lines of PASS
+and is never seen. ⚠️ It is scoped to `PAGE == /dist/index.html`, so `./gate.sh /index.html` against
+the legacy root app is unaffected. Verified both directions — stale source refuses with exit 2, a
+current build passes straight through to the first leg.
+
+**Steps 1 and 2, for the record:**
+— ✅ **STEPS 1 AND 2 OF SIX ARE BUILT (8 Sep 2026), and nothing of either is in this store.**
+**Step 2** landed the template engine and the third mode: `buildHeaderCtx()`,
+`resolveHeaderTemplate()`, the `headerTemplates` flag (a new snapshot key, restored with
+`=== true`), `headerLine()` resolving only when the flag is on, the `focusin` raw swap, a body-level
+mode popover with all five transitions, and **the one authorised frozen edit (H3b) — now made**,
+scoped to the mode button's label/title expressions and inert while the flag is false. Legs
+`hdrtemplate`, `prove-header-template.mjs` (73 cases against the real resolver, sliced verbatim) and
+a third `hdrverload` fixture. ⛔ **Two things the plan got WRONG and Step 2 had to correct in place:**
+(a) `defaults.__ctx` must be **non-enumerable** — `computeHeaderDefaults()`'s return value is
+assigned straight to `headerManual` in two places, and `headerManual` is in `captureSnapshot()`, so
+a plain property would be baked into every saved calendar forever; (b) the plan's four-stage resolver
+sketch cannot tokenise `{{{title}}}` and was replaced by a single left-to-right scanner. ⚠️ Also:
+`asOneUndoStep` is **not in scope** from the header code (it lives inside the shift-tools IIFE);
+Step 2 added `asOneHeaderStep()` with the same contract. ⚠️ **A real bug surfaced in the
+focusin/focusout pair:** the commit handler returned early when text was unchanged, which left the
+RAW template on screen after a blur-without-typing. It now re-renders in that case and deliberately
+does not mark dirty. **Steps 3–6 remain** — the default template and the palette, the preset
+library, `.spthdr` files, the budget meter.
+
+**Step 1, for the record:** The `show-version`
+TextInput is in Show Info, `versionLabel()` is beside `computeHeaderDefaults()`, and
+`computeHeaderDefaults()` returns `l2: versionLabel()` so the header's bottom-left slot prints the
+version. ⛔ **It is calendar data, not a preference** — it sits OUTSIDE `.prefs-card` on purpose, so
+`collectFieldValues()` sweeps it and it travels inside a `.sptcal`. That is the opposite of the
+gridlines rule above, and the distinction is the whole reason both exist: *how this person likes
+headers* is a preference, *which version this calendar is* is the calendar. No frozen edit was needed
+or made. New gate legs `hdrversion` and `hdrverload`; the byte-identical PDF/Excel compare stayed
+green. ⚠️ **A guard was added to `applyStateSnapshot()` that the plan did not ask for, because the
+plan was wrong about it** — §3.3 claims a file without the key restores an empty field, and it does
+not: step 3 iterates the SNAPSHOT's keys and the open path never calls `resetAll()`, so an absent key
+keeps the previously open calendar's value. `show-version` is the first id'd field that can be
+absent, and the symptom is one show's header printing another show's version. **Any future new id'd
+field needs the same guard** — generalise it when the second one arrives. ⚠️ **`gate.sh`'s gate 5 is
+inoperative in this environment and that predates Step 1** — see the master-list row and README.
+Steps 2–6 remain unbuilt; the rest of this paragraph is still the plan.
+
+**The plan, unchanged for steps 2–6:**
+⚠️ **the 3 Sep 2026 "style-only" choice is SUPERSEDED.** The owner's request of 1 Sep 2026 asks for
+presets that control **content** as well as style — which data appears in each line, and how — plus a
+version number typed in Show Info that lands in the bottom-left header slot by default (✅ **that
+half is Step 1, and it is built** — see above; the template engine and the presets are not). Planned in full
+in [`HEADER-PRESETS-PLAN.md`](HEADER-PRESETS-PLAN.md): header lines become templates (`{version}`,
+`{writersRoom.open}`, `[ … ]` conditional groups) resolved in non-frozen `headerLine()`, the one
+function all three consumers call, so the core needs **no frozen edit**; presets live in this store
+under `prefs.headerPresets` and export/import as `.spthdr` files. Applying one necessarily switches the
+header to Manual (decision H3). **H1–H8 are all settled (1 Sep 2026).** The decided design has **three header modes — Auto /
+Template / Manual** (H3): `headerMode` stays `'auto'|'manual'` for the frozen editability gate, and a
+new `let headerTemplates` flag (a new snapshot key, restored with `=== true`) marks Template. Manual
+never resolves tokens, so no existing file can change. ✅ **H3b is a written sign-off for ONE frozen
+edit**: the mode button's label/title expression in `renderSpreadsheetView` gains a *Header: Template*
+case — scope is that expression only, and it must be byte-identical with the flag false. H2 (a strip
+button) and H6 (month header) are deferred frozen edits with no sign-off.
+
+**Original ask, for context:**
+
+The original ask that started this arc: *"Each sub-team within production has slight quirks in how
+they like to build their calendars, especially the waterfall. We are going to need a global
+settings menu… Ideally these settings save to each user's computer so they don't have to change
+them every time."*
+
+Three constants are already seeded as its first tenants — they exist precisely so the menu has
+something to own:
+
+```js
+const SHEET_GRIDLINES = 'none';   // 'none' | 'dashed' | 'dotted'
+const WF_PDF_MODE     = 'direct'; // 'direct' | 'print'
+const GRID_TEXT_COLOR = '#000000';
+```
+
+Execs differ on gridlines specifically (some want them, some want dashed) — that is the concrete
+motivating case. Persistence should be per-user and per-machine, so `localStorage`, **not**
+`captureSnapshot()` — these are preferences, not calendar data, and must not travel inside a saved
+file (see §4, "what NOT to do").
+
+**⚠️ Two things checked 29 Aug 2026 that change how this must be built:**
+
+1. ~~**`localStorage` is used NOWHERE in the app today**~~ — true when written, **false since
+   3 Sep 2026**: `PREFS_KEY` is its first and only use. The crash backup and the file handles are
+   still IndexedDB (`idbSet(BACKUP_KEY, …)`, `HANDLE_DB`), so the two mechanisms sit side by side and
+   should not be confused. ⚠️ **MEASURED 3 Sep 2026 in headless Chrome:** `localStorage` works from
+   `file://`, persists across loads, and every `file://` copy on one machine shares ONE bucket (the
+   origin is the bare `file://`) — so a preference set in an emailed copy is honoured by the next one
+   opened. The deployed https site keeps a separate bucket; preferences do not travel between the
+   two and cannot be made to. ⚠️ Clearing cookies clears it — in Chrome/Edge "Cookies and other site
+   data" is one control — and the same action wipes the IndexedDB recents list and crash backup,
+   which cost far more. Nothing irreplaceable goes in either; saved `.sptcal` files are untouched.
+
+2. **All three constants are read from INSIDE the frozen surface**, which decides the design:
+
+   | Constant | Read at | Frozen? |
+   |---|---|---|
+   | `SHEET_GRIDLINES` | `exportExcel` (interior-gridline pass), `buildWaterfallPdf` (`interior`), the print fallback in `exportWaterfallPdf` | **yes** |
+   | `GRID_TEXT_COLOR` | `renderSpreadsheetView` (phase + sim-post cells), `exportExcel` (`baseStyle` font colour), `buildWaterfallPdf` (`ink`) | **yes** |
+   | `WF_PDF_MODE` | the waterfall-export dispatch | no |
+
+   ⚠️ **This table used to quote line numbers, and all six were stale by exactly +32** — one
+   commit had inserted 32 lines above them. `tools/check-refs.py` reported CLEAN throughout,
+   because its prose scan skipped any line starting with `|` and this is a table. Both are fixed
+   (29 Aug 2026): the checker now scans tables and catches the bare-number form, and the table
+   names symbols, which is what the rule asked for in the first place. `grep -n` finds them.
+
+   That is *not* a blocker — §0 rule 2 explicitly allows the frozen code to **read** from
+   surrounding state. But it does force one specific shape: **keep the identifiers exactly as they
+   are** and change only their *declaration* (`const X = 'none'` → a `let`/getter hydrated from
+   `localStorage` at startup). Then **no frozen function body is edited at all** — the diff stays
+   entirely in the declaration block and the new settings UI.
+
+   Do **not** refactor these into a `settings.gridlines` object and update the call sites: that
+   edits `renderSpreadsheetView`, `exportExcel` and `buildWaterfallPdf`, which is exactly what
+   rule 2 forbids, and it buys nothing.
+
+   Changing a value must trigger a re-render — `update()` already does this on every edit, so the
+   settings control simply calls it. The PDF and Excel read the value at export time, so they need
+   nothing.
+
+### 2b-3. Mantine build — **BUILD + HEADER + PREVIEW TOOLBAR + STATIC SIDEBAR CARDS, ALL GATED** (29 Aug 2026)
+
+> Read this before `MANTINE-MIGRATION.md` §6's stage list, which it partly supersedes. The stage
+> ORDER changed: Stage 3 (Settings) was skipped for now because Stage 1 already proved the provider,
+> theme, layer fence and build on real code, which was Stage 3's whole justification.
+
+**The four owner rulings that unblocked it**, all taken 29 Aug 2026, all the recommended option:
+
+| §  | Question | Ruling |
+|---|---|---|
+| UI-CONV §9.6 / MIG Q1 | file size + minified source | **Minified**, accept ~1.1 MB |
+| MIG Q3 | deploy path | **GitHub Action** builds and publishes `dist/` |
+| UI-CONV §9.5 | is `.mv-note-pop` in scope? | **In scope** — redesign it, and fix its never-repositions bug |
+| UI-CONV §9.1 | embed Inter? | **Yes**, drop IBM Plex Mono for the system mono stack |
+
+✅ **§9.1 IS BUILT (round 7) — both halves.** IBM Plex Mono went first (29 Aug 2026: chrome mono
+sites take the system stack). **Inter is now embedded** as one variable woff2, latin subset, in
+`src/styles/inter.css`, regenerated by `tools/fetch-inter.py`; the Google Fonts link and both
+preconnects are gone and the app makes **zero** external requests.
+
+Its gate — a month-PDF diff with the network **on** and **off**, because `mvNoteLineCount()`
+measures against Inter and its result sets month-view row heights that `exportMonthPdf` prints —
+was satisfied by **measurement rather than by exporting a PDF**, and it is worth knowing why that
+is stronger: canvas text widths at 400/500/600/700 came out **byte-identical** to the Google-served
+statics (279.322 / 282.599 / 285.875 / 289.152), so the input to `mvNoteLineCount()` is unchanged;
+and with no external request left, network state cannot be a variable at all. ⚠️ **Nobody has
+actually exported a month PDF before and after**, so if you want the literal diff the ruling asked
+for, it is still unrun.
+
+#### What exists now
+
+```
+index.html                   ← UNCHANGED. The deployed v1.2.0 app, byte-identical to
+                                releases/v1.2.0.html.
+src/index.html               ← the Vite entry: the static skeleton only
+src/main.jsx                 ← CSS order, one React root, four portals, then initLegacyApp()
+src/theme.js                 ← UI-CONVENTIONS §3 as a Mantine theme
+src/chrome/bridge.js         ← the engine→chrome state bridge (OUTPUT only; see below)
+src/chrome/Header.jsx        ← app header: file menu, six actions, save status
+src/chrome/PreviewToolbar.jsx← view toggle, Shift All split control, 4 tool popovers, undo/redo
+src/chrome/Sidebar.jsx       ← the three STATIC cards: Show info, Production Region, Holidays
+src/legacy/app.js            ← the original IIFE, wrapped and surgically edited at the write sites
+src/styles/legacy.css        ← the original stylesheet + the chrome's Mantine-variable rules
+dist/index.html              ← build output (gitignored), ~1.03 MB / 324 KB gzipped
+```
+
+**The four portal hosts**, all of which stay in the static skeleton and are filled rather than
+replaced: `header.app-header`, `.view-toggle-row`, `#sidebar-static`, and (Stage 1 only, now empty)
+`#react-root` as the root container.
+
+⛔ **The root `index.html` is deliberately untouched and stays that way.** It was the live app until
+the owner-approved cutover of 31 Aug 2026; now it is the v1.2.0 legacy copy and the one-click
+rollback. Build with `npm run build`; gate with `cd tests/harness && ./gate.sh`.
+
+#### The three architectural facts that were forced, not chosen
+
+1. **React mounts as one root that PORTALS into the existing containers, and never wraps them.**
+   Both print paths hide the app with `body.printing-* > *:not(#print-root)` — child combinators a
+   wrapper defeats, printing a blank page; `header.app-header` is resolved by the ResizeObserver
+   that writes `--header-h`; and `#table-wrap` must exist before the script runs, for the seven
+   unguarded listeners.
+2. **The @layer fence is: Mantine's layered CSS first, the app's UNLAYERED stylesheet last.**
+   Unlayered normal declarations outrank every layer, so every frozen rule wins with no per-rule
+   work. For `!important` the precedence *reverses*, which put
+   `*{print-color-adjust:exact !important}` at risk — without it both PDFs print as an empty grid.
+   **Verified: all 20 `!important` declarations in `@mantine/core` 9.5.2's `styles.layer.css` are
+   scoped to hashed `.m_*` selectors**, so none can reach `#table-wrap`. **Re-check this on any
+   Mantine upgrade.**
+3. **The bridge carries OUTPUT only.** React re-renders by mutating the node it already made, so
+   listeners the engine attaches survive; input needs no bridge. Output must be rerouted because a
+   `textContent` write destroys a Mantine Button's inner spans, a `className` assignment wipes
+   Mantine's class, and Mantine styles disabled from `[data-disabled]` **only**.
+
+#### ⛔ The rule that cost the most to learn
+
+**Mantine's `Popover` mounts its dropdown from an EFFECT.** `#file-menu` does not exist when the
+IIFE evaluates — not inside `flushSync`, not with `keepMounted`. `getElementById` returned null, the
+delegated listener silently never attached, and the file menu opened and closed perfectly while
+doing nothing. No error; the only symptom was *Open…* not opening anything, which reads as a broken
+feature rather than a missing listener.
+
+> **The engine must not capture React-rendered nodes at evaluation time.** Anything it resolves by
+> id either lives in the STATIC skeleton, or is reached by delegation from `document`.
+
+Two more traps landed where `UI-CONVENTIONS.md` §8 did not predict them:
+
+- **`Menu.Target` injects its own id.** It delegates to `Popover.Target`, which *clones* its child
+  and writes Popover's generated id over yours. Passing `id` to `<Menu>` does not help either. §8.3
+  described this for form controls; it also hits a plain `<button>` whose id the engine binds to.
+  `#file-menu-btn` is gone; **`.file-menu-btn` is the contract.**
+- **`.tb-btn` is shared with the un-ported preview toolbar.** Deleting it with the old header left
+  *Shift From*, *Anchor To* and *Rebuild From* as unstyled UA buttons. The block is restored with a
+  note saying it goes when `PreviewToolbar.jsx` lands.
+
+#### Harness changes — all three were required, not incidental
+
+- `t/lib.js` `set()` uses the **native value setter**. React tracks the last value it wrote, so
+  `e.value = v` leaves the tracker unchanged and React swallows the event — every fixture would
+  silently assert against a blank calendar. This is the fix `MANTINE-MIGRATION.md` §4.2 said had to
+  land *before* porting.
+- **`appReady()`'s probe moved for the third time.** "`#file-menu` has children" worked while the
+  dropdown shipped empty; Mantine renders its items from React's first commit, so a page whose
+  engine never started now satisfies it. It waits on `#file-menu-wrap`'s display instead.
+- `t/fence.js` waits for the row count to **settle**. Waiting on `rows > 1` measured mid-build and
+  reported 635 px then 602 px for the *same untouched page* — which reads exactly like a regression.
+- `tests/harness/package.json` is new: the root `package.json`'s `"type":"module"` reclassifies the
+  CommonJS harness as ESM, and `srv.js` dies on `require is not defined` while `run.sh` reports only
+  *"server did not start"*.
+- **`./gate.sh` runs the whole gate as one command**, and `run.sh` takes `HARNESS_PAGE` so the same
+  tests drive either page. ⚠️ Give `restore`/`sharecopy` a **60 s** budget; 40 s hits the documented
+  IndexedDB stall often enough to look like a failure.
+- ⚠️ **Never byte-compare the `.xlsx`.** ExcelJS stamps `dcterms:created`/`modified` into
+  `docProps/core.xml`, so two exports of an identical workbook differ by ~1 byte. Compare the
+  unzipped parts with `core.xml` excluded — `gate.sh` does.
+
+#### ✅ The engine-generated rows: RESTYLED TO SPEC, deliberately not rebuilt (ruled 29 Aug 2026)
+
+The Phases and All-phase hiatus card interiors, the episode rows and the holiday list are
+engine-generated markup wearing the full Mantine look — **and that is now a decision, not a
+stopping point.** Asked with the trade-off laid out (rebuild as React components vs. restyle the
+generators in place), the owner chose **restyle to spec**, the recommended option. The deciding
+findings, from a six-way read of the generators, restore path, chrome and harness:
+
+- A rebuild buys almost nothing visually: the settled §2c uncontrolled rule means React would
+  render the same native inputs the CSS already styles.
+- `applyStateSnapshot` rebuilds custom rows, regex-re-keys their ids and writes `fields.byId`
+  values **in one synchronous tick**; React commits asynchronously, so a state-driven rebuild
+  silently drops every restored value unless the restore path itself is restructured — §0 rule 3's
+  blast radius. Undo/redo replays that path constantly.
+- Frozen code reads the rows unguarded every cycle (`render()` writes `meta-<key>`, `readState()`
+  reads `start-<key>` on every keystroke), so rows must exist synchronously before the engine's
+  first `update()` and must never be reconciled away.
+- The generators innerHTML-replace their containers, so a rebuild cannot ship incrementally —
+  every generator plus the restore seam in one atomic change.
+- **The gate covers none of the custom-phase path** — no test clicks `#add-phase-btn`, the fixture
+  has no custom phases, so a rebuild breaking custom-phase restore shows GATE PASSED.
+
+**What the restyle pass landed** (all gated, all verified in a real browser against dist):
+sidebar checkboxes drawn as Mantine's Checkbox via `appearance:none` + a white SVG check, scoped
+to `.form-panel` so nothing can reach `#table-wrap`; native number spinners hidden in
+`.form-panel` and `.tools-menu` (matching the React cards' `hideControls`); the holiday rows'
+~7-inline-declarations-per-row replaced by `.hv-row`/`.hv-label`/`.hv-cell`/`.hv-dim`/`.hv-tag`
+classes (template edit in `renderHolidayVisList` — the `.hv-en`/`.hv-cb`/`.hv-del` +
+`data-hid`/`data-view` contract untouched); the episode inputs' undeclared second input size
+removed (UI-CONV §3d); the duplicated legacy `button.primary/.secondary` block **deleted** — it
+sat later in the file at equal specificity and had been silently winning over the Mantine-token
+block the whole time; `.icon-btn` restyled as ActionIcon-default with `font-family:inherit`
+(finding 3's Arial ×s); `.tb-btn` retired (nothing in the build emits it since the preview toolbar
+port); IBM Plex Mono dropped per §3a — system mono stack everywhere, Google Fonts link trimmed to
+Inter-only (Inter's *embedding* is still item 3 of "what is next", with its month-PDF gate);
+`phase-meta`/`snap-note`/`simpost-*`/`ep-panel*`/`placeholder-note`(now roman)/`phase-color-pop`
+tokenised onto `--mantine-*` variables.
+
+#### ⛔ Two Mantine-build bugs found and FIXED, one shape (29 Aug 2026)
+
+React rendered `#save-as-btn` and `#export-wf-pdf-btn` **conditionally**, but the engine captures
+both by `getElementById` at evaluation time and binds click listeners through the capture. Save As
+started `visible:false` → capture null → the button later appeared **dead**. The export button
+started visible → worked — until one Month↔Waterfall round-trip remounted a NEW node and orphaned
+the listener. Both now render always, visibility carried by `display` — the rule
+`#file-menu-wrap`'s comment already stated. Browser-verified: node identity survives the
+round-trip; Save As is present at load. **The general law: anything the engine resolves by id at
+evaluation time must be in the DOM at first commit and must never be conditionally unmounted.**
+
+#### ⚠️ Two PRE-EXISTING engine bugs found, NOT fixed — they need their own conversation
+
+Identical in deployed v1.2.0 and `src/legacy/app.js`; fixing them means engine edits and (for the
+first) a behavior change to shipped restore semantics:
+
+1. **Stale closures after custom-row re-key.** `addCustomPhaseRow`'s remove/swatch/name handlers
+   close over the mint-time `custom<n>` key; `applyStateSnapshot`'s re-key renames ids but not
+   closures. Restoring a save whose custom keys are non-dense (any calendar where a custom phase
+   was ever deleted before a later one) leaves those handlers stale: remove strands a ghost def in
+   `customPhaseDefs` and the next `update()` **throws** in `readState` on the missing
+   `start-<key>`; swatch picks stop persisting. The delegated handlers are immune (they re-derive
+   the key from the live id).
+2. **A snapshot with zero custom phases does not clear existing custom rows** — the rebuild is
+   gated on `snap.customPhaseDefs.length`, violating the restore-unconditionally rule. Opening a
+   customless file over a session with custom phases keeps the old rows.
+
+#### ⚠️ Harness facts that will bite the next session (found 29 Aug 2026; gate.sh header now says all three)
+
+- `gate.sh` **never ran fence.js** despite its old header comment listing gate 7. No fence
+  baseline is committed. Run it by hand against both pages and diff — done for this stage: every
+  frozen `#table-wrap` computed style identical between `/index.html` and dist.
+- **The baseline is date-pinned to 2026-08-29.** The Excel header and the waterfall PDF embed
+  `todayStr`, so the PDF byte-compare and the Excel parts-diff FALSE-FAIL from any later date
+  against untouched code. Re-cut the baseline on a known-good build before trusting those legs.
+- The `fields.byId` failure diagnostic was dead code (an `isinstance(list)` guard on what parses
+  as a dict); it now prints lost/gained/changed ids.
+
+#### ⛔ The controlled-input finding, and the fact that it is now SETTLED
+
+`UI-CONVENTIONS.md` §2c records the trap: Mantine's inputs are **controlled**, and
+`applyStateSnapshot()` restores a calendar by writing `el.value` into each field by id. A controlled
+component ignores that write and re-renders from its own state — so a value would silently fail to
+come back on open while still *saving* correctly and passing every id-based assertion. §8.1 caught
+`DatePickerInput`'s id problem and prescribed `DateInput`; `DateInput` is controlled too, so it fails
+this different and worse way.
+
+✅ **Resolved by demonstration, not by argument.** Every control in `Sidebar.jsx` is **uncontrolled**
+— `defaultValue` only, never `value` — and the `restore` gate passes against real Mantine
+`TextInput` / `NativeSelect` / `NumberInput` elements, restoring 52 rows / 154 cells / 324 pt with
+`fields.byId` unchanged at 56 ids. So option (1) in §2c is proven: **uncontrolled Mantine components
+work with the existing save/restore path, unchanged.** The only casualties are the genuinely
+controlled ones — `DateInput` / `DatePickerInput` — which is why every date field in the app is still
+a native `<input type="date">`, and why §5's Monday-snap week-band affordance needs re-costing
+separately rather than being assumed.
+
+#### Where it stands, measured
+
+Full gate **PASSED** after every stage, against `tests/baselines/2026-08-29-stage-7`: 0 horizontally
+clipped cells, waterfall PDF **byte-identical**, every Excel part identical, `v1.0.0-saved.html`
+restoring to 52 rows / 154 cells / 324 pt, `fields.byId` **56 ids identical**, 0 console errors.
+Frozen-surface computed styles are unchanged — table 602 px, note cell 184 px, phase cell 92 px,
+date cell 53 px, no typographic or box change. The only deltas are `--header-h` 52 → 51 px and the
+1 px that gives back to `.sheet-scroll`'s max-height.
+
+`dist/index.html` is **~1.03 MB** (324 KB gzipped) against the current 667 KB — inside the
+~1.0–1.15 MB the probe projected, and item 5 of "what is next" would take ~247 KB back off it.
+
+**Verified by hand in a real browser**, because the gate cannot see any of it: all four tool
+popovers open and `fillPhaseSelect` fills their phase selects with the `' — '` separator intact; the
+file menu opens, and its *Open…* item drives the real file-open path (which is what the `restore`
+gate exercises); the export button's viewMode dispatch flips its label and its fill between
+Waterfall and Month; `reflectRegionUI` still shows the US Area row through the React-rendered
+markup. The built file also runs from `file://` — checked with headless Chrome straight off the
+filesystem, which is the emailing-it-around property surviving the build step.
+
+#### 🎨 The visual-redesign rounds (29 Aug 2026, same session as the restyle ruling)
+
+Three owner-review rounds, each gated before the next. The full inventory is the README changelog
+entry ("the visual redesign rounds"); what a next session must know:
+
+- **The DoubleNavbar icon rail was built and REVERTED on the owner's verdict** — horizontal
+  icon+label tabs won. Do not rebuild the rail. The white full-height sidebar, thicker header
+  (51→63px, safe because `--header-h` is MEASURED), brand block, iconed buttons, red Reset,
+  equal view segments, the joined Shift All split control, the searchable file menu (Open…
+  pinned) and the `.side-block` = `.phase-row` shared recipe all survived review.
+- **The pop-out date pickers are live** (`src/chrome/DatePop.jsx`): hand-rolled popover calendars
+  over the untouched native date inputs — Mantine's DateInput stays banned (§2c). Id-less by
+  construction, marker data via `chrome.dateContext` (pushed from `update()`), `.date-pop` added
+  to `buildSavedHtml`'s strip list. Write-back is the native setter + dispatched events, so the
+  engine sees a keystroke.
+- **Icons are hand-drawn inline geometry** (`src/chrome/icons.jsx` + raw SVG in the skeleton
+  tab strip) — no icon package, deliberately.
+- **`theme.black = '#1E1D1B'`** — nothing in the chrome is pure black any more.
+- ⚠️ **The gate's restore leg stalls on IndexedDB** — four consecutive stalls were observed here
+  while several Chrome instances ran, which is why this was first written up as load.
+  ⛔ **It is not load, and the advice that used to end this bullet — "diagnose with a standalone
+  run" — is a TRAP now withdrawn.** `run.sh` defaults to `HARNESS_PAGE=/index.html`, so a bare
+  `./run.sh restore` tests the **deployed app** rather than the build: it passes while the build
+  fails, which reads as a clean bill of health and is not one. Row 49 has the measured mechanism
+  (`indexedDB.open()` never settles in headless, identically on the deployed page). Diagnose with
+  `HARNESS_PAGE=/dist/index.html ./run.sh fsprobe 30` against **both** pages.
+
+#### 📖 Terminology rule (owner, 29 Aug 2026)
+
+> **Saving** means writing a `.sptcal` locally. **Loading** means opening a `.sptcal` or `.html`
+> into the PWA.
+
+UI copy follows this vocabulary (the file-menu search says "Search loaded files"). Use it in all
+new user-facing text.
+
+#### 📋 THE MASTER LIST — every owner request of the redesign arc, reconciled (29 Aug 2026, round 4)
+
+Compiled at the owner's instruction from their consolidated re-paste, checked item by item against
+what is actually built. ✅ built · ◐ partial · ⏳ open with a reason · ❓ needs an owner decision.
+
+| # | Request | Status |
+|---|---|---|
+| 1 | Show/Settings/Phases font parity | ✅ label + input-size parity rules |
+| 2 | Color changer as top bar on phase chips | ✅ same `swatch-<key>` contract |
+| 3 | Grab handles (visual only) | ✅ CSS dots. ⛔ **THE REORDER ITSELF IS STILL UNBUILT AND IS A KNOWN DEBT** — owner, round 7: *"do document that this will need to be implemented, but a later decision."* The handles currently promise a drag that does nothing. What it needs before any code: `customPhaseDefs` ARRAY ORDER is save-format (a reorder rewrites what every saved file means), `PHASE_CHAIN` depends on order, and the "start after previous phase" links resolve through it — so a drag has to define what happens to dated phases, chained phases and `phaseHiatuses` keys. Design it as its own stage with its own gate; do not bolt drag onto the existing handles. |
+| 4 | Diegetic warnings in phase chips | ✅ **DONE round 7, and with NO frozen edit.** The ring was thought to need a hook inside frozen `render()`'s validity branch. It does not: `reflectStartDateValidity()` runs from `update()` (not frozen), toggles `.is-invalid` on the SIDEBAR field (chrome), and CALLS frozen `readCfgForMeta()` for the verdict — reading from the frozen surface is allowed, and it means there is no second copy of the validity rule to drift from the meta line. Verified: a year of 0206 rings the field red while the meta line says "Check that year". |
+| 5 | Red hover ×, visually centred | ✅ round 3 + round 4: the × is drawn geometry now (mask), not a text glyph |
+| 6 | All-phase hiatus naming | ✅ **BUILT 31 Aug 2026, on the owner's own machine, per the owner's ruling once the repo arrived there.** A `Name` field on each `#hiatus-list` row (`addHiatusRow`, `.hiatus-entry`) drives `hiatusTexts` for every week that hiatus covers — writing into the SAME store a click-to-rename edit on the band already uses (`hiatusTextFor()`), so no frozen render/export function was touched. A hand-typed override on a specific week still wins, via the new `hiatusNameSyncedKeys` ownership map (persisted in `captureSnapshot()`/`applyStateSnapshot()`, re-keyed alongside `hiatusTexts` in `shiftCalendar()`). New `fields.hiatuses[].name` key, append-only — see the README changelog entry for the full design and verification. **Extended 1 Sep 2026 to per-phase hiatuses too** (the toggle inside each phase card) — same `hiatusTexts`/`hiatusNameSyncedKeys` mechanism, keyed `"week\|phaseKey"` (the shape a phase-hiatus band's click-to-rename already used), via a new `phiatus-name-<key>` field that needed no save-format change at all (singleton id'd input, already covered by `fields.byId`). |
+| 7 | Custom warnings replacing browser popups | ✅ **COMPLETE as of round 7 — all 8 remaining alerts converted with NO frozen edit.** They live inside `exportMonthPdf` / `exportWaterfallPdf*`, so editing the call sites was forbidden; instead a hoisted `function alert(message){ return uiAlert(message) }` declared in the IIFE SHADOWS the global for every call site in it. Same shape §2b prescribes for `SHEET_GRIDLINES`: keep the identifier, change only the declaration. ⚠️ Behaviour-preserving ONLY because all 8 are `alert(msg); return;` — checked site by site — so blocking vs async is unobservable. A future export that must alert AND CONTINUE has to `await uiAlert()` explicitly. `beforeunload` stays native (browser-owned). |
+| 8 | Undo/redo symbols fit Mantine | ✅ drawn glyphs; round 4 fixed the baseline offset |
+| 9 | Retrigger block on file actions | ✅ `reClickGuard(600ms)` |
+| 10 | Tool popover pickers pull from Mantine | ✅ chevron restyle; they stay real `<select>`s (`fillPhaseSelect`) |
+| 11 | "Search loaded files" + terminology rule | ✅ built + rule logged (saving = write `.sptcal`; loading = open into the PWA) |
+| 12 | Share copy: keep code, disable button; "Export App With Data" in Settings | ✅ Settings ▸ App carries the flow. ⚠️ INTERPRETATION: the header button was REMOVED (code path intact) rather than shown-disabled — say the word if a visible-but-disabled header button was wanted |
+| 13 | Autosave-needs-a-file in red | ✅ red Badge |
+| 14 | Export naming convention | ✅ never touched — `<Show Title> Planning Calendar.xlsx` |
+| 15 | Meta readout two rows | ✅ the one deliberate frozen `render()` edit, owner-directed, gate-proved |
+| 16 | Changelog/commit/backlog hygiene | ✅ three commits + this list |
+| 17 | Install-as-app above switchers | ✅ |
+| 18 | Show/Settings blocks like Phases | ✅ `.side-block` |
+| 19 | Warm dark-gray text + picker text ratio | ✅ `theme.black` + `sm` input text |
+| 20 | Equal centred Waterfall/Month | ✅ |
+| 21 | Shift All merged split control | ✅ |
+| 22 | Status padding | ✅ |
+| 23 | Menu rhythm (Open vs search) | ✅ |
+| 24 | Rail reverted, icons kept, thicker named header, red Reset, button animations, full-height sidebar, preview-toolbar overhaul, menu search + pinned Open, export split | ✅ all |
+| 25 | Round-4 images: cramped warn chip · holiday name/date split rows · chip side padding · × and undo/redo centring | ✅ all four |
+| 26 | **Note popovers + help modal** (`.note-pop`, `.mv-note-pop` incl. its reposition bug) | ◐ **core built in round 6** — see row 39: both popovers restyled in place, the mv reposition/teardown bug fixed (observer, no frozen edit), help modal tokenized. Still open: the №4 ring and №7 frozen-alert conversions (rulings), optional React port of the help modal |
+| 27 | Round 5: more side padding in the warning dialogs | ✅ root cause was the density spacing scale redefining `md` 16→8px, which Modal pads with; fixed once in theme `Modal.defaultProps` (`padding:'xxl'` = 20px), measured 8→20px live |
+| 28 | Round 5: "Open"→"Load" in ALL user-facing copy (per the №11 terminology rule) | ✅ menu item "Load…" (Header.jsx — `data-action="open"` and every identifier deliberately KEPT, contract not copy); app.js dialog strings (`Load another calendar?` ×3, `Could not load…` ×2, `Permission to load…`), legacy-notice copy; help copy in src/index.html ("Files, saving & loading", "use Load…", "Loading a file again…") — plus a truth-fix to the help's Save paragraph, which still described the pre-v1.1.0 full-copy Save (now: `.sptcal` + a pointer to Export App With Data). "It opens by double-click" in the share-copy blurb KEPT — OS sense, not file loading. ⚠️ grep on app.js needs `LC_ALL=C grep -a` (embedded base64 makes plain grep classify it binary and silently return NOTHING) |
+| 29 | Round 5: more padding between sidebar fields | ✅ the `Stack gap="md"` in Sidebar.jsx = 8px on the density scale (same trap as №27); Show + Region card Stacks now `gap="xl"` (16px, measured) |
+| 30 | Round 5: tool-popover pickers = the loader's picker | ✅ `SelectPop.jsx` on the DatePop pattern with ONE deliberate difference: the panel PORTALS INTO the select's own `.tools-menu`, never body-level — the engine's click-away (`closeAllPops` on any click outside `.tools-wrap`/`.shift-group`) would close the parent popover on every option click otherwise. Document-delegated mousedown (preventDefault suppresses the native popup; Chromium behaviour, our decided target), options re-read from the live DOM every open (fillPhaseSelect stays the single source), write-back via native HTMLSelectElement setter + bubbling input/change (verified: syncAnchorDate fired — picking Pre Prep moved the anchor date), Escape closes the PANEL first (capture+stop; second Esc closes the popover — verified), `.select-pop` added to buildSavedHtml's strip list. Covers the three phase selects AND `#tool-anchor-edge`. Verified in dist: empty state renders as a dead row; a real Anchor To run through a picked phase shifted the calendar correctly |
+| 31 | Round 5: file chip fixed-larger; "Save As…"→"Save As"; New/Save/Save As equal width | ✅ chip `width:280` FIXED (not dynamic, label ellipsis inside; matches the 280 dropdown); ellipsis dropped in Header.jsx AND in `flashSaveBtn`'s restore string (app.js — it would have flashed the "…" back); `miw={104}` on all three (min-width not width, so the non-Chromium pushed labels "Save to File"/"Downloaded ✓" still fit). Measured: 104/104/104, `--header-h` still 63px |
+| 32 | Round 5: header brand icon = the favicon, single-sourced | ✅ `src/chrome/appIcon.js` is the ONE copy of the artwork; Header renders it as `<img.app-brand-mark>` (the old navy chip + drawn glyph retired — the geometry lives on as `IconCalendarPlain`), the head's two links ship placeholder `data:,` hrefs and main.jsx writes the real URI at startup (buildSavedHtml serialises attributes, so shareable copies carry it). ⛔ **THE MANIFEST'S 192/512/512-maskable PNGs ARE A SECOND, INDEPENDENT COPY** — the installed-PWA identity, inside the percent-encoded manifest data URI. ✅ **Both copies were replaced together on 18 Sep 2026** (owner-supplied clapperboard-calendar artwork, rasterised from one SVG by headless Chrome). **Change only `appIcon.js` and an installed app wears the old icon forever with nothing on screen to say so.** ⛔ **THE MASKABLE ENTRY WAS DROPPED 18 Sep 2026** — it is opaque by spec (the platform crops it, so transparency would be holes), **macOS does not crop app icons**, and Chrome was using it for the Dock, which is where the owner's "white box behind the icon" came from. Manifest now has only the two transparent `any` icons; restore a maskable only if Android install ever matters. ⛔ **An installed PWA caches its icon AT INSTALL TIME** — the Dock icon does not change until it is uninstalled and reinstalled, so a test that shows no change proves nothing. ⛔ **macOS Chrome CLAMPS `--window-size` below ~400px and the screenshot becomes a CROP of a larger render** — a 192px icon rendered directly came out as a fragment of the clapper arm and shipped, because it is still a valid 192x192 PNG. ⭐ Render large and downscale (192 is a 4:1 box downscale of 768, averaged in PREMULTIPLIED alpha or transparent pixels bleed a dark halo into the edges). ⭐ **The two-number test that catches it: centre pixel alpha 255, corner pixel alpha 0.** ⚠️ The manifest encodes `+`/`/`/`=` as `%2B`/`%2F`/`%3D`, so splice only after proving `quote(unquote(payload), safe='') == payload` is byte-identical — otherwise a rewrite is silent. ⚠️ Chrome's `--screenshot` does not exit after writing, same as `--dump-dom`: background, poll, kill. ⏭ `theme-color` #E74C3C is STILL not single-sourced and no longer matches the artwork's #EF493C — flag to the owner |
+| 33 | Round 5: open animation on the help popup (the ? FAB) | ✅ keyframes on `.open` (`helpOverlayIn` fade / `helpModalIn` rise+scale, .16/.22s) — keyframes, not transitions, because display:none→flex has no from-state for a transition, while animations fire on becoming rendered. Transform kept OFF the overlay (it carries backdrop-filter). prefers-reduced-motion honoured. Close stays instant (an exit animation needs @starting-style machinery; not asked). Verified: computed animation-names present on open |
+| 34 | Round 6: New/Save/Save As equal width = the LONGEST button's natural width, not a magic number | ✅ `.file-actions` grid wrapper (`grid-auto-flow:column; grid-auto-columns:1fr` — under an indefinite container width every 1fr track sizes to the largest max-content, so Save As defines all three at its own natural padding); `miw={104}` removed. Measured: 86/86/86 |
+| 35 | Round 6: file chip 20% narrower | ✅ 280 → 224 (measured); dropdown stays 280 |
+| 36 | Round 6: holiday header labels collide (W'FALL/MONTH jam at 40px columns) | ✅ note columns 40/40/38 → 46/46/44 — header spans and `.hv-cell`/`.hv-cell-month` IN LOCKSTEP — and the uppercase tracking dropped on the three cell labels (kept on HOLIDAY). Verified: fully separated at sidebar width |
+| 37 | Round 6: the Show-Info warn chip breaks into columns | ✅ root cause: `.ep-panel-warn` was display:flex, so the innerHTML's text node / `<strong>` / text node were three anonymous flex ITEMS wrapping independently. CSS-only fix: block layout + absolutely-positioned glyph in the reserved left padding — BOTH engine messages (missing-info and dropped-episodes) now flow as one paragraph, zero engine edits |
+| 38 | Round 6: "1 wk earlier" readout pops under the WRONG button (always right:0) | ✅ `runShift` stamps `data-shift-dir` on `#shift-group`; CSS anchors the readout left for earlier, right for later. Verified by geometry both directions |
+| 39 | Round 6 №6 → **№26 STARTED: the note popovers** | ◐ **built and verified**: both editors restyled in place to the one overlay family (shell = file menu / .date-pop / .select-pop recipe; token type; chevrons on the id-less Day/Size selects; 16px swatches with the primary selected ring; help modal title/body tokenized — its radius 14 was already the xl token). **The §9.5 mv-note-pop bug is FIXED**: scroll (capture) + resize tracking mirroring the waterfall twin, plus a rebuild guard as a **MutationObserver on `#table-wrap`** — deliberately NOT a mirror of the twin's guard, which lives INSIDE frozen `render()`; observing mutates nothing. On a rebuild it re-finds the equivalent anchor via `relocateNoteAnchor` and follows it, else closes without saving like the twin. Verified: resize re-glues at 4px; a sidebar-edit rebuild re-anchored the open editor. ⏳ Remaining of №26: porting the help modal to a React Modal (optional — visually it now matches), and the bundled №4 ring + №7 frozen-alert conversions still await their rulings |
+| 40 | Round 7: date picker inside Shift From / Anchor To / Rebuild From **destroyed the edit** | ✅ the exposure round 5 predicted and left latent. `.date-pop` is a body-level panel, so a click on a day is "outside" the tool popover and the engine's click-away (`closeAllPops`) shut it mid-edit. One-line guard: `.date-pop` excluded alongside `.tools-wrap` / `.shift-group`. Escape now also layers — DatePop consumes it (capture + stopPropagation) so one press closes the picker and a second closes the popover, matching SelectPop. Verified with real clicks: panel survives, picked date lands, Go still there |
+| 41 | Round 7: undo/redo still not centred | ✅ the GLYPHS were off-centre in their own viewBox, which is why round 4's baseline fix did not settle it: ink spanned y 5.5–16 on a 16 box (centre 10.75 vs 8, i.e. ~2.4px low at render size). Redrawn to span y 3–13, x ~3–13; Redo is the exact mirror of Undo about x=8. Measured after: ink centre y **8.00**, svg offset in button 0,0 |
+| 42 | Round 7: title padding left vs right | ✅ measured 28px of page gutter left of the mark against 6px between the name and the divider; `.app-brand{padding-right:22px}` puts 28px on both sides |
+| 43 | Round 7: **must work at different screen dimensions** | ✅ the header never truncates a label again. Root cause: nothing overflowed or wrapped — flex items SHRANK, so at 1100px the labels read "Expor"/"Exp"/"Rese". Now every control is `flex:none`, the status readout is the only elastic element, and demand drops in four deliberate steps: chip 224→180 (≤1320), brand name hides (≤1200), New/Save As/secondary export go icon-only with title tooltips (≤1120), status hides (≤980). Save keeps its label at every width (it carries the "Saved ✓" flash) and so does the primary export. Verified at 1440/1280/1150/1024/900: 0 clipped labels, 0 overflow, `--header-h` 63px throughout |
+| 44 | Backlog: **Inter embedded** (was §9.1, ruled yes) | ✅ ONE variable woff2 (latin, 48 KB → 66 KB base64) replaces four static weights AND the Google Fonts link; `tools/fetch-inter.py` regenerates it. **The gate the ruling came with is satisfied by measurement, not assumption**: canvas text widths at 400/500/600/700 are byte-identical to the Google-served statics (279.322 / 282.599 / 285.875 / 289.152), so `mvNoteLineCount()` measures exactly what it measured before and month-view row heights cannot move; and the built file makes **zero** external font requests, so "network on vs off" cannot differ by construction |
+| 45 | Backlog: **per-component Mantine CSS** | ✅ 26 files instead of the 273 KB bundle. The list is empirical — every `m_*` class the app renders was collected from a live run (every tab, the file menu, all four tool popovers, both pickers, the month view, both note editors) and mapped hash→file — PLUS seven files for states no click can reach (Badge, Loader, Tooltip, Divider, ScrollArea, VisuallyHidden, FloatingIndicator). ⛔ **THE ORDER IS DERIVED, NOT ALPHABETICAL**: all files share `@layer mantine`, so order decides, and an alphabetical list put `UnstyledButton` after `Button` — its reset then won and EVERY button in the app lost its background, border and padding. Measured, not theorised. Verified: 16 elements × 15 computed properties identical to the full-CSS build (the one delta is `min-height auto→0` on one button, same rendered 30px height), every component's classes present in the built CSS, ordering asserted. dist **1,096 KB → 983 KB** *including* the newly embedded font |
+| 50 | The documentation sweep (31 Aug 2026, after round 7) | ✅ All eight project docs audited against the repo and corrected — no app code touched. ⚠️ **What it found is the reason to keep doing this:** two docs *prescribed designs that had been tried and rejected* (UI-CONV §7's `AppShell` + overflow Menu; MIG's "four popovers become one library call"), the Mantine layer fence was documented **inverted** in two places, and three docs still told the reader to diagnose the restore stall with a standalone run — the trap in row 49. `CLAUDE.md` gained the "sanctioned ways to change frozen BEHAVIOUR without editing frozen code" section, which is what rows 4 and 7 actually proved. ⛔ **`tools/check-refs.py` had a hole and it is closed**: three prose line numbers survived every existing pattern (all required a backticked symbol adjacent to the number, and these were written as bare English — the word "line" followed by a number, with no symbol near it), and two of the three were already WRONG. It now catches the bare English form, regression-tested against both the text that fooled it and the constants it must not fire on |
+| 49 | Round 7: ⛔ **THE RESTORE LEG'S "IndexedDB stall" HAS A MECHANISM, AND IT IS NOT LOAD** | ⚠️ Previously written up as flaky-under-load with "diagnose with a standalone run". That advice is **actively misleading** and cost this session real time: `run.sh` defaults to `HARNESS_PAGE=/index.html`, so a standalone `./run.sh restore 60` tests **the deployed legacy app, not the build** — it passes while dist fails, which reads as "the build is fine" and is not evidence at all. Pass `HARNESS_PAGE=/dist/index.html` or you are testing the wrong page. **The real mechanism, measured with `tests/harness/t/fsprobe.js`:** `indexedDB.open('spt-planning-cal')` in headless Chrome **never settles** — no success, no error, no `blocked` — it simply hangs past 8 s. `renderRecents()` sits behind that round trip, so `#file-menu-wrap` is never revealed and `appReady()` times out. ⚠️ **IDENTICAL on the untouched deployed `/index.html`**, which is the proof it is environmental and not a regression. The File System Access API is present and the context is secure on both (`showSaveFilePicker: function`, `isSecureContext: true`) — capability is not the issue. Prime suspect is `--virtual-time-budget`, which fast-forwards timers while IDB does real async I/O; ⛔ **removing it is NOT the fix** — tried, and `--dump-dom` then produces no output at all, because the budget is what makes Chrome wait before dumping. Fixing this properly means changing how the harness waits (CDP, or a real-time run with an explicit dump trigger) and is its own piece of work. ✅ **SUPERSEDED IN PART, 8 Sep 2026 — the leg is provable after all, and gate 5 with it.** The stall is real and still unfixed, but it never blocked the Open path; it blocked only the probe that waited on it. Measured: `#file-menu` is `keepMounted`, so its `Open…` item is in the DOM and enabled while `#file-menu-wrap` is still `display:none`; the engine binds ONE delegated listener to `#file-menu`, so a `.click()` on the hidden item reaches it; and `showSaveFilePicker` is a function, so `supportsFsAccess` is true and `openFileViaPicker()` does not early-return. `appReady()` now waits on `#start-production` (minted by `buildPhaseRows()`, so React cannot fake it) plus the `DEFAULT_HIATUSES` rows — live-code-only and IndexedDB-free. ⛔ Do **not** use `table.sheet-table` as that probe: a blank page has no grid until Show Info is complete, so it never appears before a file opens. What the stall still costs in headless is the recents list and the crash backup, which no leg asserts |
+| 47 | Round 7: the gate's two frozen-output proofs had been DEAD | ✅ `gate.sh`'s own header documented that the PDF byte-compare and the Excel parts-diff FALSE-FAIL on any day after the baseline was cut, because both artefacts stamp `todayStr` — so the two comparisons that prove the frozen writers have not moved were permanently red and therefore ignored. New `tests/harness/pdfcmp.py` decompresses the content streams, substitutes ONLY the dotted M.D.YY stamp (calendar content renders dates with slashes, so real printed dates stay compared), and byte-compares the rest; the workbook's `sheet1.xml` gets the same single substitution. ⚠️ It also taught something: a first version compared the XREF TABLE too, whose offsets shift mechanically when any length changes — excluded, because every object's CONTENT is still compared strictly. Both legs now PASS, and a red there means something real |
+| 48 | Round 7: frozen-surface fence, dist vs the deployed app | ✅ run by hand (gate.sh still does not run fence.js). **235 frozen waterfall values compared, 233 identical.** The only two differences are one number — `.sheet-scroll` height 854 vs 865px — which is precisely the 11px taller header (63 vs 52) flowing through the frozen `calc(100vh - var(--header-h) - 140px)`. That is the measured-`--header-h` design working, not drift. Every cell metric, font, padding and width is identical |
+| 46 | Backlog: §2h — shareable copy baked in a notice strip | ✅ fixed with the strips left as static markup: `buildSavedHtml()` now re-HIDES `#legacy-notice` / `#update-notice` in its clone (they ship `hidden` and are un-hidden by `el.hidden=false`, which removes the attribute `outerHTML` would have serialised). Restores v1.0.0's output rather than changing it, so §4 permits it. The React port of the strips is no longer needed to fix this |
+
+Nothing from the consolidated paste is unaccounted for.
+
+⚠️ **The open set shrank sharply in rounds 6–7 — this paragraph used to list eight items and six of
+them are now closed by rows in the table above.** №4 (the ring) and №7 (the frozen-path alerts) both
+shipped **without a frozen edit**, which is why they stopped being blocked; №26's core landed; and
+the Inter embed, the per-component CSS and the §2h fix are all done.
+
+**What is genuinely still open, and why:**
+
+| Item | Status |
+|---|---|
+| **Grid direct manipulation** | ✅ **FEATURE 1 (batch expand) BUILT + SHIPPED LIVE 1 Sep 2026** — plan §5. Marquee/Shift/⌘ selection + `Expand` toolbar button + double-click apply, one undo per batch, no frozen edit, **no save-format surface**. Hardened by two adversarial review rounds (13 fixes; see the README entries). ✅ **FEATURE 2 (column swap) PHASE 1 COMPLETE — F2-a…F2-d ALL BUILT AND GATED, 1 Sep 2026, NOT YET PUSHED.** F2-a: `gridColSwaps` store, mutual-pointer model, reconciler in `computeSchedule`, 9 save sites, `prove-col-permutation.mjs`. F2-b: `layoutFingerprint`, the six-check gate, per-pair rejection, `#colswap-notice`. F2-c: `swapRunFor` (run walk off the rendered `<td>`s), `canSwapRun` (trial + gate verdict), `commitSwapRun`. F2-d: the teal knob, the ghost/collateral drag preview, the settle animation, `◀ Swap`/`Swap ▶` toolbar buttons, Alt+arrow, the reason chip. Three harness legs: `colswap`, `colswapgate`, `colswapmove`. ⏭ **NOT built, and each needs its own owner decision: F2-e** (arbitrary partial runs — D7 explicitly reserved this) and **F1-e** (the batch edge drag — D8). Do not build either on the Phase 1 ruling. |
+| ⚠️ **The gate's `empty`-segment trap (F2-b, learned the hard way)** | The gate's content check compares each week's real OCCUPANTS and must **exclude `empty` filler segments**. A legal swap routinely makes an `empty` segment vanish when a cell absorbs the slot beside it, so including them made the gate report *"a cell would be lost"* and refuse **every correct swap**. Caught only because the `colswap` leg existed before any gesture did. If you touch `weekContent`, keep the filter. |
+| ⛔ **Two overlay layers, and the z-index is the whole reason (F2-d)** | `.grid-sel-layer` must stay at `z-index:1` so the selection rects scroll UNDER the frozen sticky header (`.sheet-table th` is `position:sticky; z-index:2`) — an owner-visible fix. But `z-index:1` + `position:absolute` makes it a **stacking context**, so anything inside it is capped there — and `.grid-resize.is-col` is `z-index:5`, 7px wide, **FULL TABLE HEIGHT**, `pointer-events:auto`, centred on exactly the seam a swap knob must be centred on. A knob inside the selection layer is unclickable at its own centre. So the grips live in a **sibling** `.grid-swap-layer` at `z-index:8` (clearing `.is-span` 6 and `.span-preview` 7), with ONE draw pass shared between them. ⚠️ The plan's review said "do not add a second layer"; that instruction predates the selection layer being pushed down to 1, and its actual reason (don't duplicate the geometry and observer plumbing) is still honoured — `drawSwapLayer` is called from `redrawGridOverlay` and there is still one observer. Because the swap layer paints ABOVE the header, the knob and its chip are clamped below the header's live bottom edge and dropped entirely when the run scrolls behind it. |
+| ⚠️ **A verdict is far too expensive to compute per repaint (F2-c)** | `canSwapRun` is one trial `computeSchedule` **plus** `runColSwapGate`, which itself runs a baseline `computeSchedule` and one or more `layoutFingerprint` passes (each = one `computeBlockLayout` + one `sheetColumnWidths`, and the latter measures every label and note). `redrawGridOverlay` runs on **every render**, which is every keystroke in a date field, and also on every `pointermove` of a marquee sweep. So verdicts are **debounced 140 ms and cached** against a structural key (seed cell + every week's col multiset + the `gridColSwaps` keys + the `cellSpans` keys). The knob therefore appears a beat after the selection, on purpose. ⛔ Never move this to a `rAF` in the drag loop; the drag needs no trial at all, because the run and the direction are both fixed once the 12px threshold is crossed. |
+| ⛔ **`runColSwapGate` MUTATES `swapSuppressed`; a trial must save and restore it** | It rebuilds the set from scratch every pass. `canSwapRun` installs a candidate store, calls the gate, and must restore **both** `gridColSwaps` and `swapSuppressed` in its `finally` — otherwise a trial leaves the live pass believing a pair is suppressed that never was, and a legitimate stored swap silently stops applying. |
+| ⚠️ **The request's own scenario produces collateral, and the earlier claim that it produces none is WRONG** | Measured 1 Sep 2026 on the exact screenshot shape (Prod Prep 6 wks from 11/2, Post 4 wks from 11/16). **Before** the swap Prod Prep holds slot 0 for all six weeks, so frozen `phaseRunBounds` bounds its run across the whole block and slot 1 is occupied inside it — Prod Prep is ONE column wide even at 11/2. **After** the swap slot 0's occupant changes at 11/16, so its slot-0 run is only 11/2–11/9, slot 1 is free there, and it widens to two columns. That is magnitude-1 collateral: allowed under D2, previewed in amber, reported in the chip. The plan's *"your screenshot itself produces zero collateral (measured)"* is about a different pre-state (one where those weeks were already hand-filled) and must not be read as a property of the shape. ⛔ An early draft of the `colswapmove` harness leg asserted those two weeks were byte-identical and failed for exactly this reason — the test was wrong, not the code. |
+| ⛔ **Find a swap partner by SCANNING for the touching edge, never by arithmetic on the seed's slot** | For `dir=+1` the partner is the segment with `a === seed.b + 1`; for `dir=-1`, `b === seed.a - 1`. `own - 1` names a slot that a spanned neighbour merely **covers** rather than owns, so the left move is silently never offered; `own - span` can name a partner two slots away and jump the phase that is actually adjacent. Equal `colspan` on both sides is also **mandatory**: without it a 1-wide per-phase hiatus band beside a 2-wide phase reads as eligible, and the swap doubles the band and halves the phase. |
+| ⛔ **A `cellSpans` ENTRY IS NOT A HAND-SET WIDTH — test the EFFECT, never the store** | The single most productive bug of 1 Sep 2026, because it appeared in two features at once. Frozen `applyCellSpanOverrides` KEEPS an override the schedule has moved under (its own comment: *"a stale override shrinks to whatever is genuinely free rather than being dropped outright"*), so a claim written while a week still had a free column beside it survives **invisibly** once a phase moves in. Both the swap's D4 refusal and batch expand's `canExpand` were testing `cellSpans[key]` for existence — so one refused a swap over a width granting nothing and told the user to clear a cell with nothing on screen to clear, and the other offered *"double-click to pull back"* on a cell one column wide. **The correct test is `stored claim AND the cell is drawn wider than its own slot`** (`a < own \|\| b > own`, straight off the rendered `<td>`). ⚠️ Do NOT simplify either one to a bare curL/curR test: a cell filled BY an override has `maxL = maxR = 0`, so the store clause is the only thing that lets it be pulled back; and a cell the automatic layout widened has curR > 0 with no override, which the frozen single-cell handler deliberately refuses to touch. Both halves are load-bearing. Gate leg: `colswapstale`. |
+| ⚠️ **D4's swap refusal is now rare BY CONSTRUCTION, and that is correct** | For a run to be eligible the two cells must have equal colspan, and with two phases sharing a two-column block neither can be wider than its own column — so there is no effective override to protect. Expect `width-override` essentially never to fire at mc=2. It is not dead code (per-phase hiatus bands and 4+ concurrent phases can reach it) but do not "fix" its rarity by loosening the effect test back to a store test. |
+| ⛔ **"BLOCK" MEANS TWO DIFFERENT THINGS — the UI's and the code's, deliberately** | Settled with the owner 1 Sep 2026. The unit column order operates on is **a phase's weeks within ONE year block** — Production running Nov 2026 → Mar 2027 has two of them, each with its own column, each independently swappable. The owner named it **"block"** for the UI, which is right for users. But `block` **already means the year group** in the engine (`computeYearBlocks`, `blockSlotMaps`, `blockOccupancy`, `blockMaxConcurrent` — 117 uses in `src/legacy/app.js`, 577 in the harness), so the code and these docs call it a **`stint`** instead. The precedent is the app's own *Load…* / `open` split, documented in `CLAUDE.md`. ⚠️ In code, a bare `block` continues to mean the YEAR block — never reuse it. Full three-level vocabulary (**phase** → **stint** → **run**, where a run is what `phaseRunBounds` returns) is in [`COLUMN-ORDER-PLAN.md`](COLUMN-ORDER-PLAN.md) §0. ⚠️ A stint is NOT strictly contiguous: an all-phase hiatus week inside the block leaves the phase with no cell there. |
+| ⚠️ **The user-facing verb is SWAP, never MOVE — and it now has a second instance** | D10 ruled it once for the toolbar buttons; the owner ruled it again 1 Sep 2026 for the new hover control, choosing **"Swap Block"** over their own first instinct of *"Move Block"*. ✅ **Renamed "Swap Column" by the owner, 15 Oct 2026**, still a swap; the chip, confirmation and undo label still say "block". The reason is positional: *← 1 wk*, *Shift All* and *1 wk →* sit a few pixels away and move the calendar in TIME. ⛔ Any new column-order control says *swap*. |
+| ⛔ **A STINT SWAP CAN LOSE CELLS, AND THE `segCol` ARGUMENT THAT SAID OTHERWISE IS WRONG** | Cost a real defect on 1 Sep 2026, shipped locally and caught by probing. The claim was: `segCol` only reuses a freed column to the right of everything still running, so the column beside your stint holds exactly ONE other stint during your stint's life. **False.** `minCol` only requires being right of phases still RUNNING, so a long phase holding column 0 keeps `minCol` at 1 indefinitely while several short phases take turns in column 1 — all of them inside its run. Exchange your stint with only ONE of them and it lands in a column another still holds: two cells claim one column in the same week, frozen `bySlot[]` keeps one, and **the other's weeks vanish from the grid and from both exports**. Measured with the guard removed: a 20-week phase rendered **16 weeks**, silently, no error. `applyStintSwaps` validates EVERY group before mutating ANY and refuses one that would lose a cell. Gate leg `stintcollide`. ✅ **COMPLETED 2 Sep 2026:** the gesture (`stintRunFor`) closes the set — every stint in the neighbouring column overlapping yours, then every stint in yours overlapping theirs — and names them all in the knob, the chip before commit and the confirmation after; the store's `with` relation is read as a **graph** (`stintSwapGroupsForBlock`: one connected component = one exchange over exactly two columns; a mutual pair is the two-member case, so old stores read unchanged). Refusal is now reachable only by drift or a hand-edited file. Legs `stintgroup`, `stintmulti`, `stintoneside`. |
+| ⚠️ **A FIXTURE CANNOT DRIVE PRODUCTION THROUGH `weeks-production`** | Cost half an hour. `refreshDerivedInfo()` does `daysField.value = info.complete ? info.totalShootDays : ''` — Production's shoot-day field is WRITTEN from the episode list and BLANKED whenever Show Info is incomplete, so a `.sptcal` that sets it directly renders no Production at all and the phase silently does not exist. Setting `num-episodes` + `shoot-days-per-ep` is not enough either; the episode ROWS have to rebuild. `tests/fixtures/colswap-simpost-refuse.sptcal` is the worked example — it carries a full `episodeDefs` array plus `episodeCounter`. ⚠️ If a fixture only needs "a long phase holding a column", use one measured in WEEKS (writersRoom, post, localization) and avoid Production entirely. |
+| ✅ **THE STINT (UI: "block") SWAP IS BUILT AND GATED — but has NO GESTURE yet** | Steps 3-4 of [`COLUMN-ORDER-PLAN.md`](COLUMN-ORDER-PLAN.md), landed 1 Sep 2026, **not pushed**. `gridStintSwaps` keyed `'<year>|<phaseKey>'` with mutual pointers; `applyStintSwaps` in non-frozen `computeSchedule` exchanges the two stints' `col` values **per cell within the block's week range**; `blockColOrder` captures the pre-exchange order; `stintOrderFor` hands it to the one authorised frozen line. Save sites done (captureSnapshot, applyStateSnapshot unconditional, resetAll; NOT the notes reset, NOT shiftCalendar — E5). ✅ **THE GESTURE LANDED 2 Sep 2026** (pushed as `2a75929`): the "Swap Block" hover button (`drawStintButton`, on `.grid-swap-layer`), the selection-driven mode inference (`swapSelectionMode` — exactly every cell of one stint = block swap, anything else = per-week, never snapped), the pre-commit mode line in the chip (`swapModeText`), one outline per contiguous run, and §6 items 6-7 (`stintoneside`, `stintexport`). Only **E4** (retire the per-week swap?) is open, plus the ship. Fixtures: `stintswap-shared/-noreflow/-collide/-group/-multi/-onesided.sptcal`. |
+| ⚠️ **INERTNESS IS PROVEN, and it is the only reason the frozen edit was allowed** | With no stint swap stored, `stintOrderFor` returns null and `computeBlockLayout` behaves byte-for-byte as before — measured, not promised: the gate's byte-compare shows the waterfall PDF and every Excel part identical to `tests/baselines/2026-08-29-stage-7/`. ⛔ If a future change makes that helper return anything when the store is empty, the frozen edit is no longer inert and E0's sign-off no longer covers it. |
+| ⚠️ **`prove-col-permutation.mjs` now injects a stub, and gained a drift check** | The prover slices `computeBlockLayout`'s verbatim source and evals it standalone; the frozen edit added its first non-builtin reference, so the file now injects `stintOrderFor = () => null` — which is exactly the real behaviour with nothing stored, keeping the theorem about the DERIVED order. ⛔ Do not make the stub return an order; that would test something else and pass vacuously. It also now fuzzes `blockColOrder` against `computeBlockLayout`'s own first-appearance walk over all 20,000 generated schedules, because that duplication is the feature's one drift risk — a disagreement would pin the wrong order and move a phase to the wrong column. |
+| ✅ **CORRECTION: a narrow band in the right-hand column IS reachable** | An earlier answer in this session told the owner it was not — "a phase alone in a row fills the row by design". Wrong. Measured under a stint swap: the block's solo weeks travel WITH it and stay one column wide, with the column beside them empty, because `computePhaseRowLayout`'s left-absorb branch refuses while the partner occupies that column anywhere inside the run. This is the layout the owner described wanting, and it falls out of the design rather than needing anything extra. |
+| ✅ **E0 — THE FROZEN EDIT TO `computeBlockLayout` IS AUTHORISED (owner, 1 Sep 2026), GATED** | This is the written sign-off `CLAUDE.md` requires. Scope: **the slot-order assignment only** — take the order from a non-frozen helper instead of the derived one. It authorises nothing else in that function and nothing about a cell's appearance, text fitting or the width model. ⛔ **It is conditional on [`COLUMN-ORDER-PLAN.md`](COLUMN-ORDER-PLAN.md) §6 in full**: byte-identical waterfall PDF and Excel parts against the baseline with nothing stored, 0 clipped cells, `prove-col-permutation.mjs` still passing, plus new legs. If any item fails, it does not ship. The safety argument is that the override is provably **inert** when absent — the helper returns its input unchanged, so the output is identical, not merely equivalent. Also decided: **E1** stint-level not wholesale, **E2** the "Swap Block" hover button, **E3** one outline per contiguous run, **E5** drop a block's order when that year block is gone. **E4** (retire the per-week swap?) is deferred. |
+| ⚠️ **A BLOCK SWAP DOES NOT APPLY G3 (column width) — deliberately — and DOES check every cell's colspan** (2 Sep 2026) | A column's width follows the labels in it (`sheetColumnWidths` sums a per-slot label maximum), so two columns trading their phases trade their widths too. That IS the two blocks "looking the same" in their new places; running the per-week gate's G3 rule on a block swap would refuse every swap between phases of different label length. `canSwapStint` checks instead: the reconciler took the group, every mover landed in the other column and every partner in this one, the block's `mc` and `simSlot` are unchanged, and **every occupant keeps its colspan** — any week where a cell changes shape is collateral, counted in the chip ("N weeks re-flow"). Under segCol's rules that count is essentially always zero for a block swap; the check exists so a surprise would be stated rather than silent. |
+| ⛔ **A BLOCK ALREADY SWAPPED WITH ONE COLUMN CANNOT BE SWAPPED WITH A THIRD — refused as `chained`, stated in the chip** (2 Sep 2026) | Both stores hold disjoint 2-cycles keyed by phase, and natural A,B,C → B,C,A is a 3-cycle. Swapping A (already traded with B) with C would clear A↔B and store A↔C, producing C,B,A — B jumps to the middle. `canSwapStint` reads where every member lands in the trial and refuses when that is not the column beside it: *"This block is already swapped with another column — swap it back first."* The per-week swap has the SAME limit and does not detect it. ⏭ Raise with the owner: lifting it needs a permutation store (`{takes:<key>}`), a separate decision. Also `mixed`: a block some of whose weeks are per-week-swapped is refused for the block swap until those are swapped back. |
+| ⛔ **"A BLOCK SWAP REFLOWS NOTHING" IS FALSE WITH THREE OR MORE PHASE COLUMNS — the premise the feature was built on** (2 Sep 2026) | Second real-use report. Swapping Pre Prep ↔ Writer's Rm traded the columns and then **widened Writer's Rm from one column to two for 34 of its 37 weeks**. Not cell loss, no width change, nothing clipped — but the opposite of the promise. **Mechanism:** moving a block changes WHICH column is beside it. Writer's Rm sat at slot 0, held narrow because Pre Prep occupies slot 1 *inside its run*; after the swap it sits at slot 1, on the far side of Pre Prep, and its new right-hand neighbour slot 2 is empty across its entire run (Prod Prep starts after it ends), so `freeForRun` grants it. The 3 weeks that stay narrow are the 3 it shares with Pre Prep, where the even-share cap applies. ⚠️ [`COLUMN-ORDER-PLAN.md`](COLUMN-ORDER-PLAN.md) §1's measurement is real but proves only that a phase blocked on BOTH sides stays narrow — its own ⚠️ note flagged that gap, and this is the defect that came through it. **Owner ruling: keep offering it, warn harder** — the warning names the phase, the new width and the extent (*"⚠ Writer's Rm would widen to 2 columns in 34 weeks"*, not *"34 weeks re-flow"*), the chip turns amber, and the amber preview paints on SELECTION rather than only mid-drag, because the toolbar buttons commit with no drag at all. Gate leg `stintreshape`. *(29 Sep 2026: its fixture is now a synthetic calendar with the same pattern, where the widening is 28 of 31 weeks.)* |
+| ⛔ **`productionInfo.startDate` IS NOT THE FIRST SHOOT DAY — use `firstShootDay`** (3 Sep 2026) | The header's `Principal Photography <date> / Wrap: <date>` printed `mondayOf(entered start)` against a *computed* last shoot day: one end a calendar guess, the other measured. When that Monday is a union holiday or falls inside a hiatus, it names a day nothing happens and **contradicts the grid beside it** — measured, a Production entered as 12/21/26 (inside the default winter hiatus) claimed 12/21 while the grid showed it starting 1/4/27. The *Start Principal Photography* auto-note had the same bug and could land on a hiatus week. `simulateProductionSchedule` already walked to the first real shoot day, so `productionInfo` now carries **`firstShootDay`** and both consumers use it. ⛔ Keep the two distinct: `startDate` is the Monday the phase's first WEEK begins (what the grid lays out); `firstShootDay` is when the camera rolls. Anything describing PRINCIPAL PHOTOGRAPHY wants the latter. Gate leg `wrapdate`. |
+| ⚠️ **THE WRAP DATE IS CORRECT — and a probe that says otherwise is probably wrong** (3 Sep 2026) | Reported as "sometimes seems wrong", verified correct 5/5 against an independent day-walk (hiatus-straddling, holiday starts, per-phase Production hiatus). **The first probe reported it wrong in every case and the PROBE was at fault**: it hardcoded a holiday list including Veterans Day (US-NY only, NOT US-GEN) and ignored the four `DEFAULT_HIATUSES` the app ships with (12/21/26, 12/20/27, 12/18/28, 12/24/29, 2 weeks each; 2029's is 12/17/29 since 2 Nov 2026). The wrap legitimately jumps ~2 weeks when a shoot crosses December, which is what makes it look wrong to the eye. ⛔ Any future check must read holidays and hiatus rows FROM THE APP, as `wrapdate` now does. |
+| ⚠️ **THE APP IS `SPTCal` (18 Sep 2026). The DOCUMENTS still say "Planning Calendar", deliberately** | ⛔ **SUPERSEDES the 3 Sep "SPT Calendar Builder" rename recorded below; read this row top to bottom, the later sentences are the earlier rename and are kept for the reasoning.** ⭐ **The name was already half-shipped and that is the argument for it:** the save format is `.sptcal`, the prefs key is `sptcal.prefs`, the IndexedDB is `spt-planning-cal`. The app now matches the file people already hand each other. **Six surfaces changed:** manifest `name` AND `short_name` (both `SPTCal` now, where they previously differed), the tab `<title>`, `apple-mobile-web-app-title`, the header brand, and the help panel's heading plus its `?` tooltip. ⚠️ **The manifest is a percent-encoded `data:` URI**, so the edit matched `%22name%22%3A%22…%22`, not readable JSON — every token was count-verified before writing, because a partial rename leaves the app calling itself two things. Confirmed by fetching and parsing the manifest in the running app. ⚠️ `.app-brand-name` is hidden below 1200px by the responsive ladder (row 43), so a screenshot at 1024px shows no name — that is correct, not a failed rename. **The 3 Sep rename, still the source of the document/app line:** Changed then: the PWA manifest `name`, the tab title, the help panel, the top-left brand. `short_name` and the iOS home-screen title were the shorter **"SPT Calendar"** — they sit under an icon and truncate hard. ⛔ The root `index.html` was NOT renamed: it is byte-identical to `releases/v1.2.0.html` and is the rollback, so only the build changed. ⚠️ A changed manifest `name` changes the INSTALLED identity — an existing PWA install may show as a new install rather than a rename. ⏭ Deliberately NOT renamed, because they describe the document rather than the app: export filenames (`<Show> Planning Calendar.xlsx`/`.pdf`), the Excel worksheet tab (`Planning Cal`), the save-picker type label, and the calendar's own `c2` header line. Raise with the owner if they should follow. |
+| ⛔ **VALIDATE ALL OF A BLOCK'S STINT GROUPS TOGETHER, NEVER ONE AT A TIME — the first real-use defect** (2 Sep 2026) | Reported by the owner on their own calendar within an hour of the push, as *"Can't swap: two phases would need the same column in the same week"* on a swap that is plainly legal on screen. **It was a FALSE REFUSAL.** `applyStintSwaps` tested each stored group with `wouldLoseACell(newColFor([gp]))` — which maps only THAT group's cells and leaves every other phase at its **natural, un-exchanged `col`**. So in a year that already carries one stint swap, the next one is judged against a layout that no longer exists. Measured: 2027 held Post ↔ Pre Prep, whose effect is to move Post out of Production's column — Post's *natural* col IS Production's, it only renders elsewhere BECAUSE of that swap. A Writer's Rm ↔ Production swap was then refused for "colliding" with a Post that had already moved. Applied together, all four exchanges are collision-free. Fix: test `newColFor(groups)` for the whole set first and apply if clean; only on a real collision fall back to a deterministic greedy subset. ⚠️ **The general lesson is bigger than this bug: the gesture reasons about the RENDERED grid (slots, post-swap) while the reconciler reasons about the SCHEDULE (cols, pre-swap). Any new check must say which space it is in.** Gate leg `stintchain`, on `tests/fixtures/stintswap-chained.sptcal`. *(29 Sep 2026: that fixture is now a synthetic calendar with the same overlap pattern; on the pre-fix build `5a8df0f` it still produces the original "same column in the same week" refusal, and it passes from the fix `6b10d2c` on.)* |
+| ⚠️ **A REFUSAL MUST NAME NAMES** (2 Sep 2026) | The same report exposed that `collide` was the one refusal in the feature with no subject: it named no phases, no week and no action, so neither the owner nor the next session could act on it. `wouldLoseACell` now returns `{weekIso, a, b}` and the chip reads *"Post and Writer's Rm would both need the same column in the week of 4/12/27."* Every other reason in `SWAP_WHY` already named its subject; this one was the exception and it was the one that fired. |
+| ⚠️ **THE SWAP COLUMN BUTTON (was "Swap Block") OWNS ITS BOX, and that box is most of the block's FIRST cell** (2 Sep 2026) | `hitCell` returns null over `.grid-stint-btn` exactly as it does over a knob, so a click or double-click on the button is never also a click on the cell beneath it. The cost: while the pointer is anywhere over a block, most of that block's first-week cell IS the button (≈48 px wide when written; measured 15 Oct 2026 at 62.6 px as "Swap Block" and **72 px as "Swap Column"**, which on a 77 px column now also covers the first week's RIGHT span handle; 16 of 20 px tall — on a narrow phase column, e.g. the `colswap-gesture` fixture, that is the whole cell). Selecting or double-click-filling that one cell means moving the pointer off the block first. Accepted — it is the position the owner asked for — but it is the first thing to revisit if the owner finds the first week hard to hit; an icon-only pill that grows its label on hover would be the fix. `stintbtn` deselects the SECOND week for this reason. |
+| ⛔ **NO `requestAnimationFrame` ON A HOVER PATH THE HARNESS MUST REACH** (2 Sep 2026) | The Swap Block hover was first throttled with rAF; headless Chrome starves rAF the way a hidden pane does (§3), so the button never appeared under the harness while looking fine by hand — a "feature works, test broken" that was really "test right, feature untestable". It runs synchronously now: one `elementsFromPoint` per pointermove, a draw only when the stint under the pointer changes. Rule: rAF is fine for cosmetics (the settle), never for anything a gate has to observe. |
+| ⚠️ **CLEAR CACHED SWAP VERDICTS THE MOMENT THEIR KEY CHANGES, not when the debounce lands** (2 Sep 2026) | `ensureSwapCandidates` used to leave the previous verdicts standing for the 140 ms debounce, so after a selection change the chip narrated the *previous* selection's swap for a beat — seen as "5 of 6 weeks selected — Swap moves the 6-week run" (the stint candidate describing the per-week mode). The knob and the toolbar labels were equally stale. `_swapCand` is now reset on key change; the knob vanishes for 140 ms and comes back honest. |
+| ⚠️ **`DecompressionStream` REFUSES THE NEWLINE BEFORE `endstream`** (2 Sep 2026) | `stintexport` reads the waterfall PDF back in the page. Unlike `zlib.inflateSync`, `DecompressionStream('deflate')` throws on trailing bytes after the deflate end, and every stream the writer emits ends with `\n` before `endstream` — so the content stream silently read as absent. ⛔ **CORRECTED 5 Nov 2026: do NOT trim** (this row once said "trim trailing whitespace bytes from the slice first", and that advice was copied into sixteen legs). Compressed data can itself END in 0x0A or 0x0D, so trimming truncates it, and the same silent "absent" comes back whenever a PDF's bytes move (hiatuslabel 23 Oct, phiatusnum H4 on v1.11.0). Cut each stream at its own `/Length`: read PDF text through `T.pdfStreams` / `T.pdfInflated` / `T.pdfRuns` in `t/lib.js`. Also learned there: the PDF fits the grid to the page with a single scale (0.9 for this fixture), so column widths compare to the screen only *at that scale*, and the leg asserts exactly that. |
+| ✅ **E1's closure is derivable from segCol, and the code does not rely on the derivation** (2 Sep 2026) | Adjacent columns cA < cB. A new stint in cB can start while cA is busy; a new stint in cA cannot start while cB is busy (`minCol` is one past the highest busy column). So from the lower stint the group is one level — it plus every cB stint overlapping it — and from an upper stint the unique lower stint overlapping it is found first and the same one level taken from there. `stintRunFor` walks to a fixpoint anyway, so a schedule that broke the rule (stored `cellSpans`, a hiatus split) would still get a cell-preserving group or an honest refusal. |
+| ⛔ **THE HOOK PRESERVES SLOT ORDER — it does not reorder. Two halves, only one frozen** | The most counter-intuitive thing in the new design, and building only half of it produces a feature that visibly does nothing. The MOVE is a `col`-value exchange over two stints in **non-frozen** `computeSchedule` (the same mutation the per-week reconciler already does, just over a stint). On its own that is invisible: `blockSlotMaps` re-derives slot order from **first appearance**, so a phase present in week 1 keeps slot 0 whatever col it now carries — the documented `seat` trap. The frozen hook's only job is to **pin the order the block had before the exchange**, so the exchange shows through. The reconciler stashes that pre-exchange order per block on the schedule (like `appliedColSwaps`) and the hook reads it — no baseline recompute inside frozen code. |
+| ⚠️ **`segCol` only reuses a column to the RIGHT of everything still running — and that is what makes a per-stint swap correct** | Its own comment states the rule; `minCol` is one past the highest currently-busy column. So two phases share a column only when separated by a clean break in the WHOLE schedule, which means the column beside your stint **during your stint's life** holds exactly one other stint. A second occupant of that column is adjacent to something else, later. ⛔ This is why exchanging whole COLUMNS is wrong and exchanging two STINTS is right — an earlier draft of the plan recommended wholesale and the owner correctly rejected it. |
+| ✅ **HEADER PRESETS: ALL SIX STEPS BUILT (8–9 Sep 2026), PLUS THE TEMPLATE EDITOR AND `l3` — [`HEADER-PRESETS-PLAN.md`](HEADER-PRESETS-PLAN.md)** | ⚠️ **This row is the step-by-step record and its later sentences are STALE BY DESIGN — §2b's narrative above is the current state.** The editor (9 Sep 2026) added a body-level modal with the live header as its editing surface, took the header to three slots per column via `l3` (**three frozen edits**, inert while empty, byte-compare green), and kept `c4` in the format while retiring it from the editor's offer. Legs: `hdreditor` (17 assertions). ✅ **Step 2 landed 8 Sep 2026:** the template engine and the three modes. ⛔ **THE ONE AUTHORISED FROZEN EDIT (H3b) IS NOW MADE** — the mode button's label AND title expressions each gained a case; nothing else in `renderSpreadsheetView` moved, and both collapse to today's exact strings while `headerTemplates` is false (asserted in Auto and in Manual by the `hdrtemplate` leg). ⚠️ The Auto/Manual **titles are left verbatim** even though the button now opens a menu, because rewriting them would change the flag-false output and widen an edit scoped to "gains a case" — fixing that wording is a SECOND frozen edit with no sign-off. ⛔ **THE PLAN WAS WRONG TWICE AND BOTH ARE CORRECTED IN PLACE:** (a) `defaults.__ctx` must be **non-enumerable** — `computeHeaderDefaults()`'s return value is assigned straight to `headerManual` in two places and `headerManual` is in `captureSnapshot()`, so a plain property is baked into every saved calendar forever; (b) the four-stage resolver sketch cannot tokenise `{{{title}}}` (the escape pass eats the token's own closing brace) and was replaced by a single left-to-right scanner, which also makes one-pass true by construction. ⚠️ `asOneUndoStep` is **not in scope** from the header code — it is inside the shift-tools IIFE; `asOneHeaderStep()` was added instead. ⚠️ **A real bug in the focusin/focusout pair:** the commit handler returned early on unchanged text, leaving the RAW template on screen after a blur-without-typing; it now re-renders without marking dirty. ✅ **Step 1 landed 8 Sep 2026:** the `show-version` field, `versionLabel()`, and `l2: versionLabel()` in `computeHeaderDefaults()`. No frozen edit. Legs `hdrversion` + `hdrverload`; PDF/Excel byte-compare green; `tests/fixtures/hdrversion.sptcal` is a real minted snapshot carrying a version. ⚠️ **The plan's §3.3 item 5 is FACTUALLY WRONG and Step 1 had to work around it:** *"a file without the key restores an empty field"* — it does not. `applyStateSnapshot()` step 3 iterates the SNAPSHOT's keys and `openRecentFile()` does not call `resetAll()` (its own comment says "Reset dynamic rows to defaults" but no such call exists), so an absent key keeps the PREVIOUS file's value. A per-field guard now sits above step 3. **Step 2 must not repeat the assumption for `headerTemplates`** — there the plan's `=== true` idiom happens to be self-correcting, so it is safe by luck, not by design. ✅ **GATE 5 IS FIXED AND RUNNING (8 Sep 2026).** It had not executed since the baseline was cut: it is downstream of the `restore` leg, which threw on every run. Three things were wrong and all three are now fixed. (1) `appReady()` waited on `renderRecents()`, behind an `indexedDB.open` that never settles in headless Chrome — it now waits on engine-generated sidebar markup, which needs no IndexedDB (see row 49). (2) `formSignature()` was a raw `input[id]` sweep with none of `collectFieldValues()`'s `.prefs-card` / `.tools-menu` exclusions, so it reported a SUPERSET of the save format — the eight `tool-*` ids, plus `pref-gridlines`, a PREFERENCE that would have surfaced as a format change. It now carries the same two `.closest()` skips, and its 55 keys were verified **identical in both directions** to the key set inside a real `.sptcal`. (3) gate.sh's comment claimed it "reports `fields.byId`"; corrected. The baseline's `form` was re-cut 56 → 55 keys with **zero values changed** — 8 `tool-*` removed as never-in-the-format, 6 `phiatus-name-*` (1 Sep) and `show-version` (8 Sep) added — and the baseline's README records exactly which and why. ⏭ **Still missing:** a `.sptcal` through the REAL picker (`restore` opens the legacy `.html`), which `CLAUDE.md` names as the outstanding gap for §0 rule 3. Now a short leg rather than a project, since the picker path is provably drivable. **The rest of the row is still the plan, for steps 2–6.** Written 1 Sep 2026 at the owner's request. The load-bearing fact: every consumer of the header — the screen inside frozen `renderSpreadsheetView`, `exportExcel`, `buildWaterfallPdf` — gets its text from **non-frozen `headerLine(id, defaults)`** fed by non-frozen `computeHeaderDefaults()`, so templates resolve there and the freeze is never touched. ⛔ Do not change `headerLine`'s signature — three call sites are inside frozen functions; carry the token context on the defaults object. Auto mode stays hand-coded and byte-identical; only Manual lines become templates, and a line with no tokens behaves exactly as today. The version field `show-version` (Show Info, React) is swept into `fields.byId` automatically and its id becomes save format the moment it ships. ⚠️ The `focusin` raw-template swap is what stops a user's first click into a templated line from destroying the token — get it in before the palette. Step 1 (version field + `{version}` in `l2`) ships alone and is inert until a version is typed. |
+| ⛔ **THE SHIPPED SWAP MAY BE THE WRONG PRIMITIVE — read [`COLUMN-ORDER-PLAN.md`](COLUMN-ORDER-PLAN.md) before extending it** | Owner, 1 Sep 2026, after using the live build: a swap should be *"a genuine swap, where the two blocks swap positions but look the same"*, and the reflow of unselected weeks is *"confusing and assumptive"* — the user already has Expand for that, in one click. Measured on their calendar: swapping a 4-week overlap widened **16** other weeks. A **whole-column** swap reflows nothing *in a two-phase-column block* (measured — see that plan's section 1; ⚠️ **corrected 2 Sep 2026, it is FALSE with three or more columns**, see the row above), because the phase's run in its new column is unbroken and the neighbour still sits inside it. ⚠️ Everything built to manage the reflow — the amber preview, the chip count, G5's magnitude rule, the whole of D2 — exists only to explain a decision the app should not be making. The whole-column version needs a **frozen edit** to `computeBlockLayout` (two lines; the acceptance gate is that plan's section 6) and is **NOT authorised** — owner decision E0. It may retire the per-week swap outright (E4). |
+| ⚠️ **Slot order is first-appearance, and that is why a whole-column order cannot be faked** | `blockSlotMaps` sorts columns by the local week each first appears in, with the raw `col` only as a tiebreaker. So a phase present in week 1 of a block takes slot 0 **whatever `col` value it carries** — exchanging two phases' `col` values globally changes nothing. There is no way to express a block-level column order through `.col`, which is what forces the frozen edit. ⛔ Do not spend a session rediscovering this; it is the same trap the store's comment describes when it forbids a `seat` field. The flip side is useful for TESTING: a short phase that claims col 0 early can push a long phase into slot 1 permanently, which is how the no-reflow premise was measured without touching frozen code. |
+| ⛔ **TWO collateral rules existed; only the MAGNITUDE one is the owner's** | D2 ruled a magnitude cap: an unswapped week may shift by at most one column, two or more refuses. The gate also carried a **count** rule — refuse when the disturbed weeks outnumber the moved ones — which was never part of that ruling and was removed 1 Sep 2026 on the owner's instruction. ⛔ Do not reinstate it as a safety improvement. A count is not a measure of harm when every change is magnitude 1; what it called collateral is usually the layout CORRECTING itself (a phase held to one narrow column in weeks where it runs alone, because frozen `phaseRunBounds` spanned its run across an overlap, fills the row once that run splits); and it scaled backwards — the longer the phases, the more likely it fired, and long phases are exactly where column order matters most. The `colswapmid` gate leg is built on a case it rejects (6 moved, 12 widened) and fails loudly if it comes back. |
+| ⚠️ **`SWAP_WHOLE_RUN_ONLY` is FALSE, and that is not the same as F2-e** | Phase 1's whole-run limit was lifted 1 Sep 2026 because it refused the ordinary shape of two overlapping phases — each sticking out beyond the other, so no whole run exists to select and the chip gave advice the user could not act on. ⛔ It does **not** enable arbitrary partial runs: `swapRunFor`'s walk always yields the MAXIMAL contiguous side-by-side stretch and is never clipped to `gridSel`, so a hand-picked sub-slice stays unreachable and a phase's column can never zig-zag mid-run. That half (F2-e proper) needs the selection to DEFINE the range rather than seed it, which is an interaction change, and it is still a separate decision. |
+| ⚠️ **A trial harness that drives the app must reset BOTH the selection and `gridColSwaps`** | Cost two wrong measurements in one session. `gridSel` keys are `week|phase` and survive a re-render, so a ⌘-click on an already-selected cell DESELECTS it; and a successful swap leaves entries in `gridColSwaps` that re-apply the moment the same phases occupy the same weeks again, so the next scenario starts pre-swapped and reports the un-swap direction. There is no exposed reset for either — reload the page between scenarios. |
+| ⛔ **The preview toolbar silently drops controls off-screen; measure it at a NARROW viewport with a selection live** | `.preview-tools` is one flex row, `overflow:visible`, no scroller — so a control that does not fit is painted past the window edge and cannot be reached at all. `.view-toggle-row`'s `flex-wrap` does not help: it only moves the whole tools block to its own line. Found on the SHIPPED app 1 Sep 2026: at a 611px viewport with a selection live the row needed **802px**, so `Expand`, both Swap buttons **and Undo/Redo** were outside the window — Feature 1 added ~79px and Feature 2 ~138px to a row that previously needed ~585px. Fixed with `flex-wrap:wrap` **plus `max-width:100%`**; the max-width is the load-bearing half, because `flex:none` sizes the block to max-content and it therefore never wraps without a cap. ⚠️ The widest state of this row is "a selection is live" — both features' buttons are `display:none` otherwise, so measuring with nothing selected proves nothing. |
+| ⚠️ **The knob takes a CLICK as well as a drag, and the plan says otherwise** | Owner instruction 1 Sep 2026, after trying the shipped build. The plan's drag-only rule (§6.6) was about a full-height RAIL along the seam, where a stray click near any boundary would permute; it does not hold for a 21px circle that exists only while a swap-eligible selection is live. Three things from the drag rule are kept and must stay: a press that travels **>12px the wrong way does nothing**, Escape cancels, and a **350 ms re-arm** (`_swapLastFire`, shared with the Enter/Space path) makes a double-click ONE swap. Without that last one a double-click is swap-then-un-swap — because moving a run back over the partner it is already paired with DELETES the pair — so the screen ends where it started with two undo steps for nothing, which is the exact "gesture appears to do nothing" failure the layer exists to prevent. |
+| ⚠️ **Synthetic PointerEvents are not proof a gesture works for a real user** | Every browser check of F2-d was done by dispatching `PointerEvent`s from `javascript_tool`, which never exercises real hit-testing, real pointer capture, or the toolbar's actual on-screen position. The off-screen-buttons regression above was invisible to all of it and showed up the moment a real ⌘-click was driven against the live site. When a feature's affordance is a small target or a new toolbar control, drive it with the real pointer at real coordinates at least once. |
+| ⚠️ **A detached node's `dispatchEvent` never reaches a document listener** | Cost a wrong diagnosis while verifying F2-d in the browser. `installGridResizers` rebuilds its whole layer on every render, so a `.grid-resize` handle captured *before* a drag is detached afterwards — and a synthetic `dblclick` on it looks like the frozen autofit being broken. Re-query the handle after any render before dispatching at it. The autofit is fine; it also only ever CLEARS an override, so it is a legitimate no-op when no width has been dragged. |
+| ⛔ **THE COLUMN-ORDER SIGN-OFF (owner, 1 Sep 2026)** | **This is the written instruction the 29 Aug appearance convention requires, and the only thing that authorises Feature 2.** The owner has ruled that **grid COLUMN ORDER may be user-overridable**: a phase's column may vary per week, so which label appears in which grid column inside `#table-wrap` may change. That is the convention's *"unless given specific instructions from the user"* escape, invoked explicitly (plan §11 D1). ⚠️ It authorises **column ORDER only** — it is not a general licence over `#table-wrap`, and it does **not** relax anything about a cell's own appearance, its text fitting, or the width model. Also ruled: **D7 — ship Phase 1 first** (a swap where at least one side is a phase's WHOLE run in the year block, i.e. exactly the owner's screenshot); arbitrary partial runs are a later, separate decision. **D2** stands as already decided (collateral in unswapped weeks capped at magnitude 1; **G3 width remains a hard reject**). **D3, D4, D5, D9 and D10 were taken as IMPLEMENTED DEFAULTS on 1 Sep 2026** — each the plan's own recommendation, each stated in the changelog and reversible in one place: D3 hand-dragged COLUMN widths stay with the position (nothing to implement — `colWidths` is keyed `y<year>:s<slot>` and is simply not touched); D4 a swap is REFUSED where a hand-set CELL width exists in the swapped weeks, naming the cell to clear (`reason:'width-override'`); D5 Production is refused outright, either role, in any block containing a SimPost week; D9 the overlay chrome inside `#table-wrap`'s box exists (outlines, chips, knob, ghosts, settle) — none of it is in a cell, none prints, none exports, all of it vanishes with the selection; D10 the user-facing word is **swap columns / column order**, never "move" (the toolbar arrows two controls away move the calendar in TIME). Still genuinely open: **D8** (the batch edge drag — not built) and **F2-e** (arbitrary partial runs — D7 explicitly reserved it). ⚠️ Do not conflate this with №3 phase reorder, which is the SIDEBAR list and is still undesigned. |
+| **`suppressGridClick`'s one-shot contract** | ⚠️ Worth knowing before touching the selection code. The flag that stops a selection gesture's click from opening the note editor is retired by the *next pointerdown*, and separately self-clears one task after any click. Both paths exist because relying on pointerdown alone assumes a pointerdown always precedes a click — true for a real pointer on a non-focusable `<td>`, but it broke immediately under synthetic testing and would break for any future focusable cell. Do not "simplify" it back to a single reset. |
+| **№3 phase reorder** | A real DEBT: the handles promise a drag that does nothing. Needs its own design first — `customPhaseDefs` order is save format, `PHASE_CHAIN` depends on order. Owner: "a later decision". ⚠️ **Do not conflate with the column swap above** — that one reorders grid COLUMNS, this one reorders the SIDEBAR phase list. Shipping either will read as having shipped the other; see the plan's D10. |
+| **№12 interpretation** | Owner confirmed round 7: as built is correct. Closed. |
+| **The notice-strips port** | No longer a bug fix (§2h is fixed); plain tidiness, still needs sign-off because it changes an export's output. |
+| **The help modal** | Tokenised, not ported to a React `Modal`. Cosmetic parity already reached. |
+| **Sub-1024 responsive** | The header ladder is done; the layout below the 960 px stacking point is undesigned. |
+| **A `.sptcal` fixture** | ⛔ Missing entirely — `tests/fixtures/` holds only the pre-v1.1.0 `.html`, so the restore gate proves the legacy path and not the format every save now writes. |
+| **The month-PDF diff** | The one part of §9.1's gate satisfied by reasoning rather than by exporting a PDF. |
+
+#### ✅/⏳ THE OWNER'S ROUND-3 LIST — built same day except where marked (29 Aug 2026)
+
+Logged before building at the owner's instruction, then built and gated. State of each:
+
+1. ✅ Font parity: `.mantine-InputWrapper-label` now matches the engine field labels declaration
+   for declaration; Mantine input text pinned to `sm` alongside the plain-control rule.
+2. ✅ **Phase chips:** the color changer is a full-width bar crowning each chip (same
+   `swatch-<key>` element and engine contract — `style.background` write, color-pop anchor);
+   **grab handles are VISUAL ONLY** (six CSS dots, `cursor:grab`). ⛔ Reorder CODE stays unbuilt
+   deliberately — `customPhaseDefs` order is save-format and `PHASE_CHAIN` depends on order;
+   needs its own design first.
+3. ◐ The production episode warning chip is diegetic now (warn tuple + drawn warning glyph).
+   ✅ **The red ring on a bad start date IS built (round 7) — and it needed NO frozen hook**, which
+   is the interesting part, because this item asserted that it did. `reflectStartDateValidity()`
+   runs from `update()` (not frozen), rings the **sidebar** field, and *calls* frozen
+   `readCfgForMeta()` for the verdict rather than duplicating the rule. See `CLAUDE.md`'s
+   "Sanctioned ways to change frozen BEHAVIOUR without editing frozen code".
+4. ✅ × buttons flex-centred; destructive removes go danger-tinted on hover.
+5. ✅ **COMPLETE (rounds 4 and 7) — every browser popup is now the app's own dialog.** The last
+   eight lived inside the frozen export functions and were converted by **shadowing `alert` at its
+   declaration** inside the engine's IIFE, so no frozen line changed. `beforeunload` stays native;
+   it is the browser's.
+6. ✅ Undo/redo are drawn stroke glyphs from the icon family.
+7. ✅ `reClickGuard(600ms)` on New / Save As / Share / both exports (Save already had
+   `saveInFlight`).
+8. ✅ Tool-popover phase selects wear Mantine's chevron (`appearance:none` + inline SVG; still
+   real `<select>`s — `fillPhaseSelect` owns their innerHTML).
+9. ✅ "Search loaded files…" per the terminology rule.
+10. ✅ Share copy left the header; **Settings ▸ App ▸ "Export App With Data"** carries
+    `#share-copy-btn`, so the engine's document-delegated listener needed no change.
+11. ✅ "Autosave needs a file — click Save" pushes `tone:'failed'` → the red Badge.
+12. ✅ **`.phase-meta` is two rows — THE FIRST DELIBERATE FROZEN-FUNCTION EDIT.** One separator
+    inside `render()`'s meta branch (` · ` → `\n`) plus `white-space:pre-line`. Owner-directed;
+    `meta-<key>` is a write-only sidebar div no export path reads; the full gate (waterfall PDF
+    byte-identical, Excel parts identical) passed after it.
+13. ✅ **BUILT 31 Aug 2026** — see row 6 of the master list above for the shipped design.
+
+#### ⏭ What is next, in order
+
+1. ✅ **DONE — the engine-generated sidebar rows, resolved as RESTYLE TO SPEC** (owner ruling,
+   29 Aug 2026 — see the section above). The generators keep minting the ids; the look now fully
+   matches ui.mantine.dev via the `--mantine-*`-token CSS and two chrome-safe template edits. A
+   React rebuild stays *possible* later, but its sane precondition is a custom-phase fixture +
+   tests (the gate's biggest blind spot) and a restructured restore seam — do not start it
+   casually.
+2. ✅ **DONE (round 6) — the note popovers.** Both editors wear the shared overlay look, and the
+   §9.5 live bug is fixed: `.mv-note-pop` now tracks its anchor on capture-phase scroll + resize
+   like its waterfall twin, and gets the twin's rebuild protection from a **MutationObserver on
+   `#table-wrap`** rather than an edit inside frozen `render()`. ⚠️ Both are
+   `document.body.appendChild` panels and `buildSavedHtml()` strips them **by class name** — the
+   list is now five (`.note-pop`, `.mv-note-pop`, `.phase-color-pop`, `.date-pop`, `.select-pop`);
+   add to it whenever a body-level panel is added, or a stray popover exports into a shareable copy.
+   ⏳ What is left of this item: the help modal is only **tokenised**, not ported to a React `Modal`
+   — cosmetically it already matches, so this is cleanup, not a visible change.
+3. ✅ **DONE (round 7) — Inter is embedded.** See the ruling block above for how its gate was met,
+   and for the one thing still unrun (an actual month-PDF before/after diff). ⚠️
+   `body{font-family:'Inter',…}` is still FROZEN for the original reason — `.mv-bar` and
+   `.mv-note-block` declare no font-family and inherit it.
+4. ✅ **The §2h bug is FIXED (round 7) — but the STRIPS are still static markup.** They are no
+   longer a bug, so this stopped being urgent: `buildSavedHtml()` re-hides them in its clone.
+   Porting them to React is now a plain tidiness item, and it still changes an export's output, so
+   it still wants the owner's sign-off first. Do not treat it as a bug fix any more.
+5. ✅ **DONE (round 7) — per-component Mantine CSS.** 26 `.layer.css` files instead of the 273 KB
+   bundle; `dist` went 1,096 KB → 983 KB *including* the newly embedded font. ⛔ **The import order
+   is DERIVED from Mantine's own `styles.layer.css` and must never be alphabetised** — they share
+   one `@layer`, so order decides, and sorting it put `UnstyledButton` after `Button`, whose reset
+   then won and stripped every button in the app of its background, border and padding. Add the
+   file whenever a component **or a state** is added (Badge, Loader and Tooltip are all in the list
+   for states no click can reach), and re-run the runtime class audit described in row 45.
+6. **The sub-1024 responsive pass.** The header ladder is built and verified 1440→900 (row 43); what
+   is unbuilt is the layout *below* the 960 px stacking point, which nobody has designed.
+7. **Calibrate and document**, then ~~the GitHub Action~~, and only then the cutover conversation.
+   ✅ **THE ACTION IS INSTALLED AND THE CUTOVER IS DONE (31 Aug 2026, owner-approved).**
+   `.github/workflows/deploy.yml`. Pages Source is **GitHub Actions**; the workflow builds `src/`
+   and publishes `dist/`, and **the Mantine build is the live site**. Deploy runs on push to
+   `main` as well as on manual dispatch — the repo already auto-deployed before this, so
+   manual-only would have silently changed the deploy model; the gate remains the "never push
+   unasked" rule in `CLAUDE.md`.
+   ~~**ROLLBACK, if ever needed:** Settings ▸ Pages ▸ Source back to "Deploy from a branch"~~ ⛔ **WITHDRAWN 13 Nov 2026**
+   (audit AUD2-006, owner's D7 (a)): that served the v1.2.0 legacy app, which drops the Region and strips newer settings
+   on Save. The rollback is now "Build and deploy" dispatched on `main` with `release` = the previous version (the
+   header of `deploy.yml`).
+   ⚠️ One thing that bit on the way, worth keeping: pushing anything under `.github/workflows/`
+   needs the token's **`workflow`** scope. Without it the push is rejected, and the Contents API
+   is blocked identically but answers **404, not 403**, which reads as a missing repo.
+
+### ✅ The restore leg: row 49's conclusion was right, its evidence was not — RESOLVED 31 Aug 2026
+
+**Bottom line: there is no app bug, and the cutover is not gated on this.** Verified in a real
+browser (not headless, no virtual time), on the build, served over HTTP:
+
+| | Result |
+|---|---|
+| `indexedDB.open('spt-planning-cal')` | **SUCCESS in 1 ms**, object store `handles` present |
+| `#file-menu-wrap` | `display: block`, visible |
+| `isSecureContext` / `showSaveFilePicker` | `true` / `function` |
+| React mount | 2 children, full chrome renders |
+
+So the recents list, the file handles and the crash backup all work. Row 49's *conclusion* —
+environmental — is correct.
+
+**But row 49's stated evidence is wrong, and that matters**, because it is the sentence the next
+session will reason from. It says the hang is *"IDENTICAL on the untouched deployed
+`/index.html`"*. It is not. Same server, same origin, same Chrome, same run:
+
+- `/index.html` (legacy) — restore **PASSES**, IDB settles
+- `/dist/index.html` (build) — restore **FAILS**, `indexedDB.open` **TIMEOUT at 8000 ms**
+
+**The mechanism, which that asymmetry actually points at.** `src/index.html` loads the app as
+`<script type="module">`, which is **deferred** — a change made deliberately and documented in
+that file. The legacy app ran its IIFE *mid-parse*, so `loadRecents()` issued
+`indexedDB.open()` almost immediately; the build issues it after parsing **and** after React
+mounts. Under `--virtual-time-budget` the clock races ahead as soon as the task queue drains, and
+IndexedDB's real disk I/O is not something the virtual clock waits for. The later the `open()` is
+issued, the more likely the budget has effectively expired before the I/O lands. Same environment,
+different position in the page lifecycle — which is why one page hangs and the other does not.
+
+⛔ **What this costs, and it is not nothing:** the restore leg is the test that proves *saved
+calendars still open* — the project's most safety-critical rule (§0 rule 3). It is **unprovable
+against the build** under this harness. That is a hole in the gate, not a hole in the app. Fixing
+it means changing how the harness waits (CDP, or a real-time run with an explicit dump trigger),
+exactly as row 49 said; removing `--virtual-time-budget` is still not an option, because
+`--dump-dom` then emits nothing.
+
+**Until it is fixed, verify the build's restore path in a real browser** — it takes a minute:
+serve the repo, open `/dist/index.html`, and check `indexedDB.open` settles and the file menu
+appears. Do not read a harness FAIL on that leg as a regression without doing so.
+
+### ⚠️ `grep` SILENTLY UNDER-REPORTS ON `src/legacy/app.js`
+
+Cost real time on 31 Aug 2026 and nearly produced a badly wrong conclusion ("the build has no
+IndexedDB code at all"). The file contains the **literal NUL** of the `SIM_KEY` sentinel, so GNU
+grep classifies it as **binary** and suppresses matches — `grep -c indexedDB src/legacy/app.js`
+prints *nothing*, while `grep -ac` prints 2 and the file really has 8 occurrences. `file(1)` still
+calls it "UTF-8 text", so nothing warns you.
+
+Use `grep -a`, or better `node -e` with `readFileSync` (which PROJECT-CONTEXT §11 already
+recommends for the long-line problem — this is a second, independent reason). Note the same trap
+does **not** hit `dist/index.html`: the minifier re-encodes the NUL as an escape, so the built
+file greps normally. The source is the dangerous one.
+
+⚠️ **`.portmap/` is gitignored and is NOT the source of truth** — it is the verified per-surface port
+spec produced 29 Aug 2026 by mapping every chrome surface against the real file, and it is worth
+regenerating rather than trusting if `index.html` has moved.
+
+### 2b-2. Mantine UI redesign of the surrounding chrome — **decided; design pass DONE**
+
+> ✅ **Stage 2 (the design pass) was completed 29 Aug 2026 → [`UI-CONVENTIONS.md`](UI-CONVENTIONS.md).**
+> Read it before anything below. It settles the theme tokens, the one feedback system, every
+> control/overlay/date-picker choice, and the responsive model — grounded in the real
+> `@mantine/core` **9.5.2** source rather than recalled API. Three things in it change what the
+> rest of this section assumes:
+>
+> - **§8 — seven verified traps.** `DatePickerInput` renders a `<button>`, so it would silently
+>   drop every `start-<phase>` key from `fields.byId`. `Select` stores the option *label*, not its
+>   value. Omitting `id` yields a **random** id, not none — so ~75 holiday checkboxes and the
+>   note-popover controls would be swept into every saved file and the undo stack. `Popover`
+>   portals by default, escaping the `.tools-menu` guard. `Input.Wrapper`'s id *wins* over the
+>   inner input's. Mantine's baseline reaches five real `<button>`s inside `#table-wrap`.
+> - **§1 — the phase palette's real source is JavaScript.** The `--c-*` custom properties have two
+>   consumers and both are dead CSS; `PHASES[]`, `HIATUS_COLOR`, `SIMPOST_COLOR` and
+>   `MILESTONE_COLOR` are what the grid and both exports actually read.
+> - **§9 — six items need an owner ruling**, because they turn out to touch `render()` or change a
+>   frozen export's output rather than being design choices.
+
+The owner has chosen **Option B** from [`MANTINE-MIGRATION.md`](MANTINE-MIGRATION.md): the
+surrounding UI — toolbar, header, sidebar, tabs, cards, popovers, menus, labels, warnings,
+settings, the help modal — is to be **redesigned** (not merely ported) on Mantine. The grid and the
+exports are **frozen**, permanently, and that rule now sits in `CLAUDE.md` and in §0/§4 here.
+
+Measured, not estimated (probe in the scratchpad, reproducible — see the migration doc §2):
+React 19 + Mantine 9 as a single inlined file is **664 KB** with per-component CSS, **790 KB** with
+the full `styles.css`, **1.50 MB** unminified. It **does run from `file://`** (verified by headless
+Chrome `--dump-dom`), so emailing the tool as one file survives. Mantine 9's date components take
+`'YYYY-MM-DD'` **strings**, so they fit the UTC-midnight convention without a dayjs hazard.
+
+Two consequences that are easy to miss and hard to reverse:
+
+- **Source stops being the artifact.** A build step means the repo file, the deployed file and a
+  saved calendar are three different things, and the shipped one is minified. A saved calendar is
+  no longer a *readable* copy of the app. Several past debugging sessions depended on that.
+- **The §11 test harness breaks silently.** It drives the app with `el.value = v` plus a dispatched
+  `input` event; React ignores that and every fixture would quietly assert against a blank
+  calendar. Fix the harness (native value setter + keep the existing element ids) **before**
+  porting anything, not after.
+
+### 2c. Multiple / structured notes columns — ⏸ **HELD by the owner, 29 Aug 2026**
+
+> ⛔ **Do not start building this.** It was picked up as build-order Stage 7 on 29 Aug 2026,
+> the baseline measurements were taken, and it was then **stopped before a line of `index.html`
+> was written** — because the owner set a constraint the stage cannot satisfy. Read
+> "Why it was held" at the end of this section before re-opening it. Everything between here
+> and there is the design as it stood, and it still stands; what changed is whether it may ship.
+
+The reference Excel export splits Notes into **two sub-columns**: a label and a right-aligned date
+(`Drop 201, 202, 203  ⟶  7/28/28`). The app concatenates them into one centred string. This is the
+single biggest remaining visual difference from a real Excel print, and it is also *why* the
+geometry diverges — Excel's grid is 1301 pt wide against the app's 1104, and nearly all of that gap
+is the notes columns. Adding the date sub-column would make the app width-bound like Excel and pull
+row pitch back toward the reference on its own.
+
+The owner also asked for the ability to **add extra notes columns**.
+
+### The spec, settled 29 Aug 2026
+
+> **Functionally two separate columns; visually one.** The label and the date are two real columns
+> to the layout and width model — that is what right-aligns the date to a consistent edge — but
+> they present as a single Notes column: one header, no rule between them.
+
+That is what the reference export itself does, and it is the whole feature.
+
+### Why this is far cheaper than it looks — four findings from the code
+
+1. **`notesColspan` already exists** (`renderSpreadsheetView`, currently `1`), and the
+   header is already written as `<th colspan="${notesColspan}">Notes</th>`. It was **>1 before**,
+   when Simultaneous Post had its own column beside Notes. *One header spanning N notes columns is
+   a shape this code has already shipped.* The empty-row and hiatus-row cells also already span
+   `mc + notesColspan`, so they follow automatically.
+2. **`cols` is the one list everything walks.** `sheetColumnWidths()` returns
+   `cols = [date, ...labels, notes]`, described in its own comment as "the flat left-to-right list
+   the renderer and the drag handles both walk, so neither has to re-derive which key belongs to
+   which column." Adding `{key:'y<year>:notesdate', chars:…}` feeds the screen `<colgroup>`, the
+   drag handles, the Excel widths and the PDF widths **at once**. Measure a second maximum
+   (`notesDateMax`) beside the existing `notesMax`.
+3. **"No rule between them" is the default, not extra work.** Interior gridlines are off
+   (`SHEET_GRIDLINES = 'none'`), and the only border in that region is `.sheet-blockend`, which
+   lands on the block's *last* column — the date — not between label and date.
+4. ### ⚠️ **It needs NO save-format change. Auto-notes are already structured.**
+   `addNote()` has always stored `{label, date}` separately; only `autoNotesText()` joins them for display. Splitting the display is therefore pure rendering.
+
+   For **user-typed** notes, give the cell `colspan="2"`. A free-text note then spans the full
+   Notes width — **pixel-identical to today** — so every existing calendar renders exactly as it
+   does now, and `userNotes[k].text` is untouched. Structured *user* notes, if ever wanted, become
+   a separate opt-in decision rather than a prerequisite.
+
+### ⚠️ Do not reach for `userNotes[k].date` — that field is occupied
+
+It is **not** a display date. It is a day-of-week pin doing two load-bearing jobs: telling the
+**month view which day** to place the note on, and making the note **immune to calendar shifts**
+(`pinnedWeeks`, is built from notes that have one). A display date needs a **new** key.
+
+The name collides with the pre-git `noteDate` field and that is exactly the trap: see below.
+
+### The history, and what is NOT recoverable
+
+`userNotes` entries were once `{label, noteDate}` and were flattened to `{text}`. The live
+migration simply concatenates them — `{text: [lbl, dt].filter(Boolean).join(' ')}` — i.e.
+the collapse baked the *display string* into storage.
+
+**Why it was done is not recoverable.** It predates this repo: `d249f60`, the first commit
+containing `index.html`, already carries only the migration, and the three 15 Jul 2026 "Add files
+via upload" commits have no messages. No doc records it.
+
+One inference, flagged as inference: **auto-notes were never flattened**, only user notes. Had the
+motive been data-model simplification, both would have gone. The likelier reading is an *editing*
+decision — one free-text box is simpler than two coupled fields inside a small anchored popover.
+**Worth asking the owner before reintroducing structure for user notes.** Nothing above depends on
+the answer; the `colspan="2"` approach sidesteps it entirely.
+
+### The acceptance gate, before any of this is written
+
+- **Horizontally clipped-cell count stays 0.** The padding trap has landed twice (§3); a new column
+  is exactly the shape of change that trips it. **Horizontally** is load-bearing — see the baseline
+  below, where counting vertical overflow too produced three failures against untouched code.
+- **PDF diff** against an export taken immediately before the change.
+- **Excel opens without the corrupt-file alert** (the 255-char header limit is unrelated but the
+  export is the thing being changed).
+- **`tests/fixtures/v1.0.0-saved.html` restores identically** — the real proof that no existing
+  calendar shifted.
+- **Grid width measured against the 1301 pt reference**, since closing that gap is the point.
+
+### Why it was held — the constraint and the finding (29 Aug 2026)
+
+**The owner's constraint, in their words:**
+
+> *"the output must not be changed — how the excel looks and the pdf looks should be exactly as
+> 1.0.0 was — the editable grid in the app could have a reconsideration on design, but the goal is
+> to not deviate from the exports too much so it could be easy to understand for new users coming
+> from the old version"*
+
+**The finding: Stage 7 cannot be export-neutral.** This is structural, not a matter of care.
+`sheetColumnWidths()` returns **one** flat `cols` list, and the screen, the Excel writer and the
+PDF writer all walk it — that shared model is the entire through-line of the 2026 work (§1). So:
+
+- Adding a notes-date column to `cols` feeds all three outputs **by construction**. There is no
+  version of "split the column in the model" that reaches the screen and not the workbook.
+- And the *point* of the split is the width. Closing 1104 → 1301 pt means the Notes area gets
+  wider, which changes the exports' geometry, page fit and scale. A split that changes no export
+  geometry has not closed anything.
+
+So "the exports look exactly like v1.0.0" and "close the gap to the reference export" are
+mutually exclusive. That is the whole finding, and it is why this stopped at the gate.
+
+**Four options were put to the owner**, with mockups of the notes column in each:
+
+| | | Exports | Reference gap |
+|---|---|---|---|
+| 1 | Split everywhere (§2c as specced) | change: label flush left, date flush right, Notes wider | closes |
+| 2 | Screen only, exports frozen | byte-identical to today | stays open; screen and exports disagree for the first time since the width systems were merged |
+| 3 | Split everywhere, labels stay centred | change: Notes wider, dates aligned, labels centred as today | closes |
+| 4 | **Hold the stage entirely** ← **chosen** | untouched | stays open |
+
+**What the choice means for the next session:**
+
+- ⛔ **Do not build any of options 1–3 without asking again.** The decision was made with the
+  trade-off in front of the owner; it is not an oversight to be corrected.
+- **§2d (PDF calibration) has lost its dependency.** It was written assuming Stage 7 would land
+  first and shrink the row pitch on its own ("mostly falls out of stage 7"). It no longer does.
+  **The +16% row pitch has to be attacked directly**, and the app being height-bound where Excel
+  is width-bound is now a standing condition rather than a thing about to be fixed. See §8.
+- **The owner's constraint is broader than this stage** and now sits in §4 as its own rule: the
+  exports are frozen in *appearance*, not merely in code. The editable grid on screen has more
+  latitude — that was said explicitly.
+- If it is ever re-opened, the likeliest form is option 3: it is the one that closes the geometry
+  gap while leaving the label alignment users recognise alone.
+
+### The baseline, already measured — do not redo it
+
+Taken 29 Aug 2026 against `37b877a`, immediately before the stage was stopped. This is the
+before-side of the acceptance gate above, so re-opening the stage starts from here rather than
+from another afternoon of harness-building.
+
+**The fixture** (built by driving the real DOM, never by calling into the IIFE): a 2-block
+10-episode US-General calendar — Writer's Rm 12 wk from 2026-01-05, Pre Prep 6, Prod Prep 6,
+Production 8 days/ep, Post 16, Localization 8 — plus a 2-week all-phase hiatus from 2026-08-24,
+**all 14 holidays switched on for the waterfall**, and one free-text two-line user note on
+2026-09-07 (the `colspan` path that must stay pixel-identical).
+
+| Measurement | Baseline |
+|---|---|
+| **Horizontally clipped cells** | **0** |
+| Vertically clipped cells | 3 — all multi-line notes at the shrink floor in a 20 px row |
+| Grid width, unscaled | 797 pt (`date 53 + s0 88 + s1 88 + notes 179` ×2026, `53 + 86 + 86 + 164` ×2027) |
+| Rows | 52 |
+| Excel | 10,169 B · XML valid · header 238/255 · 75 merges, 0 overlapping · portrait |
+| Waterfall PDF | 76,568 B · 612×792 · 204 text ops · 279 rect ops · grid drawn 573.84 pt wide |
+| `v1.0.0-saved.html` restore | 52 rows / 154 cells / 56 fields · 0 clipped · grid 324 pt |
+
+⚠️ **"Clipped cells" has to mean HORIZONTAL clipping.** The first version of the measurement
+counted vertical overflow too and reported 3 failures against unmodified code. Vertical overflow
+is *deliberate* — rows are a fixed height and text is fitted to the row, so a three-line note in a
+20 px row is clipped by design once the shrink floor is reached. Only horizontal clipping is the
+padding trap (§3), and only horizontal clipping is the gate.
+
+✅ **The harness that produced this is now committed** at [`tests/harness/`](tests/harness/), at
+the owner's later instruction to keep undeployed work in the folder. Reproduce with
+`cd tests/harness && ./run.sh base 45`, then diff against
+[`tests/baselines/2026-08-29-stage-7/`](tests/baselines/2026-08-29-stage-7/), which holds these
+numbers plus the actual `.xlsx` and `.pdf`. Several gotchas that each cost a run are written up in
+that README and in PROJECT-CONTEXT §11.
+
+### 2d. Remaining PDF calibration
+
+Measured against the owner's real Excel-exported reference:
+
+| Metric | Excel | App | Δ |
+|---|---|---|---|
+| Page | 792 × 612 | 792 × 612 | — |
+| Body text | 6.96 pt | 7.04 pt | +1.1% |
+| Table top | 54.5 pt | 54.0 pt | −0.5 pt |
+| Grid width | 754.5 | 706.5 | −48 |
+| Grid height | 452.4 | 527.0 | +75 |
+| Row pitch | 8.54 | 9.94 | +16% |
+
+Excel is **width-bound** (its grid fills the printable width exactly and stops 105 pt short of the
+bottom); the app is **height-bound**, so it stretches rows to fill the page. Same fit-to-page
+intent, different binding constraint — and §2c is most of the cause.
+
+⚠️ **This section used to say the row pitch would mostly fall out of Stage 7. It will not** —
+§2c was held on 29 Aug 2026 and the notes columns are staying one column wide. So the app stays
+height-bound, and the +16% row pitch has to be attacked **directly**, on its own terms, with its
+own acceptance gate. Two consequences worth thinking about before anyone starts:
+
+- The gap is a *fit* gap, not a rendering gap. `sheetPageOrientation()` and the whole-percent fit
+  scale in `buildWaterfallPdf()` are where a height-bound grid turns into stretched rows.
+- Whatever is done here is bound by the same constraint that stopped §2c (§4): the PDF must still
+  **look** like v1.0.0's. Closing a row-pitch gap by making the page fit differently is exactly
+  the kind of change that shows. Take the before-export first and diff it.
+
+Two palette entries differ: Pre Prep and Prod Prep are effectively swapped versus the reference,
+and the header row grey is one step lighter (`#D9D9D9` vs `#D0CECE`). ⏹ **Both are now WONTFIX
+too** — they are only "wrong" against the reference, and as of 29 Aug 2026 the reference is not
+the target (§4). Changing either would move the exports away from v1.0.0, which is the one thing
+the rule forbids.
+
+> ⛔ ~~*"the app reserves 54 pt above the grid where Excel reserves ~21.5 (Excel puts its header
+> inside that band)"*~~ — **STRUCK 29 Aug 2026. It is false of the current code.** The app has
+> drawn its header inside the top-margin band, exactly as Excel does, since 28 Aug 2026;
+> `buildWaterfallPdf` says so in terms and its grid origin is unconditionally `MARGIN_PT.t`. The
+> `~21.5` is Excel's *header margin* (0.3 in), which is where Excel puts its header **text** — its
+> grid still starts at its 0.75 in top margin. The table two rows above records that agreement
+> (*Table top: Excel 54.5, App 54.0*). The sentence contradicted its own table, and left standing
+> it would have sent the next session to "fix" a 32 pt band that is already right, inside a
+> function byte-identical to v1.0.0. See [`STAGE-8.md`](STAGE-8.md) §7.
+
+### ⏹ Investigated 29 Aug 2026 — and mostly WONTFIX. See [`STAGE-8.md`](STAGE-8.md)
+
+Stage 8 was taken apart before starting it, because §2c had just been held on a constraint that
+applies here too. **Read [`STAGE-8.md`](STAGE-8.md) before touching any of this.** The short of it:
+
+- **The four geometry rows above are not four items. They are one number.** `buildWaterfallPdf`
+  computes a single whole-percent fit scale and multiplies *everything* by it — every row is
+  `15 pt × scale`. There is no row-height knob. **Row pitch IS the fit scale.**
+- **Excel runs out of width first; the app runs out of height first — and the app gave itself
+  36 pt more height to run into** (`SHEET_PAGE_MARGIN_PT.b` is 18 where the workbook's own bottom
+  margin is 54, reclaimed deliberately as "the one free increase available"). Roughly half the
+  +16% is that one constant.
+- So every route to the row pitch visibly changes the PDF, and §4 forbids that.
+  ✅ **ANSWERED 29 Aug 2026: "v1.0.0" means the app's BUILD, not the reference spreadsheet**
+  (§4 has the owner's words). That closes `STAGE-8.md` §6 and makes the row pitch, the grid width
+  and the body-text size **permanent WONTFIXes**. Do not re-open them; the reference is no longer
+  the target.
+- ⚠️ **The app's PDF and the app's own workbook do not print at the same size** — ~7% apart
+  whenever height binds. That is the app disagreeing with *itself*, independent of any reference,
+  and nobody has decided about it.
+- ⚠️ **The §2d numbers above are not internally self-consistent** — two imply a 64% scale, two
+  imply 66.3%, and the app only ever applies one. Treat +16% as "large and real", not as a target
+  to hit to a decimal place. **Anyone re-opening this needs a fresh reference export from the
+  owner first**; the original is not in the repo and never was.
+
+### 2f. PWA update delivery to installed devices — discussed, not built
+
+Owner question (28 Aug 2026): most users run this as an installed PWA, not a browser tab — how do
+we ship a dev change and get it to actually reach and reload on their devices? Researched, nothing
+implemented yet.
+
+**Where the app already stands, and why it's better than it sounds:** there is no service worker
+and no cache layer (§3, "no service worker"). An installed PWA with no service worker behaves like
+a browser tab on relaunch — it fetches `index.html` fresh from the network every time, no stale
+cache to fight. So "quit and relaunch" already gets the newest deploy, with zero extra plumbing,
+*as long as the fetch actually reaches the network* (see the private-repo thread below).
+
+**✅ The hosting-layer caching question is now answered (29 Aug 2026).** `curl -I` against the
+live URL returns:
+
+```
+cache-control: max-age=600
+etag: "6a9254a0-a18bb"
+```
+
+So GitHub Pages sets a **10-minute** browser cache with an ETag. That qualifies "relaunch always
+gets the newest deploy" without overturning it: a relaunch **within 10 minutes** of the last fetch
+is served from the local HTTP cache and never touches the network; past that the browser
+revalidates against the ETag and picks up a new deploy. The staleness window is **bounded at ~10
+minutes** — nothing like a service worker's indefinite cache, which is why removing the SW was the
+right call, but it is not zero.
+
+Two consequences for the design below:
+
+- A version marker **served from Pages is cached the same 10 minutes**, and Pages does not let you
+  set per-file headers. Poll it with a cache-busting query (`?t=<epoch>`) or accept ~10-minute
+  granularity on update detection. Either is fine; just do it deliberately.
+- **Verifying a deploy** (§5a says poll the live URL for a new symbol) can show a stale 200 for up
+  to 10 minutes. Use a cache-busting query or `curl -H 'Cache-Control: no-cache'` when checking,
+  or you will conclude a good deploy failed.
+
+**The private-repo / SSO complication, worked through with the owner:**
+
+- The app deploys via **GitHub Pages** from `main` (§5a). Free-tier Pages requires the *source
+  repo* to be public. Private-repo Pages needs **GitHub Enterprise Cloud**.
+- GHEC private Pages is **not** a one-time unlock. Every request is checked against a live
+  GitHub/SSO session at request time — there is no "authorize once, then open forever" behavior.
+  A user with an expired or absent session gets denied on that request, full stop.
+- This breaks a silent background update check or fetch from inside an installed, standalone PWA:
+  a `fetch()` has no way to complete an interactive SSO login. If the PWA's context doesn't already
+  carry a valid session, the request just fails — no error surfaced to the user, no update found.
+- **What does still work:** a real top-level page **navigation** (`window.location.href = ...`, a
+  clicked link) to a private/SSO-gated URL behaves normally even from inside a standalone PWA
+  window — the browser shows the SSO redirect/popup, the user logs in, and lands on the page. The
+  failure mode is specific to unattended background `fetch()`, not to navigation.
+
+**✅ BUILT and shipped as v1.2.0 (29 Aug 2026).** The owner chose **`version.json` in this repo**,
+served from the same Pages site — zero new infrastructure, now that the repo is confirmed public
+(D4). As built:
+
+| Piece | Where |
+|---|---|
+| `APP_VERSION` | top of the main IIFE in `index.html`, with the bump warning attached |
+| The marker | `version.json` at the repo root → `…/planning-cal-builder/version.json` |
+| The check | nested IIFE in the PWA block; 8 s after load, then every 30 min, plus on `visibilitychange` when stale |
+| The banner | `#update-notice`, sharing the legacy strip's CSS, dismissable **per version** |
+| The action | `location.reload()` — a real top-level navigation, never a background `fetch()` |
+
+Decisions baked in, each for a reason worth not re-litigating:
+
+- **Never auto-reloads.** The user may be mid-edit; the existing `beforeunload` guard still runs.
+- **Only nags when the server is genuinely ahead** — numeric per-segment compare, so `1.2.10`
+  beats `1.2.9` and a *rolled-back* deploy stays quiet instead of inviting a downgrade.
+- **Silent on `file://`.** A shareable copy is a deliberate frozen snapshot; "update" would
+  navigate its holder away from the file they were sent.
+- **Gives up after 3 consecutive failures**, so a frozen `releases/vX.Y.Z.html` — which resolves
+  the marker relative to its own folder and will never find one — does not 404 twice an hour
+  forever.
+- **The fetch is cache-busted** (`?t=` *and* `cache:'no-store'`), because the marker is served
+  from the same host and inherits the same `max-age=600` it exists to see past.
+
+⛔ **`APP_VERSION` and `version.json` are now part of cutting a release** — see §5g step 0. This is
+the one piece of bookkeeping with a live consequence for people who are not you.
+
+**Still true, and still not built:** if the deploy is ever moved behind GHEC private Pages, the
+marker must move somewhere unauthenticated or the check silently dies against the SSO wall. The
+`location.reload()` form was chosen partly so that day only requires moving the marker, not
+rewriting the mechanism. VPN gating remains explicitly deferred by the owner.
+
+### 2g. Encrypted `.sptcal` — **designed, not built** (28 Aug 2026)
+
+The owner asked for an encryption/decryption method around `.sptcal` "so that only our app can
+read/write it". The full design is in **[`SPTCAL-ENCRYPTION.md`](SPTCAL-ENCRYPTION.md)**. Nothing
+in `index.html` was touched. What matters for the next session:
+
+**The design is blocked on a decision only the owner can make**, and the decision is not about
+cryptography.
+
+The owner's stated assumption is *"our HTML is never accessed — only `.sptcal` is."* Under that
+assumption an app key embedded in `index.html` is a real secret and the scheme gives real
+confidentiality. **The assumption is not true today**, in four ways, all verified this session:
+
+1. The GitHub repo is **public** (`gh repo view` → `isPrivate: false`). Every version of
+   `index.html` is readable forever, including in git history — a key committed once is public
+   from that commit on, and rotating later does not un-publish what the old key encrypted.
+2. The app is served on **GitHub Pages** at <https://greicher1.github.io/planning-cal-builder/>.
+   View Source is the whole attack.
+3. `releases/v1.0.0.html` is a byte-identical copy of the app in that public repo — and the
+   versioning rule in `CLAUDE.md` says to add one of these *every release*.
+4. The `.html` "Export shareable copy" exists specifically to hand someone a working copy of the
+   app, i.e. to give away the HTML.
+   ⚠️ *Corrected 23 Nov 2026 (governance Phase 4):* since v1.21.0 the app is at https://sptcal.pages.dev/ behind a Cloudflare Access sign-in; the old address shows a 'moved' screen (SEC-4).
+
+And one that cannot be fixed: this is a client-side app, so **every user necessarily receives the
+HTML** in order to run it. The assumption can hold against people who don't have the app; it can
+never hold against someone who does.
+
+That is still a useful threat model — "only people with the app can read it" is probably the real
+requirement (cloud sync, mail attachments, a lost laptop, a forwarded file). But it has to be
+*chosen*, because making it true costs the public URL. Three options, laid out with costs in
+§0 of the design doc: **A** make the assumption true (private repo, no public Pages, strip the key
+from the `.html` export), **B** leave the app public and claim only tamper-evidence and
+write-authenticity, **C** passphrase mode — the only option that survives a public `index.html`.
+A and C compose; the container carries both.
+
+**Do not start implementing before the owner picks.** The code is the same either way; what
+changes is what may truthfully be said in the UI, and shipping "your calendars are encrypted" on
+top of option B would be a lie told to users about their production plans.
+
+Design decisions already made, so they don't get re-litigated:
+
+- Container is one ASCII line, `SPTCAL1.<keytok>.<salt>.<iv>.<ct‖tag>`, AES-256-GCM, with the whole
+  header bound in as AAD. Extension stays `.sptcal`; the format is sniffed from content exactly as
+  `parseCalendarText()` already sniffs `{` vs. `<script id="saved-state">`.
+- The app key must be a **keyring** (`APP_KEYS = {1:…, 2:…}` + `CURRENT_KEY_ID`), decrypt by the id
+  in the file, encrypt with the current one, **never delete an entry**. Deleting an old id destroys
+  every file it wrote — see rule 3 in §0.
+- **The `.html` share export is never encrypted**, under any option. That file *is* a copy of the
+  app, so the key would sit kilobytes from the ciphertext. Label it "not encrypted".
+- The IndexedDB crash backup and the undo stack stay plaintext. Same-origin storage the browser
+  already fences; encrypting them adds key-management failure modes to the crash-recovery path.
+- A fresh IV **every write**. The app rewrites the same file on every autosave, and IV reuse under
+  one key breaks GCM catastrophically.
+
+**The one thing that could break Save — ✅ VERIFIED 29 Aug 2026, and it is fine.** `crypto.subtle`
+requires a secure context, and the documented way to run this app is `open index.html` (a `file://`
+origin). Measured in headless Chrome against a real `file://` page:
+
+```
+isSecureContext    true      hasCryptoSubtle   true
+AES-256-GCM round trip with AAD   PASS
+PBKDF2 importKey (passphrase mode, option C)   PASS
+```
+
+So the whole scheme — including option C's passphrase derivation — works from `file://` in Chrome
+today. This was the biggest technical unknown in the design and it is closed. Gate the whole feature on a runtime
+`window.isSecureContext && crypto.subtle` check and fall back to plaintext with a one-time notice.
+A calendar that saves in the clear is a disclosed limitation; a Save button that throws is a lost
+production plan.
+
+**The seam is clean, which is the good news.** Write side: `buildSavedData()` gains an async
+wrapper, three call sites, all already `async`. Read side: `parseCalendarText()` becomes `async`
+and grows a third branch *ahead* of the existing two — exactly one caller (`openRecentFile()`,
+already async). Both existing branches stay untouched, so every pre-encryption `.sptcal` and every
+pre-v1.1.0 `.html` keeps opening through code nobody modified. That is the cheapest possible way
+to honour rule 3 in §0 of this file.
+
+A decrypt failure must **never** fall through to today's "doesn't contain calendar data" message —
+that reads as "wrong file" and sends the user looking for a file that isn't the problem. Four
+distinct messages; see §4 of the design doc.
+
+---
+
+### 2h. ✅ FIXED (round 7) — "Export shareable copy" used to bake in a notice strip
+
+**Found and reproduced 29 Aug 2026 while investigating Stage 8; fixed 31 Aug 2026 in
+`src/legacy/app.js`.** ⚠️ The root `index.html` was still not touched, so the sentence that used to
+stand here — "not fixed, `index.html` was not touched" — is now doubly misleading: the fix is real,
+and it is in the build. Full write-up of the original bug in [`STAGE-8.md`](STAGE-8.md) §4.
+
+**The fix:** `buildSavedHtml()`'s clone now does
+`clone.querySelectorAll('#legacy-notice, #update-notice').forEach(el => { el.hidden = true })`.
+Hidden, not removed — the copy is a working app whose own engine may need to raise them later. It
+**restores v1.0.0's output** rather than changing it, which is why §4 permits it without a ruling.
+The strips themselves are still static markup; porting them to React is now optional tidiness.
+
+The original write-up follows, because the mechanism is worth keeping:
+
+`buildSavedHtml()` serialises a clone and strips `#table-wrap`, `#print-root` and the three
+body-level popover classes. It does **not** strip `#legacy-notice` or `#update-notice`. Both ship
+`hidden` in the markup and are un-hidden at runtime by `el.hidden = false` — which *removes* the
+attribute, and `outerHTML` serialises attributes, not properties.
+
+Proved in headless Chrome (`tests/harness/t/sharecopy.js`): open the real legacy fixture, which
+raises the upgrade strip, then File ▸ Export shareable copy. What came out:
+
+```html
+<div id="legacy-notice" role="status" aria-live="polite">
+  ... <strong>v1.0.0-saved</strong> is an older <strong>.html</strong> calendar. It opened fine ...
+```
+
+No `hidden`. The control assertions in the same run passed — `#table-wrap` *was* emptied and
+`#update-notice` *did* keep its `hidden` — so the test is reading the right file and the strip
+really is the exception.
+
+**What the recipient sees:** a working calendar carrying a permanent banner that names *someone
+else's* file and urges them to upgrade a file they do not have. The same mechanism bakes in the
+blue update banner if one happens to be showing at export time.
+
+**It is a v1.2.0-era regression in an export** — v1.0.0 had neither element — so under §4 fixing it
+is not merely permitted, it is *required*: the fix restores v1.0.0's output. One line, adding the
+two ids to the existing strip list in `buildSavedHtml()`. **Ask before applying it**, like any
+change to `index.html`.
+
+### 2j. Region coverage — ✅ **NI + WALES + GERMANY ADDED** (16 Sep 2026)
+
+31 places / 15 lists, was 27 / 12. Owner asked for these three by name after the city-select shipped.
+
+⛔ **Northern Ireland was the Scotland bug again.** The UK was split into two nations; GOV.UK's feed
+— already consumed by `tools/gen_holidays.py` — publishes **three**. NI = every E&W bank holiday plus
+St Patrick's Day and the Battle of the Boyne. A Belfast shoot had to pick *London* and lost both.
+**If another jurisdiction is ever split, check whether the source has more divisions than you took.**
+
+⚠️ **Germany went in as TWO regions and must stay that way: Studio Babelsberg is in Potsdam =
+BRANDENBURG, not Berlin.** Berlin has International Women's Day and no Reformation Day; Brandenburg
+the reverse, plus statutory Easter Sunday and Whit Sunday (always Sundays, so they never move a
+shoot date — in the law, therefore in the list). 10 days vs 12. Berlin's PLACES entry carries a
+caveat pointing at this; Brandenburg is labelled *"incl. Studio Babelsberg"*.
+⚠️ **Germany has NO substitute-day rule** — a weekend holiday is simply lost. Both use
+`observance="none"` and emit zero `(Observed)` rows. Verified in the generated output.
+
+⭐ **THE REGRESSION CHECK THAT MAKES NEW DATA TRUSTWORTHY — reuse it.** After adding three regions,
+all **12 pre-existing lists still reproduce BYTE-IDENTICALLY** from the generator. Extract `HOLIDAYS`
+from `src/legacy/app.js` and from a fresh `holidays.data.js`, compare each region's JSON. If the old
+ones are unchanged, the new ones came from machinery that provably works. Do this on every future
+region addition — it is a 20-line node script and it is the whole argument.
+
+⚠️ **PROVENANCE IS WEAKER FOR GERMANY AND IS LABELLED AS SUCH.** Every other region cites a union
+agreement that was read. The German entries cite each Land's holiday **statute** (Berlin's Sonn- und
+Feiertagsrecht; Brandenburg's FTG 2003), both read — but the crew agreement, **TV FFS**
+(ver.di / Produzentenallianz), had its holiday clause **NOT** verified. Same shape as `LT`, which is
+also statute-based. Closing this needs someone with access to the TV FFS.
+
+⛔ **`union-place` keys are SAVE FORMAT.** They live in `fields.byId`. Append-only — same rule as
+`PHASE_COLOR_OPTIONS`' array order. Renaming or removing one silently breaks every calendar saved
+with it. **This is why Germany went in as two entries rather than one**: shipping `de-germany` and
+splitting it later would have required a migration.
+
+✅ **FRANCE ADDED 20 Oct 2026** (`FR`, place `eu-france`, appended; LABELS-SETUP-PLAN.md item 8): the film
+agreement's eleven days, no weekend substitution, Alsace-Moselle and the TV solidarity day as the caveat. The §2j
+regression check was rerun and held: the regenerated span minus France is byte-identical to the old span, and
+`validate_holidays.py` is CLEAN on all sixteen lists. A region may now carry its own `verified` date
+(`spec.get("verified", VERIFIED)`), which is what kept every older source line unchanged. ⚠️ Légifrance blocks
+automated reads (403, then a human check); the provenance note in the generator says what was read instead.
+
+**Still missing, in the owner's own priority order if they want more:** Hungary (Budapest — Origo /
+Korda, arguably Europe's busiest service hub), Czech Republic (Prague / Barrandov), Ireland
+(Dublin / Wicklow). Australia has only Victoria — NSW (Sydney) and QLD (Gold Coast) are absent. US
+markets are nearly free to add (one `PLACES` line → `US-GEN`) but each needs checking for an Area
+Standards carve-out first, the way Chicago and San Francisco did.
+
+### 2k. Shooting BLOCKS mode — ⏸ **PLANNED, NOT BUILT** (16 Sep 2026)
+
+→ **[`BLOCKS-PLAN.md`](BLOCKS-PLAN.md)**. Owner asked for a Show-tab toggle between *Episodes* and
+*Blocks*; in Blocks mode you enter a block count and days-per-block, episodes divide evenly among
+the blocks, you drag episodes between blocks, and each shooting week in the **month view** gets small
+subtext naming its block. Owner explicitly asked for it as a separate doc to implement later.
+
+⛔ **The central problem: it introduces a SECOND way to compute Production's length.** Episodes
+already drive it — `showInfoStatus()` sums `episodeDefs[].days` and `computeSchedule` does
+`if(p.key === 'production' && info.complete) rawValue = info.totalShootDays`. Blocks × days-per-block
+can disagree with episodes × days-per-episode. The plan resolves it by making the MODE choose which
+input drives the schedule, inside `showInfoStatus()` (not frozen) so there stays exactly one
+function deciding the total.
+
+⚠️ **AND IT CANNOT USE THE MONTH-VIEW PLAN'S GATE.** That gate's second condition is
+*"`mvNoteLineCount()` row heights unchanged"*, and per-week subtext is **precisely** a height change
+— the feature would fail its own acceptance test. `BLOCKS-PLAN.md` §5 proposes a separate gate whose
+key condition is that the month view is **byte-identical with Blocks mode off**, so no existing
+calendar's PDF can move. The real risk it guards is pagination: taller rows can push a month onto an
+extra page.
+
+✅ **All four rulings received 16 Sep 2026.** Uneven episode splits **front-load** (10 / 3 → 4,3,3);
+a week straddling a boundary names **both** blocks (`Block 1 / 2`); per-block day counts get
+**individual overrides**, which makes Blocks mode structurally identical to Episodes mode — both are
+`Σ rows[].days` with a flat fallback, so `showInfoStatus()` reads a different array rather than
+running a second code path; and the frozen edit is **approved** against §5's gate — ⛔ **with the
+owner seeing both month PDFs (blocks on and off) BEFORE anything is committed.**
+
+⚠️ **Width trap to measure, not assume:** a week can touch THREE blocks once per-block overrides
+allow a block shorter than five shoot days. `Block 1 / 2 / 3` must not overflow or clip the day
+column. Same class of bug as the two padding failures in §3.
+
+### 2i. Month view ↔ waterfall linkage — ✅ **PLANNED AND RULED ON** (16 Sep 2026)
+
+⛔ **STEP 5 (BODY-DRAG) SHIPPED INTO THE WORKING TREE NON-FUNCTIONAL, AND THE REASON IS THE MOST
+REUSABLE THING ON THIS PAGE (found 18 Sep 2026).** The pill could not receive a mouse press at all.
+`.mv-bars` sets `pointer-events:none` — deliberately, with a comment, so the bar layer does not
+swallow clicks meant for the day cells — and `.mv-pill` inherits it. Measured: `elementFromPoint()`
+at a pill's exact centre returned `mv-daycell`, and the pill was **absent from
+`elementsFromPoint()` entirely**.
+
+⚠️ **It had been reported as "behaviour verified: 6 drag cases" because it was driven by dispatching
+events STRAIGHT AT THE PILL NODE, which skips hit-testing.** This is the second time that exact trap
+has been paid for — HANDOFF already carried *"Synthetic PointerEvents are not proof a gesture works
+for a real user"* from the F2-d toolbar regression, and it was written down and then walked into
+again. ⭐ **The cheap check that catches it, and it is two lines:** take the target's
+`getBoundingClientRect()` centre and assert `document.elementsFromPoint(cx, cy)` actually
+**contains** the element. Do that for any new affordance before claiming it works. A `.click()` or a
+dispatched event on the node proves the handler, never the reachability.
+
+✅ **FIXED with a second frozen CSS edit, owner-approved 18 Sep 2026:**
+`#table-wrap .mv-pill{ pointer-events:auto; cursor:grab }` — the same opt-in `.mv-note-click`
+already uses, not a new mechanism. ⭐ **Scoped to `#table-wrap` deliberately:** `#print-root` is a
+SIBLING of `#table-wrap`, so nothing inside it can match, which makes *"the print path is
+untouched"* true by construction rather than by argument. ⚠️ **"Sibling" is wrong — measured
+18 Sep 2026.** `#print-root` is a direct child of `<body>`; `#table-wrap` is
+`body > .layout > main.preview-panel > #table-wrap`. The conclusion stands and is stronger: the
+scoping only needs `#print-root` not to be a DESCENDANT of `#table-wrap`, and
+`#print-root .mv-pill` matches 0 elements. Fix the reason, keep the rule. Neither property renders anyway, but a
+frozen edit should be able to make the stronger claim. ⚠️ Cost, measured on the reference fixture:
+**0 overlaps between the 4 pills and all 118 `.mv-note-click` elements**, and nothing listens on
+`.mv-daycell`, so it is free today — but anything added to a day cell later sits BEHIND the pills.
+
+⛔ **AND ONE DRAG WAS TWO UNDO STEPS.** Every increment calls `update()` → `markDirty()` →
+`scheduleUndoPush()`, which clears and **re-arms** the 500 ms `UNDO_DEBOUNCE_MS` timer; pause longer
+than that mid-drag — which is what aiming looks like — and it fires, banking an intermediate date
+the user never chose. Measured A/B, `2026-01-05 → 01-12 → 01-19` with a 1.5 s pause: one undo landed
+on **`01-12`** before, on `01-05` after. ⭐ **Why no other drag needs this:** `installGridResizers`
+and `beginSpanDrag` mutate only PRESENTATION while dragging and write their store once in `onUp`, so
+`markDirty()` runs exactly once and one step falls out for free. A gesture whose live preview
+requires changing state cannot borrow that, and must bracket itself with explicit pushes and call
+the new `cancelPendingUndoPush()` after each step. Leg `monthdragundo`; no frozen code involved.
+
+→ **[`MONTH-VIEW-PLAN.md`](MONTH-VIEW-PLAN.md) is the live document. Read it, not this section**, which
+is kept only for the survey that produced it. All four blocking rulings are recorded there:
+the frozen edit to `renderMonthView` is **APPROVED** for day-override marks and drag handles against
+a stated gate; half-day remainders **over-deliver**; non-Monday starts are a **per-phase snap
+toggle** defaulting to on; and both views show the **same wrap date**, the waterfall merely
+rounding its displayed day count up.
+
+⭐ **Half days generalised into `dayOverrides`** (`half` / `off` / `on`, keyed by ISO date) after the
+owner asked for week-by-week Production control. The literal reading — give every week its own
+start date — would have turned Production from `{start, days}` into a list of independently-dated
+blocks; one per-day map gives the same power and keeps Production **derivable from its inputs**,
+which is what makes the two views incapable of disagreeing. Dragging moves phases
+**independently**; mid-phase drag is out of scope (no representation — hiatuses are week-granular).
+
+Owner request: *"Help me formulate a plan for how the waterfall cal and month view cal should link
+to each other. Should it be a one way manual push … or should there be a link and unlink button?
+Basically i want users to be able to make more specific changes to the month view (including new
+features such as half days, plus additional comments, showing more holidays, and other
+adjustments)."*
+
+**No code written.** What follows is the survey, so the next session does not redo it.
+
+#### What is actually true today — measured, not assumed
+
+⭐ **The two views are TOTALLY linked on schedule and ALREADY fully independent on annotations.**
+One line does the whole coupling:
+
+```js
+tableEl.innerHTML = (viewMode==='month') ? renderMonthView(schedule)
+                                         : renderSpreadsheetView(schedule);
+```
+
+Same `schedule` object, two renderers. There is no second schedule anywhere. But the month view
+already owns: `dayNotes`, `dayNoteColors`, `mvExtraLanes`, its own header
+(`mvHeaderMode` / `mvHeaderManual` / `mvHeaderFormat`), and `holidayView` is **literally keyed
+`{sheet, month}`**.
+
+⭐ **That reframes the request: two of the four asks need NO linking mechanism at all.**
+*Additional comments* is `dayNotes`, already month-only. *Showing more holidays* is
+`holidayView.month`, already divergent from `holidayView.sheet`. Both are feature work inside the
+month view, not coupling questions. **The linkage question only bites on things that change the
+SCHEDULE.**
+
+⭐ **The day-level hook already exists.** `simulateProductionSchedule()` walks day by day and the
+schedule carries `shootDays` — an ISO array whose own comment reads *"the actual working days
+Production shoots (for the month view)"*. A half-day map keyed by ISO date slots in beside it.
+
+#### The recommendation given (owner has not ruled)
+
+**Neither a manual push nor link/unlink. A third model:** the schedule stays single-source and
+always live; the month view owns a DECORATION LAYER on top that never feeds back.
+
+- ⛔ **Against link/unlink:** the moment the month view can hold a different schedule, the Excel
+  export and the month PDF can disagree about the wrap date. That is the exact class of bug this
+  project spent weeks killing — three independent column-width systems, and `computePhaseRowLayout()`
+  made the single source. Reintroducing a divergent source cuts against the grain of the codebase.
+- ⛔ **Against manual push:** it makes the month view stale by default. A confidently-wrong month PDF
+  is worse than none, and it creates the same "which one is right?" moment, just less often.
+
+#### ⚠️ "Half days" is TWO different features and the answer changes everything
+
+| | What it is | Where it belongs | Cost |
+|---|---|---|---|
+| **Cosmetic** | Shading/label; does **not** move the wrap | Month decoration layer | small |
+| **Semantic** | Counts 0.5 toward the shoot-day total, so the wrap **moves** | `computeSchedule` — it is a fact about the SHOOT, not a rendering; must show in BOTH views | ~3–4× |
+
+#### ⛔ THE BLOCKER: `renderMonthView` IS THE MONTH PDF
+
+542 lines (`renderMonthView` → `renderSpreadsheetView` in `src/legacy/app.js`), and **frozen** — not
+as chrome, but because `exportMonthPdf` injects its output into `#print-root` and prints it
+(`MANTINE-SEAM.md` §5.2). Every visual item on the owner's list — half-day shading, extra holiday
+rows, more comment lanes — edits it. Per `CLAUDE.md` that needs **explicit owner sign-off plus an
+acceptance measurement agreed up front**. H2 and H6 are already parked on exactly this.
+
+**Proposed gate, not yet ruled on:** month PDF diffed against a pre-change export with only the
+intended new elements differing, and `mvNoteLineCount()` row heights unchanged.
+
+#### The two questions the owner still owes
+
+1. **Cosmetic or semantic half-days?**
+2. **Do any of the "other adjustments" move dates?** That is the line between a contained decoration
+   layer and a much larger change.
+
+Next step once answered: write `MONTH-VIEW-PLAN.md` (the convention `COLUMN-ORDER-PLAN.md` /
+`HEADER-PRESETS-PLAN.md` follow), so the frozen-edit ruling is made **once against a concrete list**
+rather than per feature.
+
+### 2l. PWA-only access (the hosted link installs the app; a browser tab never runs it): ✅ BUILT, gated, and MERGED into local main as `fbc7b35` (owner's picker, 30 Sep 2026); NOT pushed: the owner chose to ship it with the next release
+
+**The ask (owner, 30 Sep 2026):** users should only use SPTCal as the installed PWA. In Chrome/Edge, a first visit to the hosted link shows only a big, centred install button. Once the app is installed, opening the link in a tab shows a large "use the app" message. Edge is a nice-to-have.
+
+**Rulings (owner, verbatim):** *"1. wording looks good. 2. Lets use install. 3. next release. 4. Contact Graham Reicher for help. 5. yes 6. yes 7. yes. 8. solid navy. 9. no."* (D1–D9 in `PWA-ONLY-PLAN.md` §9.)
+
+**How it works:** a classic script at the top of `src/index.html`'s `<head>` decides before anything paints.
+- On https + `greicher1.github.io`, in a window that is NOT an app window, `<html data-app-gate="<screen>">` shows `#app-gate`, and `main.jsx` skips `root.render` and `initLegacyApp()`.
+- There are nine screens: checking, install, box, cancelled, done, already, menu, other, phone.
+- The resolver is pure (`window.__appGate.decide`); "installed" beats "installable".
+- `beforeinstallprompt` is captured in the head, and `getInstalledRelatedApps()` recognises installs.
+- A tab that Chrome turns into the app window reloads into the app.
+- ⛔ **The window check (`display-mode`) runs first and fails OPEN.** July's gateway (`ffadc6d` → `edaf49b`) locked installed users out.
+- Never gated: `file://` and localhost.
+- Test hooks (localhost only): `?gate=<screen>`, `?gate=live`, `?brand=`, and `localStorage sptcal.gateTest='live'`.
+
+**Manifest:** `related_applications [{platform:"webapp", id:"https://greicher1.github.io/planning-cal-builder/"}]` and `launch_handler focus-existing`, both appended. ⛔ No `id` key: the COMPUTED id is the installed identity (measured with `Page.getAppId`), and `check-build` guards it.
+⚠️ *Corrected 23 Nov 2026 (governance Phase 4):* since v1.21.0 the manifest's id and `related_applications` are https://sptcal.pages.dev/ (SEC-6), and the gate runs on that address.
+
+**Retired:** `#install-app-btn` (D6). Its engine listener, CSS rule and bridge entry are gone.
+
+**Proved:**
+- `check-build` 25/25.
+- `pwagate` 13/13 and `pwagatelogic` 10/10, in `gate.sh` at the START of the AFSPEC list. Three mutations turn them red: engine under the gate 9/13, a smaller button 5/13, installable over installed 2/10.
+- Full gate 666/0 on 9577784, and 686/0 rebased onto 80ebd56. After the final rebase onto fb19bd7 (L-11), `npm run check` 25/25 and both legs were re-run; the next full gate covers the merge.
+- `fence` A/B against the base: 511 entries, 0 differences.
+- **Real headful Chrome 154** with a renamed test app: first visit shows INSTALL with the real prompt captured; a tab after install shows ALREADY INSTALLED; **the installed app window boots the app** (standalone, no gate, 6 phase rows).
+
+**⏭ Owed by hand, after deploy:**
+- The tab turning into the app window after an install from the big button. This was only proven synthetically: CDP `PWA.openCurrentPageInApp` hung.
+- "Open SPTCal" being captured into the app.
+- Edge's menu wording.
+- On the owner's own machine: a tab shows ALREADY INSTALLED, and the installed app still boots.
+
+**⚠️ Traps:**
+- The Edit tool drops a trailing space at the end of `new_string`. It produced `rel="manifest"href=`, and `check-build` caught it.
+- Flex drops the spaces around inline span pairs.
+- A CDP `PWA.install` leaves the app set to open in a browser TAB, so call `PWA.changeAppUserSettings({displayMode:'standalone'})` first.
+- ⛔ A crashed headful probe leaves an app shim in `~/Applications/Chrome Apps`. Remove only a shim whose `CrAppModeShortcutURL` is the probe's `localhost`; the owner's real `SPTCal.app` is beside it.
+
+**Owner's picker (30 Sep 2026):** commit on the branch ✅; merge into local main between batch-4 commits ✅ (`fbc7b35`, on top of `fb19bd7`); the CLAUDE.md rule "The hosted link boots the app only in the installed app window", added as shown ✅; push: **not yet**, it ships with the next release cut.
+
+**Where things are:** branch `pwa-gate` and worktree `.claude/worktrees/pwa-gate` remain. The plan and as-built notes are `PWA-ONLY-PLAN.md` §§9–11.
+
+### 2e. Known, deliberately left alone
+
+- **Month view** still tints phase bars with the palette's `textColor`; the waterfall was changed to
+  black text and the month view was not. Flagged to the owner, not acted on.
+- **Switching to Month view and back** lands the waterfall at the top. The waterfall's scroll
+  container does not exist while the month view is up, so there is nothing to restore onto.
+- **`hiatusTexts` / `hiatusColors` shifting** now respects locked and pre-cutoff bands, but the
+  guard is a different rule from `isPinnedWeek` (which is about date-pinned *notes*). Do not
+  "unify" them — they are deliberately separate.
+- **Font subsetting is build-time only** (`tools/subset-font.py`); PDFs embed the full subset rather
+  than subsetting per document.
+
+## 4. What NOT to do
+
+**Do not push without being asked.** This is first because it is the one that actually went wrong.
+In this session the owner authorised a push once ("lets push and commit all") and the agent then
+pushed a further six times unprompted. `main` auto-deploys to a live site used by other people.
+See §5 for the process that replaces this.
+
+**Do not touch the grid or the exports.** `#table-wrap` and `#print-root` and everything inside
+them, the width-model constants (`EXCEL_MDW`, `SHEET_ZOOM`, `EXCEL_CELL_PAD`, `COL_PAD_CHARS`,
+`ROW_DEFAULT_PX`), the layout and text-fitting functions, and the Excel/PDF writers are **frozen** —
+see `CLAUDE.md` for the exact list. This is not a style preference. Every number in there is a
+measured answer to a specific failure: Excel floors MDW to 7 when the true advance is 7.4336; the
+model budgets 3.75 px of cell padding and anything more silently ellipsis-clips (it has landed
+twice); `computePhaseRowLayout()` is the one source four consumers share, and its previous
+three-way divergence is why the PDF never matched an Excel print. **No third-party CSS baseline
+may reach these elements** — Mantine's `global.css`/`baseline.css` must be fenced into a `@layer`
+the grid rules outrank. The UI work in `MANTINE-MIGRATION.md` stops at this boundary.
+⚠️ *Corrected 23 Nov 2026 (governance Phase 4):* as built the fence is import order (Mantine's layered files first, the app's unlayered legacy.css last), not a hand-written @layer (FRZ-8).
+
+**Do not change how the exports LOOK.** New rule, from the owner, 29 Aug 2026:
+
+> *"the output must not be changed — how the excel looks and the pdf looks should be exactly as
+> 1.0.0 was — the editable grid in the app could have a reconsideration on design, but the goal is
+> to not deviate from the exports too much so it could be easy to understand for new users coming
+> from the old version"*
+
+…and, asked directly whether "1.0.0" meant the app's build or the reference spreadsheet, the owner
+settled it the same day:
+
+> *"the build's output should stay the same — even better if using the same render engine —
+> specifically the operating waterfall grid which outputs excel or pdfs — the pdfs should look
+> exactly the same as it exported in v1.0.0 — on the other hand — the full calendar system (the
+> grid, is that what we're calling it?) can be redesigned under MANTINE"*
+
+**So: v1.0.0 THE BUILD, not the reference spreadsheet.** That closes `STAGE-8.md` §6 and makes the
+row pitch, the grid width and the body-text size permanent WONTFIXes. It also adds a preference
+that is stronger than "don't change the output": **keep the same render engine.** Do not rewrite
+`buildWaterfallPdf` or `exportExcel` — leave the writers alone and let them keep producing what
+they produce.
+
+⚠️ **"the grid, is that what we're calling it?" — no, and the mismatch is dangerous.** In these
+docs **"the grid" means the frozen thing**: `#table-wrap`'s contents, the width model and the
+shared layout functions. The owner used it to mean the whole calendar system. Both readings appear
+in the same paragraph above, so read the freeze rule in `CLAUDE.md` by its *symbol list*, never by
+the word "grid". [`MANTINE-SEAM.md`](MANTINE-SEAM.md) fixes the vocabulary properly.
+
+**What this permits, verified by hand 29 Aug 2026** — the good news is that "same render engine"
+is nearly free:
+
+| | DOM references |
+|---|---|
+| `buildWaterfallPdf` | **zero** |
+| `exportExcel` | **three**, all in its last lines: the download anchor, `#show-title` for the filename, and appending the anchor |
+| `cellTextFit`, `sheetColumnWidths`, `computePhaseRowLayout`, `sheetRowCount`, `sheetGridMetrics`, `sheetPageOrientation` | **zero** |
+| `computeHeaderDefaults` | five form fields, read by element id |
+
+The direct PDF writer is pure computation over module state and a measuring canvas. It does not
+know the DOM exists, so **a Mantine migration cannot break it as long as the module state and the
+form-field ids survive** — and those ids are already frozen by the save-file format. The Excel
+writer is the same but for its filename read.
+
+> ⚠️ This table first said `exportExcel` had **four**. It has three — the fourth grep hit was the
+> substring `officedocument.` in the xlsx MIME type, a false positive from matching `document\.`
+> without a word boundary. Caught by the seam investigation, verified, corrected here. Worth
+> keeping as a reminder that `grep 'document\.'` over this file over-reports.
+
+⚠️ **But "cannot break the writers" is not the same as "cannot break the exports."** There are
+**four** outputs, not two, and the other two ARE the DOM: the print-fallback waterfall PDF
+(`exportWaterfallPdf`, live when `WF_PDF_MODE === 'print'`) and `exportMonthPdf` both inject
+`renderSpreadsheetView()` / `renderMonthView()` into `#print-root`, style it with the app's own
+stylesheet, measure it with `getBoundingClientRect()` and print it. The full seam — including
+seven **unguarded** `#table-wrap` listeners that run at IIFE-evaluation time, and print selectors
+written as **child** combinators that a React root would silently break — is in
+[`MANTINE-SEAM.md`](MANTINE-SEAM.md). Read it before any Mantine stage.
+
+⚠️ **The two DOM-dependent PDF paths are the exception**: the print fallback
+(`WF_PDF_MODE === 'print'`) and `exportMonthPdf` both render HTML into the page and call
+`window.print()`. Those *do* depend on the on-screen renderer and on print CSS, and a redesign can
+destroy them while the direct writer sails through untouched.
+
+**And the on-screen grid is already NOT a faithful preview of the printout**, which is what makes
+redesigning it cheaper than it sounds. Measured against the committed baseline: columns run at
+1 screen px per point (`charsToScreenPx` is used as pixels on screen and as *points* in the PDF),
+but rows run at 20 screen px per 15 pt (`ROW_DEFAULT_PX` × `ROW_PX_TO_PT`). So for the same width
+the screen grid is **~33% taller** than the printed one — 797 × 1060 px on screen against
+797 × 795 pt in the PDF, both from `tests/baselines/2026-08-29-stage-7/`. There is no
+pixel-fidelity guarantee to give up here, because there never was one.
+
+This sits *beside* the frozen-surface rule above, and it is stricter in one direction and looser
+in another, so read both:
+
+- **Stricter:** the freeze is no longer only about the code. The Excel workbook and the waterfall
+  PDF are frozen in **appearance**. A change that leaves the frozen functions alone but moves,
+  re-aligns or re-widths what comes out of them is still out of bounds. The reason is users, not
+  tidiness: people are coming to this from the old version and the printout has to be the document
+  they already know.
+- ~~**Looser:** the **editable grid on screen** explicitly *may* be reconsidered on design.~~
+  ⛔ **NARROWED BY THE OWNER, 29 Aug 2026 — this latitude is withdrawn by default.** See the rule
+  immediately below. What survives of it: the *word* "may" was never permission to touch the width
+  model, `computePhaseRowLayout()` or the writers — those are frozen by §0 rule 2, and the screen
+  shares them with the exports, which is precisely how a "screen-only" change stops being
+  screen-only.
+
+**Do not redesign the on-screen waterfall editor either.** The owner's words, 29 Aug 2026, given
+as a standing UI convention:
+
+> *"the waterfall editor and output is to remain as similar to as it is right now to retain its
+> identity to user-comfortable conventions of the past, unless given specific instructions from
+> the user. This includes formatting styles, auto shrinking, font, font size, width and heights
+> etc etc. Outside of the actual grid and export, all is fair game"*
+
+This **supersedes** the "Looser" bullet above, which had read the owner's earlier *"the editable
+grid in the app could have a reconsideration on design"* as open latitude. It is not. The default
+is now **hold the waterfall editor as it is**; a redesign of it needs a specific instruction, not
+an inference from a general permission to modernise the app.
+
+Read it by what it names, because it names mechanisms and not just looks:
+
+| Named in the instruction | The symbols it means |
+|---|---|
+| formatting styles | the `.sheet-*` CSS, cell alignment, the block separators, `SHEET_GRIDLINES` |
+| **auto shrinking** | `cellTextFit`, `wrapLineCount`, `clampChars` — the line-budget model |
+| font, font size | `'Carlito','Calibri'` at 11 px, the per-cell `noteFontSize` / `hiatusFontSize` |
+| width | `EXCEL_MDW`, `COL_PAD_CHARS`, `charsToScreenPx`, `sheetColumnWidths`, `colWidths` |
+| heights | `ROW_DEFAULT_PX = 20`, `rowHeights`, the row-snapping behaviour |
+
+The reason is the same one that froze the exports, applied one layer further in: **users are
+arriving from the old version and the thing they work in every day has to stay the thing they
+recognise.** Identity, not tidiness.
+
+**The boundary this draws, stated exactly** — because a UI pass runs straight into it:
+
+- **Frozen:** anything that changes what a grid cell *looks like* or *how much text fits in it*.
+- **Fair game:** the chrome that surrounds the grid, and the floating panels *anchored to* it. A
+  note editor popover is a body-level panel, not grid markup (that is the whole point of
+  `.note-pop`, §6) — so its own padding, typography and controls may be redesigned. What may
+  **not** change is the note's rendered size, wrapping or shrink behaviour once it lands back in
+  the cell.
+
+This is what stopped §2c dead at its acceptance gate. Before proposing anything that touches the
+grid, work out whether it can change the exports **at all** — and if it can, ask first, with the
+before-and-after in front of the owner.
+
+**Do not break a saved calendar.** Open never executes an old file's code — it lifts the
+`saved-state` JSON out and replays it into the *running* app (§7). So the snapshot schema is a
+permanent contract: never rename, remove or repurpose a `captureSnapshot()` key; never restore
+conditionally; a missing key falls back to a default, never to what is already in memory. And
+**`fields.byId` is keyed by DOM element `id`**, which makes those ids part of the file format
+rather than an implementation detail. `CLAUDE.md` has the full rule.
+
+**Do not let a substantial change ship without a changelog entry.** `README.md`, newest first,
+written with the code and not afterwards. `CLAUDE.md` has the rule; §5g has the shape.
+
+**Do not report a fix without evidence from a real browser.** Reading the code is not verification.
+The owner expects concrete before/after numbers.
+
+**Do not trust your own measurement harness without sanity-checking it.** Every one of these
+produced a confidently wrong report this session:
+
+- Compositing a transparent PDF page onto black instead of white (both the reference and the app's
+  PDF have transparent backgrounds — the "all black page" was the measurement, not the PDF).
+- `sips` renders a PDF's CropBox; the Read tool renders its MediaBox. The reference has a CropBox.
+  Rewrite it to the MediaBox — with a **byte-length-preserving** edit, or every xref offset breaks.
+- Reading `wrapText` from `sheet1.xml`. ExcelJS writes alignment into `styles.xml`.
+- Keying screen widths by column *role* in an object — `date`/`notes` repeat, so 11 columns
+  collapsed to 7 and a comparison "failed."
+- Clicking an off-screen cell programmatically and then blaming the app for scrolling it into view.
+- A Python edit helper that `sys.exit(1)`'d on a failed match but only wrote the file at the end,
+  silently discarding three edits that had already printed "ok". **Write per edit.**
+
+**Do not put transient UI controls behind an `id`.** `collectFieldValues()` sweeps every
+`input[id]` / `select[id]` / `textarea[id]` in the document into saved files *and* the undo stack.
+The note editor's day/size selects use classes for exactly this reason, and the toolbar popovers are
+excluded via `el.closest('.tools-menu')` — matched on the **class**, deliberately not an id, because
+an id-based test quietly stops matching when markup is reorganised.
+
+**Do not add persistent state in one place.** New state must go in **both** `captureSnapshot()` and
+`applyStateSnapshot()`, plus the resets, plus the shift re-key if it is week-keyed. Miss one and it
+silently fails to survive a save — or worse, survives an undo it should not have.
+
+**Do not restore a store conditionally.** `if (snap.x) x = snap.x` leaves the *previous* file's
+values in place when the snapshot has no such key. Always `snap.x ? {...snap.x} : {}`.
+
+**Do not split the file.** Self-containment is load-bearing: saved calendars *are* copies of
+`index.html`.
+⚠️ *Corrected 23 Nov 2026 (governance Phase 4):* saved calendars stopped being copies of the app with v1.1.0 (.sptcal); the one-file rule was declined by the owner (CODE-5, 23 Nov 2026).
+
+**Do not "fix" the deliberate scheduling behaviours** listed in PROJECT-CONTEXT §3 — hiatuses
+pausing rather than consuming weeks, the day-level Production simulation, the lane-assignment rule
+that forbids a later phase sitting left of an earlier one still running. Each looks like a bug and
+is not.
+
+## 5. Agreed conventions
+
+### 5a. Commit and deploy — the hard gate
+
+⚠️ *Corrected 23 Nov 2026 (governance Phase 4):* since 21 Nov 2026 commits on your own branch are free and merge and push are asked (REL-4); since v1.21.0 main deploys to Cloudflare Pages behind the sign-in, and to GitHub Pages only for the switch-over (REL-3, SEC-4).
+
+`main` auto-deploys to GitHub Pages (~40–60 s) and **other people use that site live**.
+
+1. Make the change. Verify it in a real browser.
+2. Report what was verified, with concrete numbers.
+3. **Ask** — with an interactive checkbox picker — whether to commit, and whether to push/deploy.
+   Never infer it from "that looks good" or from having asked earlier in the session. Approval is
+   per-action, not standing.
+4. Only after an explicit yes: commit, push, then verify the live URL actually serves the change
+   (poll for a known new symbol; ~45 s is typical).
+
+Committing locally while waiting is fine and expected. Pushing is not.
+
+### 5b. Session migration — watch the context window
+
+⚠️ *Corrected 23 Nov 2026 (governance Phase 4):* the reading order is now the rules (loaded by CLAUDE.md), then HANDOFF's current part, then only what the task touches (WORK-8).
+
+Long sessions degrade: context gets summarised, details get lost, and the agent starts re-deriving
+things it already knew. **Proactively** — do not wait to be asked — tell the owner when the session
+is getting long, and recommend:
+
+1. Save all work (commit locally at minimum).
+2. Update this file with anything learned since it was written.
+3. Start a fresh session and point it at `CLAUDE.md` → `PROJECT-CONTEXT.md` → `HANDOFF.md`.
+
+Raise it *before* quality drops, not after.
+
+### 5c. Working style the owner has asked for
+
+- **Discuss before building** anything substantial: *"explain to me exactly how X will work before
+  you build it."* Mockups help.
+- **Research before choosing an approach.** The spreadsheet-engine question was explicitly
+  "research this before you build anything."
+- **Be honest about what was and wasn't verified.** Corrections are welcomed, not penalised — a
+  wrong claim about US holiday uniformity was retracted and that was the right call.
+- **Take pushback seriously.** If the owner questions a finding, re-examine it rather than
+  defending it. The owner was right to reject the Office Add-in approach (the month view needs the
+  same data), and right that column dragging "felt weird" (it was a real table-width bug).
+- **Do not pad estimates.** "Why an hour?" was a fair challenge to a padded number.
+- **One thing at a time.** *"Before we get too complicated, let's do one thing at a time."*
+
+### 5d. Keep this file current
+
+Updating `HANDOFF.md` is part of doing the work, not a chore afterwards. After anything
+substantial — a feature, a fix that taught you something, a decision about how something should
+behave, any owner request touched — write it down here in the same breath as the code. A stale
+handoff is worse than none, because the next session will act on it and be confidently wrong.
+`CLAUDE.md` makes this the first rule in the file for the same reason.
+
+### 5e. Commit messages
+
+Long and explanatory: **what changed, why, what was verified**, including the bug history where it
+is relevant. Read `git log` for the tone. Every commit ends with:
+
+```
+Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
+```
+
+Match whatever model is actually doing the work.
+
+### 5f. Code comments
+
+Comments explain **why** — the bug, the browser constraint, the failure that motivated the code —
+often at length. Match that, and **keep existing explanatory comments intact** when editing nearby.
+These comments are the project's real documentation.
+
+---
+
+### 5g. Versioning and the changelog
+
+⚠️ *Corrected 23 Nov 2026 (governance Phase 4):* a version cut bumps src/legacy/app.js, version.json and package.json, never the root index.html (REL-10).
+
+`README.md` holds the changelog, newest first, under the marker comment. It is updated **with**
+the code, not batched at the end of a session.
+
+A **version** is cut when the app reaches a state worth being able to return to. Cutting one means
+all **four** of:
+
+0. ⛔ **`APP_VERSION` in `index.html` and `version.json` — bumped together, same commit.** Since
+   v1.2.0 the deployed app compares these to tell installed users an update exists. Bumping one
+   without the other either cries wolf at every user or silently suppresses a real update. Listed
+   as step zero because it is the one with a live consequence for people who are not you.
+1. A changelog entry in `README.md` saying what the version *is* and what its known limits are.
+2. `git tag -a vX.Y.Z` — immutable history.
+3. `releases/vX.Y.Z.html` — a byte-identical copy, verified with `cmp`/`shasum`.
+
+The tag and the copy are not redundant. The tag is how you diff, branch and bisect; the copy is
+the one you can hand someone or double-click when the build system has moved on and `index.html`
+is no longer a runnable app. **v1.0.0** (28 Aug 2026, `305c343`) is the last single-file build
+before the Mantine overhaul, and is the baseline everything after it is measured against.
+
+## 6. UI conventions
+
+### Toolbar
+
+- The **filled** (primary) button is the one that exports a **PDF**. In the waterfall that is
+  *Export Waterfall to PDF*; in the month view the main button *becomes* the PDF export, so it
+  takes the fill there instead. Excel export is the plain white button.
+- `.tb-btn` styling must stay off the sidebar button rules (`button.primary:not(.tb-btn)`), or the
+  larger sidebar padding makes one toolbar button taller than its neighbours.
+
+### Footer — there isn't one, and that is deliberate
+
+The layout is **header + sidebar + preview**, full stop. `footer.assumptions` survives in the CSS
+but nothing renders it — dead rules from an earlier version. Asked directly
+during the Mantine scoping (28 Aug 2026), the owner's answer was **no footer now and none
+foreseen**. Do not add one on your own initiative, and do not treat the dead CSS as evidence that
+one is planned.
+
+If a footer is ever revisited, these are the considerations already worked through, so they don't
+have to be rediscovered:
+
+- **A slim status bar** is the only version that earns its space: save state, total week count and
+  the active region. Its real argument is that it would move the `.save-status` chip out of the
+  top toolbar, ~~which already wraps to two lines below 1280 px~~, and give warnings a permanent
+  home instead of the six different looks they have now (`#gap-warning`, `.tools-msg`,
+  `.placeholder-note`, `.snap-note`, `#union-lock-hint`, `#custom-hol-err`).
+
+  ⚠️ **The struck clause is wrong, and it was half the argument.** Measured in a real browser
+  29 Aug 2026 (`UI-CONVENTIONS.md` §2): the **header** toolbar wraps between **~848 px** (empty
+  app, short status string) and **~1018 px** (long file name, longer status) — it is
+  content-dependent, bounded by `.file-menu-btn`'s `max-width`, and never wraps at 1280 px. What
+  *does* wrap near there is the **preview** toolbar (`.view-toggle-row`), at **~1185 px**, going
+  to **75 px** tall — which is the measurement PROJECT-CONTEXT records under "the toolbar", one
+  section over. Two different toolbars, and this bullet credited the wrong one.
+
+  The warning-count half of the argument stands and got stronger: the real count is **32 feedback
+  surfaces**, not six. That is now designed out in `UI-CONVENTIONS.md` §4, without a footer.
+- **A print-only assumptions line** — region, holiday set, days-per-episode, printed under the
+  calendar — is a genuinely useful idea and is **out of bounds by default**: it would mean editing
+  the frozen PDF/Excel writers. It is a separate ask with its own acceptance gate (§0 rule 2), not
+  something folded into a UI change.
+- **Vertical space is the preview's**, not the chrome's. The waterfall is the product; anything
+  permanently pinned to the bottom is taken from it. That is most of why there is no footer today.
+
+### The grid
+
+- **All phase columns within a year block share one width.** Two phases each holding one column
+  must look equal; columns differing by 15% make an even split read as a mistake.
+- **Every row is the default height** (`ROW_DEFAULT_PX = 20`) unless dragged. Text is fitted to the
+  row, never the row grown to the text — on screen, in the PDF and in the workbook alike.
+- **Dragging a row snaps** to the default and to any height already set on another row (4 px), and
+  the handle turns green while it holds.
+- **Phases running at the same time divide the width evenly** — two take half each, three a third,
+  four a quarter. A phase running alone fills the area.
+- **Grid text is black.** Notes and hiatus bands are the exception: they pick black or white for
+  contrast against their fill.
+- Interior gridlines are **off** by default, matching the reference export.
+
+### Editing
+
+- Editors are **popovers anchored to what they edit**, appended to the body — never markup injected
+  into the grid. The grid must keep exactly the shape it had. This applies to the note/hiatus
+  editor, the month-view note editor, and the phase colour picker.
+- A popover that outlives its anchor must be torn down: `render()` rebuilds the grid, and a
+  body-level popover would hang over the calendar pointing at nothing.
+- A popover anchored inside the scrolling grid must reposition on **scroll (capture phase)** and
+  **resize**, and clamp itself into the window.
+- **Direct manipulation over dialogs.** Resizing, filling a cell, changing a row height are all
+  drag-or-double-click on the thing itself. Double-click means "back to automatic."
+- **The preview never jumps.** Every edit re-renders; scroll position — inner pane and window — is
+  restored, and the window is anchored to *where the preview sits on screen*, not to a scroll
+  number.
+
+### Tone of user-facing copy
+
+~~Descriptions exist to answer a real question. Anything true of *every* option must not appear in one option's description — it reads as a distinction while distinguishing nothing. (The four calendar adjustment tools are the worked example; see CLAUDE.md.)~~
+
+⚠️ *Corrected 23 Nov 2026 (governance Phase 4):* declined as a rule by the owner on the review page (COPY-6). Descriptions are governed by UX-4.
+
