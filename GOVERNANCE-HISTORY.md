@@ -618,6 +618,7 @@ Dates: 2026-10-22, 2026-11-03
 ### TEST-6 · One full gate at a time, and leave the checkout alone while it runs
 Dates: 2026-09-09, 2026-09-18, 2026-10-22, 2026-11-10
 - 2026-11-23 (governance Phase 4): the full gate to run in its own worktree at the commit being tested, on the owner's picker 'Gate in its own worktree' (decision 3, as recommended); not yet tried, so recorded as a known mismatch until the trial run.
+- 2026-11-24 (governance Phase 5): the known mismatch is settled, on the owner's picker 'Settle it' (as recommended). The trial ran a full gate in its own worktree at 2176244f, beside other sessions' work (1 h 53 min, load average 5 to 7). Its record named the commit, a clean tree and the build's sha256. It failed 9 checks: 3 passed alone (load), and 4 tests main had outgrown failed alone too (notelook M2, dblclickdlg D10-D12, settingswin W10, sideboxes S12; tracker card gate-legs-behind-main). Every baseline was byte-identical.
 
 ### TEST-7 · Pass HARNESS_PAGE=/dist/index.html when testing the build
 Dates: 2026-09-01
