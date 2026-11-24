@@ -48,14 +48,17 @@
     created; `git ls-remote` confirms). Claude Code's docs (permission-modes, "Rules in auto mode") say an `ask` rule
     resolves to a prompt even in auto mode, and `Bash(git push:*)` is the right syntax, so either the desktop app does not
     load the tracked `.claude/settings.json` or ask rules behave differently there. Recorded as a known mismatch on REL-1.
-    **The probe that tells the two apart is ready:** local branch `gov-probe` (never merge it) adds a `deny` rule for the
-    harmless `echo governance-deny-probe`; a fresh session cut from it runs that one command. Refused means the file loads
-    (then report the ask-rule behaviour as a bug, or use a deny rule); printed means the app ignores project settings (then
-    the shared file holds nothing, and the push guard in Phase 5 is the real stop). Delete `gov-probe` afterwards.
+    **Probe result, 24 Nov 2026 (owner: "Start the probe"):** a fresh desktop session (auto mode) cut from a throwaway branch
+    whose `.claude/settings.json` denied the harmless `echo governance-deny-probe` ran it and printed it: no refusal, no
+    prompt. The file was on disk with the rule (checked). **So desktop sessions do not apply the tracked project settings'
+    permission rules, deny or ask.** The shared file holds nothing there (it may still work in the terminal CLI), and the
+    Phase 5 pre-push git hook is the real stop. Learned too: the app copies the main checkout's
+    `.claude/settings.local.json` and `launch.json` into every new worktree, which is how 13 worktrees had the old push
+    allowance. The probe branch `gov-probe` was deleted.
 - **When this merges into a checkout:** the main checkout's untracked `GOVERNANCE-PLAN.md` must be moved aside first (the
   committed copy is newer), and `scenario-version-offer` will conflict on HANDOFF.md, because the entries it edits moved
   to the archive. Resolve by keeping this branch's HANDOFF and re-adding any new entry at the top of START HERE.
-- **Next:** the settings probe (the owner picked *"Run it now"*; a session can be started from branch `gov-probe` only on the owner's own message, not from an automated turn, and a proposal card drops the branch), then Phase 5 (the checker, the pre-push guard, the reminder hook with
+- **Next:** Phase 5 (the checker, the pre-push guard, the reminder hook with
   decision 5's line, the gate-in-its-own-worktree trial run).
 
 ### 🪟 23 Nov 2026: HELP OPENS ON TOP OF EVERY MENU — branch `help-on-top` (worktree `.claude/worktrees/help-on-top`, off
